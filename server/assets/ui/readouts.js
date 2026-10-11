@@ -451,14 +451,16 @@ async function tick() {
     /* Flash wear is independent of panel type, but the counters do not exist
        on webOS 3.x - drop the cells rather than print "unknown" twice. */
     const wear_ = !(d.capabilities && d.capabilities.emmcWear === false) && !(d.emmc && d.emmc.wear === 'unknown');
-    q('flashwear-cell').hidden = !wear_;
-    q('flashhealth-cell').hidden = !wear_;
+    q('flash-line').hidden = !wear_;
     if (wear_) {
-      q('flashval').textContent = (d.emmc && d.emmc.wear) || '—';
       /* emmc.health is the wear band inverted - the same register, arithmetic
          the other way up - so showing both said one thing twice. pre_eol_info
-         is a separate register and the only one that can warn on its own. */
-      q('flasheol').textContent = (d.emmc && d.emmc.eol) || '—';
+         is a separate register and the only one that can warn on its own:
+         Warning or Urgent colours the line. */
+      const eol = (d.emmc && d.emmc.eol) || '';
+      q('flash-line').textContent = t('metrics.flashWear.line', 'Flash wear {wear} · health {eol}',
+        { wear: (d.emmc && d.emmc.wear) || '—', eol: (eol || '—').toLowerCase() });
+      q('flash-line').style.color = eol === 'Urgent' ? 'var(--red)' : eol === 'Warning' ? 'var(--cand)' : '';
     }
     pruneEmptySections();
 

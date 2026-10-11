@@ -1179,13 +1179,13 @@
   "text": "versión de software de la TV",
   "from": "TV software build version"
  },
- "metrics.flashWear": {
-  "text": "Desgaste flash",
-  "from": "Flash wear"
+ "metrics.flashWear.line": {
+  "text": "Desgaste de la memoria flash {wear} · estado {eol}",
+  "from": "Flash wear {wear} · health {eol}"
  },
- "metrics.flashWear.sub": {
-  "text": "vida útil eMMC estimada",
-  "from": "eMMC lifetime estimated"
+ "metrics.flashWear.title": {
+  "text": "Cuánta de su vida estima haber usado la memoria flash de la TV, y su propio aviso de fin de vida, que solo cambia cuando se acerca al final.",
+  "from": "How much of its life the TV's flash storage estimates it has used, and its own end-of-life warning, which only changes as it nears the end."
  },
  "metrics.gbFree": {
   "text": "GB libres",
@@ -1238,14 +1238,6 @@
  "metrics.oledCell.desc": {
   "text": "identificador de la celda de silicio del panel",
   "from": "Panel silicon cell identifier"
- },
- "metrics.preEol": {
-  "text": "Estado pre-EOL",
-  "from": "Pre-EOL status"
- },
- "metrics.preEol.sub": {
-  "text": "valoración propia de la unidad",
-  "from": "Drive's own assessment"
  },
  "metrics.processMemory": {
   "text": "Memoria de procesos",

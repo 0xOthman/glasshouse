@@ -124,10 +124,9 @@
         <div class="n num" style="margin-top:10px"><span id="appstore">&mdash;</span><em data-t="metrics.gbFree">GB free</em></div>
         <div class="sub" id="appstore-sub"></div>
       </div>
-      <div class="cols" style="margin-top:24px">
-        <div id="flashwear-cell"><div class="lbl" data-t="metrics.flashWear">Flash wear</div><div class="v num" id="flashval">&mdash;</div><div class="sub" data-t="metrics.flashWear.sub">eMMC lifetime estimated</div></div>
-        <div id="flashhealth-cell"><div class="lbl" data-t="metrics.preEol">Pre-EOL status</div><div class="v" id="flasheol">&mdash;</div><div class="sub" data-t="metrics.preEol.sub">Drive's own assessment</div></div>
-      </div>
+      <div class="sub" id="flash-line" style="margin-top:10px" hidden
+        title="How much of its life the TV's flash storage estimates it has used, and its own end-of-life warning, which only changes as it nears the end."
+        data-t-title="metrics.flashWear.title"></div>
     </div>
 
     <div class="grp-sec" id="remoteblock" data-col="2" hidden>
