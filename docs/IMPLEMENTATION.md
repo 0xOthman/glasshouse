@@ -894,6 +894,37 @@ Home screen bloatware tile hiding allows built-in or preloaded system apps (whic
 
 ---
 
+## Apps kept ready in the background
+
+webOS's preload manager keeps apps loaded so they open quickly, including ones
+never opened. On an OLED65CXPUA (webOS 5.6) YouTube, Prime Video, Netflix, Vudu
+and the browser held about 660 MB, and an app closed was loaded again in about
+15 seconds (#624).
+
+Its list is configd's `com.webos.service.preloadmanager.supportAppList`, one
+entry per app with `isEnabled`, read when the preload manager starts. A B8
+(webOS 4.4) has 9 entries and a C2 (webOS 9.2) 21, most of them LG's own apps;
+several name apps that are not installed. `lib/preload.js` offers the installed
+ones LG preloads, leaving out Home, Live TV, the guide, the HDMI inputs, screen
+sharing, AirPlay, voice search and the web app container.
+
+Switching one off writes the list back through `setConfigs` with that entry's
+`isEnabled` false, which outlives reboots and app launches, and calls the
+preload manager's `setPreloadPolicy`, which takes effect at once but is lost
+when it restarts. The preload manager is not restarted, and nothing is closed:
+an app already loaded stays until it is next closed or the TV restarts (B8).
+configd keeps a written list as a user-defined value with no call to remove it,
+so the list is written only once something is switched off. Each app's own
+setting from before the first change is kept in `/var/lib/tvweb/preload.json`
+for switching it back, and at start the apps switched off are put back off if
+the list has lost them, as after a firmware update.
+
+`/var/preferences/webos-preload-manager-conf.json` is not used: the preload
+manager writes an app back into it about 3 seconds after the app comes to the
+foreground, and preloads it regardless when the file is read-only.
+
+---
+
 ## Background Services & Debloating Safety
 
 The debloating engine (`server/lib/services.js`) manages background system daemons using transient systemd unit masks (`/run/systemd/transient/<unit>`) and Upstart controls. Any background unit considered for inclusion in `CATALOG` must be verified against webOS boot-time dependency graphs and ActivityManager definitions.

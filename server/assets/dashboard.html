@@ -761,6 +761,28 @@ function appsRows(d) {
     }
   }
 
+  var pre = d.preload || [];
+  if (pre.length > 0) {
+    r.push(head(t('apps.preload', 'Apps kept ready in the background')));
+    for (var p = 0; p < pre.length; p++) {
+      var a = pre[p];
+      var kept = !a.off;
+      r.push({
+        label: a.title || a.id,
+        value: kept ? t('apps.preload.kept', 'Kept ready') : t('apps.preload.off', 'Switched off'),
+        cls: kept ? 'good' : 'off',
+        act: 'preloadToggle',
+        key: a.id,
+        title: a.title || a.id,
+        on: kept,
+        press: kept ? t('tv.apps.preload.switchOff', 'Press OK to stop keeping it ready') : t('tv.apps.preload.keep', 'Press OK to keep it ready'),
+        hint: t('apps.preload.desc', 'LG keeps these apps loaded in the background so they open faster, including ones that are never used, and each takes up memory. An app switched off frees its memory once it is next closed or the TV restarts, and takes a few seconds longer to open.') +
+              (a.memoryMb ? ' ' + t('tv.apps.preload.memory', 'This one takes about {mb} MB when loaded.', { mb: a.memoryMb }) : '') +
+              (a.loaded ? ' ' + t('tv.apps.preload.loadedNow', 'It is loaded now.') : '')
+      });
+    }
+  }
+
   return r;
 }
 
@@ -1890,6 +1912,11 @@ function activate() {
       flash(nextDisabled ? t('tv.apps.service.disablingName', 'Disabling {name}…', { name: r.title || r.key }) : t('tv.apps.service.enablingName', 'Enabling {name}…', { name: r.title || r.key }));
       render();
       return sendPost('/api/services/toggle', { id: r.key, disabled: nextDisabled }, nextDisabled ? t('tv.apps.service.disabled', 'Service disabled') : t('tv.apps.service.enabled', 'Service enabled'));
+    case 'preloadToggle':
+      var makeOff = r.on;
+      r.value = makeOff ? t('tv.disabling', 'Disabling…') : t('tv.enabling', 'Enabling…');
+      render();
+      return sendPost('/api/preload/toggle', { id: r.key, off: makeOff }, makeOff ? t('tv.flash.switchedOff', 'Switched off') : t('tv.flash.switchedOn', 'Switched on'));
     case 'oled':
       return send({ action: 'oledProtection', value: { key: r.key, enabled: !r.on } },
                   r.on ? t('tv.flash.switchedOff', 'Switched off') : t('tv.flash.switchedOn', 'Switched on'));

@@ -483,6 +483,46 @@
   "text": "Dirección web, por ejemplo bbc.co.uk/weather",
   "from": "Web address, such as bbc.co.uk/weather"
  },
+ "apps.preload": {
+  "text": "Apps listas en segundo plano",
+  "from": "Apps kept ready in the background"
+ },
+ "apps.preload.count": {
+  "text": "{n} apps",
+  "from": "{n} apps"
+ },
+ "apps.preload.desc": {
+  "text": "LG mantiene estas apps cargadas en segundo plano para que se abran más rápido, incluso las que nunca se usan, y cada una ocupa memoria. Una app desactivada libera su memoria cuando se cierre o la TV se reinicie, y tarda unos segundos más en abrirse.",
+  "from": "LG keeps these apps loaded in the background so they open faster, including ones that are never used, and each takes up memory. An app switched off frees its memory once it is next closed or the TV restarts, and takes a few seconds longer to open."
+ },
+ "apps.preload.failed": {
+  "text": "No se pudo cambiar: {error}",
+  "from": "Could not change it: {error}"
+ },
+ "apps.preload.kept": {
+  "text": "Lista",
+  "from": "Kept ready"
+ },
+ "apps.preload.loaded": {
+  "text": "cargada ahora",
+  "from": "loaded now"
+ },
+ "apps.preload.off": {
+  "text": "Desactivada",
+  "from": "Switched off"
+ },
+ "apps.preload.offOf": {
+  "text": "{off} desactivadas de {n}",
+  "from": "{off} switched off of {n}"
+ },
+ "apps.preload.one": {
+  "text": "1 app",
+  "from": "1 app"
+ },
+ "apps.preload.size": {
+  "text": "unos {mb} MB cuando está cargada",
+  "from": "about {mb} MB when loaded"
+ },
  "apps.service.active": {
   "text": "Activo",
   "from": "Active"
@@ -3603,6 +3643,22 @@
   "text": "acciones de energía desactivadas (define allowPower)",
   "from": "power actions disabled (set allowPower)"
  },
+ "srv.preload.notOffered": {
+  "text": "Esta app no se ofrece aquí",
+  "from": "This app is not offered here"
+ },
+ "srv.preload.saveFailed": {
+  "text": "La TV no guardó el cambio",
+  "from": "The TV did not save the change"
+ },
+ "srv.preload.stateFailed": {
+  "text": "no se pudo guardar el ajuste: {error}",
+  "from": "could not save the setting: {error}"
+ },
+ "srv.preload.unsupported": {
+  "text": "Esta TV no tiene una lista de apps precargadas",
+  "from": "This TV has no list of preloaded apps"
+ },
  "srv.privacy.acr": {
   "text": "Reconocimiento del contenido de pantalla",
   "from": "Screen content recognition"
@@ -4414,6 +4470,22 @@
  "tv.apps.install.wait": {
   "text": "Hay una instalación en curso. Espera.",
   "from": "An install is running. Please wait."
+ },
+ "tv.apps.preload.keep": {
+  "text": "Pulsa OK para mantenerla lista",
+  "from": "Press OK to keep it ready"
+ },
+ "tv.apps.preload.loadedNow": {
+  "text": "Está cargada ahora.",
+  "from": "It is loaded now."
+ },
+ "tv.apps.preload.memory": {
+  "text": "Esta ocupa unos {mb} MB cuando está cargada.",
+  "from": "This one takes about {mb} MB when loaded."
+ },
+ "tv.apps.preload.switchOff": {
+  "text": "Pulsa OK para dejar de mantenerla lista",
+  "from": "Press OK to stop keeping it ready"
  },
  "tv.apps.service.disable": {
   "text": "Pulsa OK para desactivar el servicio",
