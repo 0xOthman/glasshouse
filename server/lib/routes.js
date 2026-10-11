@@ -63,6 +63,8 @@ var gameModule = null;
 var appsModule = null;
 /** @type {typeof import('./services')} */
 var servicesModule = null;
+/** @type {typeof import('./preload')} */
+var preloadModule = null;
 /** @type {typeof import('./screensavers')} */
 var screensaversModule = null;
 /** @type {typeof import('./updater')} */
@@ -1140,7 +1142,11 @@ function handleRequest(req, res) {
       d.tileHidingOverridden = false;
       servicesModule.getServices(function (sRes) {
         if (sRes && sRes.services) d.services = sRes.services;
-        send(res, 200, JSON.stringify(d));
+        if (!preloadModule) return send(res, 200, JSON.stringify(d));
+        preloadModule.getPreload(function (pRes) {
+          d.preload = (pRes && pRes.apps) || [];
+          send(res, 200, JSON.stringify(d));
+        });
       });
     });
   }
@@ -1251,6 +1257,18 @@ function handleRequest(req, res) {
   if (pathname === '/api/services/toggle' && req.method === 'POST') {
     return readJsonBody(req, res, function (body) {
       servicesModule.toggleService(body && body.id, !!(body && body.disabled), function (r) {
+        send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
+      });
+    });
+  }
+
+  if (pathname === '/api/preload/toggle' && req.method === 'POST') {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      if (!preloadModule) return send(res, 503, JSON.stringify({ ok: false, error: 'preload module unavailable' }));
+      preloadModule.setPreloadOff(body && body.id, !!(body && body.off), function (r) {
         send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
       });
     });
@@ -1427,6 +1445,7 @@ function init(opts) {
   if (opts.game) gameModule = opts.game;
   if (opts.apps) appsModule = opts.apps;
   if (opts.services) servicesModule = opts.services;
+  if (opts.preload) preloadModule = opts.preload;
   if (opts.screensavers) screensaversModule = opts.screensavers;
   if (opts.updater) updaterModule = opts.updater;
   if (opts.logs) logsModule = opts.logs;

@@ -50,6 +50,7 @@ var screensavers = require('./lib/screensavers');
 var appsModule = require('./lib/apps');
 var samrescan = require('./lib/samrescan');
 var servicesModule = require('./lib/services');
+var preload = require('./lib/preload');
 var telemetry = require('./lib/telemetry');
 var controls = require('./lib/controls');
 var routes = require('./lib/routes');
@@ -439,6 +440,7 @@ oled.init({ luna: luna, config: CONFIG });
 samrescan.init({ luna: luna });
 appsModule.init({ luna: luna, config: CONFIG });
 servicesModule.init({ stateDir: __dirname });
+preload.init({ luna: luna, stateDir: __dirname });
 screensavers.init({
   luna: luna,
   assetPath: assetPath,
@@ -761,6 +763,7 @@ routes.init({
   game: game,
   apps: appsModule,
   services: servicesModule,
+  preload: preload,
   screensavers: screensavers,
   updater: updater,
   tvApp: tvApp,
@@ -802,6 +805,11 @@ if (!CLI_MODE) {
 }
 
 if (!CLI_MODE) servicesModule.startEnforcing();
+// Late, so configd is up after a boot.
+if (!CLI_MODE) {
+  var preloadTimer = setTimeout(function () { preload.reapply(); }, 60000);
+  if (preloadTimer.unref) preloadTimer.unref();
+}
 
 if (CLI_MODE) {
   // A one-shot run installs a release and exits: no listener, no bridge, no

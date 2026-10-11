@@ -255,6 +255,8 @@ function renderAppsPanel() {
     }
   }
 
+  renderPreload(d);
+
   // Render Background Services
   const svcsList = q('apps-services-list');
   const svcsDisc = q('disc-system-services');
@@ -302,6 +304,69 @@ function renderAppsPanel() {
       }
     }
   }
+}
+
+// Apps LG keeps loaded in the background (#624).
+function renderPreload(d) {
+  const disc = q('disc-preload');
+  const list = q('apps-preload-list');
+  const summary = q('apps-preload-summary');
+  const apps = d.preload || [];
+  if (!disc) return;
+  disc.hidden = !apps.length;
+  if (!apps.length) return;
+  const numOff = apps.filter(a => a.off).length;
+  if (summary) {
+    summary.textContent = numOff
+      ? t('apps.preload.offOf', '{off} switched off of {n}', { off: numOff, n: apps.length })
+      : apps.length === 1 ? t('apps.preload.one', '1 app') : t('apps.preload.count', '{n} apps', { n: apps.length });
+  }
+  if (!list) return;
+  list.innerHTML = apps.map(a => {
+    const id = esc(a.id);
+    const size = a.memoryMb ? t('apps.preload.size', 'about {mb} MB', { mb: a.memoryMb }) : '';
+    return `<div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title">${esc(a.title)}${size ? ` <span class="prot-sub">&middot; ${esc(size)}</span>` : ''}</div>
+      </div>
+      <div class="prot-status">
+        ${renderToggle({
+          id: 'btn-preload-' + id,
+          cls: a.off ? 'idle' : 'good',
+          label: a.off ? t('apps.preload.off', 'Switched off') : t('apps.preload.kept', 'Kept ready'),
+          disabled: !d.writable,
+          onclick: "togglePreload('" + id + "', " + (!a.off) + ")"
+        })}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function togglePreload(appId, makeOff) {
+  const btn = q('btn-preload-' + appId);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = t('apps.service.updating', 'Updating\u2026');
+  }
+  let error = null;
+  try {
+    const res = await fetch(api('/api/preload/toggle'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: appId, off: makeOff })
+    });
+    const d = await res.json();
+    if (d && d.ok) {
+      const item = appsData && (appsData.preload || []).find(a => a.id === appId);
+      if (item) item.off = makeOff;
+    } else {
+      error = (d && d.error) || t('common.unknownError', 'unknown error');
+    }
+  } catch (e) {
+    error = e.message;
+  }
+  if (appsData) renderPreload(appsData);
+  if (error) alert(t('apps.preload.failed', 'Could not change it: {error}', { error }));
 }
 
 async function toggleService(serviceId, makeDisabled) {
