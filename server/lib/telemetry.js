@@ -126,7 +126,15 @@ var APP_STORAGE_TTL = 60000;
 var CPU_WINDOW_MS = 700;
 
 var lastPicModes = [];
+// HDMI inputs by port (hdmi3), named as the TV's settings name them: the input
+// command and the dashboards' buttons take these keys.
 var inputNameMap = {};
+/*
+ * Short app ids an HDMI input reports that are not its port's, to the port's
+ * key. A G5 (webOS 25) gave HDMI 3 a button labelled "Sling TV" that the input
+ * command refused, so its app id there was evidently not com.webos.app.hdmi3.
+ */
+var inputAppAliases = {};
 var lastInputScan = 0;
 var installedApps = [];
 // Every app's title by id, hidden ones included: the app list leaves out apps
@@ -1061,15 +1069,24 @@ function refreshInputNames(cb) {
     if (res && res.devices && res.devices.length) {
       for (var i = 0; i < res.devices.length; i++) {
         var d = res.devices[i];
-        if (d.appId && d.label) {
-          var shortId = String(d.appId).replace('com.webos.app.', '');
-          inputNameMap[shortId] = d.label;
-        }
+        var port = /^HDMI_(\d+)$/.exec(String(d.id || ''));
+        if (!port) continue;
+        var key = 'hdmi' + port[1];
+        inputNameMap[key] = d.label || names.input(key).display;
+        var shortId = d.appId ? String(d.appId).replace('com.webos.app.', '') : key;
+        if (shortId !== key) inputAppAliases[shortId] = key;
       }
       lastInputScan = Date.now();
     }
     if (cb) cb(inputNameMap);
   });
+}
+
+// An app id as a short id, the port's key (hdmi3) for an HDMI input whatever
+// app id it reports.
+function inputKey(appId) {
+  var shortId = String(appId || '').replace('com.webos.app.', '');
+  return inputAppAliases.hasOwnProperty(shortId) ? inputAppAliases[shortId] : shortId;
 }
 
 function parseAppList(raw) {
@@ -1872,7 +1889,7 @@ function collectStats(cb) {
         lunaCachedFn('com.webos.applicationManager/getForegroundAppInfo', {}, 4000, function (app) {
           var inputShown = false;
           if (app && app.appId) {
-            var shortApp = String(app.appId).replace('com.webos.app.', '');
+            var shortApp = inputKey(app.appId);
             out.app = shortApp;
             out.app_id = app.appId;
             // Inputs by the names given them in the TV's settings, apps by
@@ -1881,7 +1898,7 @@ function collectStats(cb) {
             out.app_name = inputNameMap[shortApp] || appTitles[app.appId] || shortApp;
             out.display_title = isInput ? names.inputTitle(shortApp, inputNameMap[shortApp]) : out.app_name;
 
-            var hdmiMatch = String(app.appId).match(/^com\.webos\.app\.hdmi([1-4])$/i);
+            var hdmiMatch = shortApp.match(/^hdmi([1-4])$/);
             var isScreenOff = out.screenSaver || (out.powerState && (out.powerState.screenOn === false || String(out.powerState.raw || out.powerState.state || '').toLowerCase() === 'off'));
             if (hdmiMatch && !isScreenOff) {
               inputShown = true;
@@ -2100,6 +2117,7 @@ module.exports = {
   EMMC_WEAR_PRESENT: EMMC_WEAR_PRESENT,
   HARDWARE_INFO: HARDWARE_INFO,
   inputNameMap: inputNameMap,
+  inputKey: inputKey,
   init: init,
   meminfo: meminfo,
   emmcInfo: emmcInfo,
