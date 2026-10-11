@@ -10,8 +10,11 @@
  * block apps by region, and sam watches it. Adding an id no app has and then
  * putting the list back exactly as it was blocks nothing, and sam rereads every
  * appinfo.json, overlays included, within seconds and without restarting: on a
- * C2 on webOS 9.2 a visible:false overlay took effect and sam kept its pid. The
- * list lives in configd's memory, so the nudge leaves nothing behind.
+ * C2 on webOS 9.2 a visible:false overlay took effect and sam kept its pid.
+ * configd saves any setConfigs as a user-defined value that outlives reboots,
+ * and has no call to drop one, so the list stays at LG's value as of the
+ * nudge: should LG's own list change later, with a firmware update or a new
+ * country, the saved copy still wins.
  *
  * webOS 4 has no such setting (a B8 reports it missing), and there callers
  * restart sam as before. They also do if sam has not caught up in time.
