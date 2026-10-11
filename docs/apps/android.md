@@ -4,10 +4,10 @@
 
 The app runs on Android 10 and later, and follows the dashboard's design: monochrome styling, Manrope typography, and light/dark theme matching.
 
-<p align="center">
-  <img src="../screenshots/android-tvs.png" width="300" alt="The TV list showing online and offline TVs">
+<p align="center" markdown>
+  ![The TV list showing online and offline TVs](../screenshots/android-tvs.png){ width="300" }
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="../screenshots/android-dashboard.png" width="300" alt="Full screen TV dashboard on phone">
+  ![Full screen TV dashboard on phone](../screenshots/android-dashboard.png){ width="300" }
 </p>
 
 *The TV list showing online status, and a TV's dashboard opened full screen.*
