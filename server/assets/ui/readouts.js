@@ -40,7 +40,13 @@ q('readouts').innerHTML = ROWS.map(r =>
      <div><div class="lbl">${r.label}</div><div class="sub" id="sub-${r.k}"></div></div>
      <div class="track"><b id="bar-${r.k}" style="width:0%"></b></div>
      <div class="v num" id="val-${r.k}">—</div>
-   </div>`).join('');
+   </div>`).join('') +
+  /* The TV's address and DNS name have a row of their own, without a bar: a
+     name is too long for the narrow column the other rows' details sit in. */
+  `<div class="r r-text" id="row-addr" hidden>
+     <div class="lbl">${t('metrics.addresses', 'Addresses')}</div>
+     <div class="sub" id="sub-addr"></div>
+   </div>`;
 
 let hist = [], lastOk = 0, muted = false, installedApps = [], lastAppId = '';
 
@@ -150,6 +156,36 @@ let lastInputNames = {};
    Loaded once only, they kept "Device seen, no signal" from a page opened
    while the TV was in standby. */
 let lastHdmiKey = null;
+// The outputs with a button of their own, by every id the TV gives them.
+const SOUND_BUTTON = {
+  tv_speaker: 'tv_speaker', internal: 'tv_speaker', external_arc: 'external_arc',
+  optical: 'optical', external_optical: 'optical', headphone: 'headphone', bt_soundbar: 'bt_soundbar'
+};
+
+let moreOutputs = [];
+
+// The TV's other outputs go in More. One of them in use shows as a button of
+// its own before the list, so More always reads as the way to the rest.
+function renderMoreOutputs(outputs, current) {
+  moreOutputs = outputs;
+  const sel = q('so_more'), extra = q('soundout-extra');
+  if (!sel) return;
+  const inUse = outputs.find(o => o.id === current);
+  const rest = outputs.filter(o => o !== inUse);
+  const sig = rest.map(o => o.id + '=' + o.name).join('|');
+  if (sel.dataset.sig !== sig) {
+    sel.dataset.sig = sig;
+    sel.replaceChildren(new Option(t('sound.more', 'More…'), ''),
+      ...rest.map(o => new Option(o.name, o.id)));
+  }
+  sel.value = '';
+  sel.hidden = !rest.length;
+  if (extra) {
+    extra.hidden = !inUse;
+    extra.textContent = inUse ? inUse.name : '';
+  }
+}
+
 function hdmiKey(d) {
   // The colour format is in the key too: a source switching RGB to YCbCr, or
   // SDR to HDR, keeps the same resolution and refresh.
@@ -267,12 +303,23 @@ async function tick() {
       q('remoteblock').hidden = true;
     }
 
-    const dr = pic.dynamicRange || '';
-    let drBadge = '';
-    if (dr) {
-      const drClass = /dolby/i.test(dr) ? 'dv' : /hdr/i.test(dr) ? 'hdr' : 'sdr';
-      drBadge = `<span class="stream-tag ${drClass}">${esc(dr)}</span>`;
+    /* The badge names the format the source is sending, and the picture
+       settings' family only where the TV reports no format: in standby, or
+       with nothing from its video output service. The format is cached for 4 s
+       and the family for 10 s, so across a change they can disagree for a
+       poll; following the format whenever there is one keeps the badge from
+       flipping between the two. Low latency is the family's ALLM suffix
+       either way. */
+    const fmt = d.signal_format;
+    let dr = pic.dynamicRange || '', drClass = '';
+    if (fmt && fmt.type) {
+      dr = fmt.type_display || fmt.type;
+      if (/ALLM$/.test(pic.dynamicRange_raw || '')) dr = t('metrics.stream.lowLatency', '{format} \u00b7 Low latency', { format: dr });
+      drClass = /^dolby_vision/.test(fmt.type) ? 'dv' : fmt.type === 'sdr' ? 'sdr' : 'hdr';
+    } else if (dr) {
+      drClass = /dolby/i.test(dr) ? 'dv' : /hdr/i.test(dr) ? 'hdr' : 'sdr';
     }
+    const drBadge = dr ? `<span class="stream-tag ${drClass}">${esc(dr)}</span>` : '';
     const modeBadge = pic.mode ? `<span class="stream-mode">${esc(pic.mode)}</span>` : '';
     const resStr = d.signal ? esc(d.signal) : '';
     lastInputNames = d.inputs || {};
@@ -340,6 +387,9 @@ async function tick() {
     if (nt) netParts.push('↓ ' + bytes(nt.rx) + ' ↑ ' + bytes(nt.tx));
     row('net', rx.toFixed(0) + '<small>kB/s</small>', Math.min(100, rx / 20),
         netParts.join('  ·  ') || t('metrics.net.connected', 'Connected'), 101);
+
+    q('row-addr').hidden = !d.address;
+    q('sub-addr').innerHTML = [d.address, d.hostname].filter(Boolean).map(esc).join('<br>');
 
     // Hardware & System Specifications
     let hasHw = false;
@@ -571,13 +621,21 @@ async function tick() {
       if (q('soundout-lbl') && !soLeased) q('soundout-lbl').textContent = (d.sound.output || d.sound.output_raw || '').toUpperCase();
       // Bluetooth only with an audio device connected: without one the TV
       // opens its own pairing prompt and falls back to the speakers.
-      if (q('so_bt_soundbar')) q('so_bt_soundbar').hidden = d.sound.bt_audio === false && curSo !== 'bt_soundbar';
+      const noBt = d.sound.bt_audio === false;
+      // Once the TV has said which outputs it offers, a button shows only if
+      // it is one of them, and the rest go in More.
+      const offered = Array.isArray(d.sound.outputs) ? d.sound.outputs : null;
+      const onButtons = offered ? new Set(offered.map(o => SOUND_BUTTON[o.id]).filter(Boolean)) : null;
       const soBtns = q('soundouts') ? q('soundouts').querySelectorAll('button') : [];
       for (let b of soBtns) {
-        const isCur = b.id.replace('so_', '') === curSo;
+        if (!b.id.startsWith('so_')) continue;
+        const id = b.id.replace('so_', '');
+        const isCur = id === curSo;
+        b.hidden = !isCur && ((onButtons && !onButtons.has(id)) || (id === 'bt_soundbar' && noBt));
         b.classList.toggle('on', isCur);
         if (isCur && soLeased && q('soundout-lbl')) q('soundout-lbl').textContent = b.textContent.toUpperCase();
       }
+      renderMoreOutputs(offered ? offered.filter(o => !SOUND_BUTTON[o.id]) : [], curSo);
     }
 
     const up = d.uptime, dd = Math.floor(up / 86400), hh = Math.floor(up % 86400 / 3600), mm = Math.floor(up % 3600 / 60);

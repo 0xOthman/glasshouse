@@ -19,6 +19,9 @@ it before exposing it more widely.
   `config.json` the same logs go to that server as plain UDP: unencrypted,
   unauthenticated, and readable by anything on the path. Addresses,
   credentials and postcodes are redacted unless `"redact": false` is set.
+- **Setting the clock from NTP is off by default.** With `ntp.server` set, the
+  TV takes its time from that server over plain UDP, unauthenticated, and
+  anything that can answer in its place can set the TV's clock.
 - **`"allowPower": false`** hides and refuses power off, power on and reboot,
   in the dashboard and in Home Assistant, for a TV that should never be
   switched off over the network. The other controls stay.

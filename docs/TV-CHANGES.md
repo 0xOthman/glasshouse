@@ -32,6 +32,7 @@ the first reboot after uninstalling.
 | Hidden home-screen tiles | Bind-mounts edited `appinfo.json` files, then has the app manager reread them: where the TV has LG's blocked-app list in configd (webOS 9 does, webOS 4 doesn't), by briefly adding an id no app has to LG's blocked-app list in configd and putting the list back, and otherwise by restarting it. Experimental: turned on under Server → Experimental features. Not offered when installed from the Homebrew Channel, since the restart happens during boot | Switching tile hiding off |
 | Switched-off background services | Stops them and masks their systemd units under `/run`, then stops any found running again every five minutes | Switching them back on |
 | Debugger closed to the network | Adds a firewall rule dropping port 9998 (WebAppMgr's DevTools, opened by Developer Mode) on every interface but loopback. Put back each time the server starts, not by the boot hook | `allowNetworkDebugger` in `config.json` or toggled from the Server tab, uninstalling from the Homebrew Channel, a reboot after any other uninstall, or `iptables -D INPUT -p tcp --dport 9998 ! -i lo -j DROP` |
+| Clock set from an NTP server | With `ntp.server` set in `config.json`, sets the TV's clock through its time service, hourly and when the TV switches on. The service records the time as coming from LG's time servers | Emptying `ntp.server`. The clock stays as set until LG's next sync |
 | Replacement screen saver | Bind-mounts over the built-in screen saver app. Experimental on webOS 10 and later, where the built-in one is a Flutter app: turned on under Server → Experimental features | Choosing the stock screen saver |
 
 ## Changes that stay
@@ -56,5 +57,5 @@ to the TV itself in `config.json` or from Settings on the TV. Installed from the
 Homebrew Channel it starts limited to the TV, until the owner opens it during
 setup. While a phone is being used to enter Home Assistant details,
 port 8081 answers a one-time code for up to ten minutes. The server connects out
-only to the configured MQTT broker and, when update checks are switched on, to
-GitHub's releases API. Update checks are off by default.
+only to the configured MQTT broker, to the NTP server when one is configured,
+and, when update checks are switched on, to GitHub's releases API. Update checks are off by default.

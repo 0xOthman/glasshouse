@@ -94,10 +94,14 @@ function applyOptimistic(action, value) {
     holdVolumeControls();
     const soBtns = q('soundouts') ? q('soundouts').querySelectorAll('button') : [];
     for (let b of soBtns) {
+      if (!b.id.startsWith('so_')) continue;
       const matches = b.id.replace('so_', '') === so;
       b.classList.toggle('on', matches);
       if (matches && q('soundout-lbl')) q('soundout-lbl').textContent = b.textContent.toUpperCase();
     }
+    renderMoreOutputs(moreOutputs, so);
+    const extra = moreOutputs.find(o => o.id === so);
+    if (extra && q('soundout-lbl')) q('soundout-lbl').textContent = extra.name.toUpperCase();
   } else if (action === 'input') {
     const inp = String(value);
     setLease('input', inp);

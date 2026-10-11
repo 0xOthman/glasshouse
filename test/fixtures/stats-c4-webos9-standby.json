@@ -126,7 +126,12 @@
     "raw": "Active Standby",
     "label": "Standby",
     "systemOn": false,
-    "screenOn": false
+    "screenOn": false,
+    "onReason": "alwaysOn",
+    "onTime": {
+      "uptime": 27196.63,
+      "ontime": 0
+    }
   },
   "screenSaver": false,
   "screensaverMode": "starfield",

@@ -228,7 +228,12 @@
     "raw": "Active",
     "label": "On",
     "systemOn": true,
-    "screenOn": true
+    "screenOn": true,
+    "onReason": "remoteKey",
+    "onTime": {
+      "uptime": 10299.62,
+      "ontime": 462.36
+    }
   },
   "screenSaver": false,
   "screensaverMode": "starfield",

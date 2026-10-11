@@ -109,7 +109,12 @@ instead:
 
 The receiver's PHY mode, chroma, and HDCP version are named in
 `server/lib/names.js`, which gives both the display string in `hdmi_diag` and
-the Prometheus label from the one raw value.
+the Prometheus label from the one raw value. The module holds the server's
+other tables of raw values and their names as well: the power states and
+whether each has the system and the screen on, the inputs, the picture modes,
+the sound outputs, logo dimming, the energy saving steps, the Pixel Refresher
+and compensation status, and the eMMC pre-end-of-life state. The dashboards'
+scripts run in the browser and keep their own translated names.
 
 The `port<n>` receivers are not numbered as the inputs are, and each keeps its
 link whichever input is on screen. configd holds the board's wiring as
@@ -132,8 +137,34 @@ and to `dolby_vision` when the TV maps it from a BT.709 RGB 4:4:4 carrier. The
 picture settings' `dynamicRange` is `dolbyHdr` in both. Its `ALLM` suffix, like
 `isAllm` in the receiver's status file, is the source asking for low-latency
 processing in any format, and is independent of either.
+The dashboard's badge beside the resolution shows the HDR type, with "Low
+latency" after it on that suffix, and falls back to the picture settings'
+dynamic range while the TV reports no format, as in standby.
 The names of the dynamic range, the HDR type, the EOTF, the colorimetry, and
 the pixel encoding come from `server/lib/names.js`.
+
+The audio output in the stats is named from the `soundOutput` of
+`com.webos.service.audio/master/getVolume`, which uses the sound settings'
+keys, or `tv_speaker_bt_surround` for `tv_speaker_bluetooth` when the
+Bluetooth mode is `surroundMode`. Only a TV without that service is named
+from the `scenario` of `com.webos.audio/getSoundOut`: the scenario is
+`tv_speaker_ext` on TV Speaker + Optical, and getSoundOut fails outright on
+TV Speaker + Bluetooth with nothing paired.
+
+Whether the volume can be set, only stepped, or not changed at all where the
+sound goes comes from the same service's `adjustVolume`,
+`externalDeviceControl` and `volumeSyncable`. Those are not always right: an
+OLED65G5WUA (webOS 25) on optical showed a level of 10 that no change moved.
+So when the TV refuses a volume or mute change with "Current Scenario doesn't
+support", the volume counts as not changeable until the sound goes elsewhere.
+
+The TV's DNS name in the stats, `hostname`, is a reverse lookup of its IPv4
+address on the home network, `address`. It is looked up in the background and
+never on a request: the stats carry the cached answer, and the first after a
+start or an address change has none. A name, no name, an error, and no answer
+within 3 seconds are all cached for an hour, so a network without a reverse
+zone is not asked on every scrape. `dns.reverse` has no timeout of its own, so
+a later answer is dropped.
 
 webOS 3.9 has no temperature source at all: `/proc/lg/pm/temperature` is absent,
 nothing under `/proc/lg` or `/sys` is named for temperature, `/sys/class/thermal` is
@@ -435,6 +466,28 @@ uptime reset to 60s, with services and the webosbrew boot hook all returning
 cleanly. The reboot control therefore uses the kernel path, replying to the
 client first because the process is about to go down with the system.
 
+## Why the TV powered on
+
+`com.webos.service.tvpower/power/getPowerOnReason` answers why the TV last
+powered on, such as `remoteKey`, `wakeOnWiFi`, `alwaysOn`, or
+`rebootByOnRegular`, and `power/getPowerOnTime` answers `uptime`, since boot,
+and `ontime`, since the TV last powered on and 0 in standby, as strings of
+seconds. Glasshouse reads both at start, logs
+`power: on by rebootByOnRegular, up 12 s`, and reads them again after each power
+transition, never for a request. `/api/stats` gives them under `powerState` as
+`onReason` and `onTime`, null on a TV without the methods, with the times moved
+on by the time since the read. Transitions come from the power-state
+subscription, which runs whether or not MQTT is on; the MQTT bridge shares it.
+
+Each change of the raw power state is logged, as in
+`power: Active -> Active Standby`. A transition to on waits for the reason read
+after it and ends `on by remoteKey`; any other is logged before the read.
+tvpower has no method for the reason for a power-off, and its line for it is in
+`/var/log/messages`, on tmpfs, so after each line the [syslog
+forwarder](#forwarding-the-logs-to-syslog) polls at once rather than at its next
+5-second tick, which a C4 (webOS 9.2) powering off beat. The kernel log keeps
+its 30-second schedule.
+
 ## The thermal sensor lags boot
 
 `/proc/lg/pm/temperature` reads a literal `0` for roughly the first 80 seconds
@@ -506,6 +559,9 @@ advertising**, which is why they are a separate tier:
 | Domain | What it actually serves |
 | :--- | :--- |
 | `ngfts.lge.com`, `aic-ngfts.lge.com` | Content and firmware delivery CDN |
+| `cdplauncher.lgtvcommon.com`, `lgchhomeapp.lgtvcommon.com` | The Home launcher's recommendations and usage reports; needed by the Content Store after a factory reset |
+| `lgtviot.com` | The ThinQ cloud: the LG ThinQ app can no longer control the TV with it blocked |
+| `ueiwsp.com` | Universal Electronics' identification of devices connected over HDMI-CEC |
 | `lgtvsdp.com` (and `us.`/`gb.`/`eu.`) | Service platform behind the Content Store on webOS 4 |
 | `nextlgsdp.com` (and `us.`/`gb.`/`eu.`) | The same on webOS 9 |
 
@@ -513,8 +569,23 @@ advertising**, which is why they are a separate tier:
 `http://GB.lgtvsdp.com` on a B8, `http://GB.nextlgsdp.com` on a C2. The full
 tier adds whatever that file says, so a firmware using neither is still covered.
 
-Blocking them is a defensible choice, but it means **firmware updates and the
-app store may stop working** on that tier. Anyone who turns it on and later
+`wiselg.com` is not on either list, though the full tier still blocks it if
+`appInstallService` names it as its store. On webOS 26 the Content Store's
+first request goes to `<country>.tv.wiselg.com`, and a factory-reset TV asks for
+`ngfts.tv.wiselg.com` during setup
+([Huttunen](https://fabricati-diem.inform.social/post/deshittification-as-a-service-part2-bypassing-the-app-store-gatekeeper/)),
+which suggests it is that release's service platform, in place of the SDP
+hosts. None of the tested TVs runs webOS 26, and Huttunen reports Netflix
+being interrupted after a cold boot with it blocked.
+
+The `lgtvcommon.com`, `lgtviot.com` and `ueiwsp.com` rows, and
+`smartad.lge.com` on the ads tier, come from the blocklist in
+[Huttunen's Deshittification as a Service](https://fabricati-diem.inform.social/post/deshittification-as-a-service/),
+with his descriptions, rather than from captures of the tested TVs.
+
+Blocking them is a defensible choice, but it means **the LG ThinQ app cannot
+control the TV, and firmware updates and the app store may stop working** on
+that tier. Anyone who turns it on and later
 finds the Content Store broken will not connect the two events unless told, so
 it is stated at the control in the UI as well as here.
 
@@ -525,6 +596,11 @@ webOS sets its clock from the `X-Server-Time` header of LG's SDP servers
 `systemTimeSource` `sdp`. The Everything tier blocks those servers, so a TV that
 lost its time in a power cut could not set it again, and anything using HTTPS
 fails while the clock is wrong.
+
+After a factory reset, a webOS 26 TV's clock falls back to its firmware build
+date in 2024 rather than to 1970, which passes a plain year check but still
+fails certificate validation
+([Huttunen, Fabricati Diem](https://fabricati-diem.inform.social/post/deshittification-as-a-service/)).
 
 To prevent this while preserving full platform blocking:
 * The boot hook removes `nextlgsdp.com` from the saved table before mounting it, since
@@ -539,6 +615,8 @@ To prevent this while preserving full platform blocking:
 * On a restart (warm boot) or when toggling the blocker while the TV is already running,
   `getSystemTime` reports that the time is already valid. The grace period is skipped
   entirely, and `nextlgsdp.com` is blocked immediately.
+* With an [NTP server](#setting-the-clock-from-ntp) configured, the first answer it
+  gives sets the time as `sdp`, which ends the wait at once.
 
 ## Entity state must come from the TV, not from the command
 
@@ -657,6 +735,42 @@ UDP syslog is everywhere. Glasshouse logs one line when forwarding starts and
 one at each change of error state. `glasshouse_syslog_messages_total` and
 `glasshouse_syslog_errors_total` on the [Prometheus endpoint](PROMETHEUS.md)
 count what was sent and what was dropped.
+
+---
+
+## Setting the clock from NTP
+
+The time service, `com.webos.service.systemservice`, takes time from named
+sources and registers no `ntp` source. With a server set in `config.json`,
+Glasshouse asks it for the time over SNTP (RFC 4330) and hands the answer to
+`clock/setTime` as an `sdp` time. The service then sets the clock, its source
+and `timeValid` as it does for LG's own sync, and the ad blocker's
+[wait for the clock](#cold-boot-clock-synchronization-nextlgsdpcom) ends.
+
+```json
+"ntp": {
+  "server": "time.lan",
+  "port": 123
+}
+```
+
+The server is asked at start, hourly, and when the TV switches on. Until an
+answer is used, and after a failure, it is asked every 30 seconds. An answer
+is not used when:
+
+* it is not a server reply;
+* the server is not synchronised: stratum 0, above 15, or leap indicator 3;
+* it does not echo the request's transmit time, or has none of its own;
+* the round trip took longer than a second;
+* the time it gives is before 2026.
+
+A time within a second of the clock is left alone, except for the first answer
+of each start, which is always handed over.
+
+`clock/setTime` takes whole seconds. Each call carries the monotonic time of
+the server's answer, and the service adds the time since then. Glasshouse logs
+one line when it starts, one each time it sets the clock, and one at each
+change of error state.
 
 ---
 

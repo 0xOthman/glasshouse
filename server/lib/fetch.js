@@ -4,6 +4,7 @@
 var msg = require('./say').msg;
 var fs = require('fs');
 var path = require('path');
+var unlinkQuiet = require('./util').unlinkQuiet;
 var execFile = require('child_process').execFile;
 
 var clientDirs = [
@@ -168,10 +169,6 @@ function fileEmpty(file) {
   try { return fs.statSync(file).size === 0; } catch (e) { return true; }
 }
 
-function rmQuiet(file) {
-  try { fs.unlinkSync(file); } catch (e) {}
-}
-
 /*
  * Tries each client in turn until one reaches the server. Returns a handle
  * whose cancel() kills the running client and ends with err.cancelled.
@@ -188,7 +185,7 @@ function run(url, outFile, mode, opts, cb) {
     if (finished) return;
     finished = true;
     if (timer) { clearInterval(timer); timer = null; }
-    if (err && big) rmQuiet(outFile);
+    if (err && big) unlinkQuiet(outFile);
     cb(err, body, bin);
   }
 
@@ -213,7 +210,7 @@ function run(url, outFile, mode, opts, cb) {
   }
 
   function attempt(bin, tries, t) {
-    if (big) rmQuiet(outFile);
+    if (big) unlinkQuiet(outFile);
     child = execFile(bin, fetchArgs(bin, url, outFile, mode, tries[t]),
                      { timeout: big ? DOWNLOAD_CEILING_MS : (mode === 'file' ? 180000 : 15000),
                        maxBuffer: opts.maxBuffer || 1024 * 1024 },

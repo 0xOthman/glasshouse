@@ -5,6 +5,7 @@
  *
  * Strict ES5 for Node 0.12.2 on webOS 4.
  */
+var msg = require('./say').msg;
 
 function snakeCase(v) {
   return v.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
@@ -108,7 +109,13 @@ function dynamicRange(raw) {
 // videooutput's hdrType, snake-cased, renamed where that alone misleads. An
 // SDR source reports none, and a C4 (webOS 9) reports player-led
 // (low-latency) Dolby Vision as dolby_ll.
-var SIGNAL_HDR_TYPES = { none: 'sdr', dolby_ll: 'dolby_vision_low_latency' };
+var SIGNAL_HDR_TYPES = {
+  none: { display: 'SDR', label: 'sdr' },
+  hdr10: { display: 'HDR10', label: 'hdr10' },
+  hlg: { display: 'HLG', label: 'hlg' },
+  dolby_vision: { display: 'Dolby Vision', label: 'dolby_vision' },
+  dolby_ll: { display: 'Dolby Vision (low latency)', label: 'dolby_vision_low_latency' }
+};
 
 // CTA-861-G's EOTF codes in the HDR static metadata; 4 to 7 are reserved.
 var SIGNAL_EOTFS = ['sdr', 'hdr', 'pq', 'hlg'];
@@ -119,8 +126,17 @@ var SIGNAL_COLORIMETRY = { BT2020_RGBORYCbCr: 'bt2020_rgb_or_ycbcr' };
 // Its pixel encodings, named as the HDMI link's chroma is.
 var SIGNAL_ENCODING = { RGB: 'rgb_444', YCbCr444: 'ycbcr_444', YCbCr422: 'ycbcr_422', YCbCr420: 'ycbcr_420' };
 
+// A type outside the table is spelled out from its snake-cased name:
+// hdr10_plus is "HDR10 Plus".
+function spelledHdrType(type) {
+  return type.split('_').map(function (word) {
+    return /^(sdr|hdr\d*|hlg)$/.test(word) ? word.toUpperCase() : word.charAt(0).toUpperCase() + word.slice(1);
+  }).join(' ');
+}
+
 function signalHdrType(raw) {
-  return labelled(SIGNAL_HDR_TYPES, snakeCase(raw));
+  var type = snakeCase(raw);
+  return SIGNAL_HDR_TYPES.hasOwnProperty(type) ? SIGNAL_HDR_TYPES[type] : { display: spelledHdrType(type), label: type };
 }
 
 // A reserved code has no name.
@@ -134,6 +150,74 @@ function signalColorimetry(raw) {
 
 function signalEncoding(raw) {
   return labelled(SIGNAL_ENCODING, raw);
+}
+
+/*
+ * Why tvpower says the TV last powered on, labelled by its own name, as its
+ * log lines give it. /etc/tvpowerd/tvpowerd.json lists 104 on a C4 (webOS 9.2),
+ * many of them named after apps, such as netflix. Only names snake case splits
+ * wrongly are here.
+ */
+var POWER_ON_REASONS = {
+  wakeOnWiFi: 'wake_on_wifi'
+};
+
+function powerOnReason(raw) {
+  return labelled(POWER_ON_REASONS, raw);
+}
+
+/*
+ * tvpower's power state, lowercased without spaces, dashes or underscores:
+ * "Screen Saver" is screensaver. tvpower reports the panel separately from the
+ * system: a set can be "Active" with the screen lit, or "ScreenOff"
+ * with the system running and the panel blanked, which is what the Screen Off
+ * control does.
+ */
+var POWER_STATES = {
+  active: { display: msg('srv.power.on', 'On'), systemOn: true, screenOn: true },
+  on: { display: msg('srv.power.on', 'On'), systemOn: true, screenOn: true },
+  screenoff: { display: msg('srv.power.screenOff', 'Screen off'), systemOn: true, screenOn: false },
+  screensaver: { display: msg('srv.power.screenSaver', 'Screen Saver'), systemOn: true, screenOn: true },
+  // LG's Always Ready display: switched off, showing a clock or artwork.
+  alwaysready: { display: msg('srv.power.alwaysReady', 'Always Ready'), systemOn: false, screenOn: false },
+  activestandby: { display: msg('srv.power.standby', 'Standby'), systemOn: false, screenOn: false },
+  standby: { display: msg('srv.power.standby', 'Standby'), systemOn: false, screenOn: false },
+  suspend: { display: msg('srv.power.standby', 'Standby'), systemOn: false, screenOn: false },
+  preparesuspend: { display: msg('srv.power.standby', 'Standby'), systemOn: false, screenOn: false },
+  requestpoweroff: { display: msg('srv.power.off', 'Off'), systemOn: false, screenOn: false },
+  poweroff: { display: msg('srv.power.off', 'Off'), systemOn: false, screenOn: false },
+  off: { display: msg('srv.power.off', 'Off'), systemOn: false, screenOn: false },
+  prepared: { display: msg('srv.power.starting', 'Starting up'), systemOn: true, screenOn: false },
+  processing: { display: msg('srv.power.standby', 'Standby'), systemOn: false, screenOn: false }
+};
+
+// The inputs the dashboards and Home Assistant switch to, by short app id,
+// which is also their label.
+var INPUTS = {
+  hdmi1: 'HDMI 1',
+  hdmi2: 'HDMI 2',
+  hdmi3: 'HDMI 3',
+  hdmi4: 'HDMI 4',
+  livetv: 'Live TV'
+};
+
+function input(id) {
+  return { display: INPUTS.hasOwnProperty(id) ? INPUTS[id] : id, label: id };
+}
+
+/*
+ * An input in the foreground, as the TV's settings name it with the short app
+ * id after it: "Apple TV (HDMI2)". Without a name of its own it is the id.
+ */
+function inputTitle(id, name) {
+  return name && name !== id ? name + ' (' + id.toUpperCase() + ')' : id;
+}
+
+// A state outside the table, or none, is taken as system and screen off.
+function powerState(raw) {
+  var key = String(raw || '').toLowerCase().replace(/[\s_-]/g, '');
+  return POWER_STATES.hasOwnProperty(key) ? POWER_STATES[key] :
+    { display: raw || 'Unknown', systemOn: false, screenOn: false };
 }
 
 /*
@@ -200,6 +284,99 @@ function pictureMode(raw) {
   return { display: name.display || spelledOut(mode), label: name.label || snakeCase(mode) };
 }
 
+// The sound output's keys. Several are the same output and share its name;
+// each is snake case already, and is its own label.
+var SOUND_OUTPUTS = {
+  tv_speaker: 'TV Speaker',
+  external_arc: 'HDMI ARC',
+  optical: 'Optical',
+  external_optical: 'Optical',
+  ext_speaker_optical: 'Optical',
+  ext_speaker_builtin_lg_optical: 'Optical',
+  ext_speaker_arc: 'HDMI ARC',
+  headphone: 'Headphone / AUX',
+  bt_soundbar: 'Bluetooth',
+  tv_external_speaker: 'TV Speaker + Optical',
+  tv_speaker_bluetooth: 'TV Speaker + Bluetooth',
+  // tv_speaker_bluetooth with the Bluetooth mode on surround, as the volume
+  // service reports it (C4, webOS 9.2). After the setting key, so a select
+  // offering the name sets the key.
+  tv_speaker_bt_surround: 'TV Speaker + Bluetooth',
+  tv_speaker_external_arc: 'TV Speaker + HDMI ARC',
+  wow_cast: 'LG WOWCAST',
+  mobile_phone: 'Mobile Phone',
+  wisa_speaker: 'WiSA Speakers',
+  external_speaker: 'External Speaker',
+  lineout: 'Line Out',
+  soundbar: 'LG Sound Sync',
+  tv_speaker_headphone: 'TV Speaker + Headphone',
+  internal: 'TV Speaker'
+};
+
+// An output outside the table is still shown readably: usb_speaker reads as
+// "Usb Speaker" rather than as the raw key.
+function soundOutput(raw) {
+  var output = String(raw);
+  return {
+    display: SOUND_OUTPUTS.hasOwnProperty(output) ? SOUND_OUTPUTS[output] :
+      output.replace(/_/g, ' ').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); }),
+    label: snakeCase(output)
+  };
+}
+
+/*
+ * What the settings service accepts for logoLuminanceAdjust, per
+ * getSystemSettingValues on a B8, and its names. "strong" is the strongest,
+ * not an on/off; the TV's own menu shows it as High.
+ */
+var LOGO_DIMMING = {
+  off: 'Off',
+  light: 'Light',
+  strong: 'High'
+};
+
+// The energy saving steps the picture service accepts, in the TV's own order.
+var ENERGY_SAVING_STEPS = ['auto', 'off', 'min', 'med', 'max', 'screen_off'];
+
+/*
+ * The panel service's Pixel Refresher status. cancel_schedule is a run queued
+ * for the next standby; anything else is Idle.
+ */
+var REFRESHER_STATUSES = {
+  cancel_schedule: 'Scheduled',
+  processing: 'Running'
+};
+
+function refresherStatus(raw) {
+  return REFRESHER_STATUSES.hasOwnProperty(raw) ? REFRESHER_STATUSES[raw] : 'Idle';
+}
+
+// The short compensation cycle, which the TV gives only as running or not.
+var COMPENSATION_STATUSES = {
+  running: { display: 'Running', detail: 'Completing Panel Maintenance (Short Cycle)' },
+  idle: { display: 'Idle', detail: 'Idle' }
+};
+
+function compensationStatus(running) {
+  return COMPENSATION_STATUSES[running ? 'running' : 'idle'];
+}
+
+// The JEDEC eMMC PRE_EOL_INFO states; other values are not defined.
+var EMMC_EOL_STATES = {
+  1: { display: 'Normal', label: 'normal' },
+  2: { display: 'Warning', label: 'warning' },
+  3: { display: 'Urgent', label: 'urgent' }
+};
+
+function emmcEol(code) {
+  return EMMC_EOL_STATES.hasOwnProperty(code) ? EMMC_EOL_STATES[code] : null;
+}
+
+// The kind of VRR in use, such as gsync, or off without one.
+function vrrType(raw) {
+  return { label: typeof raw === 'string' && raw ? snakeCase(raw) : 'off' };
+}
+
 module.exports = {
   snakeCase: snakeCase,
   mapped: mapped,
@@ -211,6 +388,23 @@ module.exports = {
   signalEotf: signalEotf,
   signalColorimetry: signalColorimetry,
   signalEncoding: signalEncoding,
+  powerOnReason: powerOnReason,
+  INPUTS: INPUTS,
+  input: input,
+  inputTitle: inputTitle,
+  POWER_STATES: POWER_STATES,
+  powerState: powerState,
   PICTURE_MODES: PICTURE_MODES,
-  pictureMode: pictureMode
+  pictureMode: pictureMode,
+  SOUND_OUTPUTS: SOUND_OUTPUTS,
+  soundOutput: soundOutput,
+  LOGO_DIMMING: LOGO_DIMMING,
+  ENERGY_SAVING_STEPS: ENERGY_SAVING_STEPS,
+  REFRESHER_STATUSES: REFRESHER_STATUSES,
+  refresherStatus: refresherStatus,
+  COMPENSATION_STATUSES: COMPENSATION_STATUSES,
+  compensationStatus: compensationStatus,
+  EMMC_EOL_STATES: EMMC_EOL_STATES,
+  emmcEol: emmcEol,
+  vrrType: vrrType
 };

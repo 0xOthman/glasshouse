@@ -4,6 +4,7 @@
  */
 var net = require('net');
 var tls = require('tls');
+var toBuffer = require('./util').toBuffer;
 
 function encodeVarLength(len) {
   var bytes = [];
@@ -13,18 +14,7 @@ function encodeVarLength(len) {
     if (len > 0) digit = digit | 0x80;
     bytes.push(digit);
   } while (len > 0);
-  return (typeof Buffer.from === 'function') ? Buffer.from(bytes) : new Buffer(bytes);
-}
-
-function toBuffer(data, enc) {
-  return (typeof Buffer.from === 'function') ? Buffer.from(data, enc) : new Buffer(data, enc);
-}
-
-function zeroBuffer(n) {
-  if (typeof Buffer.alloc === 'function') return Buffer.alloc(n);
-  var b = new Buffer(n);
-  b.fill(0);
-  return b;
+  return toBuffer(bytes);
 }
 
 function MiniMQTT(opts) {
@@ -301,8 +291,6 @@ MiniMQTT.prototype.setWill = function(payload) {
   this.disconnect();
 };
 
-MiniMQTT.toBuffer = toBuffer;
-MiniMQTT.zeroBuffer = zeroBuffer;
 MiniMQTT.encodeVarLength = encodeVarLength;
 
 module.exports = MiniMQTT;

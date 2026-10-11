@@ -32,7 +32,8 @@ function sampleLines(text) {
   return text.split('\n').filter(function (line) { return line && line.charAt(0) !== '#'; });
 }
 
-// 1. Every rendering declares exactly the stable names, and nothing else
+// 1. Every rendering declares only stable names, each with a sample, and the
+// fixtures between them declare every stable name
 (function testStableNames() {
   // Renaming or dropping one of these breaks dashboards built on it.
   assert.deepEqual(prometheus.STABLE, [
@@ -40,6 +41,8 @@ function sampleLines(text) {
     'glasshouse_boot_time_seconds',
     'glasshouse_system_on',
     'glasshouse_screen_on',
+    'glasshouse_power_on_info',
+    'glasshouse_power_on_time_seconds',
     'glasshouse_soc_temperature_celsius',
     'glasshouse_cpu_seconds_total',
     'glasshouse_cpu_frequency_hertz',
@@ -72,6 +75,9 @@ function sampleLines(text) {
     'glasshouse_oled_gsr_stress_events_total',
     'glasshouse_oled_protection_enabled',
     'glasshouse_picture_backlight_ratio',
+    'glasshouse_sound_info',
+    'glasshouse_volume_ratio',
+    'glasshouse_muted',
     'glasshouse_foreground_app_info',
     'glasshouse_signal_info',
     'glasshouse_signal_low_latency',
@@ -92,22 +98,38 @@ function sampleLines(text) {
     'glasshouse_hdmi_qms',
     'glasshouse_hdmi_source_powered',
     'glasshouse_syslog_messages_total',
-    'glasshouse_syslog_errors_total'
+    'glasshouse_syslog_errors_total',
+    'glasshouse_ntp_clock_sets_total',
+    'glasshouse_ntp_errors_total',
+    'glasshouse_ntp_offset_seconds',
+    'glasshouse_ntp_round_trip_seconds',
+    'glasshouse_ntp_stratum',
+    'glasshouse_ntp_last_answer_timestamp_seconds'
   ]);
 
+  var C4_NTP = { at: 1791576408500, offsetMs: -606.25, roundTripMs: 1.5, stratum: 4 };
   var renderings = {
     b8: prometheus.render(require('./fixtures/stats-b8-webos4.json'), '0.80.1'),
     g4: prometheus.render(require('./fixtures/stats-g4-webos9.json'), '0.80.1'),
-    c4: prometheus.render(require('./fixtures/stats-c4-webos9.json'), '0.80.1'),
+    c4: prometheus.render(require('./fixtures/stats-c4-webos9.json'), '0.80.1', { messages: { system: 12 }, errors: 0 },
+      { sets: 1, errors: 0, last: C4_NTP }),
+    c4hdr: prometheus.render(require('./fixtures/stats-c4-webos9-hdr.json'), '0.80.1'),
     c4standby: prometheus.render(require('./fixtures/stats-c4-webos9-standby.json'), '0.80.1'),
     cx: prometheus.render(require('./fixtures/stats-cx-webos5.json'), '0.80.1'),
     cxhdr: prometheus.render(require('./fixtures/stats-cx-webos5-hdr.json'), '0.80.1'),
     empty: prometheus.render({}, '0.80.1'),
     failed: prometheus.render({ ok: false, error: 'timeout' }, '0.80.1')
   };
+  var declared = {};
   Object.keys(renderings).forEach(function (k) {
     var text = renderings[k];
-    assert.deepEqual(declaredNames(text), prometheus.STABLE, k);
+    var sampled = {};
+    sampleLines(text).forEach(function (line) { sampled[/^[a-z_]+/.exec(line)[0]] = true; });
+    declaredNames(text).forEach(function (name) {
+      assert.ok(prometheus.STABLE.indexOf(name) !== -1, k + ': ' + name + ' is not a stable name');
+      assert.ok(sampled[name], k + ': ' + name + ' is declared without a sample');
+      declared[name] = true;
+    });
     assert.ok(/\n$/.test(text), 'the exposition ends with a newline');
     sampleLines(text).forEach(function (line) {
       var m = /^([a-z_]+)(\{[^}]*\})? (-?[0-9.]+(e[+-]?[0-9]+)?)$/.exec(line);
@@ -124,7 +146,11 @@ function sampleLines(text) {
     'glasshouse_info{model="",firmware="",webos="",version="0.80.1"} 1'
   ]);
   assert.deepEqual(sampleLines(renderings.failed), sampleLines(renderings.empty));
-  console.log('  ✓ every rendering declares exactly the stable metric names');
+  assert.deepEqual(declaredNames(renderings.empty), ['glasshouse_info']);
+
+  // A family no fixture renders would go unchecked here.
+  assert.deepEqual(prometheus.STABLE.filter(function (name) { return !declared[name]; }), []);
+  console.log('  ✓ every rendering declares only stable metric names, each with a sample');
 })();
 
 // 1b. The syslog counters have samples only while forwarding is on
@@ -135,9 +161,29 @@ function sampleLines(text) {
     'glasshouse_syslog_messages_total{source="glasshouse"} 3',
     'glasshouse_syslog_errors_total 1'
   ]);
-  var off = sampleLines(prometheus.render({}, '0.80.1', null));
-  assert.strictEqual(off.length, 1);
+  var off = prometheus.render({}, '0.80.1', null);
+  assert.strictEqual(sampleLines(off).length, 1);
+  assert.ok(!/^# HELP glasshouse_syslog_/m.test(off), 'no HELP for the syslog counters while forwarding is off');
   console.log('  ✓ the syslog counters are sampled only while forwarding is on');
+})();
+
+// 1c. The NTP families have samples only while the client is on, the last
+// answer's only once there is one
+(function testNtp() {
+  var last = { at: 1791576408500, offsetMs: -606.25, roundTripMs: 1.5, stratum: 4 };
+  var on = sampleLines(prometheus.render({}, '0.80.1', null, { sets: 2, errors: 1, last: last }));
+  assert.deepEqual(on.slice(1), [
+    'glasshouse_ntp_clock_sets_total 2',
+    'glasshouse_ntp_errors_total 1',
+    'glasshouse_ntp_offset_seconds -0.60625',
+    'glasshouse_ntp_round_trip_seconds 0.0015',
+    'glasshouse_ntp_stratum 4',
+    'glasshouse_ntp_last_answer_timestamp_seconds 1791576408.5'
+  ]);
+  var unanswered = sampleLines(prometheus.render({}, '0.80.1', null, { sets: 0, errors: 3, last: null }));
+  assert.deepEqual(unanswered.slice(1), ['glasshouse_ntp_clock_sets_total 0', 'glasshouse_ntp_errors_total 3']);
+  assert.strictEqual(sampleLines(prometheus.render({}, '0.80.1', null, null)).length, 1);
+  console.log('  ✓ the NTP families are sampled only while the client is on');
 })();
 
 // 2. Values are in base units: bytes, hertz, seconds and ratios
@@ -153,6 +199,8 @@ function sampleLines(text) {
     'glasshouse_boot_time_seconds 1791204922.238',
     'glasshouse_system_on 1',
     'glasshouse_screen_on 1',
+    'glasshouse_power_on_info{reason="remote_key"} 1',
+    'glasshouse_power_on_time_seconds 1791206298.442',
     'glasshouse_soc_temperature_celsius 59',
     'glasshouse_cpu_frequency_hertz 1400000000',
     'glasshouse_memory_total_bytes 2094612480',
@@ -180,6 +228,9 @@ function sampleLines(text) {
     'glasshouse_oled_refresher_running 0',
     'glasshouse_oled_refresher_scheduled 0',
     'glasshouse_oled_failure_alerts_total 0',
+    'glasshouse_sound_info{output="tv_external_speaker",mode="game"} 1',
+    'glasshouse_volume_ratio 0',
+    'glasshouse_muted 0',
     'glasshouse_foreground_app_info{app_id="com.webos.app.hdmi4",app_name="PC"} 1',
     'glasshouse_signal_info{dynamic_range="",picture_mode="game"} 1',
     'glasshouse_signal_vrr 0',
@@ -196,6 +247,7 @@ function sampleLines(text) {
     'glasshouse_boot_time_seconds 1791204921',
     'glasshouse_system_on 0',
     'glasshouse_screen_on 0',
+    'glasshouse_power_on_info{reason="always_on"} 1',
     'glasshouse_soc_temperature_celsius 50',
     'glasshouse_cpu_seconds_total{cpu="0",mode="user"} 1050.09',
     'glasshouse_cpu_seconds_total{cpu="0",mode="nice"} 0.12',
@@ -244,6 +296,9 @@ function sampleLines(text) {
     'glasshouse_oled_gsr_stress_events_total 133204',
     'glasshouse_oled_protection_enabled{protection="asbl"} 1',
     'glasshouse_oled_protection_enabled{protection="gsr"} 1',
+    'glasshouse_sound_info{output="tv_external_speaker",mode="game"} 1',
+    'glasshouse_volume_ratio 0',
+    'glasshouse_muted 0',
     'glasshouse_signal_info{dynamic_range="sdr",picture_mode="eco"} 1',
     'glasshouse_signal_low_latency 0',
     'glasshouse_hdmi_input_info{input="hdmi1",app_id="com.webos.app.hdmi1",name="HDMI 1"} 1',
@@ -320,6 +375,9 @@ function sampleLines(text) {
     'glasshouse_oled_refresher_runs_total 5',
     'glasshouse_oled_refresher_running 0',
     'glasshouse_oled_refresher_scheduled 0',
+    'glasshouse_sound_info{output="tv_speaker",mode="standard"} 1',
+    'glasshouse_volume_ratio 0',
+    'glasshouse_muted 0',
     'glasshouse_foreground_app_info{app_id="com.webos.app.hdmi4",app_name="HDMI 4"} 1',
     'glasshouse_signal_info{dynamic_range="",picture_mode="eco"} 1',
     'glasshouse_hdmi_input_info{input="hdmi1",app_id="com.webos.app.hdmi1",name="HDMI 1"} 1',
@@ -554,6 +612,34 @@ function sampleLines(text) {
   assert.deepEqual(matching(quoted, foreground), ['glasshouse_foreground_app_info{app_id="com.webos.app.hdmi1",app_name="Den\\"on\\\\s"} 1']);
   assert.deepEqual(matching(quoted, inputs), ['glasshouse_hdmi_input_info{input="hdmi1",app_id="com.webos.app.hdmi1",name="Den\\"on\\\\s"} 1']);
   console.log('  ✓ the foreground app and the HDMI input names are exported');
+})();
+
+// 2d. The sound output and mode are the TV's settings, the volume only a level
+// the TV sets
+(function testSound() {
+  function sound(stats) {
+    return sampleLines(prometheus.render(stats, '')).filter(function (l) { return /^glasshouse_(sound|volume|muted)/.test(l); });
+  }
+  assert.deepEqual(sound({ sound: { output_raw: 'external_arc', mode: 'aiSoundPlus' }, volume: 23, muted: true, volume_control: 'level' }), [
+    'glasshouse_sound_info{output="external_arc",mode="ai_sound_plus"} 1',
+    'glasshouse_volume_ratio 0.23',
+    'glasshouse_muted 1'
+  ]);
+  // An output or mode outside the names table keeps its own name in snake case.
+  assert.deepEqual(sound({ sound: { output_raw: 'tv_speaker_wow_cast', mode: 'aiSound_soundbar' } }), [
+    'glasshouse_sound_info{output="tv_speaker_wow_cast",mode="ai_sound_soundbar"} 1'
+  ]);
+  // A volume only stepped, as with an ARC soundbar, or not controlled at all,
+  // as over optical, is no level.
+  ['steps', 'none'].forEach(function (vc) {
+    assert.deepEqual(sound({ volume: -1, muted: false, volume_control: vc }), ['glasshouse_muted 0'], vc);
+  });
+  // One setting known without the other: the other label is empty.
+  assert.deepEqual(sound({ sound: { mode: 'movie' } }), ['glasshouse_sound_info{output="",mode="movie"} 1']);
+  // No sound settings and no mute reading: no samples.
+  assert.deepEqual(sound({ volume: 10, volume_control: 'level', muted: null }), ['glasshouse_volume_ratio 0.1']);
+  assert.deepEqual(sound({ sound: null }), []);
+  console.log('  ✓ the sound output, mode, volume, and mute are exported');
 })();
 
 // 3. Label values are escaped, and a missing one is empty rather than omitted

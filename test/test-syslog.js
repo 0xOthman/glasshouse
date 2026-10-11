@@ -346,10 +346,59 @@ function testKernelInterval() {
               listener.close();
               try { fs.unlinkSync(messages); fs.unlinkSync(started); fs.rmdirSync(dir); } catch (e) {}
               console.log('  ✓ dmesg starts through the launch gate, every 30 s rather than every poll');
+              testFlush();
             });
           });
         });
       });
     });
+  });
+}
+
+// 10. A flush sends what the files gained at once, and leaves the kernel log
+// to its own schedule
+function testFlush() {
+  syslog.flush();
+  var dir = tempDir();
+  var tvweb = path.join(dir, 'tvweb.log');
+  var messages = path.join(dir, 'messages');
+  var started = path.join(dir, 'started');
+  process.env.TVWEB_LOG = tvweb;
+  fs.writeFileSync(tvweb, '');
+  fs.writeFileSync(messages, '');
+  fs.writeFileSync(started, '');
+  dmesgOut = '<6>[   10.000000] already in the ring at the start\n';
+  dmesgRuns = 0;
+  var now = 1000000;
+  var got = [];
+  var listener = dgram.createSocket('udp4');
+  var deadline = setTimeout(function () { assert.fail('timed out with ' + got.length + ' messages'); }, 5000);
+  listener.on('message', function (buf) { got.push(buf.toString('utf8')); });
+
+  listener.bind(0, '127.0.0.1', function () {
+    syslog.init({ config: { syslog: { server: '127.0.0.1', port: listener.address().port, sources: ['glasshouse', 'kernel'] } },
+                  messagesPath: messages, markerPath: started, uptime: function () { return 4000; },
+                  clock: function () { return now; } });
+    syslog.start();
+    syslog.setHostname('Bedroom TV');
+    setTimeout(function () {
+      syslog.poll(function () {
+        assert.strictEqual(dmesgRuns, 1);
+        fs.appendFileSync(tvweb, '2026-10-08T12:00:05.000Z [5.000] [INFO] power: Active -> Active Standby\n');
+        now += 1000;
+        syslog.flush();
+        setTimeout(function () {
+          clearTimeout(deadline);
+          assert.strictEqual(got.length, 1, got.join('\n'));
+          assert.ok(/ glasshouse - power: Active -> Active Standby$/.test(got[0]), got[0]);
+          assert.strictEqual(dmesgRuns, 1, 'the kernel log waits for its 30 s');
+          syslog.stop();
+          syslog.flush();
+          listener.close();
+          try { fs.unlinkSync(tvweb); fs.unlinkSync(messages); fs.unlinkSync(started); fs.rmdirSync(dir); } catch (e) {}
+          console.log('  ✓ a flush sends the files\' new lines at once, and only the files\'');
+        }, 100);
+      });
+    }, 50);
   });
 }

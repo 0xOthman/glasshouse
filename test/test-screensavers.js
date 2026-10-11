@@ -82,9 +82,7 @@ console.log('Running test-screensavers.js ...');
     },
     config: { port: 8080, allowControl: true },
     injectKey: null,
-    KEY_BACK: null,
-    mapPowerState: null,
-    isScreenSaver: null
+    KEY_BACK: null
   });
 
   var list = screensavers.screensaverList();
@@ -124,9 +122,7 @@ console.log('Running test-screensavers.js ...');
     assetPath: null,
     config: { port: 8080 },
     injectKey: null,
-    KEY_BACK: null,
-    mapPowerState: null,
-    isScreenSaver: null
+    KEY_BACK: null
   });
 
   var list = screensavers.screensaverList();
@@ -161,9 +157,7 @@ console.log('Running test-screensavers.js ...');
     assetPath: null,
     config: {},
     injectKey: null,
-    KEY_BACK: null,
-    mapPowerState: null,
-    isScreenSaver: null
+    KEY_BACK: null
   });
 
   screensavers.trigger(function (result) {
@@ -235,9 +229,7 @@ console.log('Running test-screensavers.js ...');
         assetPath: null,
         config: {},
         injectKey: function () {},
-        KEY_BACK: 412,
-        mapPowerState: function (s) { return { raw: s }; },
-        isScreenSaver: function () { return false; }
+        KEY_BACK: 412
       });
       screensavers.trigger(function (result) {
         assert.strictEqual(result.ok, true);

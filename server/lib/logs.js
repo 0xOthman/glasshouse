@@ -4,6 +4,7 @@ var fs = require('fs');
 var path = require('path');
 var os = require('os');
 var execFile = require('child_process').execFile;
+var allocBuffer = require('./util').allocBuffer;
 
 var MESSAGES_LOG = '/var/log/messages';
 var DEFAULT_LIMIT = 100;
@@ -52,7 +53,7 @@ function readLines(filePath, from, ino, maxBytes, forward) {
     }
     if (toRead <= 0) return { text: '', end: start, ino: String(stat.ino), whole: whole, atEnd: true };
     var fd = fs.openSync(filePath, 'r');
-    var buf = typeof Buffer.alloc === 'function' ? Buffer.alloc(toRead) : new Buffer(toRead);
+    var buf = allocBuffer(toRead);
     var bytesRead = fs.readSync(fd, buf, 0, toRead, start);
     fs.closeSync(fd);
     var last = -1;

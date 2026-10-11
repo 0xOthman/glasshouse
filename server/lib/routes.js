@@ -8,6 +8,10 @@ var zlib = require('zlib');
 var crypto = require('crypto');
 var http = require('http');
 var say = require('./say');
+var lanAddress = require('./util').lanAddress;
+var writeJsonAtomic = require('./util').writeJsonAtomic;
+var unlinkQuiet = require('./util').unlinkQuiet;
+var existsQuiet = require('./util').existsQuiet;
 var msg = say.msg;
 var ha = require('./ha');
 var fetchLib = require('./fetch');
@@ -75,6 +79,8 @@ var installerModule = null;
 var prometheusModule = null;
 /** @type {typeof import('./syslog')} */
 var syslogModule = null;
+/** @type {typeof import('./ntp')} */
+var ntpModule = null;
 var fromHbcFn = null;
 var tileHidingOffMsg = '';
 var assetPathFn = null;
@@ -157,7 +163,7 @@ function luna(uri, payload, cb) { return lunaFn(uri, payload, cb); }
 function getMqttStatus() { return getMqttStatusFn(); }
 
 function setupPending() {
-  try { return fs.existsSync(SETUP_PENDING); } catch (e) { return false; }
+  return existsQuiet(SETUP_PENDING);
 }
 
 /*
@@ -261,10 +267,7 @@ function writeSettings(patch, cb) {
   }
   try {
     if (!configFilePath) return cb(new Error('no config file path configured'));
-    var tmp = configFilePath + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify(file, null, 2), 'utf8');
-    fs.chmodSync(tmp, parseInt('600', 8));
-    fs.renameSync(tmp, configFilePath);   // atomic: never leave a half-written config
+    writeJsonAtomic(configFilePath, file, parseInt('600', 8));
   } catch (err) {
     return cb(err);
   }
@@ -280,32 +283,9 @@ function setNetworkAccess(open, cb) {
   file.host = open ? '0.0.0.0' : '127.0.0.1';
   try {
     if (!configFilePath) return cb(new Error('no config file path configured'));
-    var tmp = configFilePath + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify(file, null, 2), 'utf8');
-    fs.chmodSync(tmp, parseInt('600', 8));
-    fs.renameSync(tmp, configFilePath);
+    writeJsonAtomic(configFilePath, file, parseInt('600', 8));
   } catch (err) { return cb(err); }
   cb(null);
-}
-
-// The TV's own address on the home network, whatever the server is bound to.
-function lanAddress() {
-  var ifaces = {};
-  try { ifaces = os.networkInterfaces() || {}; } catch (e) { return null; }
-  var best = null;
-  for (var name in ifaces) {
-    if (!ifaces.hasOwnProperty(name)) continue;
-    var list = ifaces[name] || [];
-    for (var i = 0; i < list.length; i++) {
-      var a = list[i];
-      var fam = String(a.family);
-      if (fam !== 'IPv4' && fam !== '4') continue;
-      if (a.internal) continue;
-      // Wired first where a TV has both, otherwise the first that answers.
-      if (!best || /^eth/.test(name)) best = a.address;
-    }
-  }
-  return best;
 }
 
 // Whether the dashboard answers on the network, or only on the TV itself.
@@ -379,6 +359,7 @@ function setupState() {
     network: networkOpen(),
     token: !!config.token,
     address: lanAddress() ? lanAddress() + ':' + config.port : null,
+    hostname: telemetryModule ? telemetryModule.lanHostname(lanAddress()) : null,
     homeAssistant: { configured: !!(m.enabled && m.host), state: mqttStat.state },
     handoff: HANDOFF.server ? handoffUrl() : null
   };
@@ -1055,7 +1036,7 @@ function handleRequest(req, res) {
         return send(res, 200, JSON.stringify({ ok: true }));
       }
       if (a.action === 'done') {
-        try { fs.unlinkSync(SETUP_PENDING); } catch (e) {}
+        unlinkQuiet(SETUP_PENDING);
         return send(res, 200, JSON.stringify({ ok: true }));
       }
       send(res, 400, JSON.stringify({ ok: false, error: 'unknown action' }));
@@ -1279,7 +1260,8 @@ function handleRequest(req, res) {
   if (pathname === '/api/prometheus/metrics' && prometheusEnabled()) {
     return telemetryModule.collectStats(function (s) {
       var forwarded = syslogModule ? syslogModule.getCounters() : null;
-      send(res, 200, prometheusModule.render(s, versionStr, forwarded), 'text/plain; version=0.0.4; charset=utf-8');
+      var clock = ntpModule ? ntpModule.getStatus() : null;
+      send(res, 200, prometheusModule.render(s, versionStr, forwarded, clock), 'text/plain; version=0.0.4; charset=utf-8');
     });
   }
 
@@ -1455,6 +1437,7 @@ function init(opts) {
   if (opts.installer) installerModule = opts.installer;
   if (opts.prometheus) prometheusModule = opts.prometheus;
   if (opts.syslog) syslogModule = opts.syslog;
+  if (opts.ntp) ntpModule = opts.ntp;
   if (opts.fromHomebrewChannel) fromHbcFn = opts.fromHomebrewChannel;
   if (opts.tileHidingOff) tileHidingOffMsg = opts.tileHidingOff;
   if (opts.assetPath) assetPathFn = opts.assetPath;

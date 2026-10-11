@@ -6,6 +6,12 @@ Branch, push the branch, open a PR. This applies to "commit and push" too.
 Push to an existing PR branch rather than opening a second one for the same
 line of work. Merging is the maintainer's call.
 
+## Draft until tried on a TV
+
+A PR that has not been tried on a real TV stays a draft, even when feedback on
+it is wanted. Mark it ready for review once it has been, with the result in its
+Testing section.
+
 # Code map
 
 The server runs on the TV under node 0.12, so it and the pages the TV's own
@@ -82,8 +88,12 @@ A small change can skip the heading: one or two plain sentences are enough.
 ## Don't narrate the work
 
 No process commentary: what was tried, what was ruled out, what turned out to
-be a false alarm, how something was verified. If a check found nothing, that
-is not a finding worth writing down.
+be a false alarm. If a check found nothing, that is not a finding worth
+writing down.
+
+The exception is a PR's **Testing** section, which docs/CONTRIBUTING.md asks
+for: the TV and webOS version the change was tried on, what was done and seen,
+and what wasn't tested. State them as facts, briefly, not as a story.
 
 Record decisions and their reasons, not the route taken to reach them.
 

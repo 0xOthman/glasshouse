@@ -9,15 +9,15 @@
 
 var msg = require('./say').msg;
 var fs = require('fs');
+var dns = require('dns');
 var readTrimmed = require('./util').readTrimmed;
 var toInt = require('./util').toInt;
+var lanAddress = require('./util').lanAddress;
 var path = require('path');
 var execFile = require('child_process').execFile;
-var ha = require('./ha');
 var names = require('./names');
+var power = require('./power');
 var timers = require('./timers');
-
-var SOUND_OUTPUT_MAP = ha.SOUND_OUTPUT_MAP;
 
 // LG's own reading where it exists. Models without it (the 55QNED826QB, webOS
 // 7.6) still have the kernel's thermal zone, in millidegrees: 68000 = 68 C.
@@ -38,10 +38,10 @@ var privacyModule = null;
 var screensaversModule = null;
 /** @type {typeof import('./game')} */
 var gameModule = null;
+/** @type {typeof import('./power')} */
+var powerModule = null;
 var alwaysReadyScreenOn = false;
 var tvwebVersionStr = '0.0.0';
-var mapPowerStateFn = null;
-var isScreenSaverFn = null;
 
 var HARDWARE_INFO = {
   webos: null,
@@ -115,7 +115,6 @@ var statsCollected = false;
 var isCollecting = false;
 var statsWaiters = [];
 
-var EOL_MAP = { 1: 'Normal', 2: 'Warning', 3: 'Urgent' };
 var EMMC_CACHE = null;
 var SWAP_BACKING_CACHE = null;
 var MAC_CACHE = {};
@@ -154,9 +153,8 @@ function init(opts) {
   privacyModule = opts.privacy;
   screensaversModule = opts.screensavers;
   gameModule = opts.game;
+  powerModule = opts.power || null;
   tvwebVersionStr = opts.tvwebVersion || '0.0.0';
-  mapPowerStateFn = opts.mapPowerState;
-  isScreenSaverFn = opts.isScreenSaver;
   loadHdmiSeen();
   hasMediaState = readTrimmed(MEDIA_SEEN_FILE) !== null;
 }
@@ -176,7 +174,8 @@ function emmcInfo() {
   if (EMMC_CACHE) return EMMC_CACHE;
   var raw = readTrimmed('/sys/block/mmcblk0/device/life_time');
   var eolRaw = readTrimmed('/sys/block/mmcblk0/device/pre_eol_info');
-  var eol = EOL_MAP[parseInt(eolRaw, 16)] || 'unknown';
+  var eolState = names.emmcEol(parseInt(eolRaw, 16));
+  var eol = eolState ? eolState.display : 'unknown';
   if (!raw) {
     EMMC_CACHE = { life: 'unknown', wear: 'unknown', health: 'unknown', eol: eol, life_est_a: null, life_est_b: null };
     return EMMC_CACHE;
@@ -395,14 +394,13 @@ function wifi() {
 function ifaceRank(name) {
   var st = readTrimmed('/sys/class/net/' + name + '/operstate');
   if (st) {
-    st = st.trim();
     if (st === 'up') return 2;
     if (st === 'down') return 0;
     return 1;
   }
   var car = readTrimmed('/sys/class/net/' + name + '/carrier');
   if (!car) return 1;
-  return car.trim() === '1' ? 2 : 0;
+  return car === '1' ? 2 : 0;
 }
 
 function macAddress(iface) {
@@ -410,11 +408,62 @@ function macAddress(iface) {
   if (MAC_CACHE[iface]) return MAC_CACHE[iface];
   var raw = readTrimmed('/sys/class/net/' + iface + '/address');
   if (!raw) return null;
-  var mac = raw.trim().toLowerCase();
+  var mac = raw.toLowerCase();
   if (!/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/.test(mac)) return null;
   if (mac === '00:00:00:00:00:00') return null;
   MAC_CACHE[iface] = mac;
   return mac;
+}
+
+/*
+ * The TV's DNS name, from a reverse lookup of its LAN address. Most home
+ * networks have no reverse zone, so no name is the usual answer, and it is
+ * cached for the same hour as a name: a network without one is asked that
+ * often, not every scrape. The record's own TTL would be the right lifetime,
+ * but node's dns gives none for a PTR (node 0.12 for no record type; later
+ * versions only for A and AAAA), so it is fixed at 3600 seconds, the TTL
+ * hand-run reverse zones commonly give.
+ * dns.reverse has no timeout of its own either, so a late answer is dropped
+ * and counts as no name.
+ */
+var HOSTNAME_TTL_MS = 3600000;
+var HOSTNAME_TIMEOUT_MS = 3000;
+var hostnameCache = { address: null, name: null, time: 0 };
+var hostnameAsking = null;
+
+function reverseName(address, timeoutMs, cb) {
+  var done = false;
+  var timer = setTimeout(function () { finish(null); }, timeoutMs);
+  function finish(name) {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    cb(name);
+  }
+  try {
+    dns.reverse(address, function (err, hostnames) {
+      var name = !err && hostnames && hostnames[0] ? String(hostnames[0]).replace(/\.$/, '') : null;
+      finish(name);
+    });
+  } catch (e) { finish(null); }
+}
+
+// The cached name for address, or null; a stale or missing one is looked up
+// behind the answer, so a caller never waits on DNS.
+function lanHostname(address) {
+  if (!address) return null;
+  var c = hostnameCache;
+  var known = c.address === address;
+  if ((!known || Date.now() - c.time >= HOSTNAME_TTL_MS) && hostnameAsking !== address) {
+    hostnameAsking = address;
+    reverseName(address, HOSTNAME_TIMEOUT_MS, function (name) {
+      // An answer for an address the TV has since left is not kept.
+      if (hostnameAsking !== address) return;
+      hostnameAsking = null;
+      hostnameCache = { address: address, name: name, time: Date.now() };
+    });
+  }
+  return known ? c.name : null;
 }
 
 function netBytes() {
@@ -781,8 +830,10 @@ function signalFormat(reply) {
   }
   var colorimetry = vi.colormetry === 'FUTURE' ? vi.extendedColormetry : vi.colormetry;
   var eotf = meta && typeof meta.EOTFtype === 'number' ? names.signalEotf(meta.EOTFtype) : null;
+  var hdrType = typeof vi.hdrType === 'string' && vi.hdrType ? names.signalHdrType(vi.hdrType) : null;
   return {
-    type: typeof vi.hdrType === 'string' && vi.hdrType ? names.signalHdrType(vi.hdrType).label : null,
+    type: hdrType ? hdrType.label : null,
+    type_display: hdrType ? hdrType.display : null,
     eotf: eotf ? eotf.label : null,
     colorimetry: typeof colorimetry === 'string' && colorimetry ? colorimetry : null,
     encoding: typeof vi.pixelEncoding === 'string' && vi.pixelEncoding ? vi.pixelEncoding : null,
@@ -823,6 +874,38 @@ function volumeControl(vs, sound) {
 }
 
 /*
+ * Where the sound goes, as the audio service names it, so a refused volume
+ * change can be tied to it.
+ */
+function soundRoute(vs, sound) {
+  if (vs && vs.soundOutput) return String(vs.soundOutput);
+  if (sound && sound.scenario) return String(sound.scenario);
+  return null;
+}
+
+/*
+ * The route the TV last refused a volume or mute change on ("Current Scenario
+ * doesn't support volume change"), which counts as no volume control until
+ * the sound goes elsewhere. The flags above are not always right: an
+ * OLED65G5WUA (webOS 25) on optical showed a settable level of 10 that no
+ * change moved.
+ */
+var lastSoundRoute = null;
+var volumeRefusedRoute = null;
+
+function noteVolumeRefused() {
+  volumeRefusedRoute = lastSoundRoute;
+  lastStats = null;
+}
+
+function routedVolumeControl(vs, sound) {
+  var route = soundRoute(vs, sound);
+  lastSoundRoute = route;
+  if (volumeRefusedRoute !== null && volumeRefusedRoute !== route) volumeRefusedRoute = null;
+  return volumeRefusedRoute !== null ? 'none' : volumeControl(vs, sound);
+}
+
+/*
  * Whether a Bluetooth audio device is connected: choosing Bluetooth output
  * without one opens the TV's own pairing prompt and falls back to the
  * speakers. Paired is not enough - headphones switched off stay paired. A
@@ -843,19 +926,110 @@ function refreshBtAudio() {
 
 function formatSoundOutput(so) {
   if (!so) return 'TV Speaker';
-  if (SOUND_OUTPUT_MAP[so]) return SOUND_OUTPUT_MAP[so];
-  // A name not in the map is still shown readably: mobile_phone reads as
-  // "Mobile Phone" rather than as the raw key.
-  return String(so).replace(/_/g, ' ').replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); });
+  return names.soundOutput(so).display;
+}
+
+/*
+ * The sound outputs this TV offers, as LG's own Quick Settings menu decides
+ * them (QuickSettings/Controllers/SoundOutInterfaces on a C2, webOS 9.2). The
+ * settings service lists every output the firmware knows - on that C2, a
+ * speaker bar and WiSA speakers it cannot use - so the menu drops some always
+ * and others where the model's configd settings say it lacks them. Unlike the
+ * menu, an output configd says nothing about stays (webOS 4 has other keys),
+ * and one outside LG's ordering is kept after the rest, as webOS 4 names its
+ * outputs differently.
+ */
+var SOUND_OUT_ORDER = ['tv_speaker', 'external_optical', 'tv_external_speaker', 'external_arc',
+  'tv_speaker_external_arc', 'bt_soundbar', 'tv_speaker_bluetooth', 'wow_cast', 'tv_speaker_wow_cast',
+  'lineout', 'headphone', 'usb_speaker', 'tv_speaker_headphone', 'mobile_phone', 'wisa_speaker'];
+// Never on LG's menu: tv_speaker_optical_arc is for factory mode.
+var SOUND_OUT_NEVER = { tv_speaker_optical_arc: 1, tv_speakerbar: 1, builtin_soundbar: 1,
+  tv_speakerbar_headphone: 1, bt_audio: 1 };
+// Offered only with an LG soundbar or WOWCAST device connected, which is not
+// read here: listed only while in use.
+var SOUND_OUT_WHEN_IN_USE = { tv_speaker_external_arc: 1, tv_speaker_wow_cast: 1 };
+var SOUND_OUT_CONFIGS = ['tv.model.supportHeadPhone', 'tv.model.supportOpticalJack', 'tv.model.supportAudioLineOut',
+  'tv.model.supportWiSA', 'system.supportBluetoothFeatures', 'com.webos.service.wowplay.supportWowCast', 'profile.list'];
+
+function soundOutputHidden(id, cfg) {
+  if (SOUND_OUT_NEVER[id] || SOUND_OUT_WHEN_IN_USE[id]) return true;
+  var bt = cfg['system.supportBluetoothFeatures'], profile = cfg['profile.list'];
+  function says(key, value) { return cfg.hasOwnProperty(key) && cfg[key] === value; }
+  switch (id) {
+    case 'bt_soundbar': return Array.isArray(bt) && bt.indexOf('btsound') === -1;
+    case 'tv_speaker_bluetooth': return Array.isArray(bt) && bt.indexOf('bluetoothPlusTvSpeaker') === -1;
+    case 'lineout': return says('tv.model.supportAudioLineOut', false) || says('tv.model.supportHeadPhone', false);
+    case 'headphone':
+    case 'tv_speaker_headphone': return says('tv.model.supportHeadPhone', false);
+    case 'external_optical':
+    case 'tv_external_speaker':
+      return cfg.hasOwnProperty('tv.model.supportOpticalJack') && cfg['tv.model.supportOpticalJack'] !== 'On';
+    // Features few models have: offered only where the model says so.
+    case 'wisa_speaker': return cfg['tv.model.supportWiSA'] !== true;
+    case 'wow_cast': return cfg['com.webos.service.wowplay.supportWowCast'] !== true;
+    case 'usb_speaker':
+      return !(Array.isArray(profile) && profile.indexOf('gaming') !== -1 && profile.indexOf('usbSoundOutput') !== -1);
+  }
+  return false;
+}
+
+/**
+ * values: the settings service's arrayExt for soundOutput; cfg: configd's
+ * answer for SOUND_OUT_CONFIGS; current: the output in use, always kept.
+ * Returns the ids in LG's order, or [] where the TV listed none.
+ */
+function offeredSoundOutputs(values, cfg, current) {
+  cfg = cfg || {};
+  var offered = [];
+  (Array.isArray(values) ? values : []).forEach(function (v) {
+    if (!v || typeof v.value !== 'string' || !v.visible || !v.active) return;
+    if (offered.indexOf(v.value) !== -1) return;
+    if (v.value === current || !soundOutputHidden(v.value, cfg)) offered.push(v.value);
+  });
+  if (!offered.length) return [];
+  if (current && offered.indexOf(current) === -1) offered.push(current);
+  // Sorted by hand: node 0.12's sort is not stable.
+  return offered.map(function (id, i) {
+    var at = SOUND_OUT_ORDER.indexOf(id);
+    return { id: id, key: at === -1 ? SOUND_OUT_ORDER.length + i : at };
+  }).sort(function (a, b) { return a.key - b.key; }).map(function (o) { return o.id; });
+}
+
+var lastSoundOutputs = [];
+
+// The outputs on offer, kept for Home Assistant's select; cb(ids).
+function soundOutputs(current, cb) {
+  if (!lunaCachedFn) return cb([]);
+  lunaCachedFn('com.webos.service.settings/getSystemSettingValues', { category: 'sound', key: 'soundOutput' }, 60000, function (res) {
+    var values = res && res.values && res.values.arrayExt;
+    lunaCachedFn('com.webos.service.config/getConfigs', { configNames: SOUND_OUT_CONFIGS }, 300000, function (c) {
+      var ids = offeredSoundOutputs(values, c && c.configs, current);
+      if (ids.length) lastSoundOutputs = ids;
+      cb(ids);
+    });
+  });
+}
+
+/*
+ * The output the sound is going to. The newer service's soundOutput uses the
+ * setting's keys, or their Bluetooth surround variant; getSoundOut's scenario
+ * does not (the C4, webOS 9.2, reads tv_speaker_ext on TV Speaker + Optical)
+ * and fails outright on TV Speaker + Bluetooth with nothing paired, so the
+ * scenario is only for a TV without the newer service.
+ */
+function audioOutput(vs, sound) {
+  if (vs && vs.soundOutput) return formatSoundOutput(String(vs.soundOutput));
+  if (sound && sound.scenario) return formatSoundOutput(String(sound.scenario).replace(/^mastervolume_/, ''));
+  return 'Internal';
 }
 
 function formatPicMode(mode) {
-  return mode ? names.pictureMode(mode).display : 'Standard';
+  return names.pictureMode(mode || 'standard').display;
 }
 
 // The TV gives no dimension where the picture is SDR.
 function formatDynamicRange(dr) {
-  return dr ? names.dynamicRange(String(dr)).display : 'SDR';
+  return names.dynamicRange(dr ? String(dr) : 'sdr').display;
 }
 
 function pictureModes(cb) {
@@ -1079,7 +1253,7 @@ function sampleCpuTicks() {
   var out = { total: 0, procs: {} };
   try {
     var cpu = fs.readFileSync('/proc/stat', 'utf8').split('\n')[0].split(/\s+/);
-    for (var i = 1; i < cpu.length; i++) out.total += parseInt(cpu[i], 10) || 0;
+    for (var i = 1; i < cpu.length; i++) out.total += toInt(cpu[i], 0);
   } catch (e) {
     return null;
   }
@@ -1093,7 +1267,7 @@ function sampleCpuTicks() {
       if (close < 0) continue;
       var f = raw.slice(close + 2).split(' ');
       out.procs[entries[n]] = {
-        ticks: (parseInt(f[11], 10) || 0) + (parseInt(f[12], 10) || 0),
+        ticks: toInt(f[11], 0) + toInt(f[12], 0),
         comm: raw.slice(raw.indexOf('(') + 1, close)
       };
     } catch (e3) {}
@@ -1323,7 +1497,7 @@ function detectFrontLights(cb) {
 
 // LG stores the hour and minute as separate strings, "1" and "0" for 01:00.
 function clockTime(h, m) {
-  function pad2(v) { v = parseInt(v, 10) || 0; return (v < 10 ? '0' : '') + v; }
+  function pad2(v) { v = toInt(v, 0); return (v < 10 ? '0' : '') + v; }
   return pad2(h) + ':' + pad2(m);
 }
 
@@ -1424,6 +1598,7 @@ function collectStats(cb) {
   var uptimeSec = Math.floor(parseFloat(readTrimmed('/proc/uptime') || '0'));
 
   var devCfg = (configObj && configObj.device) || {};
+  var address = lanAddress();
   var out = {
     ok: true,
     time: Date.now(),
@@ -1475,6 +1650,8 @@ function collectStats(cb) {
     net: rate,
     netTotal: n ? { rx: n.rx, tx: n.tx, iface: n.iface } : null,
     mac: n ? macAddress(n.iface) : null,
+    address: address,
+    hostname: lanHostname(address),
     emmc: emmcInfo(),
     signal: null,
     signal_timing: null,
@@ -1523,8 +1700,13 @@ function collectStats(cb) {
      * off, which Home Assistant showed and which swapped the MQTT will; left
      * out, the live state keeps what it last knew.
      */
-    out.powerState = mapPowerStateFn && rawPower ? mapPowerStateFn(rawPower) : null;
-    out.screenSaver = isScreenSaverFn ? isScreenSaverFn(out.powerState) : false;
+    out.powerState = rawPower ? power.mapState(rawPower) : null;
+    if (out.powerState) {
+      var on = powerModule ? powerModule.current() : { onReason: null, onTime: null };
+      out.powerState.onReason = on.onReason;
+      out.powerState.onTime = on.onTime;
+    }
+    out.screenSaver = power.isScreenSaver(out.powerState);
     out.screensaverMode = screensaversModule ? screensaversModule.screensaverMode() : 'stock';
     out.screensaverLevel = screensaversModule ? screensaversModule.screensaverLevel() : 'dim';
 
@@ -1643,8 +1825,6 @@ function collectStats(cb) {
     if (sound) {
       out.volume = sound.volume;
       out.muted = !!sound.muted;
-      out.audio_output = sound.scenario ?
-        formatSoundOutput(String(sound.scenario).replace(/^mastervolume_/, '')) : 'Internal';
     }
   masterVolume(function (vs) {
     // With an eARC soundbar controlling the volume, getSoundOut reports 0 and
@@ -1653,7 +1833,8 @@ function collectStats(cb) {
       if (typeof vs.volume === 'number') out.volume = vs.volume;
       if (typeof vs.muteStatus === 'boolean') out.muted = vs.muteStatus;
     }
-    out.volume_control = volumeControl(vs, sound);
+    if (sound || vs) out.audio_output = audioOutput(vs, sound);
+    out.volume_control = routedVolumeControl(vs, sound);
     if (out.volume_control !== 'level') out.volume = null;
     lunaCachedFn('com.webos.service.settings/getSystemSettings',
       { category: 'sound', keys: ['soundOutput', 'soundMode'] }, 15000,
@@ -1665,6 +1846,13 @@ function collectStats(cb) {
           bt_audio: btAudio,
           mode: (snd && snd.settings && snd.settings.soundMode) || 'standard'
         };
+        // Not waited for: the list changes rarely, and Home Assistant reads
+        // the last one, which a later collection brings.
+        soundOutputs(rawSnd, function (ids) {
+          if (out.sound && ids.length) {
+            out.sound.outputs = ids.map(function (id) { return { id: id, name: names.soundOutput(id).display }; });
+          }
+        });
 
         lunaCachedFn('com.webos.service.acb/getForegroundAppInfo', {}, 4000, function (acb) {
         var pipe = (acb && Array.isArray(acb.acbs)) ? acb.acbs[0] : null;
@@ -1691,8 +1879,7 @@ function collectStats(cb) {
             // their titles; the id only when neither is known.
             var isInput = inputNameMap[shortApp] && inputNameMap[shortApp] !== shortApp;
             out.app_name = inputNameMap[shortApp] || appTitles[app.appId] || shortApp;
-            out.display_title = isInput ?
-              (inputNameMap[shortApp] + ' (' + shortApp.toUpperCase() + ')') : out.app_name;
+            out.display_title = isInput ? names.inputTitle(shortApp, inputNameMap[shortApp]) : out.app_name;
 
             var hdmiMatch = String(app.appId).match(/^com\.webos\.app\.hdmi([1-4])$/i);
             var isScreenOff = out.screenSaver || (out.powerState && (out.powerState.screenOn === false || String(out.powerState.raw || out.powerState.state || '').toLowerCase() === 'off'));
@@ -1892,6 +2079,10 @@ function getPictureModes() {
   return lastPicModes;
 }
 
+function getSoundOutputs() {
+  return lastSoundOutputs;
+}
+
 function getCapabilitySignature() {
   var cap = [];
   for (var hs in hdmiSeen) cap.push(hs);
@@ -1923,6 +2114,8 @@ module.exports = {
   swapBacking: swapBacking,
   wifi: wifi,
   macAddress: macAddress,
+  reverseName: reverseName,
+  lanHostname: lanHostname,
   netBytes: netBytes,
   getVideoSignal: getVideoSignal,
   readRemoteInfo: readRemoteInfo,
@@ -1935,7 +2128,11 @@ module.exports = {
   getPictureEngineInfo: getPictureEngineInfo,
   signalFormat: signalFormat,
   formatSoundOutput: formatSoundOutput,
+  offeredSoundOutputs: offeredSoundOutputs,
+  getSoundOutputs: getSoundOutputs,
   volumeControl: volumeControl,
+  routedVolumeControl: routedVolumeControl,
+  noteVolumeRefused: noteVolumeRefused,
   formatPicMode: formatPicMode,
   formatDynamicRange: formatDynamicRange,
   pictureModes: pictureModes,

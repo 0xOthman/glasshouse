@@ -3,6 +3,7 @@ var msg = require('./say').msg;
 var fs = require('fs');
 var toInt = require('./util').toInt;
 var mkdirp = require('./util').mkdirp;
+var readJson = require('./util').readJson;
 var path = require('path');
 var zlib = require('zlib');
 var execFile = require('child_process').execFile;
@@ -74,8 +75,7 @@ function verNewer(a, b) {
  */
 function displayVersion(version, dir) {
   var file = path.join(dir, 'build.json');
-  var build;
-  try { build = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return version; }
+  var build = readJson(file, null);
   if (!build || !/^[0-9a-f]{4,40}$/.test(build.commit)) return version;
   if (build.version !== version) {
     console.log('build.json is for v' + build.version + ', not v' + version + '; ignoring it');

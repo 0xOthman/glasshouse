@@ -2,6 +2,7 @@
 var msg = require('./say').msg;
 var fs = require('fs');
 var readTrimmed = require('./util').readTrimmed;
+var names = require('./names');
 
 var SERVICE_MENU_APP = 'com.webos.app.factorywin';
 var SERVICE_MENUS = { ezAdjust: 1, inStart: 1 };
@@ -221,9 +222,9 @@ function refreshOledStats(picSettings, pState, cb) {
     var pnStateCached = readTrimmed('/mnt/lg/cmn_data/pnwash/state');
     var jobScopeCached = readTrimmed('/mnt/lg/cmn_data/pnwash/jobScope');
     var isPnwashRunningCached = (pnStateCached && pnStateCached.indexOf('2') === 0) || (jobScopeCached === '1');
-    var isCompRunningCached = isPnwashRunningCached;
-    cachedOled.comp_status = isCompRunningCached ? 'Running' : 'Idle';
-    cachedOled.comp_status_label = isCompRunningCached ? 'Completing Panel Maintenance (Short Cycle)' : 'Idle';
+    var compCached = names.compensationStatus(isPnwashRunningCached);
+    cachedOled.comp_status = compCached.display;
+    cachedOled.comp_status_label = compCached.detail;
     return cb(cachedOled);
   }
 
@@ -257,9 +258,7 @@ function refreshOledStats(picSettings, pState, cb) {
 
   function finishOledStats(usageUnits, lastCompUnits, dispRes, live) {
     var rawStatus = (dispRes && dispRes.status) ? dispRes.status : 'schedule';
-    var statusStr = 'Idle';
-    if (rawStatus === 'cancel_schedule') statusStr = 'Scheduled';
-    else if (rawStatus === 'processing') statusStr = 'Running';
+    var statusStr = names.refresherStatus(rawStatus);
 
     if (usageUnits === null && fsLastCompHours !== null) {
       usageUnits = fsLastCompHours * 6;
@@ -306,9 +305,7 @@ function refreshOledStats(picSettings, pState, cb) {
     var pnStateRaw = readTrimmed('/mnt/lg/cmn_data/pnwash/state');
     var jobScopeRaw = readTrimmed('/mnt/lg/cmn_data/pnwash/jobScope');
     var isPnwashRunning = (pnStateRaw && pnStateRaw.indexOf('2') === 0) || (jobScopeRaw === '1');
-    var isCompRunning = isPnwashRunning;
-    var compStatus = isCompRunning ? 'Running' : 'Idle';
-    var compStatusLabel = isCompRunning ? 'Completing Panel Maintenance (Short Cycle)' : 'Idle';
+    var comp = names.compensationStatus(isPnwashRunning);
 
     cachedOled = {
       // The TV's own counts, in 10-minute units, which the hours round.
@@ -323,8 +320,8 @@ function refreshOledStats(picSettings, pState, cb) {
       comp_interval_hours: compInterval,
       comp_interval_units: compIntervalUnits,
       comp_cycles: offRsCycles,
-      comp_status: compStatus,
-      comp_status_label: compStatusLabel,
+      comp_status: comp.display,
+      comp_status_label: comp.detail,
       refresher_interval_hours: REFRESHER_INTERVAL_HOURS,
       last_refresher_hours: lastRefresher,
       hours_since_refresher: hoursSinceRefresher,

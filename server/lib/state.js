@@ -4,6 +4,8 @@
  */
 
 var luna = require('./luna');
+var powerModule = require('./power');
+var names = require('./names');
 
 function StateManager() {
   this.values = {};
@@ -54,6 +56,8 @@ function StateGroup(name, subscription, mapResponse, onError) {
   this.onRefused = null;
   this.listeners = [];
   this.snapshotPending = true;
+  // Starts not yet matched by a stop: the subscription runs while any remain.
+  this.users = 0;
 
   subscription.handlers.message = function (response) {
     self._message(response);
@@ -72,12 +76,13 @@ StateGroup.prototype.onState = function (listener) {
 };
 
 StateGroup.prototype.start = function () {
-  this.subscription.start();
+  if (this.users++ === 0) this.subscription.start();
   return this;
 };
 
 StateGroup.prototype.stop = function () {
-  this.subscription.stop();
+  if (this.users === 0) return this;
+  if (--this.users === 0) this.subscription.stop();
   return this;
 };
 
@@ -107,11 +112,10 @@ StateGroup.prototype._message = function (response) {
 function applicationValues(appId, inputNames) {
   var full = String(appId || '');
   var short = full.replace('com.webos.app.', '');
-  var name = inputNames[short] || short;
   return {
     app_id: full,
     app: short,
-    display_title: (name && name !== short) ? name + ' (' + short.toUpperCase() + ')' : short
+    display_title: names.inputTitle(short, inputNames[short])
   };
 }
 
@@ -170,8 +174,7 @@ function init(opts) {
     if (!rawState && response.processing) rawState = response.processing;
     // A reply without a state is a failed read, not a TV switched off.
     if (!rawState) return null;
-    var mapped = opts.mapPowerState ? opts.mapPowerState(rawState) : null;
-    if (!mapped) return null;
+    var mapped = powerModule.mapState(rawState);
     var screenOn = !!(mapped.systemOn && mapped.screenOn);
     return { state: mapped.raw, screenOn: screenOn, systemOn: mapped.systemOn };
   });
@@ -243,6 +246,15 @@ function init(opts) {
     for (key in groups) groups[key].stop();
   }
 
+  // One group for a user of its own, alongside or without start().
+  function startGroup(name) {
+    if (groups[name]) groups[name].start();
+  }
+
+  function stopGroup(name) {
+    if (groups[name]) groups[name].stop();
+  }
+
   for (var groupName in groups) {
     (function (name) {
       groups[name].onState(function (event) {
@@ -259,7 +271,9 @@ function init(opts) {
     groups: groups,
     reconcile: reconcile,
     start: start,
-    stop: stop
+    stop: stop,
+    startGroup: startGroup,
+    stopGroup: stopGroup
   };
 }
 

@@ -85,6 +85,46 @@ python3 scripts/check-strings.py
 python3 scripts/check-ui-ids.py
 python3 scripts/check-screensavers.py
 python3 scripts/check-module-calls.py
+python3 scripts/check-entity-stability.py
+python3 scripts/check-entities.py --stats test/fixtures/stats-b8-webos4.json
+
+# The release's updater can still install the change on TVs already out there
+node scripts/check-upgrade.js
 ```
 
 All automated checks must pass cleanly.
+
+## Testing on a real TV
+
+The automated checks run the server's code, not the TV. LG's services, the picture and sound pipeline and the start-up sequence behave differently between models and webOS versions, and only a real TV shows how a change behaves there. Before asking for a review:
+
+* **Deploy the change to a rooted TV** with `server/deploy.sh <tv-ip>`, and use what it changes the way someone would: on the web dashboard, in the TV app, or from Home Assistant.
+* **Check that what's around it still works.** The TV still shows its inputs, sound still plays, and the dashboard keeps updating.
+* **Restart the server or the TV** if the change affects start-up, the boot hook (`server/50-tvweb.sh`), or anything that runs only once.
+* **Mind older TVs.** On webOS 3 and 4 the server runs on Node 0.12, and a call newer firmware accepts may not exist there. If you can only test on one generation, say which.
+
+### Testing details in the pull request
+
+Add a short **Testing** section to the pull request description:
+
+* the TV's model and webOS version, for example "OLED42C24LA, webOS 9.2";
+* what you did and what you saw;
+* what you didn't test, such as other webOS versions or something that needs hardware you don't have.
+
+For example:
+
+```
+## Testing
+
+- OLED42C24LA, webOS 9.2: hid and unhid three tiles from the Apps tab. Each took
+  about 4 seconds, and HDMI 2 kept its picture and sound throughout.
+- Not tested on webOS 4 or on webOS 10 and later.
+```
+
+### If you can't test on the right TV
+
+If you don't have a TV to test on, or the change affects TVs you don't have, say so in the pull request and ask for testers. A maintainer will label it [testers wanted](https://github.com/rorygallagher2024/glasshouse/labels/testers%20wanted), where people with other TVs look for things to try.
+
+### Help by testing on your TV
+
+Some changes can only be checked on TVs the maintainers don't have, such as newer or less common models. If you have a rooted LG TV, you can help without writing any code: pull requests and issues labelled [testers wanted](https://github.com/rorygallagher2024/glasshouse/labels/testers%20wanted) say what to run and what to send back.

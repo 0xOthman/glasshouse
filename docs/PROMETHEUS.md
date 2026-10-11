@@ -50,11 +50,15 @@ It downloads a standalone Prometheus binary into `~/.cache/glasshouse-prometheus
 
 ## Metrics
 
-These names are stable: one is not renamed or removed, so dashboards and alerts built on them keep working. Labels carry only values that rarely change. Values are in base units: bytes, hertz, seconds, and ratios from 0 to 1 rather than percentages. A reading the TV does not give, such as the panel figures on an LCD or the remote's battery with no remote paired, has no sample rather than a 0.
+These names are stable: one is not renamed or removed, so dashboards and alerts built on them keep working. Labels carry only values that rarely change. Values are in base units: bytes, hertz, seconds, and ratios from 0 to 1 rather than percentages. A family the TV gives no reading for, such as the panel figures on an LCD or the remote's battery with no remote paired, is left out of the scrape, HELP and TYPE too, rather than given a 0.
 
 The OLED protections are `asbl`, the Automatic Static Brightness Limiter (Temporal Peak Control on the TV), which lowers brightness while a bright image is held, and `gsr`, Global Stress Reduction, which dims the screen when it detects a stationary element. They come from the TV's panel service, or from its panel maintenance records where it has none; a TV that reports neither has no sample for them.
 
 `glasshouse_signal_info` labels the picture settings in use: `dynamic_range` is `sdr`, `hdr`, `dolby_vision` or `technicolor`, and `picture_mode` is the mode within it: `personalized`, `vivid`, `standard`, `eco`, `cinema`, `cinema_bright`, `sports`, `game`, `photo`, `filmmaker`, `expert_bright`, `expert_dark` or `hdr_effect`. A value the TV adds later keeps its own name in snake case.
+
+`glasshouse_sound_info` labels the sound settings, the output and mode the dashboard's and Home Assistant's selects show, rather than the audio path in use at the moment. `output` is the output's key, such as `tv_speaker`, `external_arc`, `external_optical`, `bt_soundbar`, `headphone`, or `tv_external_speaker`, and `mode` is `standard`, `ai_sound`, `ai_sound_plus`, `movie`, `news`, `sports`, `music`, or `game`. A value the TV adds later keeps its own name in snake case. `glasshouse_volume_ratio` has a sample only while the TV sets the volume level: with an output whose volume it only steps, such as an ARC soundbar, or does not control, such as optical, it has no level to report.
+
+`glasshouse_power_on_info` labels the reason the TV's power service gives for the TV last powering on, read at Glasshouse's start and after each power transition. `reason` is the service's own name in snake case, as in its `PowerOnReason` log lines, such as `remote_key`, `wake_on_wifi`, `always_on`, or `reboot_by_on_regular`, and the family has no sample on a TV that gives none. `glasshouse_power_on_time_seconds` is when the TV last powered on, from the time on its power service reports, and has no sample in standby; the time it has been on is `time() - glasshouse_power_on_time_seconds`.
 
 The signal gauges describe the HDMI source on screen and have no sample otherwise. The refresh rate is the rate the source sends, not the content's frame rate. `glasshouse_signal_frame_rate_hertz` is the rate the game is running at while VRR is in use, and the same as the refresh rate otherwise. Its `vrr_type` label is the kind of VRR, such as `gsync`, or `off`.
 
@@ -68,6 +72,8 @@ The HDMI link families describe every input with a source linked to it, whicheve
 
 The syslog counters count since the server started and have samples only while [syslog forwarding](IMPLEMENTATION.md#forwarding-the-logs-to-syslog) is on. `source` is `system`, `glasshouse`, or `kernel`, one for each source forwarded. Compared with what the receiver counts per `source` as MSGID, they show lines lost on the way.
 
+The NTP families have samples only while [setting the clock from NTP](IMPLEMENTATION.md#setting-the-clock-from-ntp) is on, and the offset, round trip, stratum, and last answer only once the server has answered. The counters count since the server started. The offset is the server's time less the TV's at that answer, before the clock was set from it. How long since the last answer is `time() - glasshouse_ntp_last_answer_timestamp_seconds`.
+
 `version` is the Glasshouse version. A label the TV does not report is present with an empty value. The panel usage since the last compensation cycle is `glasshouse_oled_panel_usage_seconds_total - glasshouse_oled_last_compensation_usage_seconds`, the uptime is `time() - glasshouse_boot_time_seconds`, and the processor's busy share is `1 - avg without (cpu, mode) (rate(glasshouse_cpu_seconds_total{mode="idle"}[5m]))`.
 
 | Metric                                            | Type    | Labels                                  | Value                                                       |
@@ -76,6 +82,8 @@ The syslog counters count since the server started and have samples only while [
 | `glasshouse_boot_time_seconds`                    | gauge   |                                         | When the TV last booted, as a Unix time                     |
 | `glasshouse_system_on`                            | gauge   |                                         | 1 when on, including with the screen off                    |
 | `glasshouse_screen_on`                            | gauge   |                                         | 1 when the screen is on, including a screen saver           |
+| `glasshouse_power_on_info`                        | gauge   | `reason`                                | 1                                                           |
+| `glasshouse_power_on_time_seconds`                | gauge   |                                         | When the TV last powered on, as a Unix time; none in standby |
 | `glasshouse_soc_temperature_celsius`              | gauge   |                                         | SoC temperature                                             |
 | `glasshouse_cpu_seconds_total`                    | counter | `cpu`, `mode`                           | Time each online core has spent in each mode                |
 | `glasshouse_cpu_frequency_hertz`                  | gauge   |                                         | Processor clock                                             |
@@ -108,6 +116,9 @@ The syslog counters count since the server started and have samples only while [
 | `glasshouse_oled_gsr_stress_events_total`         | counter |                                         | Stress events Global Stress Reduction has counted           |
 | `glasshouse_oled_protection_enabled`              | gauge   | `protection`                            | 1 when the protection is on: `asbl`, `gsr`                  |
 | `glasshouse_picture_backlight_ratio`              | gauge   |                                         | Backlight of the picture mode in use, OLED light on an OLED |
+| `glasshouse_sound_info`                           | gauge   | `output`, `mode`                        | 1                                                           |
+| `glasshouse_volume_ratio`                         | gauge   |                                         | Volume, while the TV sets the level                         |
+| `glasshouse_muted`                                | gauge   |                                         | 1 while the sound is muted                                  |
 | `glasshouse_foreground_app_info`                  | gauge   | `app_id`, `app_name`                    | 1                                                           |
 | `glasshouse_signal_info`                          | gauge   | `dynamic_range`, `picture_mode`         | 1                                                           |
 | `glasshouse_signal_low_latency`                   | gauge   |                                         | 1 while the picture is in low-latency mode (ALLM)           |
@@ -129,3 +140,9 @@ The syslog counters count since the server started and have samples only while [
 | `glasshouse_hdmi_source_powered`                  | gauge   | `input`                                 | 1 while a powered source is on the input's cable            |
 | `glasshouse_syslog_messages_total`                | counter | `source`                                | Log lines sent to the syslog server                         |
 | `glasshouse_syslog_errors_total`                  | counter |                                         | Log lines that could not be sent, and were dropped          |
+| `glasshouse_ntp_clock_sets_total`                 | counter |                                         | Times the clock was set from the NTP server                 |
+| `glasshouse_ntp_errors_total`                     | counter |                                         | NTP syncs that set no clock                                 |
+| `glasshouse_ntp_offset_seconds`                   | gauge   |                                         | The server's time less the TV's at the last answer          |
+| `glasshouse_ntp_round_trip_seconds`               | gauge   |                                         | Round trip to the server for the last answer                |
+| `glasshouse_ntp_stratum`                          | gauge   |                                         | The server's stratum in the last answer                     |
+| `glasshouse_ntp_last_answer_timestamp_seconds`    | gauge   |                                         | When the last answer came, as a Unix time                   |

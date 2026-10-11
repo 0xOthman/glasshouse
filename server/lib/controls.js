@@ -1,10 +1,11 @@
 // Strict ES5 - node v0.12.2 on webOS 4 (LG OLED B8) has no ES6 support.
 var fs = require('fs');
 var toInt = require('./util').toInt;
+var allocBuffer = require('./util').allocBuffer;
 var execFile = require('child_process').execFile;
 var msg = require('./say').msg;
-var zeroBuffer = require('./mqtt').zeroBuffer;
 var timers = require('./timers');
+var names = require('./names');
 
 /*
  * Measured on a B8 against the built-in player, watching playStateNow move:
@@ -54,11 +55,8 @@ var KEY_VOLUMEDOWN = 114;
 var KEY_BACK = 158;
 
 var SLEEP_TIMER_VALUES = ['off', '10', '30', '60', '90', '120'];
-var ENERGY_SAVING_VALUES = ['auto', 'off', 'min', 'med', 'max', 'screen_off'];
-
-// What the settings service accepts for logoLuminanceAdjust, per
-// getSystemSettingValues on a B8. "strong" is the strongest, not an on/off.
-var LOGO_DIMMING_VALUES = ['off', 'light', 'strong'];
+var ENERGY_SAVING_VALUES = names.ENERGY_SAVING_STEPS;
+var LOGO_DIMMING_VALUES = Object.keys(names.LOGO_DIMMING);
 
 var luna = null;
 var clearLunaCache = function () {};
@@ -126,7 +124,7 @@ function injectKey(code, cb, delayMs) {
   }
   var delay = (typeof delayMs === 'number') ? Math.max(10, Math.min(2000, delayMs)) : 50;
   function makeEv(type, c, val) {
-    var b = zeroBuffer(16);
+    var b = allocBuffer(16);
     b.writeUInt16LE(type, 8);
     b.writeUInt16LE(c, 10);
     b.writeInt32LE(val, 12);
@@ -182,6 +180,18 @@ function getUpdateSummary() { return updateSummaryFn(); }
 function doRestartSelf() { return restartSelfFn(); }
 function doTvApp(action, cb) { return tvAppFn(action, cb); }
 
+/*
+ * The audio service's answer to a volume or mute change, as ok. A refusal
+ * for where the sound goes now is passed to telemetry, which stops offering
+ * the volume there.
+ */
+function volumeAnswer(r) {
+  if (r && /Current Scenario doesn't support/i.test(String(r.errorText || '')) && telemetry) {
+    telemetry.noteVolumeRefused();
+  }
+  return { ok: !!(r && r.returnValue) };
+}
+
 function doControl(action, value, cb) {
   cb = cb || function () {};
   if (!config.allowControl) return cb({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') });
@@ -199,7 +209,7 @@ function doControl(action, value, cb) {
     case 'volume':
       return luna('com.webos.audio/setVolume',
                   { volume: Math.max(0, Math.min(100, toInt(value, 10))) },
-                  function (r) { cb({ ok: !!(r && r.returnValue) }); });
+                  function (r) { cb(volumeAnswer(r)); });
 
     case 'volumeStep':
       var step = Math.max(-100, Math.min(100, toInt(value, 1)));
@@ -222,7 +232,7 @@ function doControl(action, value, cb) {
       var stepFrom = function (curVol) {
         var target = Math.max(0, Math.min(100, curVol + step));
         luna('com.webos.audio/setVolume', { volume: target }, function (r) {
-          cb({ ok: !!(r && r.returnValue) });
+          cb(volumeAnswer(r));
         });
       };
       // The newer service first: with an eARC soundbar controlling the volume,
@@ -239,7 +249,7 @@ function doControl(action, value, cb) {
       var shouldMute = (value === 'true' || value === true || value === 'ON' || value === '1' || value === 1);
       return luna('com.webos.audio/setMuted',
                   { muted: shouldMute },
-                  function (r) { cb({ ok: !!(r && r.returnValue) }); });
+                  function (r) { cb(volumeAnswer(r)); });
 
     case 'screenOff':   // OLED: blank the panel, keep audio playing
       return luna('com.webos.service.tvpower/power/turnOffScreen', {},
@@ -442,8 +452,18 @@ function doControl(action, value, cb) {
         category: 'option',
         settings: { livePlus: acrOn ? 'on' : 'off' }
       }, function (r) {
-        privacy.setConsent('acrAllowed', acrOn, function () {
-          cb({ ok: !!(r && r.returnValue) });
+        /* Whichever consent flags this firmware's ACR client reads. A flag
+           withdrawn takes its agreements with it, and with them any other
+           flag resting on them, counted in alsoChanged. */
+        privacy.acrConsentKeys(function (keys) {
+          var also = 0;
+          (function next(i) {
+            if (i >= keys.length) return cb({ ok: !!(r && r.returnValue), alsoChanged: also });
+            privacy.setConsent(keys[i], acrOn, function (c) {
+              if (c && c.alsoChanged) also += c.alsoChanged;
+              next(i + 1);
+            });
+          })(0);
         });
       });
 

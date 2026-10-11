@@ -1,5 +1,5 @@
 /* PicCap's Luna and MQTT controls. Strict ES5. */
-var fs = require('fs');
+var existsQuiet = require('./util').existsQuiet;
 var msg = require('./say').msg;
 var topics = require('./topics');
 var SERVICE = 'org.webosbrew.piccap.service/';
@@ -228,7 +228,7 @@ function migrateConfig(cfg) {
 
 /* Whether the app is on the TV: a look at its folder, without asking its service. */
 function installed() {
-  try { return fs.existsSync(APP_DIR); } catch (e) { return false; }
+  return existsQuiet(APP_DIR);
 }
 
 module.exports = { init: init, initNoop: initNoop, installed: installed, migrateConfig: migrateConfig, APP_DIR: APP_DIR };

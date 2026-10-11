@@ -26,10 +26,7 @@ var STARTUP_MS = 30000;
  * "later" by the old clock then waited out the whole step, every child start
  * with it, while the heartbeat carried on.
  */
-function monotonicMs() {
-  var t = process.hrtime();
-  return t[0] * 1000 + t[1] / 1e6;
-}
+var monotonicMs = require('./util').monotonicMs;
 var bornAt = monotonicMs();
 var launches = [];
 var launchTimer = null;

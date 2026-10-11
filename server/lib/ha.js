@@ -4,8 +4,6 @@
  */
 
 var msg = require('./say').msg;
-var INPUTS = { hdmi1: 1, hdmi2: 1, hdmi3: 1, hdmi4: 1, livetv: 1 };
-var INPUT_NAMES = { hdmi1: 'HDMI 1', hdmi2: 'HDMI 2', hdmi3: 'HDMI 3', hdmi4: 'HDMI 4', livetv: 'Live TV' };
 
 // Screen saver names come from the registry, so a new one reaches Home
 // Assistant without a second list to keep in step (Bokeh was missed once).
@@ -19,40 +17,18 @@ function ssMap(byLabel) {
   return m;
 }
 
-// The picture modes' names come from the names module; the map of the ones it
-// names is kept for callers that look one up directly.
-var PICTURE_MODES = names.PICTURE_MODES;
-var PIC_MODE_MAP = {};
-Object.keys(PICTURE_MODES).forEach(function (id) {
-  if (PICTURE_MODES[id].display) PIC_MODE_MAP[id] = PICTURE_MODES[id].display;
+// Logo dimming's names both ways, for a select that shows names and sends ids.
+var logoDimmingIds = {};
+var logoDimmingNames = Object.keys(names.LOGO_DIMMING).map(function (id) {
+  logoDimmingIds[names.LOGO_DIMMING[id]] = id;
+  return names.LOGO_DIMMING[id];
 });
-
-function picModeName(id) {
-  return names.pictureMode(id).display;
-}
 
 function picModeNames(ids) {
   var byId = {};
-  for (var i = 0; i < ids.length; i++) byId[ids[i]] = picModeName(ids[i]);
+  for (var i = 0; i < ids.length; i++) byId[ids[i]] = names.pictureMode(ids[i]).display;
   return byId;
 }
-
-var SOUND_OUTPUT_MAP = {
-  tv_speaker: 'TV Speaker',
-  external_arc: 'HDMI ARC',
-  optical: 'Optical',
-  external_optical: 'Optical',
-  ext_speaker_optical: 'Optical',
-  ext_speaker_builtin_lg_optical: 'Optical',
-  ext_speaker_arc: 'HDMI ARC',
-  headphone: 'Headphone / AUX',
-  bt_soundbar: 'Bluetooth',
-  external_speaker: 'External Speaker',
-  lineout: 'Line Out',
-  soundbar: 'LG Sound Sync',
-  tv_speaker_headphone: 'TV Speaker + Headphone',
-  internal: 'TV Speaker'
-};
 
 var HA_CATEGORIES = [
   { id: 'controls', name: msg('srv.ha.cat.controls', 'Controls & Media'), desc: msg('srv.ha.cat.controls.desc', 'Power, volume, mute, playback buttons, apps, and input sources.') },
@@ -291,6 +267,13 @@ function appNames(installed) {
  * one sent. A value sent that is not a listed name goes through as written,
  * so an automation still sending the id keeps working.
  */
+// Each output's name, including one the names module only spells out.
+function soundOutputNames(ids) {
+  var map = {};
+  ids.forEach(function (id) { map[id] = names.soundOutput(id).display; });
+  return map;
+}
+
 function namedSelect(ids, names, stateExpr) {
   var toId = {}, toName = {}, options = [];
   for (var i = 0; i < ids.length; i++) {
@@ -385,6 +368,7 @@ function buildEntities(opts) {
   var topic = topics(opts.pfx);
   var installedApps = opts.installedApps || [];
   var lastPicModes = opts.pictureModes || [];
+  var soundOutputIds = (opts.soundOutputs && opts.soundOutputs.length) ? opts.soundOutputs : Object.keys(names.SOUND_OUTPUTS);
 
   // telemetry's volume_control: the level can be set, or only stepped (a
   // receiver on HDMI ARC/eARC), or neither (optical). Stepping and mute are
@@ -767,7 +751,7 @@ function buildEntities(opts) {
           command_topic: topic.command('input'),
           state_topic: topic.telemetry,
           icon: 'mdi:video-input-hdmi'
-        }, namedSelect(Object.keys(INPUTS), INPUT_NAMES, 'value_json.app'))
+        }, namedSelect(Object.keys(names.INPUTS), names.INPUTS, 'value_json.app'))
       },
       {
         type: 'text', id: 'screen_notification',
@@ -876,11 +860,9 @@ function buildEntities(opts) {
           name: 'OLED Logo Dimming',
           command_topic: topic.command('logoDimming'),
           state_topic: topic.telemetry,
-          // LG calls the strongest setting "strong"; the TV's own menu shows it
-          // as High, and so does the dashboard.
-          options: ['Off', 'Light', 'High'],
-          command_template: '{{ {"Off":"off","Light":"light","High":"strong"}[value] }}',
-          value_template: '{{ {"off":"Off","light":"Light","strong":"High"}.get(value_json.oled.logo_dimming, "Off") if value_json.oled and value_json.oled.logo_dimming else none }}',
+          options: logoDimmingNames,
+          command_template: '{{ ' + JSON.stringify(logoDimmingIds) + '[value] }}',
+          value_template: '{{ ' + JSON.stringify(names.LOGO_DIMMING) + '.get(value_json.oled.logo_dimming, ' + JSON.stringify(names.LOGO_DIMMING.off) + ') if value_json.oled and value_json.oled.logo_dimming else none }}',
           icon: 'mdi:television-guide'
         }
       },
@@ -932,7 +914,8 @@ function buildEntities(opts) {
           name: 'Schedule Pixel Refresher',
           command_topic: topic.command('refresher'),
           state_topic: topic.telemetry,
-          value_template: '{{ \'ON\' if value_json.oled and value_json.oled.refresher_status == \'Scheduled\' else \'OFF\' }}',
+          value_template: '{{ \'ON\' if value_json.oled and value_json.oled.refresher_status == \'' +
+            names.REFRESHER_STATUSES.cancel_schedule + '\' else \'OFF\' }}',
           payload_on: 'schedule',
           payload_off: 'cancel',
           icon: 'mdi:television-shimmer'
@@ -960,7 +943,7 @@ function buildEntities(opts) {
           name: 'Energy Saving Step',
           command_topic: topic.command('energySaving'),
           state_topic: topic.state('picture/energySaving'),
-          options: ['auto', 'off', 'min', 'med', 'max', 'screen_off'],
+          options: names.ENERGY_SAVING_STEPS.slice(),
           icon: 'mdi:brightness-auto'
         }
       },
@@ -971,7 +954,9 @@ function buildEntities(opts) {
           command_topic: topic.command('sound_output'),
           state_topic: topic.telemetry,
           icon: 'mdi:speaker'
-        }, namedSelect(Object.keys(SOUND_OUTPUT_MAP), SOUND_OUTPUT_MAP,
+        // The outputs this TV offers, as LG's own menu decides them, once it
+        // has said; every known output until then.
+        }, namedSelect(soundOutputIds, soundOutputNames(soundOutputIds),
           '(value_json.sound.output_raw if value_json.sound else "tv_speaker")'))
       },
       {
@@ -1503,10 +1488,6 @@ function filterWithholds(entities, opts) {
 
 module.exports = {
   LG_SETTING_ENTITIES: LG_SETTING_ENTITIES,
-  INPUTS: INPUTS,
-  SOUND_OUTPUT_MAP: SOUND_OUTPUT_MAP,
-  PIC_MODE_MAP: PIC_MODE_MAP,
-  picModeName: picModeName,
   AWAKE_ONLY: AWAKE_ONLY,
   withAvailability: withAvailability,
   HA_CATEGORIES: HA_CATEGORIES,

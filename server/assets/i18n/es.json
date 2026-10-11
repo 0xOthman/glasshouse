@@ -1079,6 +1079,10 @@
   "text": "Derecha {n}",
   "from": "Right {n}"
  },
+ "metrics.addresses": {
+  "text": "Direcciones",
+  "from": "Addresses"
+ },
  "metrics.ambient": {
   "text": "Ambiente",
   "from": "Ambient"
@@ -1234,6 +1238,10 @@
  "metrics.roomLight": {
   "text": "Luz ambiental",
   "from": "Room light"
+ },
+ "metrics.stream.lowLatency": {
+  "text": "{format} · Baja latencia",
+  "from": "{format} · Low latency"
  },
  "metrics.storage": {
   "text": "Almacenamiento",
@@ -1764,20 +1772,20 @@
   "from": "Everything"
  },
  "pv.adblock.full.confirm": {
-  "text": "«Todo» también bloquea los servicios de la plataforma de LG, así que la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar. ¿Cambiar a «Todo»?",
-  "from": "Everything also blocks LG’s platform services, so the app store, software updates and LG Channels may stop working. Switch to Everything?"
+  "text": "«Todo» también bloquea los servicios de la plataforma de LG, así que la app LG ThinQ ya no puede controlar la TV, y la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar. ¿Cambiar a «Todo»?",
+  "from": "Everything also blocks LG’s platform services, so the LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working. Switch to Everything?"
  },
  "pv.adblock.full.detail": {
-  "text": "También bloquea los servicios de la plataforma de LG, así que la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
-  "from": "Also blocks LG's platform services, so the app store, software updates and LG Channels may stop working."
+  "text": "También bloquea los servicios de la plataforma de LG, así que la app LG ThinQ ya no puede controlar la TV, y la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
+  "from": "Also blocks LG's platform services, so the LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working."
  },
  "pv.adblock.full.updates": {
   "text": "Para bloquear solo las actualizaciones del sistema, usa Bloquear actualizaciones de software de la TV en la pestaña Servidor.",
   "from": "To stop only system updates, use Block TV software updates in the Server tab."
  },
  "pv.adblock.full.warn": {
-  "text": "«Todo» también bloquea los servicios de la plataforma de LG, así que la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
-  "from": "Everything also blocks LG's platform services, so the app store, software updates and LG Channels may stop working."
+  "text": "«Todo» también bloquea los servicios de la plataforma de LG, así que la app LG ThinQ ya no puede controlar la TV, y la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
+  "from": "Everything also blocks LG's platform services, so the LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working."
  },
  "pv.adblock.off.detail": {
   "text": "No hay nada bloqueado. Las direcciones de publicidad y telemetría de LG funcionan con normalidad.",
@@ -2520,8 +2528,16 @@
   "from": "Yes"
  },
  "sound.headphone": {
-  "text": "Auriculares",
-  "from": "Headphone"
+  "text": "Auriculares / AUX",
+  "from": "Headphone / AUX"
+ },
+ "sound.more": {
+  "text": "Más…",
+  "from": "More…"
+ },
+ "sound.more.label": {
+  "text": "Más salidas",
+  "from": "More outputs"
  },
  "sound.optical": {
   "text": "Óptico",
@@ -3456,40 +3472,40 @@
   "from": "Sound output"
  },
  "srv.lgs.soundOutput.btSoundbar": {
-  "text": "Dispositivo Bluetooth",
-  "from": "Bluetooth device"
+  "text": "Bluetooth",
+  "from": "Bluetooth"
  },
  "srv.lgs.soundOutput.desc": {
   "text": "Por dónde reproduce la TV el sonido. El modo de sonido y el balance solo se aplican a los altavoces de la TV.",
   "from": "Where the TV plays its sound. Sound mode and balance apply only to the TV speakers."
  },
  "srv.lgs.soundOutput.externalArc": {
-  "text": "Dispositivo HDMI (ARC)",
-  "from": "HDMI (ARC) device"
+  "text": "HDMI ARC",
+  "from": "HDMI ARC"
  },
  "srv.lgs.soundOutput.externalOptical": {
-  "text": "Dispositivo de salida óptica",
-  "from": "Optical out device"
+  "text": "Óptico",
+  "from": "Optical"
  },
  "srv.lgs.soundOutput.headphone": {
-  "text": "Auriculares con cable",
-  "from": "Wired headphones"
+  "text": "Auriculares / AUX",
+  "from": "Headphone / AUX"
  },
  "srv.lgs.soundOutput.tvSpeaker": {
-  "text": "Altavoces de la TV",
-  "from": "TV speakers"
+  "text": "Altavoz de la TV",
+  "from": "TV Speaker"
  },
  "srv.lgs.soundOutput.tvSpeakerBluetooth": {
-  "text": "Dispositivo Bluetooth y altavoces de la TV",
-  "from": "Bluetooth device and TV speakers"
+  "text": "Altavoz de la TV + Bluetooth",
+  "from": "TV Speaker + Bluetooth"
  },
  "srv.lgs.soundOutput.tvSpeakerExternalArc": {
-  "text": "Dispositivo HDMI (ARC) y altavoces de la TV",
-  "from": "HDMI (ARC) device and TV speakers"
+  "text": "Altavoz de la TV + HDMI ARC",
+  "from": "TV Speaker + HDMI ARC"
  },
  "srv.lgs.soundOutput.tvSpeakerHeadphone": {
-  "text": "Auriculares con cable y altavoces de la TV",
-  "from": "Wired headphones and TV speakers"
+  "text": "Altavoz de la TV + Auriculares",
+  "from": "TV Speaker + Headphone"
  },
  "srv.lgs.soundOutputDigital": {
   "text": "Salida de sonido digital",
@@ -4988,8 +5004,8 @@
   "from": "Controls are switched off in this dashboard’s config."
  },
  "tv.privacy.everything.hint": {
-  "text": "También bloquea los servicios de la plataforma de LG. La tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
-  "from": "Also blocks LG’s platform services. The app store, software updates and LG Channels may stop working."
+  "text": "También bloquea los servicios de la plataforma de LG. La app LG ThinQ ya no puede controlar la TV, y la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
+  "from": "Also blocks LG’s platform services. The LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working."
  },
  "tv.privacy.head.adAndTrackerBlocking": {
   "text": "Bloqueo de anuncios y rastreadores",

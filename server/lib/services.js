@@ -3,6 +3,7 @@
 var msg = require('./say').msg;
 var fs = require('fs');
 var path = require('path');
+var readJson = require('./util').readJson;
 var execFile = require('child_process').execFile;
 
 var CATALOG = [
@@ -162,12 +163,8 @@ function getDisabledFile() {
 }
 
 function readDisabledList() {
-  try {
-    var raw = fs.readFileSync(getDisabledFile(), 'utf8');
-    var parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
-  } catch (e) {}
-  return [];
+  var list = readJson(getDisabledFile(), null);
+  return Array.isArray(list) ? list : [];
 }
 
 function writeDisabledList(list) {

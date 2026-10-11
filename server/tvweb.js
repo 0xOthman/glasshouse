@@ -19,11 +19,15 @@
  * first 4096 bytes of a downloaded tvweb.js for this line (up to 0.82.2), and
  * refuses a release where it is further down (#586).
  */
-var TVWEB_VERSION = '0.82.7';
+var TVWEB_VERSION = '0.83.0';
 
 var http = require('http');
 var fs = require('fs');
 var toInt = require('./lib/util').toInt;
+var readTrimmed = require('./lib/util').readTrimmed;
+var readJson = require('./lib/util').readJson;
+var writeJsonAtomic = require('./lib/util').writeJsonAtomic;
+var existsQuiet = require('./lib/util').existsQuiet;
 var url = require('url');
 var net = require('net');
 var tls = require('tls');
@@ -62,6 +66,9 @@ var piccapTransport = require('./lib/piccap');
 var remotebuttons = require('./lib/remotebuttons');
 var logsModule = require('./lib/logs');
 var syslogForwarder = require('./lib/syslog');
+var ntpClient = require('./lib/ntp');
+var power = require('./lib/power');
+var names = require('./lib/names');
 var msg = say.msg;
 var luna = lunaTransport.call;
 
@@ -220,6 +227,15 @@ var CONFIG = {
     redact: true
   },
 
+  /*
+   * Setting the TV's clock from an NTP server, hourly and when the TV switches
+   * on. Off while server is empty.
+   */
+  ntp: {
+    server: '',
+    port: 123
+  },
+
   device: {
     id: 'lg_tv',
     name: '',
@@ -320,8 +336,9 @@ loadConfig();
 
 // Old config keys folded or preserved on upgrade.
 (function migrateConfigFile() {
+  var raw = readJson(CONFIG_FILE, null);
+  if (!raw) return;
   try {
-    var raw = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
     var changed = false;
     if (piccapTransport.migrateConfig(raw)) {
       changed = true;
@@ -334,10 +351,7 @@ loadConfig();
       console.log('config: existing tile hiding preserved (allowTileHiding: true)');
     }
     if (!changed) return;
-    var tmp = CONFIG_FILE + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify(raw, null, 2), 'utf8');
-    fs.chmodSync(tmp, parseInt('600', 8));
-    fs.renameSync(tmp, CONFIG_FILE);
+    writeJsonAtomic(CONFIG_FILE, raw, parseInt('600', 8));
   } catch (e) {}
 })();
 
@@ -418,52 +432,6 @@ var LIVE_STALE = {
   picture: ['"category":"picture"']
 };
 
-/*
- * Power state. tvpower reports the panel separately from the system: a set can
- * be "Active" with the screen lit, or "ScreenOff" with the system running and
- * the panel blanked - which is exactly what the Screen Off control does. The
- * dashboard previously showed neither, so blanking the panel changed nothing
- * on screen and the source kept reading as though something were displayed.
- */
-var POWER_STATES = {
-  'active':          [msg('srv.power.on', 'On'),          true,  true],
-  'on':              [msg('srv.power.on', 'On'),          true,  true],
-  'screenoff':       [msg('srv.power.screenOff', 'Screen off'),  true,  false],
-  'screensaver':     [msg('srv.power.screenSaver', 'Screen Saver'),true,  true],
-  // LG's Always Ready display: switched off, showing a clock or artwork.
-  'alwaysready':     [msg('srv.power.alwaysReady', 'Always Ready'), false, false],
-  'activestandby':   [msg('srv.power.standby', 'Standby'),     false, false],
-  'standby':         [msg('srv.power.standby', 'Standby'),     false, false],
-  'suspend':         [msg('srv.power.standby', 'Standby'),     false, false],
-  'preparesuspend':  [msg('srv.power.standby', 'Standby'),     false, false],
-  'requestpoweroff': [msg('srv.power.off', 'Off'),         false, false],
-  'poweroff':        [msg('srv.power.off', 'Off'),         false, false],
-  'off':             [msg('srv.power.off', 'Off'),         false, false],
-  'prepared':        [msg('srv.power.starting', 'Starting up'), true,  false],
-  'processing':      [msg('srv.power.standby', 'Standby'),     false, false]
-};
-
-/*
- * Whether a screen saver is on screen. tvpower reports it as a power state of
- * its own, which is the only source that tracks it: the foreground app does
- * not change - the screen saver draws over whatever is running - and the
- * running-apps list keeps the screen saver app long after it has gone.
- *
- * Measured on a B8: "Screen Saver" while one draws, "Active" once a key
- * dismisses it.
- */
-function isScreenSaver(ps) {
-  return !!(ps && String(ps.raw || '').toLowerCase().replace(/[\s_-]/g, '') === 'screensaver');
-}
-
-function mapPowerState(raw) {
-  var key = String(raw || '').toLowerCase().replace(/[\s_-]/g, '');
-  var m = POWER_STATES[key];
-  if (m) return { raw: raw, label: m[0], systemOn: m[1], screenOn: m[2] };
-  // Unknown or absent state: default safely to screen and system off.
-  return { raw: raw || null, label: raw || 'Unknown', systemOn: false, screenOn: false };
-}
-
 lgSettings.init({ luna: luna, lunaCached: lunaCached, clearLunaCache: clearLunaCache });
 game.init({ lunaCached: lunaCached });
 privacy.init({ luna: luna, lunaCached: lunaCached, config: CONFIG, lgSettings: lgSettings });
@@ -476,9 +444,7 @@ screensavers.init({
   assetPath: assetPath,
   config: CONFIG,
   injectKey: controls.injectKey,
-  KEY_BACK: controls.KEY_BACK,
-  mapPowerState: mapPowerState,
-  isScreenSaver: isScreenSaver
+  KEY_BACK: controls.KEY_BACK
 });
 telemetry.init({
   luna: luna,
@@ -488,14 +454,12 @@ telemetry.init({
   privacy: privacy,
   screensavers: screensavers,
   game: game,
-  tvwebVersion: TVWEB_DISPLAY_VERSION,
-  mapPowerState: mapPowerState,
-  isScreenSaver: isScreenSaver
+  power: power,
+  tvwebVersion: TVWEB_DISPLAY_VERSION
 });
 
 var liveState = stateModule.init({
   inputNameMap: telemetry.inputNameMap,
-  mapPowerState: mapPowerState,
   formatSoundOutput: telemetry.formatSoundOutput,
   clearCache: function (group) {
     telemetry.expireStats();
@@ -532,7 +496,6 @@ var piccap = piccapTransport.init({
 var notificationState = notifications.init({ luna: luna });
 
 // ---------------------------------------------------------------- controls
-var INPUTS = ha.INPUTS;
 
 // Hiding tiles restarts the app manager at boot, the kind of step that can
 // make a boot fail, which the Homebrew Channel asks its apps not to risk.
@@ -571,7 +534,7 @@ controls.init({
   updateSummary: routes.updateSummary,
   writeSettings: routes.writeSettings,
   fromHomebrewChannel: fromHomebrewChannel,
-  inputs: INPUTS,
+  inputs: names.INPUTS,
   browserApp: BROWSER_APP,
   toastSource: TOAST_SOURCE,
   tileHidingOff: TILE_HIDING_OFF
@@ -627,7 +590,7 @@ say.init(path.join(path.dirname(assetPath('i18n.js') || path.join(ASSET_DIRS[0],
 // Put in place by the app the Homebrew Channel installs, rather than deploy.sh.
 var HBC_MARK = '/var/lib/tvweb/.from-homebrew-channel';
 function fromHomebrewChannel() {
-  try { return fs.existsSync(HBC_MARK); } catch (e) { return false; }
+  return existsQuiet(HBC_MARK);
 }
 
 /*
@@ -647,9 +610,7 @@ var HBC_CHECK_MS = 5 * 60000;
 var hbcMissing = 0, hbcTried = null;
 
 function hbcAppDir() {
-  var dir = '';
-  try { dir = fs.readFileSync(HBC_MARK, 'utf8').trim(); } catch (e) {}
-  return dir || HBC_APP_DEFAULT;
+  return readTrimmed(HBC_MARK) || HBC_APP_DEFAULT;
 }
 
 function checkHomebrewChannelApp() {
@@ -790,6 +751,7 @@ routes.init({
   installer: installer,
   prometheus: prometheus,
   syslog: syslogForwarder,
+  ntp: ntpClient,
   configFile: CONFIG_FILE,
   controls: controls,
   telemetry: telemetry,
@@ -993,6 +955,7 @@ function setupHomeAssistant() {
       pfx: pfx,
       installedApps: telemetry.getInstalledApps(),
       pictureModes: telemetry.getPictureModes(),
+      soundOutputs: telemetry.getSoundOutputs(),
       lgRows: lgsRows,
       allowPower: CONFIG.allowPower,
       isOled: oled.getIsOled(),
@@ -1069,6 +1032,7 @@ function setupHomeAssistant() {
   };
 
   var lastPicSig = '';
+  var lastSoundSig = '';
   publishNow = function () { publishTelemetry(); };
 
   /*
@@ -1217,6 +1181,14 @@ function setupHomeAssistant() {
       if (sig && sig !== lastPicSig) {
         lastPicSig = sig;
         console.log('mqtt: picture modes changed (' + sig + ') - republishing discovery');
+        publishDiscovery();
+      }
+      // The Sound Output select's options are the outputs the TV offers, also
+      // in discovery: the first answer replaces the list of every output.
+      var soundSig = telemetry.getSoundOutputs().join(',');
+      if (soundSig && soundSig !== lastSoundSig) {
+        lastSoundSig = soundSig;
+        console.log('mqtt: sound outputs on offer (' + soundSig + ') - republishing discovery');
         publishDiscovery();
       }
       // Launch App's options are the installed apps, and live in discovery too.
@@ -1476,6 +1448,20 @@ if (!CLI_MODE) {
   // config it sends nothing until it has the device name to send as.
   syslogForwarder.init({ config: CONFIG });
   syslogForwarder.start();
+  power.init({ luna: luna, syslog: syslogForwarder });
+  power.start();
+  liveState.state.onChange(function (ev) {
+    if (ev.group === 'power' && ev.key === 'state') power.stateChanged(ev.value);
+  });
+  // Its own start, as the MQTT bridge starts every group only with a broker.
+  liveState.startGroup('power');
+
+  ntpClient.init({ config: CONFIG, luna: luna });
+  if (ntpClient.start()) {
+    liveState.state.onChange(function (ev) {
+      if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) ntpClient.sync();
+    });
+  }
 
   telemetry.detectDeviceInfo(function() {
     syslogForwarder.setHostname(CONFIG.device && CONFIG.device.name);

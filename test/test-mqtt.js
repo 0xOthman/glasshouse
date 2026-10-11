@@ -5,6 +5,7 @@
 var assert = require('assert');
 var net = require('net');
 var MiniMQTT = require('../server/lib/mqtt');
+var toBuffer = require('../server/lib/util').toBuffer;
 
 console.log('Running test-mqtt.js ...');
 
@@ -14,7 +15,7 @@ var server = net.createServer(function (sock) {
   sock.on('data', function (d) {
     if ((d[0] >> 4) === 1) {
       connects++;
-      sock.write(MiniMQTT.toBuffer([0x20, 0x02, 0x00, 0x00])); // CONNACK
+      sock.write(toBuffer([0x20, 0x02, 0x00, 0x00])); // CONNACK
     }
   });
   sock.on('error', function () {});

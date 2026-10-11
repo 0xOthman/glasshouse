@@ -16,6 +16,7 @@ var os = require('os');
 var execFile = require('child_process').execFile;
 var logs = require('./logs');
 var children = require('./children');
+var util = require('./util');
 
 var SOURCES = ['system', 'glasshouse', 'kernel'];
 var POLL_MS = 5000;
@@ -57,7 +58,8 @@ var GLASSHOUSE_STAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/;
 var config = null;
 var messagesPath = logs.MESSAGES_LOG;
 var uptimeFn = readUptime;
-var clockFn = monotonicMs;
+// Not Date.now(): the clock steps forward years when it syncs, and back too.
+var clockFn = util.monotonicMs;
 var markerPath = BOOT_SENT_MARKER;
 // Whether this start is sending the boot's logs and has yet to leave the marker.
 var bootPending = false;
@@ -78,12 +80,6 @@ var counters = null;
 var kernelReadAt = null;
 // Bumped by each start and stop, so a callback from before one is ignored.
 var generation = 0;
-
-// Not Date.now(): the clock steps forward years when it syncs, and back too.
-function monotonicMs() {
-  var t = process.hrtime();
-  return t[0] * 1000 + t[1] / 1e6;
-}
 
 function readUptime() {
   try {
@@ -159,10 +155,6 @@ function priority(entry) {
   return FACILITIES.user * 8 + severity;
 }
 
-function toBuffer(s) {
-  return typeof Buffer.from === 'function' ? Buffer.from(s, 'utf8') : new Buffer(s, 'utf8');
-}
-
 /**
  * One parsed log entry as an RFC 5424 message, at most MAX_DATAGRAM bytes.
  * @param {Object} entry from one of the logs module's parsers
@@ -185,7 +177,7 @@ function formatMessage(entry, opts) {
   var text = '<' + priority(entry) + '>1 ' + new Date(t).toISOString() + ' ' +
     headerField(opts.hostname, 255) + ' ' + headerField(app, 48) + ' - ' +
     headerField(entry.source, 32) + ' -' + (shown.msg ? ' ' + shown.msg : '');
-  var buf = toBuffer(text);
+  var buf = util.toBuffer(text, 'utf8');
   if (buf.length <= MAX_DATAGRAM) return buf;
   // Cut on a character boundary: a UTF-8 continuation byte is 10xxxxxx.
   var cut = MAX_DATAGRAM;
@@ -354,6 +346,14 @@ function poll(done) {
   });
 }
 
+/*
+ * Polls now rather than at the next tick, for lines a power-off may not leave
+ * time for. The kernel's read keeps its own schedule.
+ */
+function flush() {
+  if (settings && !polling) poll();
+}
+
 /**
  * @param {Object} opts
  * @param {any} opts.config the server's config, read at start()
@@ -430,6 +430,7 @@ module.exports = {
   start: start,
   stop: stop,
   poll: poll,
+  flush: flush,
   setHostname: setHostname,
   getCounters: getCounters,
   readSettings: readSettings,

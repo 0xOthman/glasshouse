@@ -76,9 +76,7 @@ function load(configd) {
             refreshOledStats: function (s, ps, cb) { cb({}); } },
     privacy: { isAdBlockActive: function () { return false; }, collectPrivacy: function (cb) { cb({}); } },
     screensavers: { screensaverMode: function () { return 'stock'; }, screensaverLevel: function () { return 'dim'; } },
-    tvwebVersion: '0.0.0',
-    mapPowerState: function (raw) { return { raw: raw, label: 'On', systemOn: true, screenOn: true }; },
-    isScreenSaver: function () { return false; }
+    tvwebVersion: '0.0.0'
   });
   return telemetry;
 }

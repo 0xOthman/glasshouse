@@ -71,9 +71,7 @@ var config = { port: 8080, allowControl: true };
 screensavers.init({
   luna: env.mockLuna,
   assetPath: function (qml) { return qml === 'screensavers/clock.qml' ? '/tmp/tvweb-test/clock.qml' : null; },
-  config: config,
-  mapPowerState: function (s) { return { raw: s }; },
-  isScreenSaver: function () { return false; }
+  config: config
 });
 apps.init({ luna: env.mockLuna, config: config });
 

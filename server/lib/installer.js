@@ -11,6 +11,10 @@
 var msg = require('./say').msg;
 var fs = require('fs');
 var mkdirp = require('./util').mkdirp;
+var allocBuffer = require('./util').allocBuffer;
+var readJson = require('./util').readJson;
+var writeJsonAtomic = require('./util').writeJsonAtomic;
+var unlinkQuiet = require('./util').unlinkQuiet;
 var path = require('path');
 var zlib = require('zlib');
 var crypto = require('crypto');
@@ -67,13 +71,6 @@ var installChild = null;
 var exitHooked = false;
 
 function noop() {}
-
-function allocBuf(n) {
-  if (typeof Buffer.alloc === 'function') return Buffer.alloc(n);
-  var b = new Buffer(n);
-  b.fill(0);
-  return b;
-}
 
 function errText(e) {
   return (e && e.message) || String(e || '') || unknownError();
@@ -137,7 +134,7 @@ function detectTvMachine() {
   for (var i = 0; i < files.length; i++) {
     try {
       var fd = fs.openSync(files[i], 'r');
-      var b = allocBuf(20);
+      var b = allocBuffer(20);
       var n = fs.readSync(fd, b, 0, 20, 0);
       fs.closeSync(fd);
       var m = n === 20 ? machineName(b) : null;
@@ -184,7 +181,7 @@ function cleanPath(name) {
  * bodies to onFile. Throws reject() errors on anything it will not read.
  */
 function tarWalker(maxEntries, onEntry, onFile) {
-  var hdr = allocBuf(512);
+  var hdr = allocBuffer(512);
   var hdrLen = 0;
   var mode = 'header';          // header | body | pad | end
   var entries = 0;
@@ -224,7 +221,7 @@ function tarWalker(maxEntries, onEntry, onFile) {
     entry = { name: name, type: type, size: size, link: cString(hdr, 157, 257) };
     var want = onEntry(entry);
     keepLen = 0;
-    keep = want > 0 ? allocBuf(want) : null;
+    keep = want > 0 ? allocBuffer(want) : null;
     left = size;
     padLeft = (512 - size % 512) % 512;
     if (left === 0) bodyDone(); else mode = 'body';
@@ -324,7 +321,7 @@ function streamTar(file, start, len, cap, walker, cb) {
 /* ----------------------------------------------------------------- ar */
 
 function readAt(fd, pos, len, cb) {
-  var buf = allocBuf(len), got = 0;
+  var buf = allocBuffer(len), got = 0;
   (function next() {
     if (got >= len) return cb(null, buf);
     fs.read(fd, buf, got, len - got, pos + got, function (err, n) {
@@ -658,15 +655,10 @@ function listInstalled(cb) {
   });
 }
 
-function readJson(file) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return null; }
-}
-
 function writeJson(file, obj) {
   try {
     mkdirp(path.dirname(file));
-    fs.writeFileSync(file + '.tmp', JSON.stringify(obj));
-    fs.renameSync(file + '.tmp', file);
+    writeJsonAtomic(file, obj);
   } catch (e) {}
 }
 
@@ -687,7 +679,7 @@ function clearStaging() {
   var names = [];
   try { names = fs.readdirSync(stagingDir); } catch (e) {}
   names.forEach(function (n) {
-    try { fs.unlinkSync(path.join(stagingDir, n)); } catch (e) {}
+    unlinkQuiet(path.join(stagingDir, n));
   });
 }
 
@@ -996,7 +988,7 @@ function touchUpload() {
 /** Drops a reserved upload file, finished or not. */
 function releaseUpload(file) {
   uploadHeld = 0;
-  try { fs.unlinkSync(file); } catch (e) {}
+  unlinkQuiet(file);
 }
 
 /* ------------------------------------------------------------ confirm */
@@ -1116,7 +1108,7 @@ function vetted(j) {
  */
 function reelevated(j) {
   if (!vetted(j) || !fs.existsSync(elevatePath)) return [];
-  var rec = readJson(elevatedFile()) || {};
+  var rec = readJson(elevatedFile(), {});
   var was = Object.prototype.hasOwnProperty.call(rec, j.info.package) ? rec[j.info.package] : null;
   if (!(was instanceof Array)) return [];
   return j.info.services.filter(function (s) { return was.indexOf(s) >= 0; });
@@ -1209,7 +1201,7 @@ function confirm(req, cb) {
     elevateAll(services, function (res) {
       if (!isCurrentJob(j)) return;
       if (res.done.length) {
-        var rec = readJson(elevatedFile()) || {};
+        var rec = readJson(elevatedFile(), {});
         rec[j.info.package] = res.done;
         writeJson(elevatedFile(), rec);
       }
@@ -1231,7 +1223,7 @@ function cancel(jobId, cb) {
   if (j.dl && j.dl.cancel) { try { j.dl.cancel(); } catch (e) {} }
   clearStaging();
   job = null;
-  try { fs.unlinkSync(jobFile()); } catch (e2) {}
+  unlinkQuiet(jobFile());
   cb(null);
 }
 
@@ -1239,7 +1231,7 @@ function cancel(jobId, cb) {
 function recover() {
   // Leftovers from an upload or a job that ended in a restart.
   clearStaging();
-  var rec = readJson(jobFile());
+  var rec = readJson(jobFile(), null);
   // A preview waiting for confirmation had installed nothing, and a restart may
   // come during one, so it is not reported as an interrupted install.
   if (!rec || !WORKING[rec.state]) return;

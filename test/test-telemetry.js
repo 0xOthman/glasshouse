@@ -47,11 +47,7 @@ telemetry.init({
   oled: oledMock,
   privacy: privacyMock,
   screensavers: screensaversMock,
-  tvwebVersion: '0.36.0',
-  mapPowerState: function (raw) {
-    return { raw: raw, label: 'On', systemOn: true, screenOn: true };
-  },
-  isScreenSaver: function () { return false; }
+  tvwebVersion: '0.36.0'
 });
 
 console.log('Running test-telemetry.js ...');
@@ -72,7 +68,7 @@ console.log('Running test-telemetry.js ...');
 
 (function testSignalHdr() {
   assert.deepEqual(telemetry.signalFormat(require('./fixtures/videooutput-cx-webos5-hdr.json')), {
-    type: 'hdr10', eotf: 'pq', colorimetry: 'BT2020_RGBORYCbCr', encoding: 'YCbCr422',
+    type: 'hdr10', type_display: 'HDR10', eotf: 'pq', colorimetry: 'BT2020_RGBORYCbCr', encoding: 'YCbCr422',
     max_luminance: 400, min_luminance: 0.0049, max_cll: 0, max_fall: 0,
     game_mode: false, freesync: false
   });
@@ -84,7 +80,7 @@ console.log('Running test-telemetry.js ...');
     { sink: 'MAIN', connected: false, videoInfo: null },
     { sink: 'SUB0', connected: true, videoInfo: { hdrType: 'DOLBY_VISION', colormetry: 'BT709', isGameMode: 1, freesyncEnabled: 1 } }
   ] }), {
-    type: 'dolby_vision', eotf: null, colorimetry: 'BT709', encoding: null,
+    type: 'dolby_vision', type_display: 'Dolby Vision', eotf: null, colorimetry: 'BT709', encoding: null,
     max_luminance: null, min_luminance: null, max_cll: null, max_fall: null,
     game_mode: true, freesync: true
   });
@@ -411,7 +407,7 @@ console.log('Running test-telemetry.js ...');
   assert.strictEqual(telemetry.formatSoundOutput('ext_speaker_optical'), 'Optical');
   assert.strictEqual(telemetry.formatSoundOutput('ext_speaker_builtin_lg_optical'), 'Optical');
   assert.strictEqual(telemetry.formatSoundOutput('ext_speaker_arc'), 'HDMI ARC');
-  assert.strictEqual(telemetry.formatSoundOutput('mobile_phone'), 'Mobile Phone');
+  assert.strictEqual(telemetry.formatSoundOutput('usb_speaker'), 'Usb Speaker');
   assert.strictEqual(telemetry.formatPicMode('hdrCinemaBright'), 'HDR Cinema Bright');
   assert.strictEqual(telemetry.formatPicMode('hdrFilmMaker'), 'HDR Filmmaker');
   assert.strictEqual(telemetry.formatPicMode('dolbyHdrSomethingNew'), 'Dolby Vision Something New');
@@ -434,6 +430,23 @@ console.log('Running test-telemetry.js ...');
   assert.strictEqual(vc(null, { volume: -1, scenario: 'mastervolume_ext_speaker_arc' }), 'steps');
   assert.strictEqual(vc(null, null), 'level');
   console.log('  ✓ the volume is set, stepped or left alone by where the sound goes');
+})();
+
+// A refusal holds for the route it came on, whatever the flags say, and ends
+// when the sound goes elsewhere.
+(function testVolumeRefusedRoute() {
+  var rvc = telemetry.routedVolumeControl;
+  var optical = { soundOutput: 'external_optical', adjustVolume: true, externalDeviceControl: false, volume: 10 };
+  var speaker = { soundOutput: 'tv_speaker', adjustVolume: true, externalDeviceControl: false, volume: 12 };
+  assert.strictEqual(rvc(optical), 'level', 'as the TV reports it');
+  telemetry.noteVolumeRefused();
+  assert.strictEqual(rvc(optical), 'none', 'refused there');
+  assert.strictEqual(rvc(speaker), 'level', 'the sound moved');
+  assert.strictEqual(rvc(optical), 'level', 'back on optical, offered again');
+  telemetry.noteVolumeRefused();
+  assert.strictEqual(rvc(null, { volume: 10, scenario: 'mastervolume_ext_speaker_optical' }), 'level',
+    'a route named by the older service is another route');
+  console.log('  ✓ a refused volume change holds until the sound goes elsewhere');
 })();
 
 // 8. Picture engine info parsing tests
@@ -706,8 +719,7 @@ telemetry.refreshInstalledApps(function (apps) {
                     setImmediate(function () {
                       assert.strictEqual(third.uptime, 99999);
                       console.log('  ✓ a clock stepped back does not keep serving the last stats');
-                      console.log('ALL test-telemetry.js assertions passed!\n');
-                      mockEnv.restore();
+                      audioOutputs();
                     });
                   });
                 });
@@ -719,3 +731,53 @@ telemetry.refreshInstalledApps(function (apps) {
     });
   });
 });
+
+// 13. The audio output is named from the volume service where it answers.
+// Replies from a C4 (webOS 9.2) on three outputs.
+function audioOutputs() {
+  var VOLUME_STATUS = { ossActivate: false, volumeLimiter: 'none', maxVolume: 100, volumeLimitable: true,
+    activeStatus: true, soundOutput: 'tv_speaker', volume: 0, mode: 'normal', externalDeviceControl: false,
+    muteStatus: false, volumeSyncable: true, adjustVolume: true };
+  function volumeStatus(changes) {
+    var vs = {}, k;
+    for (k in VOLUME_STATUS) vs[k] = VOLUME_STATUS[k];
+    for (k in changes) vs[k] = changes[k];
+    return { returnValue: true, volumeStatus: vs };
+  }
+  var NO_SCENARIO = { returnValue: false, errorCode: 3, errorText: 'failed to get parameter (invalid scenario name?)' };
+  var cases = [
+    ['TV Speaker', { returnValue: true, muted: false, volume: 0, scenario: 'mastervolume_tv_speaker' },
+      volumeStatus({}), 'TV Speaker'],
+    ['Optical + TV Speaker', { returnValue: true, muted: false, volume: 0, scenario: 'mastervolume_tv_speaker_ext' },
+      volumeStatus({ soundOutput: 'tv_external_speaker', volumeSyncable: false }), 'TV Speaker + Optical'],
+    ['Bluetooth + TV Speaker, nothing paired', NO_SCENARIO,
+      volumeStatus({ soundOutput: 'tv_speaker_bt_surround', externalDeviceControl: true }), 'TV Speaker + Bluetooth'],
+    ['neither service naming an output', NO_SCENARIO,
+      { returnValue: false, errorText: 'not answering' }, 'Internal'],
+    // The newer service refused for good: from here on, an older TV.
+    ['a TV without the volume service', { returnValue: true, muted: false, volume: -1, scenario: 'mastervolume_ext_speaker_optical' },
+      { returnValue: false, errorCode: -1, errorText: 'Unknown method "getVolume" for category "/master"' }, 'Optical'],
+    ['a TV without the volume service, no scenario', NO_SCENARIO, null, 'Internal']
+  ];
+  var seen = [];
+  (function next(i) {
+    if (i === cases.length) {
+      // Asserted outside: collectStats swallows what its callbacks throw.
+      return setImmediate(function () {
+        for (var j = 0; j < cases.length; j++) {
+          assert.strictEqual(seen[j], cases[j][3], cases[j][0]);
+        }
+        console.log('  ✓ the audio output is named from the volume service, and from the scenario without it');
+        console.log('ALL test-telemetry.js assertions passed!\n');
+        mockEnv.restore();
+      });
+    }
+    mockEnv.luna['com.webos.audio/getSoundOut'] = cases[i][1];
+    mockEnv.luna['com.webos.service.audio/master/getVolume'] = cases[i][2];
+    telemetry.clearCache();
+    telemetry.collectStats(function (stats) {
+      seen.push(stats.audio_output);
+      next(i + 1);
+    });
+  })(0);
+}

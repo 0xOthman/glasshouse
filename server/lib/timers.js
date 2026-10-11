@@ -8,13 +8,15 @@
  *
  * Strict ES5 for node 0.12 on webOS 4.
  */
+var toInt = require('./util').toInt;
+
 var LIVE_TV = 'com.webos.app.livetv';
 var HOME = 'com.webos.app.home';
 
 function pad2(v) { return (v < 10 ? '0' : '') + v; }
 
 function daysFromMask(mask) {
-  var n = parseInt(mask, 10) || 0;
+  var n = toInt(mask, 0);
   var days = [];
   for (var d = 0; d < 7; d++) if (n & (1 << d)) days.push(d);
   return days;
@@ -29,8 +31,8 @@ function maskFromDays(days) {
 function timer(s, prefix) {
   if (s[prefix + 'Enable'] === undefined || s[prefix + 'Hour'] === undefined) return undefined;
   // LG's range for the hour runs to 24; its menu never sets more than 23.
-  var h = (parseInt(s[prefix + 'Hour'], 10) || 0) % 24;
-  var m = parseInt(s[prefix + 'Minute'], 10) || 0;
+  var h = toInt(s[prefix + 'Hour'], 0) % 24;
+  var m = toInt(s[prefix + 'Minute'], 0);
   return { enabled: s[prefix + 'Enable'] === 'on', time: pad2(h) + ':' + pad2(m), days: daysFromMask(s[prefix + 'Weekday']) };
 }
 

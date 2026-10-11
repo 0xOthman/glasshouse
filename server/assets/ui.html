@@ -318,8 +318,11 @@
           <button id="so_tv_speaker" onclick="sendCommand('soundOutput','tv_speaker')" data-t="sound.tvSpeaker">TV Speaker</button>
           <button id="so_external_arc" onclick="sendCommand('soundOutput','external_arc')" translate="no">HDMI ARC</button>
           <button id="so_optical" onclick="sendCommand('soundOutput','optical')" data-t="sound.optical">Optical</button>
-          <button id="so_headphone" onclick="sendCommand('soundOutput','headphone')" data-t="sound.headphone">Headphone</button>
+          <button id="so_headphone" onclick="sendCommand('soundOutput','headphone')" data-t="sound.headphone">Headphone / AUX</button>
           <button id="so_bt_soundbar" onclick="sendCommand('soundOutput','bt_soundbar')" translate="no">Bluetooth</button>
+          <button id="soundout-extra" class="on" hidden translate="no"></button>
+          <select id="so_more" class="so-more" hidden aria-label="More outputs" data-t-aria-label="sound.more.label"
+            onchange="if (this.value) sendCommand('soundOutput', this.value)"></select>
         </div>
       </div>
     </details>
@@ -733,7 +736,8 @@
       <div class="pv-note" id="adblock-help" hidden data-t="pv.adblock.troubleshoot">If an app or one of LG's
         services stops working while the blocker is on, switch it off to check whether it is the cause.</div>
       <div class="pv-note"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
-        the app store, software updates and LG Channels may stop working.</b> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
+        the LG ThinQ app can no longer control the TV, and the app store, software updates and LG
+        Channels may stop working.</b> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
         updates in the Server tab.</span></div>
     </div>
 

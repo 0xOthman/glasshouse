@@ -14,6 +14,9 @@ var samrescan = require('./samrescan');
 var msg = require('./say').msg;
 var fs = require('fs');
 var mkdirp = require('./util').mkdirp;
+var readTrimmed = require('./util').readTrimmed;
+var readJson = require('./util').readJson;
+var unlinkQuiet = require('./util').unlinkQuiet;
 var path = require('path');
 var execFile = require('child_process').execFile;
 var screensavers = require('./screensavers');
@@ -168,23 +171,14 @@ function findAppDir(appId) {
 }
 
 function isTileHidingEnabled() {
-  if (fs.existsSync(TILE_HIDING_FLAG_FILE)) {
-    try {
-      return fs.readFileSync(TILE_HIDING_FLAG_FILE, 'utf8').trim() === '1';
-    } catch (e) {
-      return false;
-    }
-  }
+  if (fs.existsSync(TILE_HIDING_FLAG_FILE)) return readTrimmed(TILE_HIDING_FLAG_FILE) === '1';
   // One-time legacy migration: if flag file has not been created yet,
   // check if an existing hidden_apps file has entries.
-  if (fs.existsSync(HIDDEN_APPS_FILE)) {
+  if (readTrimmed(HIDDEN_APPS_FILE)) {
     try {
-      var lines = fs.readFileSync(HIDDEN_APPS_FILE, 'utf8').trim();
-      if (lines.length > 0) {
-        mkdirp(path.dirname(TILE_HIDING_FLAG_FILE));
-        fs.writeFileSync(TILE_HIDING_FLAG_FILE, '1\n', 'utf8');
-        return true;
-      }
+      mkdirp(path.dirname(TILE_HIDING_FLAG_FILE));
+      fs.writeFileSync(TILE_HIDING_FLAG_FILE, '1\n', 'utf8');
+      return true;
     } catch (e) {}
   }
   return false;
@@ -846,7 +840,7 @@ function unhideTile(appId, cb) {
 
   var ovr = path.join(OVERRIDE_DIR, appId + '.json');
   unmountAllForApp(appId, function () {
-    try { if (fs.existsSync(ovr)) fs.unlinkSync(ovr); } catch (e) {}
+    unlinkQuiet(ovr);
     var hiddenMap = readHiddenAppsList();
     delete hiddenMap[appId];
     writeHiddenAppsList(hiddenMap);
@@ -886,7 +880,7 @@ function unhideAllTiles(cb) {
     var curId = ids.shift();
     var ovr = path.join(OVERRIDE_DIR, curId + '.json');
     unmountAllForApp(curId, function () {
-      try { if (fs.existsSync(ovr)) fs.unlinkSync(ovr); } catch (e) {}
+      unlinkQuiet(ovr);
       unmountAllRemaining();
     });
   };
@@ -898,7 +892,7 @@ function unhideAllTiles(cb) {
  * Uninstalls a removable user or store app via Luna appInstallService.
  */
 function readPageTitles() {
-  try { return JSON.parse(fs.readFileSync(PAGE_TITLES_FILE, 'utf8')) || {}; } catch (e) { return {}; }
+  return readJson(PAGE_TITLES_FILE, null) || {};
 }
 
 /*

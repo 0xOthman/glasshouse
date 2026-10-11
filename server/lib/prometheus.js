@@ -4,9 +4,9 @@
  *
  * The names in STABLE are what dashboards and alerts are built on, so one is
  * never renamed or dropped; test-prometheus.js pins them. Labels hold only what
- * rarely changes, since every new label value starts a new series. Every
- * family is declared on every scrape, and one the TV gives no reading for has
- * no sample rather than a made-up 0.
+ * rarely changes, since every new label value starts a new series. A family
+ * the TV gives no reading for is left out of the scrape, HELP and TYPE too,
+ * rather than given a made-up 0.
  */
 
 // /proc/stat counts in USER_HZ ticks, which is 100 on every Linux the TVs run.
@@ -65,8 +65,7 @@ function memoryRead(s) {
   return positive(path(s, ['mem', 'total'])) !== null;
 }
 
-// The JEDEC eMMC PRE_EOL_INFO states, as telemetry names them.
-var EMMC_EOL_STATES = ['Normal', 'Warning', 'Urgent'];
+var EMMC_EOL_STATES = Object.keys(names.EMMC_EOL_STATES).map(function (code) { return names.EMMC_EOL_STATES[code]; });
 
 function hdmiLinks(s) {
   return Array.isArray(s.hdmi_links) ? s.hdmi_links : [];
@@ -131,6 +130,24 @@ var FAMILIES = [
     name: 'glasshouse_screen_on', type: 'gauge',
     help: '1 when the screen is on, including a screen saver; 0 otherwise.',
     samples: function (s) { return one(bool(path(s, ['powerState', 'screenOn']))); }
+  },
+  {
+    name: 'glasshouse_power_on_info', type: 'gauge',
+    help: 'Always 1, labelled with the reason the TV\'s power service gives for the TV last powering on, such as remote_key, wake_on_wifi, or reboot_by_on_regular.',
+    samples: function (s) {
+      var reason = path(s, ['powerState', 'onReason']);
+      return typeof reason === 'string' && reason ? [[{ reason: names.powerOnReason(reason).label }, 1]] : [];
+    }
+  },
+  {
+    name: 'glasshouse_power_on_time_seconds', type: 'gauge',
+    help: 'Time the TV last powered on, in seconds since the Unix epoch, from the time on its power service reports. No sample in standby.',
+    samples: function (s) {
+      var ontime = positive(path(s, ['powerState', 'onTime', 'ontime']));
+      if (ontime === null || num(s.time) === null) return [];
+      // To the millisecond, as the stats' own time is.
+      return one(Math.round(s.time - ontime * 1000) / 1000);
+    }
   },
   {
     name: 'glasshouse_soc_temperature_celsius', type: 'gauge',
@@ -214,9 +231,10 @@ var FAMILIES = [
     help: 'eMMC pre-end-of-life state from its PRE_EOL_INFO register, 1 for the current one: normal, warning (80% of reserved blocks used) or urgent (90%).',
     samples: function (s) {
       var eol = path(s, ['emmc', 'eol']);
-      if (EMMC_EOL_STATES.indexOf(eol) === -1) return [];
+      var known = EMMC_EOL_STATES.some(function (st) { return st.display === eol; });
+      if (!known) return [];
       return EMMC_EOL_STATES.map(function (st) {
-        return [{ state: st.toLowerCase() }, st === eol ? 1 : 0];
+        return [{ state: st.label }, st.display === eol ? 1 : 0];
       });
     }
   },
@@ -292,7 +310,7 @@ var FAMILIES = [
     help: '1 while a short compensation cycle is running, 0 otherwise.',
     samples: function (s) {
       var st = path(s, ['oled', 'comp_status']);
-      return one(typeof st === 'string' ? (st === 'Running' ? 1 : 0) : null);
+      return one(typeof st === 'string' ? (st === names.COMPENSATION_STATUSES.running.display ? 1 : 0) : null);
     }
   },
   {
@@ -318,12 +336,12 @@ var FAMILIES = [
   {
     name: 'glasshouse_oled_refresher_running', type: 'gauge',
     help: '1 while a Pixel Refresher run is in progress, 0 otherwise.',
-    samples: function (s) { return one(refresherStatus(s, 'Running')); }
+    samples: function (s) { return one(refresherStatus(s, names.REFRESHER_STATUSES.processing)); }
   },
   {
     name: 'glasshouse_oled_refresher_scheduled', type: 'gauge',
     help: '1 while a Pixel Refresher run is queued for the next standby, 0 otherwise.',
-    samples: function (s) { return one(refresherStatus(s, 'Scheduled')); }
+    samples: function (s) { return one(refresherStatus(s, names.REFRESHER_STATUSES.cancel_schedule)); }
   },
   {
     name: 'glasshouse_oled_failure_alerts_total', type: 'counter',
@@ -351,6 +369,32 @@ var FAMILIES = [
     name: 'glasshouse_picture_backlight_ratio', type: 'gauge',
     help: 'Backlight setting of the current picture mode from 0 to 1, which on an OLED is OLED light, the pixel brightness.',
     samples: function (s) { return one(percent(path(s, ['picture', 'backlight_raw']))); }
+  },
+  {
+    name: 'glasshouse_sound_info', type: 'gauge',
+    help: 'Always 1, labelled with the sound output and the sound mode the TV\'s settings are set to, such as tv_speaker, external_arc, or bt_soundbar, and standard, ai_sound_plus, or movie.',
+    samples: function (s) {
+      var output = path(s, ['sound', 'output_raw']);
+      var mode = path(s, ['sound', 'mode']);
+      var labels = {
+        output: typeof output === 'string' && output ? names.soundOutput(output).label : '',
+        mode: typeof mode === 'string' && mode ? snakeCase(mode) : ''
+      };
+      return labels.output || labels.mode ? [[labels, 1]] : [];
+    }
+  },
+  {
+    name: 'glasshouse_volume_ratio', type: 'gauge',
+    help: 'Volume of the sound output from 0 to 1, while the TV sets the level rather than only stepping it or not controlling it.',
+    samples: function (s) {
+      // With steps or none the TV reports no real level: 0, or -1 over optical.
+      return one(s.volume_control === 'level' ? percent(s.volume) : null);
+    }
+  },
+  {
+    name: 'glasshouse_muted', type: 'gauge',
+    help: '1 while the sound is muted, 0 otherwise.',
+    samples: function (s) { return one(bool(s.muted)); }
   },
   {
     name: 'glasshouse_foreground_app_info', type: 'gauge',
@@ -406,7 +450,7 @@ var FAMILIES = [
     samples: function (s) {
       var hz = positive(path(s, ['source_frame_rate', 'hz']));
       var type = path(s, ['source_frame_rate', 'vrr_type']);
-      return hz === null ? [] : [[{ vrr_type: typeof type === 'string' && type ? snakeCase(type) : 'off' }, hz]];
+      return hz === null ? [] : [[{ vrr_type: names.vrrType(type).label }, hz]];
     }
   },
   {
@@ -517,6 +561,36 @@ var FAMILIES = [
     name: 'glasshouse_syslog_errors_total', type: 'counter',
     help: 'Log lines that could not be sent to the syslog server since the server started. They are dropped, not sent again.',
     samples: function (s, version, syslog) { return syslog ? one(syslog.errors) : []; }
+  },
+  {
+    name: 'glasshouse_ntp_clock_sets_total', type: 'counter',
+    help: 'Times the TV\'s clock was set from the NTP server since the server started.',
+    samples: function (s, version, syslog, ntp) { return ntp ? one(ntp.sets) : []; }
+  },
+  {
+    name: 'glasshouse_ntp_errors_total', type: 'counter',
+    help: 'NTP syncs since the server started that set no clock: no answer, an answer not used, or the time service refusing the time.',
+    samples: function (s, version, syslog, ntp) { return ntp ? one(ntp.errors) : []; }
+  },
+  {
+    name: 'glasshouse_ntp_offset_seconds', type: 'gauge',
+    help: 'How far the NTP server\'s time was ahead of the TV\'s clock at the last answer, negative when behind it.',
+    samples: function (s, version, syslog, ntp) { return ntp && ntp.last ? one(ntp.last.offsetMs / 1000) : []; }
+  },
+  {
+    name: 'glasshouse_ntp_round_trip_seconds', type: 'gauge',
+    help: 'Round trip to the NTP server for the last answer, less the server\'s own time to answer.',
+    samples: function (s, version, syslog, ntp) { return ntp && ntp.last ? one(ntp.last.roundTripMs / 1000) : []; }
+  },
+  {
+    name: 'glasshouse_ntp_stratum', type: 'gauge',
+    help: 'The NTP server\'s stratum in the last answer.',
+    samples: function (s, version, syslog, ntp) { return ntp && ntp.last ? one(ntp.last.stratum) : []; }
+  },
+  {
+    name: 'glasshouse_ntp_last_answer_timestamp_seconds', type: 'gauge',
+    help: 'When the last answer came from the NTP server, as a Unix time.',
+    samples: function (s, version, syslog, ntp) { return ntp && ntp.last ? one(ntp.last.at / 1000) : []; }
   }
 ];
 
@@ -538,14 +612,16 @@ function labelSet(labels) {
 }
 
 // stats is telemetry's collectStats result; version is Glasshouse's own;
-// syslog is the syslog module's counters, null while forwarding is off.
-function render(stats, version, syslog) {
+// syslog is the syslog module's counters, null while forwarding is off; ntp is
+// the NTP client's status, null while it is off.
+function render(stats, version, syslog, ntp) {
   var s = stats && typeof stats === 'object' ? stats : {};
   var out = '';
   for (var i = 0; i < FAMILIES.length; i++) {
     var f = FAMILIES[i];
+    var samples = f.samples(s, version, syslog || null, ntp || null);
+    if (!samples.length) continue;
     out += '# HELP ' + f.name + ' ' + f.help + '\n# TYPE ' + f.name + ' ' + f.type + '\n';
-    var samples = f.samples(s, version, syslog || null);
     for (var j = 0; j < samples.length; j++) {
       out += f.name + labelSet(samples[j][0]) + ' ' + samples[j][1] + '\n';
     }

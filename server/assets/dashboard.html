@@ -93,6 +93,8 @@ body{font-family:'Manrope',sans-serif;color:#fff;
 .val{font-family:'Manrope',sans-serif;font-weight:400;font-size:3.1vh;color:rgba(255,255,255,.75);
   text-align:right;white-space:nowrap;padding-left:2vw}
 .row.sel .val{font-weight:600;color:rgba(255,255,255,.90)}
+/* A second, smaller line under a value, in the space the row leaves below it. */
+.val .sub{display:block;font-size:2.1vh;line-height:1.2;font-weight:400;color:rgba(255,255,255,.5)}
 /* Catalog rows: an icon, a version and a root badge beside the title. The
    title gives way with an ellipsis rather than pushing the state off the row. */
 .row.cat .lbl{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -805,7 +807,7 @@ function privacyRows(d) {
               hint: t('tv.privacy.adsTelemetry.hint', 'Blocks advertising, tracking and diagnostics addresses. LG’s app store and software updates still work.') + ' ' +
                     t('tv.privacy.blocking.troubleshoot', 'If an app stops working, switch blocking off to check whether it is the cause.') },
       full: { label: t('pv.adblock.full', 'Everything'), next: 'off', press: t('tv.privacy.blocking.toOff', 'Press OK for Off'),
-              hint: t('tv.privacy.everything.hint', 'Also blocks LG’s platform services. The app store, software updates and LG Channels may stop working.') + ' ' +
+              hint: t('tv.privacy.everything.hint', 'Also blocks LG’s platform services. The LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working.') + ' ' +
                     t('tv.privacy.blocking.troubleshoot', 'If an app stops working, switch blocking off to check whether it is the cause.') }
     };
     var cur = AB[abMode] || AB.off;
@@ -1003,7 +1005,8 @@ function settingsRows(d) {
                : t('tv.settings.web.open', 'It is on for your home network, with no password, so anyone on that network can use it.'))
              : t('tv.settings.web.off', 'It is off, so only this TV can reach the dashboard.')) });
   if (d.network && d.address) {
-    r.push({ label: t('tv.settings.address', 'Address'), value: d.address, web: '/',
+    // The TV's DNS name under it, where the home network's DNS has one.
+    r.push({ label: t('tv.settings.address', 'Address'), value: d.address, sub: d.hostname || null, web: '/',
              hint: t('tv.settings.address.hint', 'Where the web dashboard is, for a browser on a phone or computer on your home network.'),
              scan: t('tv.settings.address.scan', 'Scan to open it on your phone.') });
   }
@@ -1526,7 +1529,8 @@ function render() {
     if (r.head) return '<div class="row head"><span class="lbl">' + esc(r.label) + '</span></div>';
     return '<div class="row' + (i === sel ? ' sel' : '') + (r.act ? ' doable' : '') + (r.cat ? ' cat' : '') + '" onclick="pickRow(' + i + ')">' +
              '<span class="lbl">' + labelHtml(r, i) + '</span>' +
-             '<span class="val' + valClass(r) + '">' + esc(r.value) + '</span>' +
+             '<span class="val' + valClass(r) + '">' + esc(r.value) +
+               (r.sub ? '<span class="sub">' + esc(r.sub) + '</span>' : '') + '</span>' +
            '</div>';
   }).join('');
   position();
