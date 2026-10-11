@@ -451,14 +451,28 @@ async function tick() {
     /* Flash wear is independent of panel type, but the counters do not exist
        on webOS 3.x - drop the cells rather than print "unknown" twice. */
     const wear_ = !(d.capabilities && d.capabilities.emmcWear === false) && !(d.emmc && d.emmc.wear === 'unknown');
-    q('flashwear-cell').hidden = !wear_;
-    q('flashhealth-cell').hidden = !wear_;
+    q('flash-row').hidden = !wear_;
     if (wear_) {
-      q('flashval').textContent = (d.emmc && d.emmc.wear) || '—';
+      const wear = (d.emmc && d.emmc.wear) || '';
+      q('flash-wear').textContent = wear.replace('-', '–') || '—';
+      // The flash reports its wear in tenths of its life ("0-10%"), one
+      // segment each; a band past 100% fills them all.
+      const upper = /(\d+)%/.exec(wear.replace(/^.*-/, ''));
+      const tenths = upper ? Math.min(10, Math.ceil(parseInt(upper[1], 10) / 10)) : /exceed/i.test(wear) ? 10 : 0;
+      const meter = q('flash-meter');
+      if (meter.dataset.tenths !== String(tenths)) {
+        meter.dataset.tenths = String(tenths);
+        meter.innerHTML = Array.from({ length: 10 }, (_, i) => `<i${i < tenths ? ' class="on"' : ''}></i>`).join('');
+      }
       /* emmc.health is the wear band inverted - the same register, arithmetic
          the other way up - so showing both said one thing twice. pre_eol_info
          is a separate register and the only one that can warn on its own. */
-      q('flasheol').textContent = (d.emmc && d.emmc.eol) || '—';
+      const eol = (d.emmc && d.emmc.eol) || '';
+      const health = q('flash-health');
+      health.className = 'pill ' + (eol === 'Urgent' ? 'bad' : eol === 'Warning' ? 'warn' : eol === 'Normal' ? 'good' : 'idle');
+      health.textContent = eol === 'Urgent' ? t('metrics.flashHealth.urgent', 'Urgent')
+        : eol === 'Warning' ? t('metrics.flashHealth.warning', 'Warning')
+        : eol === 'Normal' ? t('metrics.flashHealth.normal', 'Normal') : '—';
     }
     pruneEmptySections();
 

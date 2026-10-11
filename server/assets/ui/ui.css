@@ -206,6 +206,13 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:26px;margin-top:26px}
 .cols .v{font-family:'Outfit';font-weight:300;font-size:24px;color:var(--w100);margin-top:6px}
 .cols .sub{overflow:visible;text-overflow:clip}
+/* Flash wear changes over years, so it sits small under the free space. */
+.flash-row{display:flex;flex-wrap:wrap;gap:16px 44px;margin-top:20px;padding-top:16px;border-top:1px solid var(--w06)}
+.flash-v{display:flex;align-items:center;gap:12px;height:28px;margin-top:6px;
+  font-family:'Outfit';font-weight:300;font-size:20px;color:var(--w100)}
+.flash-meter{display:inline-flex;gap:3px}
+.flash-meter i{width:5px;height:12px;border-radius:1px;background:var(--w12)}
+.flash-meter i.on{background:var(--w80)}
 
 /* ---- layout grid (2-column on desktop, single on mobile) ---- */
 /* Tabs. Twelve no longer fit a strip across a phone, so they are a sidebar:
