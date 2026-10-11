@@ -72,3 +72,73 @@ console.log('  ✓ unlinkQuiet removes a file, and says nothing when it is not t
 
 [secret, path.join(dir, 'bad.json'), path.join(dir, 'padded')].forEach(util.unlinkQuiet);
 fs.rmdirSync(dir);
+
+assert.strictEqual(util.hostPort('::', 8080), '[::]:8080');
+assert.strictEqual(util.hostPort('0.0.0.0', 8080), '0.0.0.0:8080');
+console.log('  ✓ hostPort brackets an IPv6 address');
+
+var tvwebSrc = fs.readFileSync(path.join(__dirname, '..', 'server', 'tvweb.js'), 'utf8');
+assert.ok(/^\s*host: '::',/m.test(tvwebSrc), 'the server listens on :: by default');
+console.log('  ✓ the server listens dual-stack by default');
+
+var EventEmitter = require('events').EventEmitter;
+var net = require('net');
+
+// A server whose listen fails with code on the hosts in failOn.
+function fakeServer(failOn, code) {
+  var s = new EventEmitter();
+  s.tried = [];
+  s.listen = function (port, host) {
+    s.tried.push(host);
+    process.nextTick(function () {
+      if (failOn.indexOf(host) === -1) return s.emit('listening');
+      var err = new Error('listen ' + code);
+      err.code = code;
+      s.emit('error', err);
+    });
+  };
+  return s;
+}
+
+var listenCases = [
+  ['EAFNOSUPPORT', '::', ['::'], null, ['::', '0.0.0.0'], '0.0.0.0'],
+  ['EADDRNOTAVAIL', '::', ['::'], null, ['::', '0.0.0.0'], '0.0.0.0'],
+  ['EADDRINUSE', '::', ['::'], 'EADDRINUSE', ['::'], undefined],
+  ['EAFNOSUPPORT', '0.0.0.0', ['0.0.0.0'], 'EAFNOSUPPORT', ['0.0.0.0'], undefined],
+  ['EAFNOSUPPORT', '::', ['::', '0.0.0.0'], 'EAFNOSUPPORT', ['::', '0.0.0.0'], undefined],
+  ['', '::', [], null, ['::'], '::']
+];
+var listenPending = listenCases.length;
+listenCases.forEach(function (c) {
+  var s = fakeServer(c[2], c[0]);
+  util.listenDualStack(s, 8080, c[1], function (err, took, fellBack) {
+    assert.strictEqual(err ? err.code : null, c[3], c[1] + ' failing with ' + c[0]);
+    assert.deepEqual(s.tried, c[4]);
+    assert.strictEqual(took, c[5]);
+    if (took === '0.0.0.0') assert.strictEqual(fellBack.code, c[0]);
+    else assert.strictEqual(fellBack, undefined);
+    assert.strictEqual(s.listeners('error').length, 0, 'no listener left behind');
+    assert.strictEqual(s.listeners('listening').length, 0, 'no listener left behind');
+    if (--listenPending === 0) {
+      console.log('  ✓ listenDualStack falls back to 0.0.0.0 only when :: has no IPv6 to bind');
+      realListen();
+    }
+  });
+});
+
+// On this machine's kernel, whichever address takes answers on IPv4.
+function realListen() {
+  var srv = net.createServer(function (c) { c.end('ok'); });
+  util.listenDualStack(srv, 0, '::', function (err, took) {
+    assert.ifError(err);
+    assert.ok(took === '::' || took === '0.0.0.0');
+    var c = net.connect(srv.address().port, '127.0.0.1');
+    var got = '';
+    c.on('data', function (d) { got += d; });
+    c.on('end', function () {
+      assert.strictEqual(got, 'ok');
+      srv.close();
+      console.log('  ✓ listenDualStack on :: answers IPv4');
+    });
+  });
+}

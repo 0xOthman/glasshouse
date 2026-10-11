@@ -9,6 +9,7 @@ var crypto = require('crypto');
 var http = require('http');
 var say = require('./say');
 var lanAddress = require('./util').lanAddress;
+var listenDualStack = require('./util').listenDualStack;
 var writeJsonAtomic = require('./util').writeJsonAtomic;
 var unlinkQuiet = require('./util').unlinkQuiet;
 var existsQuiet = require('./util').existsQuiet;
@@ -283,7 +284,9 @@ function writeSettings(patch, cb) {
  */
 function setNetworkAccess(open, cb) {
   var file = readConfigFile();
-  file.host = open ? '0.0.0.0' : '127.0.0.1';
+  // Unset, host defaults to dual-stack '::'.
+  if (open) delete file.host;
+  else file.host = '127.0.0.1';
   try {
     if (!configFilePath) return cb(new Error('no config file path configured'));
     writeJsonAtomic(configFilePath, file, parseInt('600', 8));
@@ -425,11 +428,18 @@ function startHandoff(cb) {
     }
     send(res, 404, 'not found', 'text/plain');
   });
-  srv.on('error', function (err) {
-    console.error('setup: could not open the phone link: ' + err.message);
-    stopHandoff();
-  });
-  srv.listen(handoffPort(), '0.0.0.0', function () {
+  // IPv4-only if the dashboard is; dual-stack otherwise, even when the
+  // dashboard is loopback-only, since the phone connects over the LAN.
+  var host = config.host === '0.0.0.0' ? '0.0.0.0' : '::';
+  listenDualStack(srv, handoffPort(), host, function (err) {
+    if (err) {
+      console.error('setup: could not open the phone link: ' + err.message);
+      return cb(err);
+    }
+    srv.on('error', function (e) {
+      console.error('setup: phone link failed: ' + e.message);
+      stopHandoff();
+    });
     HANDOFF.server = srv;
     HANDOFF.code = code;
     HANDOFF.timer = setTimeout(stopHandoff, HANDOFF_MS);
