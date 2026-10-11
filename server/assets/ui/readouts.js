@@ -156,6 +156,36 @@ let lastInputNames = {};
    Loaded once only, they kept "Device seen, no signal" from a page opened
    while the TV was in standby. */
 let lastHdmiKey = null;
+// The outputs with a button of their own, by every id the TV gives them.
+const SOUND_BUTTON = {
+  tv_speaker: 'tv_speaker', internal: 'tv_speaker', external_arc: 'external_arc',
+  optical: 'optical', external_optical: 'optical', headphone: 'headphone', bt_soundbar: 'bt_soundbar'
+};
+
+let moreOutputs = [];
+
+// The TV's other outputs go in More. One of them in use shows as a button of
+// its own before the list, so More always reads as the way to the rest.
+function renderMoreOutputs(outputs, current) {
+  moreOutputs = outputs;
+  const sel = q('so_more'), extra = q('soundout-extra');
+  if (!sel) return;
+  const inUse = outputs.find(o => o.id === current);
+  const rest = outputs.filter(o => o !== inUse);
+  const sig = rest.map(o => o.id + '=' + o.name).join('|');
+  if (sel.dataset.sig !== sig) {
+    sel.dataset.sig = sig;
+    sel.replaceChildren(new Option(t('sound.more', 'More…'), ''),
+      ...rest.map(o => new Option(o.name, o.id)));
+  }
+  sel.value = '';
+  sel.hidden = !rest.length;
+  if (extra) {
+    extra.hidden = !inUse;
+    extra.textContent = inUse ? inUse.name : '';
+  }
+}
+
 function hdmiKey(d) {
   // The colour format is in the key too: a source switching RGB to YCbCr, or
   // SDR to HDR, keeps the same resolution and refresh.
@@ -591,13 +621,21 @@ async function tick() {
       if (q('soundout-lbl') && !soLeased) q('soundout-lbl').textContent = (d.sound.output || d.sound.output_raw || '').toUpperCase();
       // Bluetooth only with an audio device connected: without one the TV
       // opens its own pairing prompt and falls back to the speakers.
-      if (q('so_bt_soundbar')) q('so_bt_soundbar').hidden = d.sound.bt_audio === false && curSo !== 'bt_soundbar';
+      const noBt = d.sound.bt_audio === false;
+      // Once the TV has said which outputs it offers, a button shows only if
+      // it is one of them, and the rest go in More.
+      const offered = Array.isArray(d.sound.outputs) ? d.sound.outputs : null;
+      const onButtons = offered ? new Set(offered.map(o => SOUND_BUTTON[o.id]).filter(Boolean)) : null;
       const soBtns = q('soundouts') ? q('soundouts').querySelectorAll('button') : [];
       for (let b of soBtns) {
-        const isCur = b.id.replace('so_', '') === curSo;
+        if (!b.id.startsWith('so_')) continue;
+        const id = b.id.replace('so_', '');
+        const isCur = id === curSo;
+        b.hidden = !isCur && ((onButtons && !onButtons.has(id)) || (id === 'bt_soundbar' && noBt));
         b.classList.toggle('on', isCur);
         if (isCur && soLeased && q('soundout-lbl')) q('soundout-lbl').textContent = b.textContent.toUpperCase();
       }
+      renderMoreOutputs(offered ? offered.filter(o => !SOUND_BUTTON[o.id]) : [], curSo);
     }
 
     const up = d.uptime, dd = Math.floor(up / 86400), hh = Math.floor(up % 86400 / 3600), mm = Math.floor(up % 3600 / 60);
