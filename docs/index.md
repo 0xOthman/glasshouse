@@ -54,7 +54,9 @@ This project is intended to give a rooted webOS TV a useful local control surfac
 
 9. **[Opening the service menu, and unlocking it where it is locked](dashboard/service-menu.md).** LG's own engineering menu, put on the TV screen from a browser which means no service remote is needed. Newer firmware shows a cut-down version of it until it is unlocked, which the dashboard can do as well.
 
-10. **[Reading all of it on the TV itself](dashboard/tv-app.md).** An optional app on the home screen puts the same readings and controls on the TV, driven by the remote, for when there is no phone or laptop to hand.
+10. **[Reading all of it on the TV itself](apps/tv-app.md).** An optional app on the home screen puts the same readings and controls on the TV, driven by the remote, for when there is no phone or laptop to hand.
+
+11. **[Managing TVs from Android](apps/android.md).** A phone app that keeps a list of TVs, shows which are online, wakes them with Wake-on-LAN, and opens each one's dashboard full screen.
 
 ---
 

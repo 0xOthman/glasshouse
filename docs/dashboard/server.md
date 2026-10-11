@@ -4,7 +4,7 @@ The **Server** tab, `/?tab=server`, shows the installed version, whether a newer
 
 **Check daily** looks on its own and lets Home Assistant offer the update.
 
-It also adds or removes [the app on the TV's home screen](../dashboard/tv-app.md), and sets the clock from [a time server on the network](../ntp.md), for networks that run one.
+It also adds or removes [the app on the TV's home screen](../apps/tv-app.md), and sets the clock from [a time server on the network](../ntp.md), for networks that run one.
 
 The theme, the sidebar and the language are set here for each browser, so other phones and computers keep their own.
 
