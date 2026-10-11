@@ -156,21 +156,28 @@ const SOUND_BUTTON = {
   optical: 'optical', external_optical: 'optical', headphone: 'headphone', bt_soundbar: 'bt_soundbar'
 };
 
-// The TV's other outputs, in a list after the buttons; the one in use is shown
-// selected there.
+let moreOutputs = [];
+
+// The TV's other outputs go in More. One of them in use shows as a button of
+// its own before the list, so More always reads as the way to the rest.
 function renderMoreOutputs(outputs, current) {
-  const sel = q('so_more');
+  moreOutputs = outputs;
+  const sel = q('so_more'), extra = q('soundout-extra');
   if (!sel) return;
-  const sig = outputs.map(o => o.id + '=' + o.name).join('|');
+  const inUse = outputs.find(o => o.id === current);
+  const rest = outputs.filter(o => o !== inUse);
+  const sig = rest.map(o => o.id + '=' + o.name).join('|');
   if (sel.dataset.sig !== sig) {
     sel.dataset.sig = sig;
     sel.replaceChildren(new Option(t('sound.more', 'More…'), ''),
-      ...outputs.map(o => new Option(o.name, o.id)));
+      ...rest.map(o => new Option(o.name, o.id)));
   }
-  sel.hidden = !outputs.length;
-  const inList = outputs.some(o => o.id === current);
-  sel.value = inList ? current : '';
-  sel.classList.toggle('on', inList);
+  sel.value = '';
+  sel.hidden = !rest.length;
+  if (extra) {
+    extra.hidden = !inUse;
+    extra.textContent = inUse ? inUse.name : '';
+  }
 }
 
 function hdmiKey(d) {
@@ -612,6 +619,7 @@ async function tick() {
       const onButtons = offered ? new Set(offered.map(o => SOUND_BUTTON[o.id]).filter(Boolean)) : null;
       const soBtns = q('soundouts') ? q('soundouts').querySelectorAll('button') : [];
       for (let b of soBtns) {
+        if (!b.id.startsWith('so_')) continue;
         const id = b.id.replace('so_', '');
         const isCur = id === curSo;
         b.hidden = !isCur && ((onButtons && !onButtons.has(id)) || (id === 'bt_soundbar' && noBt));
