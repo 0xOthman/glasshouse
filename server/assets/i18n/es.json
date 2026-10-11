@@ -1011,9 +1011,9 @@
   "text": "Mínimo",
   "from": "Minimum"
  },
- "footer.uptime": {
-  "text": "Activa {time} · carga {load}",
-  "from": "Up {time}   ·   load {load}"
+ "footer.up": {
+  "text": "Activa {time}",
+  "from": "Up {time}"
  },
  "footer.uptime.days": {
   "text": "{d}d {h}h {m}m",
@@ -1146,6 +1146,14 @@
  "metrics.cpu.idle": {
   "text": "Nada usó CPU durante la muestra.",
   "from": "Nothing used any CPU over the sample."
+ },
+ "metrics.cpu.load": {
+  "text": "Carga media {one} · {five} · {fifteen}, en 1, 5 y 15 minutos",
+  "from": "Load average {one} · {five} · {fifteen}, over 1, 5 and 15 minutes"
+ },
+ "metrics.cpu.load.desc": {
+  "text": "La carga cuenta las tareas en espera además de las que se ejecutan, por lo que en una TV queda muy por encima de la parte del tiempo en que la CPU está ocupada.",
+  "from": "The load counts tasks waiting as well as running, so on a TV it sits well above the share of time the CPU is busy."
  },
  "metrics.cpu.measuring": {
   "text": "Midiendo…",

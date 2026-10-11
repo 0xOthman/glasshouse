@@ -195,6 +195,8 @@
 
       <details class="disc" id="disc-cpu">
       <summary><span data-t="metrics.cpuDetail">Detailed CPU usage</span> <span class="cur" id="cpu-cur"></span></summary>
+      <div class="sub" id="cpu-load" hidden></div>
+      <div class="sub" data-t="metrics.cpu.load.desc">The load counts tasks waiting as well as running, so on a TV it sits well above the share of time the CPU is busy.</div>
       <div id="cpu-list"></div>
     </details>
     </div>
@@ -1130,7 +1132,7 @@
 
 <footer>
   <span id="uptime">&mdash;</span>
-  <span class="foot-end"><span id="activity-txrx" class="activity-txrx" aria-hidden="true"><span id="act-tx" class="txrx-pip"></span><span id="act-rx" class="txrx-pip"></span></span><span id="clock">&mdash;</span><a id="version" hidden target="_blank" rel="noopener noreferrer"></a><a id="version-new" hidden target="_blank" rel="noopener noreferrer"></a><button type="button" class="theme-toggle" id="theme-toggle">☾</button></span>
+  <span class="foot-end"><span id="activity-txrx" class="activity-txrx" aria-hidden="true"><span id="act-tx" class="txrx-pip"></span><span id="act-rx" class="txrx-pip"></span></span><a id="version" hidden target="_blank" rel="noopener noreferrer"></a><a id="version-new" hidden target="_blank" rel="noopener noreferrer"></a><button type="button" class="theme-toggle" id="theme-toggle">☾</button></span>
 </footer>
 
 <script src="/assets/i18n.js"></script>
