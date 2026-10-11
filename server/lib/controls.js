@@ -81,6 +81,8 @@ var lgSettings = null;
 var updater = null;
 /** @type {typeof import('./devtools')} */
 var devtoolsModule = null;
+/** @type {typeof import('./ntp')} */
+var ntpModule = null;
 var republishDiscoveryFn = null;
 var tvAppFn = null;
 var restartSelfFn = null;
@@ -873,6 +875,31 @@ function doControl(action, value, cb) {
         cb(getUpdateSummary());
       });
 
+    /*
+     * The time server, "host" or "host:port"; empty turns it off. The client
+     * restarts with it, and the answer waits for its first sync, so the
+     * Server tab shows straight away whether the server answered.
+     */
+    case 'setNtpServer':
+      if (!writeSettingsFn || !ntpModule) return cb({ ok: false, error: 'no NTP client configured' });
+      var ntpTarget = ntpModule.parseServer(value);
+      if (ntpTarget && ntpTarget.error === 'port') {
+        return cb({ ok: false, error: msg('srv.ntp.badPort', 'The port after the colon must be a number from 1 to 65535') });
+      }
+      if (ntpTarget && ntpTarget.error) {
+        return cb({ ok: false, error: msg('srv.ntp.badServer', 'That is not a server name or address') });
+      }
+      var ntpConf = ntpTarget ? { server: ntpTarget.server, port: ntpTarget.port } : { server: '' };
+      return writeSettingsFn({ ntp: ntpConf }, function (err) {
+        if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
+        if (config) {
+          config.ntp = config.ntp || {};
+          config.ntp.server = ntpConf.server;
+          if (ntpConf.port) config.ntp.port = ntpConf.port;
+        }
+        if (!ntpModule.start(function () { cb(getUpdateSummary()); })) cb(getUpdateSummary());
+      });
+
     case 'setNetworkDebuggerAllowed':
       var allowDbg = (value === true || value === 'on' || value === 'true');
       if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });
@@ -911,6 +938,7 @@ function init(opts) {
   if (opts.lgSettings) lgSettings = opts.lgSettings;
   if (opts.updater) updater = opts.updater;
   if (opts.devtools) devtoolsModule = opts.devtools;
+  if (opts.ntp) ntpModule = opts.ntp;
   if (opts.republishDiscovery) republishDiscoveryFn = opts.republishDiscovery;
   if (opts.tvApp) tvAppFn = opts.tvApp;
   if (opts.restartSelf) restartSelfFn = opts.restartSelf;

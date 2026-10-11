@@ -204,7 +204,13 @@ function format(entry, opts) {
       assert.ok(/^<14>1 \S+ Bedroom-TV sam - system - second with <IP>$/.test(got[1]), got[1]);
       assert.ok(/^<27>1 \S+ Bedroom-TV mqtt - glasshouse - mqtt: broker refused the connection$/.test(got[2]), got[2]);
       assert.deepEqual(syslog.getCounters(), { messages: { system: 2, glasshouse: 1 }, errors: 0 });
+      var st = syslog.getStatus();
+      assert.strictEqual(st.server, '127.0.0.1');
+      assert.deepEqual(st.sources, ['system', 'glasshouse']);
+      assert.strictEqual(st.redact, true, 'redacted unless config says otherwise');
+      assert.deepEqual([st.messages.system, st.messages.glasshouse, st.errors], [2, 1, 0]);
       cleanup();
+      assert.strictEqual(syslog.getStatus(), null, 'no status while off');
       console.log('  ✓ lines written after the start reach a listener, and are counted');
       testSendIpv6();
     }, 100);

@@ -77,7 +77,7 @@ function showTab(name) {
   if (name === 'privacy') loadPrivacy();
   if (name === 'mqtt') loadSettings();
   // Opened at the newest line, wherever it was left scrolled.
-  if (name === 'tools') { toolsAutoScroll = true; loadLogs(); scheduleToolsPoll(); }
+  if (name === 'tools') { toolsAutoScroll = true; loadLogs(); scheduleToolsPoll(); loadLogForwarding(); }
   else if (typeof scheduleToolsPoll === 'function') { scheduleToolsPoll(); }
 }
 

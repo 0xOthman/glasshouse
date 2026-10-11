@@ -105,6 +105,11 @@ function renderUpdate(d) {
       disabled: !d.writable
     });
   }
+  if ('ntp' in d) {
+    renderNtp(d.ntp);
+    if (q('ntp-save')) q('ntp-save').disabled = !d.writable;
+    if (q('ntp-server')) q('ntp-server').disabled = !d.writable;
+  }
 
   const ssRow = q('exp-screensaver-row');
   if (ssRow) {
@@ -342,6 +347,45 @@ async function toggleExpTileHiding() {
   const b = q('exp-tilehiding');
   b.disabled = true;
   const r = await sendCommand('setTileHidingAllowed', !b.dataset.on);
+  if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+// Network time (#633). The server answers a save once its first sync is
+// over, so the result shows without a second load.
+function renderNtp(n) {
+  const pill = q('ntp-pill'), status = q('ntp-status'), input = q('ntp-server');
+  if (!pill) return;
+  if (input && document.activeElement !== input && !input.dataset.dirty) {
+    input.value = n ? (n.port && n.port !== 123 ? n.server + ':' + n.port : n.server) : '';
+  }
+  if (!n) {
+    pill.className = 'pill idle';
+    pill.textContent = t('common.off', 'Off');
+    status.hidden = true;
+    return;
+  }
+  const failing = !!n.error;
+  pill.className = 'pill ' + (failing ? 'bad' : 'good');
+  pill.textContent = failing ? t('server.ntp.noAnswer', 'No answer') : t('common.on', 'On');
+  status.hidden = false;
+  status.textContent = failing
+    ? t('server.ntp.failing', 'The time server has not answered, so the TV keeps the time it has. {error}', { error: n.error })
+    : n.setAgoS !== null
+      ? t('server.ntp.set', 'Set the clock {set}; last checked {checked}. Clear the box and save to turn this off.',
+          { set: cfgAge(n.setAgoS * 1000), checked: cfgAge(n.answeredAgoS * 1000) })
+      : n.answeredAgoS !== null
+        ? t('server.ntp.right', 'Checked {checked}: the clock was already right. Clear the box and save to turn this off.',
+            { checked: cfgAge(n.answeredAgoS * 1000) })
+        : t('server.ntp.asking', 'Asking the time server\u2026');
+}
+
+async function saveNtpServer() {
+  const input = q('ntp-server'), btn = q('ntp-save');
+  btn.disabled = true;
+  const r = await sendCommand('setNtpServer', input.value.trim());
+  btn.disabled = false;
+  delete input.dataset.dirty;
+  // A refusal, such as a mistyped address, is shown by sendCommand.
   if (r && r.ok) renderUpdate(r); else loadUpdate();
 }
 

@@ -200,6 +200,9 @@ function reply(request, serverMs, fields) {
     assert.deepEqual([st.sets, st.errors], [2, 1], 'counted since the last start');
     assert.ok(Math.abs(st.last.offsetMs - 5000) < 100, String(st.last.offsetMs));
     assert.strictEqual(st.last.stratum, 2);
+    assert.strictEqual(st.server, '127.0.0.1');
+    assert.strictEqual(st.error, null, 'the last sync worked');
+    assert.ok(st.setAgoS >= 0 && st.setAgoS < 5 && st.answeredAgoS >= 0 && st.answeredAgoS < 5, 'set and answered just now');
 
     ntp.stop();
     assert.strictEqual(ntp.getStatus(), null, 'no status while off');
@@ -216,3 +219,19 @@ function reply(request, serverMs, fields) {
     run(0);
   });
 })();
+
+// A server as typed into the dashboard.
+(function testParseServer() {
+  assert.strictEqual(ntp.parseServer(''), null, 'empty turns it off');
+  assert.strictEqual(ntp.parseServer('  '), null);
+  assert.deepEqual(ntp.parseServer(' 192.168.1.1 '), { server: '192.168.1.1', port: 123 });
+  assert.deepEqual(ntp.parseServer('time.lan:1123'), { server: 'time.lan', port: 1123 });
+  assert.deepEqual(ntp.parseServer('fd00::1'), { server: 'fd00::1', port: 123 });
+  assert.deepEqual(ntp.parseServer('[fd00::1]:123'), { server: 'fd00::1', port: 123 });
+  assert.deepEqual(ntp.parseServer('time.lan:99999'), { error: 'port' });
+  assert.deepEqual(ntp.parseServer('time lan'), { error: 'host' });
+  assert.deepEqual(ntp.parseServer('-oProxyCommand'), { error: 'host' });
+  assert.deepEqual(ntp.parseServer('http://time.lan'), { error: 'host' });
+  console.log('  ✓ a server typed into the dashboard: a name or address, with an optional port');
+})();
+

@@ -2,6 +2,8 @@
 
 The **Tools** tab, `/?tab=tools`, provides a live system log inspection terminal for power users and developers to inspect system activity, service telemetry, and hardware diagnostics directly from the browser without requiring SSH.
 
+Under its title, the tab says whether these logs are also sent to a log server on the network; [Log forwarding](../syslog.md) explains how to set that up.
+
 ### Log sources
 
 * **System (`/var/log/messages`)**: webOS system daemon logs written by PmLogDaemon, tracking system services (e.g. `sam`, `audiooutputd`, `pqcontroller`, `fancontroller`).

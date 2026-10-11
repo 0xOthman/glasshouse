@@ -347,4 +347,33 @@ console.log('Running test-controls.js ...');
   console.log('  ✓ a refused volume or mute change is passed to telemetry');
 })();
 
+// The time server from the Server tab: saved to config, the client restarted,
+// and a mistyped one refused without saving (#633).
+(function testNtpServer() {
+  var saved = [], started = 0, config = { allowControl: true, ntp: { server: '', port: 123 } };
+  var ntp = require('../server/lib/ntp');
+  controls.init({
+    config: config,
+    ntp: {
+      parseServer: ntp.parseServer,
+      start: function (done) { started++; if (!config.ntp.server) return false; done(); return true; }
+    },
+    writeSettings: function (patch, cb) { saved.push(patch); cb(null); },
+    updateSummary: function () { return { ok: true }; }
+  });
+  controls.doControl('setNtpServer', 'time.lan:1123', function (res) { assert.strictEqual(res.ok, true); });
+  assert.deepEqual(saved, [{ ntp: { server: 'time.lan', port: 1123 } }]);
+  assert.deepEqual(config.ntp, { server: 'time.lan', port: 1123 });
+  assert.strictEqual(started, 1, 'restarted with it');
+
+  controls.doControl('setNtpServer', 'time lan', function (res) { assert.strictEqual(res.ok, false); });
+  assert.strictEqual(saved.length, 1, 'a mistyped server is not saved');
+
+  controls.doControl('setNtpServer', '', function (res) { assert.strictEqual(res.ok, true); });
+  assert.deepEqual(saved[1], { ntp: { server: '' } });
+  assert.strictEqual(config.ntp.server, '', 'empty turns it off');
+  assert.strictEqual(started, 2);
+  console.log('  ✓ the time server is saved and the client restarted, and a mistyped one refused');
+})();
+
 console.log('ALL test-controls.js assertions passed!\n');
