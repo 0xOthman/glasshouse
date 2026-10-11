@@ -645,14 +645,6 @@ async function tick() {
     const upFor = dd ? t('footer.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
       : t('footer.uptime.hours', '{h}h {m}m', { h: hh, m: mm });
     q('uptime').textContent = t('footer.up', 'Up {time}', { time: upFor });
-    const la = d.loadavg || [];
-    if (q('cpu-load')) {
-      q('cpu-load').hidden = la.length !== 3;
-      if (la.length === 3) {
-        q('cpu-load').textContent = t('metrics.cpu.load', 'Load average {one} · {five} · {fifteen}, over 1, 5 and 15 minutes',
-          { one: la[0], five: la[1], fifteen: la[2] });
-      }
-    }
     setVersion(d.tvwebVersion);
     // Several groups stay hidden until the first payload says the TV has them,
     // so the columns are only worth filling once that has happened.
