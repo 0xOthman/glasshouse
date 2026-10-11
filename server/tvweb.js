@@ -434,7 +434,7 @@ var LIVE_STALE = {
 };
 
 lgSettings.init({ luna: luna, lunaCached: lunaCached, clearLunaCache: clearLunaCache });
-game.init({ lunaCached: lunaCached });
+game.init({ lunaCached: lunaCached, inputKey: telemetry.inputKey });
 privacy.init({ luna: luna, lunaCached: lunaCached, config: CONFIG, lgSettings: lgSettings });
 oled.init({ luna: luna, config: CONFIG });
 samrescan.init({ luna: luna });
@@ -446,7 +446,8 @@ screensavers.init({
   assetPath: assetPath,
   config: CONFIG,
   injectKey: controls.injectKey,
-  KEY_BACK: controls.KEY_BACK
+  KEY_BACK: controls.KEY_BACK,
+  inputKey: telemetry.inputKey
 });
 telemetry.init({
   luna: luna,

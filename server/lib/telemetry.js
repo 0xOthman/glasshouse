@@ -757,7 +757,7 @@ function parseInputMap(table) {
   var map = {}, any = false;
   for (var n = 1; n <= 4; n++) {
     // "none" for an input the board does not have.
-    var v = String(assignment['hdmi' + n]);
+    var v = String(assignment[names.hdmiKey(n)]);
     map[n] = /^[0-3]$/.test(v) ? parseInt(v, 10) : null;
     if (map[n] !== null) any = true;
   }
@@ -1069,11 +1069,10 @@ function refreshInputNames(cb) {
     if (res && res.devices && res.devices.length) {
       for (var i = 0; i < res.devices.length; i++) {
         var d = res.devices[i];
-        var port = /^HDMI_(\d+)$/.exec(String(d.id || ''));
-        if (!port) continue;
-        var key = 'hdmi' + port[1];
+        var key = names.hdmiKeyForPortId(d.id);
+        if (!key) continue;
         inputNameMap[key] = d.label || names.input(key).display;
-        var shortId = d.appId ? String(d.appId).replace('com.webos.app.', '') : key;
+        var shortId = d.appId ? names.shortAppId(d.appId) : key;
         if (shortId !== key) inputAppAliases[shortId] = key;
       }
       lastInputScan = Date.now();
@@ -1085,8 +1084,7 @@ function refreshInputNames(cb) {
 // An app id as a short id, the port's key (hdmi3) for an HDMI input whatever
 // app id it reports.
 function inputKey(appId) {
-  var shortId = String(appId || '').replace('com.webos.app.', '');
-  return inputAppAliases.hasOwnProperty(shortId) ? inputAppAliases[shortId] : shortId;
+  return names.shortAppId(appId, inputAppAliases);
 }
 
 function parseAppList(raw) {
@@ -1224,13 +1222,14 @@ function hdmiInputs(cb) {
 
       var inputs = [];
       for (var d = 0; d < devs.length; d++) {
-        if (!devs[d].id || String(devs[d].id).indexOf('HDMI') !== 0) continue;
+        var key = names.hdmiKeyForPortId(devs[d].id);
+        if (!key) continue;
         var hasCec = devs[d].lastUniqueId !== undefined &&
                      devs[d].lastUniqueId !== 255 &&
                      devs[d].lastUniqueId !== -1;
         var seen = !!(hasCec || devs[d].hdmiPlugIn || devs[d].connected || (devs[d].subCount > 0));
         // HDMI_2 is com.webos.app.hdmi2, for firmware that leaves appId out.
-        var appId = devs[d].appId || 'com.webos.app.' + String(devs[d].id).toLowerCase().replace('_', '');
+        var appId = devs[d].appId || names.inputAppId(key);
         inputs.push({
           id: devs[d].id,
           port: devs[d].port,
@@ -1242,7 +1241,7 @@ function hdmiInputs(cb) {
         });
       }
       for (var k = 0; k < inputs.length; k++) {
-        var receiver = receiverMap[parseInt(String(inputs[k].id).replace('HDMI_', ''), 10)];
+        var receiver = receiverMap[names.hdmiPort(names.hdmiKeyForPortId(inputs[k].id))];
         for (var r = 0; r < signalling.length; r++) {
           if (signalling[r].port === receiver) inputs[k].signal = signalling[r];
         }
@@ -1898,11 +1897,11 @@ function collectStats(cb) {
             out.app_name = inputNameMap[shortApp] || appTitles[app.appId] || shortApp;
             out.display_title = isInput ? names.inputTitle(shortApp, inputNameMap[shortApp]) : out.app_name;
 
-            var hdmiMatch = shortApp.match(/^hdmi([1-4])$/);
+            var hdmiOnScreen = names.hdmiPort(shortApp);
             var isScreenOff = out.screenSaver || (out.powerState && (out.powerState.screenOn === false || String(out.powerState.raw || out.powerState.state || '').toLowerCase() === 'off'));
-            if (hdmiMatch && !isScreenOff) {
+            if (hdmiOnScreen !== null && !isScreenOff) {
               inputShown = true;
-              var sigObj = getHdmiSignal(parseInt(hdmiMatch[1], 10), receiverMap, hdmiStatus);
+              var sigObj = getHdmiSignal(hdmiOnScreen, receiverMap, hdmiStatus);
               out.signal = sigObj ? sigObj.signal : null;
               out.signal_timing = sigObj ? sigObj.timing : null;
               out.hdmi_diag = sigObj ? sigObj.diag : null;

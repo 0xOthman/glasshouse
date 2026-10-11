@@ -205,6 +205,48 @@ function input(id) {
   return { display: INPUTS.hasOwnProperty(id) ? INPUTS[id] : id, label: id };
 }
 
+var APP_PREFIX = 'com.webos.app.';
+
+/*
+ * HDMI inputs go by the port's key, hdmi3, whatever else the TV calls them:
+ * HDMI_3 in eim's input list, com.webos.app.hdmi3 as the usual app id. A G5
+ * (webOS 25) reported one input under another app id, so the app id is not
+ * enough on its own: aliases maps such short ids to their port's key.
+ */
+function hdmiKey(port) {
+  return 'hdmi' + port;
+}
+
+// HDMI_3 (eim) or HDMI3 (getVRRInfo) as hdmi3; null for anything not an
+// HDMI port.
+function hdmiKeyForPortId(portId) {
+  var m = /^HDMI_?([1-4])$/i.exec(String(portId || ''));
+  return m ? hdmiKey(m[1]) : null;
+}
+
+// hdmi3 as 3; null for anything not an HDMI input's key. LG's TVs have up to
+// four, the inputs INPUTS names and the input command switches to.
+function hdmiPort(key) {
+  var m = /^hdmi([1-4])$/.exec(String(key || ''));
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function isHdmiKey(key) {
+  return hdmiPort(key) !== null;
+}
+
+// An app id without LG's prefix, or the port's key where aliases name it.
+function shortAppId(appId, aliases) {
+  var id = String(appId || '');
+  if (id.indexOf(APP_PREFIX) === 0) id = id.slice(APP_PREFIX.length);
+  return aliases && aliases.hasOwnProperty(id) ? aliases[id] : id;
+}
+
+// The app id LG launches an input under, as the input command does.
+function inputAppId(key) {
+  return APP_PREFIX + key;
+}
+
 /*
  * An input in the foreground, as the TV's settings name it with the short app
  * id after it: "Apple TV (HDMI2)". Without a name of its own it is the id.
@@ -390,6 +432,12 @@ module.exports = {
   signalEncoding: signalEncoding,
   powerOnReason: powerOnReason,
   INPUTS: INPUTS,
+  hdmiKey: hdmiKey,
+  hdmiKeyForPortId: hdmiKeyForPortId,
+  hdmiPort: hdmiPort,
+  isHdmiKey: isHdmiKey,
+  shortAppId: shortAppId,
+  inputAppId: inputAppId,
   input: input,
   inputTitle: inputTitle,
   POWER_STATES: POWER_STATES,

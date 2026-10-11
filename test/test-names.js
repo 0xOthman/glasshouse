@@ -186,3 +186,17 @@ assert.deepEqual(names.vrrType('off'), { label: 'off' });
 assert.deepEqual(names.vrrType(''), { label: 'off' });
 assert.deepEqual(names.vrrType(null), { label: 'off' });
 console.log('  ✓ VRR type, off without one');
+
+assert.strictEqual(names.hdmiKeyForPortId('HDMI_3'), 'hdmi3');
+assert.strictEqual(names.hdmiKeyForPortId('HDMI4'), 'hdmi4', 'getVRRInfo leaves the underscore out');
+assert.strictEqual(names.hdmiKeyForPortId('HDMI_5'), null);
+assert.strictEqual(names.hdmiKeyForPortId('AV_1'), null);
+assert.strictEqual(names.hdmiPort('hdmi2'), 2);
+assert.strictEqual(names.hdmiPort('livetv'), null);
+assert.strictEqual(names.isHdmiKey('hdmi1'), true);
+assert.strictEqual(names.isHdmiKey('hdmi5'), false);
+assert.strictEqual(names.shortAppId('com.webos.app.hdmi3'), 'hdmi3');
+assert.strictEqual(names.shortAppId('netflix'), 'netflix');
+assert.strictEqual(names.shortAppId('com.sling.tv', { 'com.sling.tv': 'hdmi3' }), 'hdmi3');
+assert.strictEqual(names.inputAppId('hdmi2'), 'com.webos.app.hdmi2');
+console.log('  ✓ HDMI inputs by port key, from eim\'s and getVRRInfo\'s port ids and from app ids with their aliases');

@@ -111,7 +111,7 @@ StateGroup.prototype._message = function (response) {
 
 function applicationValues(appId, inputNames, inputKey) {
   var full = String(appId || '');
-  var short = inputKey ? inputKey(full) : full.replace('com.webos.app.', '');
+  var short = inputKey ? inputKey(full) : names.shortAppId(full);
   return {
     app_id: full,
     app: short,

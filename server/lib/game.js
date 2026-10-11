@@ -31,6 +31,7 @@
  * Strict ES5 for node 0.12 on webOS 4.
  */
 var luna = require('./luna');
+var names = require('./names');
 
 var IDLE_MS = 15000;
 // Well above any scrape interval, so a TV being scraped never rebinds.
@@ -52,8 +53,12 @@ var latest = noReading();
 var waiting = [];
 var waitTimer = null;
 
+// An app id's short id, an HDMI input's port key (hdmi3) under any app id.
+var inputKeyFn = names.shortAppId;
+
 function init(opts) {
   lunaCachedFn = opts.lunaCached;
+  if (opts.inputKey) inputKeyFn = opts.inputKey;
 }
 
 function noReading() {
@@ -61,13 +66,13 @@ function noReading() {
 }
 
 function isInputApp(appId) {
-  return /^com\.webos\.app\.hdmi[1-4]$/i.test(String(appId || ''));
+  return names.isHdmiKey(inputKeyFn(appId));
 }
 
 // A reading counts only while its input is the app on screen: the input's
 // pipeline keeps running, and reporting, behind an app.
 function onScreen(r, appId) {
-  if (!r || !r.port || 'com.webos.app.' + String(r.port).toLowerCase() !== String(appId).toLowerCase()) return null;
+  if (!r || !r.port || names.hdmiKeyForPortId(r.port) !== inputKeyFn(appId)) return null;
   return { frameRate: r.frameRate, vrrType: r.vrrType, port: r.port };
 }
 

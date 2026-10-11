@@ -47,7 +47,13 @@ var cache = luna.createCache(function (uri, payload, cb) {
 });
 var ttls = [];
 var game = require('../server/lib/game');
-game.init({ lunaCached: function (uri, payload, ttl, cb) { ttls.push(ttl); cache.get(uri, payload, ttl, cb); } });
+var names = require('../server/lib/names');
+// A G5 (webOS 25) reported HDMI 3 under another app id: here HDMI 4 is also
+// com.example.hdmi4, as telemetry's inputKey maps it.
+game.init({
+  lunaCached: function (uri, payload, ttl, cb) { ttls.push(ttl); cache.get(uri, payload, ttl, cb); },
+  inputKey: function (appId) { return names.shortAppId(appId, { 'com.example.hdmi4': 'hdmi4' }); }
+});
 
 var HDMI4 = 'com.webos.app.hdmi4';
 function readNow(appId) {
@@ -71,6 +77,7 @@ function readNow(appId) {
 
   assert.deepEqual(readNow(HDMI4), got);
   assert.strictEqual(calls.length, 1, 'a second read within the TTL is served from the cache');
+  assert.deepEqual(readNow('com.example.hdmi4'), got, 'HDMI 4 under another app id is still HDMI 4');
   // HDMI 4's pipeline reporting behind HDMI 2 is not HDMI 2's reading.
   assert.strictEqual(readNow('com.webos.app.hdmi2'), null);
   assert.strictEqual(running(BIND).length, 1, 'still the one bind');
