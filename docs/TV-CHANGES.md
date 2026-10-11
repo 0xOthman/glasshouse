@@ -49,6 +49,7 @@ menus. Uninstalling the dashboard leaves them as they are.
 | Global Stress Reduction and Temporal Peak Control | OLED burn-in protections. Switching one off asks for confirmation, and neither is exposed to Home Assistant. Not switched back on by uninstalling |
 | Service menu lock | Unlocking asks for confirmation. Not locked again by uninstalling |
 | Privacy consents, advertising ID reset, advertising cookies | The same agreements as in the TV's settings |
+| LG's blocked-app list | Where hidden tiles or a screen saver switch use it, it is put back with LG's value but saved as a changed setting, which the TV has no way to remove. It keeps that value if LG's own list later changes with a firmware update or a new country. Not undone by uninstalling |
 
 ## Network
 
