@@ -629,7 +629,7 @@ function createMockRes(cb) {
     assert.strictEqual(r.statusCode, 403);
   });
   assert.strictEqual(calls.length, 0, 'a refused host reaches neither repo nor installer');
-  ['192.168.1.131', HOST, '[::1]:8080', '[fe80::1]', 'localhost:8080', 'LOCALHOST', 'lgtv.local', 'LGTV.local:8080', 'lgtv.local.'].forEach(function (h) {
+  ['192.168.1.131', HOST, '[::1]:8080', '[fe80::1]', '[fd12:3456:789a::5]:8080', 'localhost:8080', 'LOCALHOST', 'lgtv.local', 'LGTV.local:8080', 'lgtv.local.'].forEach(function (h) {
     call('GET', '/api/apps/install/status', h, null, function (r, b) {
       assert.strictEqual(r.statusCode, 200, 'host "' + h + '" must be accepted');
       assert.strictEqual(b.state, 'idle');
@@ -744,7 +744,7 @@ function createMockRes(cb) {
   }, '127.0.0.1');
   waiting = false;
 
-  assert.strictEqual(checks, 43, 'every callback ran');
+  assert.strictEqual(checks, 44, 'every callback ran');
   try { fs.unlinkSync(cfgFile); } catch (e) {}
   console.log('  ✓ install routes: Host check, controls switch, catalog, install flow, restart refusal');
 })();
@@ -1125,6 +1125,27 @@ function createMockRes(cb) {
   assert.strictEqual(lcd.available, false);
   assert.strictEqual(lcd.isOled, false);
   console.log('  ✓ /api/oledcare is unavailable on a TV without an OLED panel');
+})();
+
+// Opening the dashboard in setup unsets host (dual-stack); closing it binds
+// loopback.
+(function testNetworkAccess() {
+  var cfgFile = path.join(require('os').tmpdir(), 'tvweb-network-test-' + process.pid + '.json');
+  function open(host) {
+    routes.init({ config: { web: { enabled: false }, host: host }, configFile: cfgFile });
+    return routes.networkOpen();
+  }
+  assert.strictEqual(open('::'), true);
+  assert.strictEqual(open('0.0.0.0'), true);
+  assert.strictEqual(open('::1'), false);
+  assert.strictEqual(open('127.0.0.1'), false);
+  fs.writeFileSync(cfgFile, JSON.stringify({ host: '0.0.0.0', port: 8080 }));
+  routes.setNetworkAccess(false, function (err) { assert.ifError(err); });
+  assert.deepEqual(JSON.parse(fs.readFileSync(cfgFile, 'utf8')), { host: '127.0.0.1', port: 8080 });
+  routes.setNetworkAccess(true, function (err) { assert.ifError(err); });
+  assert.deepEqual(JSON.parse(fs.readFileSync(cfgFile, 'utf8')), { port: 8080 });
+  fs.unlinkSync(cfgFile);
+  console.log('  ✓ setup opens the dashboard on the default host and closes it to loopback');
 })();
 
 console.log('ALL test-routes.js assertions passed!');

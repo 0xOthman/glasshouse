@@ -54,7 +54,8 @@ menus. Uninstalling the dashboard leaves them as they are.
 
 ## Network
 
-The dashboard listens on port 8080, on the whole network unless it is limited
+The dashboard listens dual-stack on port 8080 (IPv4-only on a kernel without
+IPv6), on the whole network unless it is limited
 to the TV itself in `config.json` or from Settings on the TV. Installed from the
 Homebrew Channel it starts limited to the TV, until the owner opens it during
 setup. While a phone is being used to enter Home Assistant details,
