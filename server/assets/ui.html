@@ -124,9 +124,18 @@
         <div class="n num" style="margin-top:10px"><span id="appstore">&mdash;</span><em data-t="metrics.gbFree">GB free</em></div>
         <div class="sub" id="appstore-sub"></div>
       </div>
-      <div class="sub" id="flash-line" style="margin-top:10px" hidden
+      <div class="flash-row" id="flash-row" hidden
         title="How much of its life the TV's flash storage estimates it has used, and its own end-of-life warning, which only changes as it nears the end."
-        data-t-title="metrics.flashWear.title"></div>
+        data-t-title="metrics.flashWear.title">
+        <div>
+          <div class="lbl" data-t="metrics.flashWear">Flash wear</div>
+          <div class="flash-v"><span class="num" id="flash-wear">&mdash;</span><span class="flash-meter" id="flash-meter" aria-hidden="true"></span></div>
+        </div>
+        <div>
+          <div class="lbl" data-t="metrics.flashHealth">Health</div>
+          <div class="flash-v"><span class="pill idle" id="flash-health">&mdash;</span></div>
+        </div>
+      </div>
     </div>
 
     <div class="grp-sec" id="remoteblock" data-col="2" hidden>

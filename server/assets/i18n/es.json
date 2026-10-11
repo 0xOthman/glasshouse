@@ -1179,9 +1179,25 @@
   "text": "versión de software de la TV",
   "from": "TV software build version"
  },
- "metrics.flashWear.line": {
-  "text": "Desgaste de la memoria flash {wear} · estado {eol}",
-  "from": "Flash wear {wear} · health {eol}"
+ "metrics.flashHealth": {
+  "text": "Estado",
+  "from": "Health"
+ },
+ "metrics.flashHealth.normal": {
+  "text": "Normal",
+  "from": "Normal"
+ },
+ "metrics.flashHealth.urgent": {
+  "text": "Urgente",
+  "from": "Urgent"
+ },
+ "metrics.flashHealth.warning": {
+  "text": "Aviso",
+  "from": "Warning"
+ },
+ "metrics.flashWear": {
+  "text": "Desgaste flash",
+  "from": "Flash wear"
  },
  "metrics.flashWear.title": {
   "text": "Cuánta de su vida estima haber usado la memoria flash de la TV, y su propio aviso de fin de vida, que solo cambia cuando se acerca al final.",
