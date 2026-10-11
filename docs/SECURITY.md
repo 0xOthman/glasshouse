@@ -1,8 +1,8 @@
 # Security
 
-This server has **no authentication by default**, and binds to `0.0.0.0` so it
-is reachable from anywhere on your network. Anyone who can reach the port can
-use every enabled control. On a home LAN that is usually the point; understand
+This server has **no authentication by default**, and binds dual-stack to
+`::` (`0.0.0.0` on a kernel without IPv6), so it is reachable from anywhere on
+your network. Anyone who can reach the port can use every enabled control. On a home LAN that is usually the point; understand
 it before exposing it more widely.
 
 - **Set a token.** Put `"token": "something-long"` in `config.json` and every
@@ -115,6 +115,7 @@ it before exposing it more widely.
 | Setting                        | Browser on the network                                                   | App on the TV | MQTT  |
 | :----------------------------- | :----------------------------------------------------------------------- | :------------ | :---- |
 | `"token": "your-secret-token"` | with `?k=your-secret-token` or `Authorization: Bearer your-secret-token` | works         | works |
+| `"host": "0.0.0.0"`            | over IPv4 only                                                           | works         | works |
 | `"host": "127.0.0.1"`          | no — port 8080 is closed to the network                                  | works         | works |
 | `"web": { "enabled": false }`  | no                                                                       | does not work | works |
 

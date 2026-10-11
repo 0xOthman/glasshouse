@@ -28,6 +28,8 @@ var readTrimmed = require('./lib/util').readTrimmed;
 var readJson = require('./lib/util').readJson;
 var writeJsonAtomic = require('./lib/util').writeJsonAtomic;
 var existsQuiet = require('./lib/util').existsQuiet;
+var listenDualStack = require('./lib/util').listenDualStack;
+var hostPort = require('./lib/util').hostPort;
 var url = require('url');
 var net = require('net');
 var tls = require('tls');
@@ -150,7 +152,7 @@ var CONFIG = {
   logging: { level: 'info' },
 
   port: 8080,           // dashboard port
-  host: '0.0.0.0',      // '127.0.0.1' to keep it TV-local only
+  host: '::',           // '0.0.0.0' for IPv4 only, '127.0.0.1' to keep it TV-local only
 
   // Anyone who can reach this port can use the controls below.
   allowControl: true,   // volume, screen off/on, input switching, toast
@@ -818,8 +820,10 @@ if (CLI_MODE) {
   // A one-shot run installs a release and exits: no listener, no bridge, no
   // timers, and nothing that would fight the server already running.
 } else if (webEnabled) {
-  server.listen(CONFIG.port, CONFIG.host, function () {
-    console.log('tvweb listening on ' + CONFIG.host + ':' + CONFIG.port +
+  listenDualStack(server, CONFIG.port, CONFIG.host, function (err, took, fellBack) {
+    if (err) throw err;
+    console.log('tvweb listening on ' + hostPort(took, CONFIG.port) +
+                (fellBack ? ' (IPv4 only, [::] gave ' + fellBack.code + ')' : '') +
                 '  control=' + CONFIG.allowControl + '  power=' + CONFIG.allowPower +
                 '  auth=' + (CONFIG.token ? 'token' : 'none'));
     if (CONFIG.apps && CONFIG.apps.sideload === true && !CONFIG.token) {

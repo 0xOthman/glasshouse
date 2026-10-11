@@ -87,6 +87,36 @@ function existsQuiet(filePath) {
   try { return fs.existsSync(filePath); } catch (e) { return false; }
 }
 
+/*
+ * Listens on host and calls back with the address bound. A dual-stack '::'
+ * listener falls back to '0.0.0.0' on a kernel without IPv6, passing the error
+ * that caused it.
+ */
+function listenDualStack(server, port, host, cb) {
+  function onError(err) {
+    server.removeListener('listening', onListening);
+    if (host === '::' && (err.code === 'EAFNOSUPPORT' || err.code === 'EADDRNOTAVAIL')) {
+      return listenDualStack(server, port, '0.0.0.0', function (e, took) {
+        if (e) return cb(e);
+        cb(null, took, err);
+      });
+    }
+    cb(err);
+  }
+  function onListening() {
+    server.removeListener('error', onError);
+    cb(null, host);
+  }
+  server.once('error', onError);
+  server.once('listening', onListening);
+  server.listen(port, host);
+}
+
+// host:port as a URL writes it, with an IPv6 address in brackets.
+function hostPort(host, port) {
+  return (String(host).indexOf(':') !== -1 ? '[' + host + ']' : host) + ':' + port;
+}
+
 module.exports = {
   toInt: toInt,
   mkdirp: mkdirp,
@@ -98,5 +128,7 @@ module.exports = {
   readJson: readJson,
   writeJsonAtomic: writeJsonAtomic,
   unlinkQuiet: unlinkQuiet,
-  existsQuiet: existsQuiet
+  existsQuiet: existsQuiet,
+  listenDualStack: listenDualStack,
+  hostPort: hostPort
 };
