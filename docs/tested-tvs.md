@@ -1,6 +1,6 @@
 # Tested TVs
 
-Confirmed on 41 TVs across 27 series so far (webOS 3.4 through 26). Other rooted models should work.
+Confirmed on 42 TVs across 28 series so far (webOS 3.4 through 26). Other rooted models should work.
 
 Sizes and regional variants of one series run the same software, so the table below has one row per series. Years are LG's model years; many TVs have since been updated to a later webOS.
 
@@ -15,6 +15,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | B8            | 2018 | OLED  | 4.4               | 1       |
 | C8            | 2018 | OLED  | 4.4               | 1       |
 | LM57          | 2019 | LCD   | 4.5               | 1       |
+| UM73          | 2019 | LCD   | 4.10              | 1       |
 | C9            | 2019 | OLED  | 4.9 – 4.10        | 3       |
 | CX            | 2020 | OLED  | 5.5 – 5.6         | 4       |
 | GX            | 2020 | OLED  | 5.6               | 1       |
@@ -51,6 +52,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | OLED55C9PLA | 4.9.0        | 05.30.40 | OLED  | Working fine                                                   |
 | OLED65C9AUA | 4.9.x (4.5+) | 05.50.00 | OLED  |                                                                |
 | OLED65C9PLA | 4.10.2       | —        | OLED  | Working fine                                                   |
+| 50UM7300AUE | 4.10.0       | —        | LCD   | Working; hiding system apps did not work                       |
 | OLED77CX6LA | 5.5.0        | 04.50.90 | OLED  | OLED Care, telemetry and MQTT bridge confirmed                 |
 | OLED77CXAUA | 5.6.0        | 04.60.65 | OLED  | Rooted with faultmanager; SSH install; dashboard and telemetry |
 | OLED48CXPUB | 5.6.2        | 04.64.00 | OLED  | Rooted with slopbro; dashboard, telemetry and API .ipk installs |
