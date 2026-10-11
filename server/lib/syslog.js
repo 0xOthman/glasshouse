@@ -425,6 +425,25 @@ function getCounters() {
   return counters;
 }
 
+/**
+ * Where the logs go and what has been sent, for the dashboard; null while off.
+ * @returns {?{server: string, port: number, hostname: string, sources: string[],
+ *   redact: boolean, messages: Object.<string, number>, errors: number, error: ?string}}
+ */
+function getStatus() {
+  if (!settings || !counters) return null;
+  return {
+    server: settings.server,
+    port: settings.port,
+    hostname: settings.hostname,
+    sources: settings.sources.slice(),
+    redact: settings.redact,
+    messages: counters.messages,
+    errors: counters.errors,
+    error: errorState
+  };
+}
+
 module.exports = {
   init: init,
   start: start,
@@ -433,6 +452,7 @@ module.exports = {
   flush: flush,
   setHostname: setHostname,
   getCounters: getCounters,
+  getStatus: getStatus,
   readSettings: readSettings,
   startCursors: startCursors,
   bootLogsUnsent: bootLogsUnsent,

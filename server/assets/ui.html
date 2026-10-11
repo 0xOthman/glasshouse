@@ -992,6 +992,26 @@
       </div>
     </div>
 
+    <div class="pv-sec adv-sec" data-t="server.ntp">Network time</div>
+    <div class="prot-table">
+      <div class="prot-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.ntp.title">Set the clock from a time server</div>
+          <div class="prot-desc" data-t="server.ntp.desc">For a network that runs its own time server, such as some routers, NAS boxes and home servers.
+            The TV then sets its clock from that instead of LG's time servers, which the ad blocker's Everything setting blocks.
+            Leave it empty if unsure: the TV sets its own clock as before.</div>
+          <form class="toast-form" id="ntp-form" onsubmit="event.preventDefault();saveNtpServer();">
+            <input type="text" id="ntp-server" placeholder="Time server, such as 192.168.1.1" data-t-placeholder="server.ntp.placeholder"
+              maxlength="260" autocomplete="off" spellcheck="false" aria-label="Time server" data-t-aria-label="server.ntp.server"
+              oninput="this.dataset.dirty='1'">
+            <button type="submit" id="ntp-save" data-t="server.ntp.save">Save</button>
+          </form>
+          <div class="prot-desc" id="ntp-status" style="margin-top:8px" hidden></div>
+        </div>
+        <div class="prot-status"><span class="pill idle" id="ntp-pill">&mdash;</span></div>
+      </div>
+    </div>
+
     <div class="pv-sec adv-sec" data-t="server.experimental">Experimental features</div>
     <div class="prot-table">
       <div class="prot-row">
@@ -1060,6 +1080,7 @@
 <section class="panel" id="toolspane" role="tabpanel" hidden>
   <div class="pv-sec" data-t="tools.title">System logs</div>
   <div class="pv-sub" data-t="tools.desc">Logs from the TV, Glasshouse and the TV's hardware, for troubleshooting.</div>
+  <div class="pv-sub" id="tools-fwd" hidden></div>
 
   <div class="tools-toolbar">
     <div class="tools-toolbar-grp">

@@ -57,6 +57,8 @@ nav:
   - Additional Features:
       - Ambient light (PicCap): piccap.md
       - Prometheus metrics: PROMETHEUS.md
+      - Network time (NTP): ntp.md
+      - Log forwarding (syslog): syslog.md
       - Experimental features: experimental.md
   - Running it:
       - Updating and uninstalling: managing.md

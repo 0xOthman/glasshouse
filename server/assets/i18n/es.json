@@ -2199,6 +2199,50 @@
   "text": "No hay nada nuevo que instalar.",
   "from": "Nothing newer to install."
  },
+ "server.ntp": {
+  "text": "Hora de red",
+  "from": "Network time"
+ },
+ "server.ntp.asking": {
+  "text": "Preguntando al servidor de hora…",
+  "from": "Asking the time server…"
+ },
+ "server.ntp.desc": {
+  "text": "Para una red con su propio servidor de hora, como algunos routers, NAS y servidores domésticos. La TV pone entonces su reloj con él en lugar de con los servidores de hora de LG, que el ajuste Todo del bloqueador de anuncios bloquea. Déjalo vacío si no estás seguro: la TV pone su reloj como antes.",
+  "from": "For a network that runs its own time server, such as some routers, NAS boxes and home servers. The TV then sets its clock from that instead of LG's time servers, which the ad blocker's Everything setting blocks. Leave it empty if unsure: the TV sets its own clock as before."
+ },
+ "server.ntp.failing": {
+  "text": "El servidor de hora no ha respondido, así que la TV mantiene la hora que tiene. {error}",
+  "from": "The time server has not answered, so the TV keeps the time it has. {error}"
+ },
+ "server.ntp.noAnswer": {
+  "text": "Sin respuesta",
+  "from": "No answer"
+ },
+ "server.ntp.placeholder": {
+  "text": "Servidor de hora, como 192.168.1.1",
+  "from": "Time server, such as 192.168.1.1"
+ },
+ "server.ntp.right": {
+  "text": "Comprobado {checked}: el reloj ya estaba en hora. Vacía la casilla y guarda para desactivarlo.",
+  "from": "Checked {checked}: the clock was already right. Clear the box and save to turn this off."
+ },
+ "server.ntp.save": {
+  "text": "Guardar",
+  "from": "Save"
+ },
+ "server.ntp.server": {
+  "text": "Servidor de hora",
+  "from": "Time server"
+ },
+ "server.ntp.set": {
+  "text": "Reloj puesto {set}; última comprobación {checked}. Vacía la casilla y guarda para desactivarlo.",
+  "from": "Set the clock {set}; last checked {checked}. Clear the box and save to turn this off."
+ },
+ "server.ntp.title": {
+  "text": "Poner el reloj con un servidor de hora",
+  "from": "Set the clock from a time server"
+ },
  "server.prometheus.desc": {
   "text": "Responde a las consultas de Prometheus en /api/prometheus/metrics. Requiere el token de la API, si hay uno configurado. Consúltalo cada 15 segundos o con menos frecuencia. Mientras está desactivado, la dirección no existe.",
   "from": "Answers Prometheus scrapes at /api/prometheus/metrics. Requires the API token, if one is set. Scrape it every 15 seconds or less often. While off, the address does not exist."
@@ -3607,6 +3651,14 @@
   "text": "el ajuste no se aplicó",
   "from": "the setting did not take"
  },
+ "srv.ntp.badPort": {
+  "text": "El puerto tras los dos puntos debe ser un número del 1 al 65535",
+  "from": "The port after the colon must be a number from 1 to 65535"
+ },
+ "srv.ntp.badServer": {
+  "text": "Eso no es un nombre ni una dirección de servidor",
+  "from": "That is not a server name or address"
+ },
  "srv.oled.notOffered": {
   "text": "esta TV no ofrece el control",
   "from": "this TV does not offer the control"
@@ -4210,6 +4262,30 @@
  "tools.empty": {
   "text": "No se encontraron entradas de registro que coincidan con el filtro.",
   "from": "No log entries found matching the filter."
+ },
+ "tools.fwd.docs": {
+  "text": "Cómo funciona el reenvío de registros",
+  "from": "How log forwarding works"
+ },
+ "tools.fwd.failed": {
+  "text": ", {n} fallidos",
+  "from": ", {n} failed"
+ },
+ "tools.fwd.off": {
+  "text": "Estos registros no se envían a ningún otro sitio. Se puede configurar un servidor de registros de la red para recibirlos.",
+  "from": "These logs are not sent anywhere else. A log server on the network can be set up to receive them."
+ },
+ "tools.fwd.on": {
+  "text": "También se envían al servidor de registros {server}: {sources}, {redact}. {sent} enviados desde que se inició Glasshouse{failed}.",
+  "from": "Also sent to the log server {server}: {sources}, {redact}. {sent} sent since Glasshouse started{failed}."
+ },
+ "tools.fwd.redacted": {
+  "text": "sin datos personales",
+  "from": "with personal details removed"
+ },
+ "tools.fwd.unredacted": {
+  "text": "con datos personales",
+  "from": "including personal details"
  },
  "tools.hidePrivate": {
   "text": "Ocultar datos privados",

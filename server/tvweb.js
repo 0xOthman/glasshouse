@@ -531,6 +531,7 @@ controls.init({
   lgSettings: lgSettings,
   updater: updater,
   devtools: devtools,
+  ntp: ntpClient,
   republishDiscovery: function () { republishDiscovery(); },
   tvApp: tvApp,
   restartSelf: restartSelf,
@@ -1466,11 +1467,12 @@ if (!CLI_MODE) {
   liveState.startGroup('power');
 
   ntpClient.init({ config: CONFIG, luna: luna });
-  if (ntpClient.start()) {
-    liveState.state.onChange(function (ev) {
-      if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) ntpClient.sync();
-    });
-  }
+  ntpClient.start();
+  // Always, as a server set from the dashboard later starts the client then.
+  // sync() does nothing while no server is set.
+  liveState.state.onChange(function (ev) {
+    if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) ntpClient.sync();
+  });
 
   telemetry.detectDeviceInfo(function() {
     syslogForwarder.setHostname(CONFIG.device && CONFIG.device.name);

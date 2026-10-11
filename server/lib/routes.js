@@ -549,6 +549,8 @@ function updateSummary() {
   s.allowOnWebos10 = !!(screensaversModule && screensaversModule.allowedAnyway && screensaversModule.allowedAnyway());
   s.isWebos10 = !!(screensaversModule && screensaversModule.slowSwitch && screensaversModule.slowSwitch());
   s.prometheusEnabled = prometheusEnabled();
+  s.ntp = ntpModule ? ntpModule.getStatus() : null;
+  s.syslog = syslogModule && syslogModule.getStatus ? syslogModule.getStatus() : null;
   return s;
 }
 

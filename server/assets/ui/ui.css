@@ -618,6 +618,8 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
 .pv-grp+.pv-grp .pv-g{margin-top:22px}
 .pv-h{font-family:'Outfit';font-weight:300;font-size:clamp(20px,2.4vw,26px);color:var(--w100);margin:22px 0 4px}
 .pv-sub{font-size:13px;color:var(--w60);max-width:62ch;margin-bottom:16px}
+.pv-sub a{color:var(--w80);text-decoration:underline;text-underline-offset:2px}
+.pv-sub a:hover{color:var(--w100)}
 .pv-row{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;
         padding:13px 0;border-bottom:1px solid var(--w06)}
 .pv-row .n{font-size:15px;color:var(--w100)}

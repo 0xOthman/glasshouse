@@ -509,3 +509,35 @@ document.addEventListener('visibilitychange', () => {
     scheduleToolsPoll();
   }
 });
+
+/*
+ * Whether these logs also go to a log server (#633). Read-only: forwarding is
+ * set up in config.json, which the docs page linked here explains.
+ */
+const LOG_FORWARDING_DOCS = 'https://rorygallagher2024.github.io/glasshouse/syslog/';
+
+async function loadLogForwarding() {
+  const el = q('tools-fwd');
+  if (!el) return;
+  try {
+    const d = await (await fetch(api('/api/update'), { cache: 'no-store' })).json();
+    if (!d || !d.ok) return;
+    const s = d.syslog;
+    const link = `<a href="${LOG_FORWARDING_DOCS}" target="_blank" rel="noopener">${esc(t('tools.fwd.docs', 'How log forwarding works'))}</a>`;
+    if (!s) {
+      el.innerHTML = esc(t('tools.fwd.off', 'These logs are not sent anywhere else. A log server on the network can be set up to receive them.')) + ' ' + link;
+    } else {
+      const sourceNames = { system: t('tools.src.system', 'System'), glasshouse: t('tools.src.glasshouse', 'Glasshouse'), kernel: t('tools.src.kernel', 'Kernel') };
+      const sent = Object.keys(s.messages || {}).reduce((n, k) => n + (s.messages[k] || 0), 0);
+      const where = s.port && s.port !== 514 ? s.server + ':' + s.port : s.server;
+      el.innerHTML = esc(t('tools.fwd.on', 'Also sent to the log server {server}: {sources}, {redact}. {sent} sent since Glasshouse started{failed}.', {
+        server: where,
+        sources: s.sources.map(k => sourceNames[k] || k).join(', '),
+        redact: s.redact ? t('tools.fwd.redacted', 'with personal details removed') : t('tools.fwd.unredacted', 'including personal details'),
+        sent: sent.toLocaleString(),
+        failed: s.errors ? t('tools.fwd.failed', ', {n} failed', { n: s.errors.toLocaleString() }) : ''
+      })) + ' ' + link;
+    }
+    el.hidden = false;
+  } catch (e) { /* the logs still show without it */ }
+}

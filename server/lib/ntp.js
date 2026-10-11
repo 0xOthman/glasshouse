@@ -62,6 +62,8 @@ var appliedOnce = false;
 var lastAnswer = null;
 // Clocks set and syncs that failed since start, or null while off.
 var counters = null;
+// Monotonic time the clock was last set, or null before it has been.
+var lastSetMono = null;
 
 /*
  * config.ntp as used, or null while no server is set.
@@ -74,6 +76,31 @@ function readSettings(conf) {
   var port = parseInt(n.port, 10);
   if (!(port >= 1 && port <= 65535)) port = NTP_PORT;
   return { server: server, port: port };
+}
+
+/**
+ * A server as typed into the dashboard: a host name or address, with an
+ * optional port (time.lan:123, [fd00::1]:123). null when empty, { error:
+ * 'host' | 'port' } when it is not one, otherwise { server, port }.
+ * @param {any} text
+ */
+function parseServer(text) {
+  var s = String(text === null || text === undefined ? '' : text).trim();
+  if (!s) return null;
+  var host = s;
+  var port = NTP_PORT;
+  var bracketed = /^\[([0-9A-Fa-f:.]+)\](?::(\d+))?$/.exec(s);
+  if (bracketed) {
+    host = bracketed[1];
+    if (bracketed[2]) port = parseInt(bracketed[2], 10);
+  } else if (/^[^:]+:\d+$/.test(s)) {
+    host = s.slice(0, s.lastIndexOf(':'));
+    port = parseInt(s.slice(s.lastIndexOf(':') + 1), 10);
+  }
+  if (!(port >= 1 && port <= 65535)) return { error: 'port' };
+  // A bare IPv6 address has colons and no port.
+  if (host.length > 253 || !/^[A-Za-z0-9.\-:]+$/.test(host) || /^[.\-]/.test(host)) return { error: 'host' };
+  return { server: host, port: port };
 }
 
 /**
@@ -317,6 +344,7 @@ function setClock(answer, gen, done) {
     setError(null);
     appliedOnce = true;
     counters.sets++;
+    lastSetMono = monotonicMs();
     console.log('ntp: set the clock from ' + settings.server +
                 ' (stratum ' + answer.stratum + '), ' + formatOffset(answer.offsetMs));
     schedule(RESYNC_MS);
@@ -393,16 +421,31 @@ function stop() {
   appliedOnce = false;
   lastAnswer = null;
   counters = null;
+  lastSetMono = null;
 }
 
 /**
- * Clocks set and syncs that failed since start, and the last answer, null
- * before one. Null while off.
- * @returns {?{sets: number, errors: number, last: ?Answer}}
+ * Clocks set and syncs that failed since start, the last answer (null before
+ * one), the server, the last failure (null since a sync worked), and how many
+ * seconds ago the server last answered and the clock was last set (null
+ * before either): ages, as the TV's clock may be the thing that is wrong.
+ * Null while off.
+ * @returns {?{sets: number, errors: number, last: ?Answer, server: string, port: number,
+ *   error: ?string, answeredAgoS: ?number, setAgoS: ?number}}
  */
 function getStatus() {
   if (!counters) return null;
-  return { sets: counters.sets, errors: counters.errors, last: lastAnswer };
+  var now = monotonicMs();
+  return {
+    sets: counters.sets,
+    errors: counters.errors,
+    last: lastAnswer,
+    server: settings.server,
+    port: settings.port,
+    error: errorState,
+    answeredAgoS: lastAnswer ? Math.round((now - lastAnswer.atMono) / 1000) : null,
+    setAgoS: lastSetMono !== null ? Math.round((now - lastSetMono) / 1000) : null
+  };
 }
 
 module.exports = {
@@ -412,6 +455,7 @@ module.exports = {
   sync: sync,
   getStatus: getStatus,
   readSettings: readSettings,
+  parseServer: parseServer,
   buildRequest: buildRequest,
   answersRequest: answersRequest,
   parseReply: parseReply,
