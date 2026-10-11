@@ -1,22 +1,49 @@
 # Home Assistant
 
-Setting up the MQTT bridge, and example automations. Every entity it publishes is listed in [Entities](HOME-ASSISTANT-ENTITIES.md), and listening to remote button presses is covered in [Remote Button Events](HOME-ASSISTANT-REMOTE-BUTTONS.md).
+[Home Assistant](https://www.home-assistant.io/) is a popular, open-source home automation platform designed with a local-first philosophy, prioritizing privacy, reliability, and full control over your smart home ecosystem.
+
+Glasshouse bridges your rooted LG webOS TV directly into Home Assistant, transforming the TV into a fully integrated smart home device:
+
+* **Comprehensive Telemetry & Readings**: Exposes real-time system metrics (SoC temperature, CPU and memory load), HDMI link and video signal diagnostics (resolution, frame rate, HDR/Dolby Vision, VRR, ALLM), OLED panel health (cumulative hours, pixel refresher countdowns, cycle history), and active apps.
+* **Bi-directional Control**: Provides complete local control from your Home Assistant dashboard and automations — power states, input switching, volume and mute, playback controls, picture presets, screen blanking, and launching apps.
+* **Remote & Cloud Control**: With [Home Assistant Cloud](https://www.nabucasa.com/) (Nabu Casa) or your own secure remote connection (WireGuard, Cloudflare Tunnel), you can securely monitor and control your TV from anywhere in the world, without exposing the TV's web dashboard or root shell directly to the internet.
+
+Every entity published by the bridge is detailed in [Entities](HOME-ASSISTANT-ENTITIES.md), and triggering automations from Magic Remote button presses is covered in [Remote Button Events](HOME-ASSISTANT-REMOTE-BUTTONS.md).
+
+---
+
+## Why MQTT?
+
+Home Assistant connects to local devices and bridges using standard communication protocols. Glasshouse uses **MQTT** (Message Queuing Telemetry Transport), an industry-standard, lightweight, event-driven messaging protocol designed for IoT and home automation.
+
+In this setup:
+
+1. **The TV as Publisher & Subscriber**: The TV publishes state updates (such as power state, active input, or volume) whenever they change, and subscribes to command topics to receive actions from Home Assistant.
+2. **The MQTT Broker**: Communication flows through an **MQTT broker** — a lightweight server on your local network that relays messages between devices. The standard choice for Home Assistant is the official [Mosquitto broker add-on](https://github.com/home-assistant/addons/tree/master/mosquitto), which can be installed with a single click.
+3. **Automatic MQTT Discovery**: Glasshouse follows Home Assistant's **MQTT Discovery** standard. As soon as the TV connects to the broker, it publishes configuration payloads that automatically register the TV and all its sensors, switches, buttons, and select menus. No manual YAML configuration is required.
 
 ---
 
 ## Setup & Configuration
 
-**MQTT** is a lightweight messaging protocol: a device publishes state updates to a named topic, and any subscriber instantly receives them. It relies on a **broker** — a small server that relays those messages between publishers and subscribers. [Mosquitto](https://mosquitto.org/) is the usual choice, available as a one-click add-on in Home Assistant.
+Connecting Glasshouse to Home Assistant takes only a few minutes.
 
-Glasshouse publishes the TV's telemetry to the broker and describes its entities using the **MQTT Discovery** convention. Home Assistant reads that description and automatically creates the device and all its sensors and controls without needing any manual YAML.
+### Prerequisites
+
+1. An operational Home Assistant installation.
+2. An MQTT broker running on your network. If you do not have one yet:
+   - In Home Assistant, navigate to **Settings** → **Add-ons** → **Add-on Store**.
+   - Search for **Mosquitto broker**, install it, and start the add-on.
+   - Navigate to **Settings** → **Devices & Services** and ensure the **MQTT** integration is configured (Home Assistant prompts to set it up automatically once Mosquitto is running).
+3. Dedicated MQTT credentials for the TV (recommended; see [Hardening the MQTT bridge](SECURITY.md#hardening-the-mqtt-bridge)).
 
 ### Setting it up from the dashboard
 
 1. Open the dashboard in a browser, then navigate to the **MQTT** tab (`/?tab=mqtt`).
-2. Fill in the broker address and credentials.
+2. Fill in the broker address, port (`1883`), and credentials.
 3. Switch **MQTT bridge** to **On** and save.
 
-The server saves `config.json` on the TV and restarts itself; the dashboard reconnects automatically after a few seconds. Home Assistant discovers the TV within seconds of the bridge connecting.
+The server saves `config.json` on the TV and restarts itself; the dashboard reconnects automatically after a few seconds. Home Assistant discovers the TV within seconds of the bridge connecting under **Settings** → **Devices & Services** → **MQTT**.
 
 The MQTT panel reports whether the bridge is connected to the broker and when it last published, surfacing any incorrect addresses or rejected credentials immediately.
 
@@ -55,7 +82,7 @@ Edit those in `config.json` and redeploy, or edit `/var/lib/tvweb/config.json` o
 `allowPower` defaults to true: who on the network can use controls is decided by network exposure and `token`. Setting `"allowPower": false` hides and refuses power off, power on, and reboot, both in the dashboard and in Home Assistant.
 
 > [!NOTE]
-> Give the TV its own MQTT user with a restricted topic ACL rather than reusing the main Home Assistant credentials. See [SECURITY.md](SECURITY.md).
+> Give the TV its own MQTT user with a restricted topic ACL rather than reusing the main Home Assistant credentials. See [Hardening the MQTT bridge](SECURITY.md#hardening-the-mqtt-bridge).
 
 ### Running one half without the other
 
