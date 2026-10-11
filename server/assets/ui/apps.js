@@ -324,13 +324,14 @@ function renderPreload(d) {
   if (!list) return;
   list.innerHTML = apps.map(a => {
     const id = esc(a.id);
-    const size = a.memoryMb ? t('apps.preload.size', 'about {mb} MB', { mb: a.memoryMb }) : '';
+    const size = a.memoryMb ? t('apps.preload.size', 'about {mb} MB when loaded', { mb: a.memoryMb }) : '';
+    const loadedNow = a.loaded ? ` <span class="prot-sub">&middot; ${esc(t('apps.preload.loaded', 'loaded now'))}</span>` : '';
     const iconUrl = api('/api/apps/icon?id=' + encodeURIComponent(a.id));
     // Some of LG's apps have no icon (Yandex Alice on a C2): the space stays, so the names line up.
     return `<div class="prot-row">
       <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">
       <div class="prot-main">
-        <div class="prot-title">${esc(a.title)}${size ? ` <span class="prot-sub">&middot; ${esc(size)}</span>` : ''}</div>
+        <div class="prot-title">${esc(a.title)}${size ? ` <span class="prot-sub">&middot; ${esc(size)}</span>` : ''}${loadedNow}</div>
       </div>
       <div class="prot-status">
         ${renderToggle({

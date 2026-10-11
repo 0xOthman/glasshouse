@@ -503,6 +503,10 @@
   "text": "Lista",
   "from": "Kept ready"
  },
+ "apps.preload.loaded": {
+  "text": "cargada ahora",
+  "from": "loaded now"
+ },
  "apps.preload.off": {
   "text": "Desactivada",
   "from": "Switched off"
@@ -516,8 +520,8 @@
   "from": "1 app"
  },
  "apps.preload.size": {
-  "text": "unos {mb} MB",
-  "from": "about {mb} MB"
+  "text": "unos {mb} MB cuando está cargada",
+  "from": "about {mb} MB when loaded"
  },
  "apps.service.active": {
   "text": "Activo",

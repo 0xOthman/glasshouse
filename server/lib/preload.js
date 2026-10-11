@@ -113,8 +113,10 @@ function setLiveAll(changes, cb) {
 }
 
 /*
- * The apps offered: installed, not essential, preloaded by LG, and whether
- * the owner switched each off. cb({ ok, supported, apps }).
+ * The apps offered: installed, not essential, preloaded by LG, whether the
+ * owner switched each off, and whether it is loaded now. memoryMb is LG's
+ * requiredMemory, what the app takes once loaded, not its size on disk.
+ * cb({ ok, supported, apps }).
  */
 function getPreload(cb) {
   if (!lunaFn) return cb({ ok: true, supported: false, apps: [] });
@@ -122,6 +124,9 @@ function getPreload(cb) {
     if (!list) return cb({ ok: true, supported: false, apps: [] });
     var state = readState();
     lunaFn('com.webos.applicationManager/listApps', {}, function (la) {
+     lunaFn('com.webos.applicationManager/running', {}, function (rn) {
+      var loaded = {};
+      ((rn && rn.running) || []).forEach(function (a) { if (a && a.id) loaded[a.id] = true; });
       var titles = {};
       ((la && la.apps) || []).forEach(function (a) { if (a && a.id) titles[a.id] = a.title || a.id; });
       var lgById = {};
@@ -137,11 +142,13 @@ function getPreload(cb) {
           id: e.id,
           title: titles[e.id],
           memoryMb: typeof e.requiredMemory === 'number' ? e.requiredMemory : null,
-          off: off
+          off: off,
+          loaded: !!loaded[e.id]
         });
       });
       apps.sort(function (a, b) { return a.title.toLowerCase() < b.title.toLowerCase() ? -1 : 1; });
       cb({ ok: true, supported: true, apps: apps });
+     });
     });
   });
 }
