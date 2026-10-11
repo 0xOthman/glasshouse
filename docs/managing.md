@@ -48,7 +48,7 @@ See [docs/IMPLEMENTATION.md](IMPLEMENTATION.md#in-place-updater-and-binary-probi
 
 Off by default, because it reaches off the LAN without anyone asking.
 
-**Check daily** in the Server tab switches it on, as does `config.json`:
+**Check for updates daily** in the Server tab switches it on, as does `config.json`:
 
 ```json
 { "update": { "check": true, "intervalHours": 24 } }

@@ -235,3 +235,10 @@ function reply(request, serverMs, fields) {
   console.log('  ✓ a server typed into the dashboard: a name or address, with an optional port');
 })();
 
+// The Server tab's switch keeps the server while off.
+(function testEnabled() {
+  assert.deepEqual(ntp.readSettings({ ntp: { server: 'time.lan' } }), { server: 'time.lan', port: 123 }, 'a server and no switch is on');
+  assert.strictEqual(ntp.readSettings({ ntp: { server: 'time.lan', enabled: false } }), null);
+  assert.deepEqual(ntp.readSettings({ ntp: { server: 'time.lan', enabled: true } }), { server: 'time.lan', port: 123 });
+  console.log('  ✓ switched off, the server is kept but not used');
+})();

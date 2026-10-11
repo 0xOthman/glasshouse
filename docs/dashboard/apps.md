@@ -18,7 +18,7 @@ Lists the apps downloaded from the LG store or installed by hand, with their ver
 
 Hides built-in LG apps that can't be uninstalled, such as Gallery, Music, Sports, Alexa and the User Guide, from the Home screen ribbon. The apps themselves stay on the TV, and switching the feature off brings every one back.
 
-It is experimental, and off until it is turned on under **Server** → **Experimental features**; see [Experimental features](../experimental.md) for why. It is not offered on a Homebrew Channel install.
+It is experimental, and off until it is turned on under **Server** → **Advanced** → **Experimental features**; see [Experimental features](../experimental.md) for why. It is not offered on a Homebrew Channel install.
 
 ## Turn off background services
 

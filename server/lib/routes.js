@@ -561,6 +561,13 @@ function updateSummary() {
   s.isWebos10 = !!(screensaversModule && screensaversModule.slowSwitch && screensaversModule.slowSwitch());
   s.prometheusEnabled = prometheusEnabled();
   s.ntp = ntpModule ? ntpModule.getStatus() : null;
+  // What is saved, on or off, so the switch can show a server kept while off.
+  var ntpConf = (config && config.ntp) || {};
+  s.ntpSettings = {
+    server: typeof ntpConf.server === 'string' ? ntpConf.server.trim() : '',
+    port: ntpConf.port || 123,
+    enabled: !!(ntpConf.server && String(ntpConf.server).trim()) && ntpConf.enabled !== false
+  };
   s.syslog = syslogModule && syslogModule.getStatus ? syslogModule.getStatus() : null;
   return s;
 }

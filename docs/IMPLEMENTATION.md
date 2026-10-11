@@ -749,9 +749,10 @@ Glasshouse asks it for the time over SNTP (RFC 4330) and hands the answer to
 `clock/setTime` as an `sdp` time. The service then sets the clock, its source
 and `timeValid` as it does for LG's own sync, and the ad blocker's
 [wait for the clock](#cold-boot-clock-synchronization-nextlgsdpcom) ends.
-The Server tab's **Network time** writes the same setting through
-`setNtpServer` and restarts the client at once, answering after its first
-sync so the tab shows whether the server answered.
+The Server tab's switch under Advanced writes the same setting: `setNtpServer`
+saves a server and switches it on, and `setNtpEnabled` switches it on or off
+with `ntp.enabled`, keeping the server. Both restart the client at once,
+answering after its first sync so the tab shows whether the server answered.
 
 ```json
 "ntp": {
