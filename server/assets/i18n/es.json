@@ -2087,6 +2087,18 @@
   "text": "Desconocido",
   "from": "Unknown"
  },
+ "server.advanced": {
+  "text": "Avanzado",
+  "from": "Advanced"
+ },
+ "server.advanced.cur": {
+  "text": "Para desarrolladores e instalaciones domésticas avanzadas",
+  "from": "For developers and home-lab setups"
+ },
+ "server.advanced.desc": {
+  "text": "Nada de aquí necesita cambiarse para el uso diario.",
+  "from": "Nothing here needs changing for everyday use."
+ },
  "server.arrived.rolledBack": {
   "text": "Revertido a v{version}.",
   "from": "Rolled back to v{version}."
@@ -2104,8 +2116,8 @@
   "from": "v{version} is out. Update Glasshouse in the Homebrew Channel, or sideload the latest .ipk from GitHub releases."
  },
  "server.checkDaily": {
-  "text": "Comprobar a diario",
-  "from": "Check daily"
+  "text": "Buscar actualizaciones a diario",
+  "from": "Check for updates daily"
  },
  "server.checkDaily.desc": {
   "text": "Busca una nueva versión una vez al día.",
@@ -2119,17 +2131,9 @@
   "text": "Comprobar ahora",
   "from": "Check now"
  },
- "server.devtools": {
-  "text": "Depurador de apps web",
-  "from": "Web app debugger"
- },
  "server.devtools.closed": {
   "text": "Cerrado a la red",
   "from": "Closed to the network"
- },
- "server.devtools.desc": {
-  "text": "El modo desarrollador abre Chromium DevTools en el puerto 9998 para inspeccionar aplicaciones web con herramientas como ares-inspect. webOS lo deja abierto a la red local sin autenticación, por lo que Glasshouse bloquea el acceso externo de forma predeterminada. Permitir el acceso permite que las herramientas de desarrollo se conecten sin un túnel SSH.",
-  "from": "Developer Mode opens Chromium DevTools on port 9998 for inspecting web apps with tools like ares-inspect. webOS leaves it open to the local network with no authentication, so Glasshouse blocks external access by default. Allowing access lets developer tools connect without an SSH tunnel."
  },
  "server.devtools.off": {
   "text": "No está en ejecución",
@@ -2139,29 +2143,41 @@
   "text": "Abierto a la red",
   "from": "Open to the network"
  },
- "server.devtools.title": {
-  "text": "Acceso al depurador",
-  "from": "Debugger access"
+ "server.devtools.short": {
+  "text": "En el modo desarrollador, permite que las herramientas de desarrollo de la red inspeccionen las apps web de la TV sin un túnel SSH. webOS lo deja abierto sin contraseña, así que mantenlo cerrado salvo que haga falta.",
+  "from": "In Developer Mode, lets developer tools on the network inspect the TV's web apps without an SSH tunnel. webOS leaves it open with no password, so keep it closed unless it is needed."
+ },
+ "server.devtools.short.title": {
+  "text": "Depurador de apps web",
+  "from": "Web app debugger"
  },
  "server.experimental": {
   "text": "Funciones experimentales",
   "from": "Experimental features"
  },
+ "server.experimental.desc": {
+  "text": "En algunas TV han dejado la imagen o el sonido apagados hasta desenchufar la TV.",
+  "from": "On some TVs these have left the picture or sound off until the TV was unplugged."
+ },
  "server.experimental.screensaver": {
   "text": "Salvapantallas personalizados (webOS 10+)",
   "from": "Custom screen savers (webOS 10+)"
  },
- "server.experimental.screensaver.desc": {
-  "text": "Permite usar salvapantallas personalizados en webOS 10 y posteriores. Reemplazar el salvapantallas de Flutter requiere reiniciar el administrador de aplicaciones al iniciar, lo que puede silenciar la salida de vídeo o audio.",
-  "from": "Enables custom screen savers on webOS 10 and later. Replacing the Flutter screen saver requires restarting the application manager at boot, which can mute video or audio output."
+ "server.experimental.screensaver.short": {
+  "text": "Permite los salvapantallas propios del panel en webOS 10 y posteriores, en la pestaña Salvapantallas.",
+  "from": "Allows the dashboard's own screen savers on webOS 10 and later, on the Screensaver tab."
  },
  "server.experimental.tileHiding": {
   "text": "Ocultación de iconos de la pantalla de inicio",
   "from": "Home screen tile hiding"
  },
- "server.experimental.tileHiding.desc": {
-  "text": "Permite ocultar iconos del sistema integrados en el iniciador de inicio. Reiniciar el administrador de aplicaciones durante el arranque puede causar bloqueos en el motor de pantalla en algunos televisores.",
-  "from": "Allows hiding built-in system tiles from the home launcher. Restarting the application manager at boot can cause display engine lockups on some TVs."
+ "server.experimental.tileHiding.short": {
+  "text": "Permite ocultar apps integradas de la pantalla de inicio, en la pestaña Apps.",
+  "from": "Allows hiding built-in apps from the Home screen, on the Apps tab."
+ },
+ "server.glasshouse": {
+  "text": "Glasshouse",
+  "from": "Glasshouse"
  },
  "server.install": {
   "text": "Instalar v{version}",
@@ -2175,15 +2191,15 @@
   "text": "Instalado. El servidor se está reiniciando; esta página se reconecta sola.",
   "from": "Installed. The server is restarting - this page reconnects on its own."
  },
- "server.language": {
-  "text": "Idioma (este navegador)",
-  "from": "Language (this browser)"
- },
- "server.language.desc": {
-  "text": "Auto sigue el idioma de este dispositivo y muestra inglés donde no hay traducción. Otros teléfonos y ordenadores mantienen el suyo.",
-  "from": "Auto follows this device's language, and shows English where there is no translation. Other phones and computers keep their own."
- },
  "server.language.group": {
+  "text": "Idioma",
+  "from": "Language"
+ },
+ "server.language.short": {
+  "text": "Automático sigue el idioma de este dispositivo y muestra inglés donde no hay traducción.",
+  "from": "Auto follows this device's language, and shows English where there is no translation."
+ },
+ "server.language.title": {
   "text": "Idioma",
   "from": "Language"
  },
@@ -2199,33 +2215,25 @@
   "text": "No hay nada nuevo que instalar.",
   "from": "Nothing newer to install."
  },
- "server.ntp": {
-  "text": "Hora de red",
-  "from": "Network time"
- },
  "server.ntp.asking": {
   "text": "Preguntando al servidor de hora…",
   "from": "Asking the time server…"
  },
- "server.ntp.desc": {
-  "text": "Para una red con su propio servidor de hora, como algunos routers, NAS y servidores domésticos. La TV pone entonces su reloj con él en lugar de con los servidores de hora de LG, que el ajuste Todo del bloqueador de anuncios bloquea. Déjalo vacío si no estás seguro: la TV pone su reloj como antes.",
-  "from": "For a network that runs its own time server, such as some routers, NAS boxes and home servers. The TV then sets its clock from that instead of LG's time servers, which the ad blocker's Everything setting blocks. Leave it empty if unsure: the TV sets its own clock as before."
+ "server.ntp.enter": {
+  "text": "Escribe el servidor de hora y guarda para activarlo.",
+  "from": "Enter the time server and save to switch this on."
  },
  "server.ntp.failing": {
   "text": "El servidor de hora no ha respondido, así que la TV mantiene la hora que tiene. {error}",
   "from": "The time server has not answered, so the TV keeps the time it has. {error}"
  },
- "server.ntp.noAnswer": {
-  "text": "Sin respuesta",
-  "from": "No answer"
- },
  "server.ntp.placeholder": {
   "text": "Servidor de hora, como 192.168.1.1",
   "from": "Time server, such as 192.168.1.1"
  },
- "server.ntp.right": {
-  "text": "Comprobado {checked}: el reloj ya estaba en hora. Vacía la casilla y guarda para desactivarlo.",
-  "from": "Checked {checked}: the clock was already right. Clear the box and save to turn this off."
+ "server.ntp.rightAgo": {
+  "text": "Comprobado {checked}: el reloj ya estaba en hora.",
+  "from": "Checked {checked}: the clock was already right."
  },
  "server.ntp.save": {
   "text": "Guardar",
@@ -2235,21 +2243,25 @@
   "text": "Servidor de hora",
   "from": "Time server"
  },
- "server.ntp.set": {
-  "text": "Reloj puesto {set}; última comprobación {checked}. Vacía la casilla y guarda para desactivarlo.",
-  "from": "Set the clock {set}; last checked {checked}. Clear the box and save to turn this off."
+ "server.ntp.setAgo": {
+  "text": "Reloj puesto {set}; última comprobación {checked}.",
+  "from": "Set the clock {set}; last checked {checked}."
+ },
+ "server.ntp.short": {
+  "text": "Para una red con su propio servidor de hora, como algunos routers y NAS. La TV deja entonces de necesitar los servidores de hora de LG, que el ajuste Todo del bloqueador de anuncios bloquea.",
+  "from": "For a network that runs its own time server, such as some routers and NAS boxes. The TV then no longer needs LG's time servers, which the ad blocker's Everything setting blocks."
  },
  "server.ntp.title": {
   "text": "Poner el reloj con un servidor de hora",
   "from": "Set the clock from a time server"
  },
- "server.prometheus.desc": {
-  "text": "Responde a las consultas de Prometheus en /api/prometheus/metrics. Requiere el token de la API, si hay uno configurado. Consúltalo cada 15 segundos o con menos frecuencia. Mientras está desactivado, la dirección no existe.",
-  "from": "Answers Prometheus scrapes at /api/prometheus/metrics. Requires the API token, if one is set. Scrape it every 15 seconds or less often. While off, the address does not exist."
+ "server.prometheus.short": {
+  "text": "Permite que un servidor Prometheus de la red recoja las lecturas de la TV, en /api/prometheus/metrics. Desactivado, la dirección no existe.",
+  "from": "Lets a Prometheus server on the network collect the TV's readings, at /api/prometheus/metrics. While off, the address does not exist."
  },
- "server.prometheus.title": {
-  "text": "Punto de acceso de métricas",
-  "from": "Metrics endpoint"
+ "server.prometheus.short.title": {
+  "text": "Métricas de Prometheus",
+  "from": "Prometheus metrics"
  },
  "server.rollback": {
   "text": "Revertir a v{version}",
@@ -2263,14 +2275,6 @@
   "text": "La reversión falló.",
   "from": "The rollback failed."
  },
- "server.sidebar": {
-  "text": "Barra lateral (este navegador)",
-  "from": "Sidebar (this browser)"
- },
- "server.sidebar.desc": {
-  "text": "En una pantalla ancha las pestañas aparecen a la izquierda. Ocultas, quedan tras el botón de menú, como en un móvil.",
-  "from": "On a wide screen the tabs are listed down the left. Hidden, they are behind the menu button, as on a phone."
- },
  "server.sidebar.group": {
   "text": "Barra lateral",
   "from": "Sidebar"
@@ -2279,9 +2283,17 @@
   "text": "Ocultar",
   "from": "Hide"
  },
+ "server.sidebar.short": {
+  "text": "En una pantalla ancha las pestañas aparecen a la izquierda. Ocultas, están tras el botón de menú, como en un teléfono.",
+  "from": "On a wide screen the tabs are listed down the left. Hidden, they are behind the menu button, as on a phone."
+ },
  "server.sidebar.show": {
   "text": "Mostrar",
   "from": "Show"
+ },
+ "server.sidebar.title": {
+  "text": "Barra lateral",
+  "from": "Sidebar"
  },
  "server.slow": {
   "text": "Está tardando más de lo habitual; puede tardar hasta dos minutos.",
@@ -2343,17 +2355,25 @@
   "text": "Actualizado a v{version}",
   "from": "Updated to v{version}"
  },
- "server.theme": {
-  "text": "Tema (este navegador)",
-  "from": "Theme (this browser)"
+ "server.theme.short": {
+  "text": "Automático sigue el modo claro u oscuro de este dispositivo. El botón al final del pie de página también lo cambia.",
+  "from": "Auto follows this device's light or dark setting. The button at the end of the footer changes it too."
  },
- "server.theme.desc": {
-  "text": "Auto sigue la configuración clara u oscura de este dispositivo. Otros teléfonos y ordenadores mantienen la suya. El botón del final del pie de página también lo cambia.",
-  "from": "Auto follows this device's light or dark setting. Other phones and computers keep their own. The button at the end of the footer changes it too."
+ "server.theme.title": {
+  "text": "Tema",
+  "from": "Theme"
  },
- "server.tvApp": {
-  "text": "App del tablero",
-  "from": "Dashboard app"
+ "server.thisBrowser": {
+  "text": "Este navegador",
+  "from": "This browser"
+ },
+ "server.thisBrowser.desc": {
+  "text": "Se guarda solo en este navegador: otros teléfonos y ordenadores mantienen el suyo.",
+  "from": "Kept in this browser only: other phones and computers keep their own."
+ },
+ "server.tv": {
+  "text": "La TV",
+  "from": "The TV"
  },
  "server.tvApp.added": {
   "text": "Añadida",
@@ -2391,10 +2411,6 @@
   "text": "App en la pantalla de inicio de la TV",
   "from": "App on the TV's home screen"
  },
- "server.tvUpdates": {
-  "text": "Actualizaciones de software de la TV",
-  "from": "TV software updates"
- },
  "server.tvUpdates.allowed": {
   "text": "Permitidas",
   "from": "Allowed"
@@ -2414,10 +2430,6 @@
  "server.updateFailed": {
   "text": "La actualización falló.",
   "from": "The update failed."
- },
- "server.updates": {
-  "text": "Actualizaciones del servidor",
-  "from": "Server updates"
  },
  "server.version": {
   "text": "Versión {version}",

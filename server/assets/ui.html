@@ -911,39 +911,43 @@
 
 <section class="priv panel" id="serverpane" role="tabpanel" hidden>
   <div class="upd">
-    <div class="pv-sec" data-t="server.updates">Server updates</div>
-    <div class="upd-split">
-      <div class="prot-table">
-        <div class="prot-row">
-          <div class="prot-main">
-            <div class="prot-title" id="upd-title">&mdash;</div>
-            <div class="prot-desc" id="upd-desc" hidden></div>
+    <div class="pv-sec" data-t="server.glasshouse" translate="no">Glasshouse</div>
+    <div class="prot-table">
+      <div class="prot-row">
+        <div class="prot-main">
+          <div class="prot-title" id="upd-title">&mdash;</div>
+          <div class="prot-desc" id="upd-desc" hidden></div>
+          <div class="upd-btns" id="upd-btns">
+            <button type="button" class="pill idle" id="upd-check" onclick="checkNow()" data-t="server.checkNow">Check now</button>
+            <button type="button" class="pill warn" id="upd-install" hidden onclick="installUpdate()"></button>
           </div>
-          <div class="prot-status"><span class="pill idle" id="upd-pill">&mdash;</span></div>
-        </div>
-        <div class="prot-row">
-          <div class="prot-main">
-            <div class="prot-title" data-t="server.checkDaily">Check daily</div>
-            <div class="prot-desc" data-t="server.checkDaily.desc">Looks for a new release once a day.</div>
+          <div class="upd-prog" id="upd-prog" hidden>
+            <div class="upd-step" id="upd-step"></div>
+            <div class="track"><b id="upd-bar"></b></div>
           </div>
-          <div class="prot-status"><button type="button" class="pill idle" id="upd-auto" onclick="toggleAutoCheck()">&mdash;</button></div>
+          <div class="sub" id="upd-msg"></div>
+          <button type="button" class="link-btn" id="upd-rollback" hidden onclick="rollbackUpdate()"></button>
         </div>
+        <div class="prot-status"><span class="pill idle" id="upd-pill">&mdash;</span></div>
       </div>
-      <div class="upd-act">
-        <div class="btns" id="upd-btns">
-          <button type="button" id="upd-check" onclick="checkNow()" data-t="server.checkNow">Check now</button>
-          <button type="button" id="upd-install" hidden onclick="installUpdate()"></button>
-          <button type="button" id="upd-rollback" hidden onclick="rollbackUpdate()"></button>
+      <div class="prot-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.checkDaily">Check for updates daily</div>
+          <div class="prot-desc" data-t="server.checkDaily.desc">Looks for a new release once a day.</div>
         </div>
-        <div class="upd-prog" id="upd-prog" hidden>
-          <div class="upd-step" id="upd-step"></div>
-          <div class="track"><b id="upd-bar"></b></div>
+        <div class="prot-status"><button type="button" class="pill idle" id="upd-auto" onclick="toggleAutoCheck()">&mdash;</button></div>
+      </div>
+      <!-- Hidden where the TV will not take the app; renderTvApp shows it. -->
+      <div class="prot-row" id="tvapp-row" hidden>
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.tvApp.title">App on the TV's home screen</div>
+          <div class="prot-desc" id="tvapp-desc"></div>
         </div>
-        <div class="sub" id="upd-msg"></div>
+        <div class="prot-status"><button type="button" class="pill idle" id="tvapp-btn" onclick="toggleTvApp()">&mdash;</button></div>
       </div>
     </div>
 
-    <div class="pv-sec adv-sec" data-t="server.tvUpdates">TV software updates</div>
+    <div class="pv-sec adv-sec" data-t="server.tv">The TV</div>
     <div class="prot-table">
       <div class="prot-row">
         <div class="prot-main">
@@ -956,87 +960,13 @@
       </div>
     </div>
 
-    <div class="pv-sec adv-sec" data-t="server.devtools">Web app debugger</div>
+    <div class="pv-sec adv-sec" data-t="server.thisBrowser">This browser</div>
+    <div class="pv-sub" data-t="server.thisBrowser.desc">Kept in this browser only: other phones and computers keep their own.</div>
     <div class="prot-table">
       <div class="prot-row">
         <div class="prot-main">
-          <div class="prot-title" data-t="server.devtools.title">Debugger access</div>
-          <div class="prot-desc" data-t="server.devtools.desc">Developer Mode opens Chromium DevTools on port 9998 for inspecting web apps with tools like ares-inspect. webOS leaves it open to the local network with no authentication, so Glasshouse blocks external access by default. Allowing access lets developer tools connect without an SSH tunnel.</div>
-        </div>
-        <div class="prot-status"><button type="button" class="pill idle" id="srv-devtools" onclick="toggleNetworkDebugger()">&mdash;</button></div>
-      </div>
-    </div>
-
-    <!-- Hidden where the TV will not take the app; renderTvApp shows it. -->
-    <div id="tvapp-row" hidden>
-      <div class="pv-sec adv-sec" data-t="server.tvApp">Dashboard app</div>
-      <div class="prot-table">
-        <div class="prot-row">
-          <div class="prot-main">
-            <div class="prot-title" data-t="server.tvApp.title">App on the TV's home screen</div>
-            <div class="prot-desc" id="tvapp-desc"></div>
-          </div>
-          <div class="prot-status"><button type="button" class="pill idle" id="tvapp-btn" onclick="toggleTvApp()">&mdash;</button></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="pv-sec adv-sec" translate="no">Prometheus</div>
-    <div class="prot-table">
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.prometheus.title">Metrics endpoint</div>
-          <div class="prot-desc" data-t="server.prometheus.desc">Answers Prometheus scrapes at /api/prometheus/metrics. Requires the API token, if one is set. Scrape it every 15 seconds or less often. While off, the address does not exist.</div>
-        </div>
-        <div class="prot-status"><button type="button" class="pill idle" id="srv-prometheus" onclick="togglePrometheus()">&mdash;</button></div>
-      </div>
-    </div>
-
-    <div class="pv-sec adv-sec" data-t="server.ntp">Network time</div>
-    <div class="prot-table">
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.ntp.title">Set the clock from a time server</div>
-          <div class="prot-desc" data-t="server.ntp.desc">For a network that runs its own time server, such as some routers, NAS boxes and home servers.
-            The TV then sets its clock from that instead of LG's time servers, which the ad blocker's Everything setting blocks.
-            Leave it empty if unsure: the TV sets its own clock as before.</div>
-          <form class="toast-form" id="ntp-form" onsubmit="event.preventDefault();saveNtpServer();">
-            <input type="text" id="ntp-server" placeholder="Time server, such as 192.168.1.1" data-t-placeholder="server.ntp.placeholder"
-              maxlength="260" autocomplete="off" spellcheck="false" aria-label="Time server" data-t-aria-label="server.ntp.server"
-              oninput="this.dataset.dirty='1'">
-            <button type="submit" id="ntp-save" data-t="server.ntp.save">Save</button>
-          </form>
-          <div class="prot-desc" id="ntp-status" style="margin-top:8px" hidden></div>
-        </div>
-        <div class="prot-status"><span class="pill idle" id="ntp-pill">&mdash;</span></div>
-      </div>
-    </div>
-
-    <div class="pv-sec adv-sec" data-t="server.experimental">Experimental features</div>
-    <div class="prot-table">
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.experimental.tileHiding">Home screen tile hiding</div>
-          <div class="prot-desc" data-t="server.experimental.tileHiding.desc">Allows hiding built-in system tiles from the home launcher. Restarting the application manager at boot can cause display engine lockups on some TVs.</div>
-        </div>
-        <div class="prot-status"><button type="button" class="pill idle" id="exp-tilehiding" onclick="toggleExpTileHiding()">&mdash;</button></div>
-      </div>
-      <div class="prot-row" id="exp-screensaver-row" hidden>
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.experimental.screensaver">Custom screen savers (webOS 10+)</div>
-          <div class="prot-desc" data-t="server.experimental.screensaver.desc">Enables custom screen savers on webOS 10 and later. Replacing the Flutter screen saver requires restarting the application manager at boot, which can mute video or audio output.</div>
-        </div>
-        <div class="prot-status"><button type="button" class="pill idle" id="exp-screensaver" onclick="toggleExpScreensaver()">&mdash;</button></div>
-      </div>
-    </div>
-
-    <div class="pv-sec adv-sec" data-t="server.theme">Theme (this browser)</div>
-    <div class="prot-table">
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-desc" data-t="server.theme.desc">Auto follows this device's light or dark
-            setting. Other phones and computers keep their own. The button at the end of the footer changes it
-            too.</div>
+          <div class="prot-title" data-t="server.theme.title">Theme</div>
+          <div class="prot-desc" data-t="server.theme.short">Auto follows this device's light or dark setting. The button at the end of the footer changes it too.</div>
         </div>
         <div class="prot-status"><div class="theme-seg" role="group" aria-label="Theme" data-t-aria-label="theme">
           <button type="button" data-theme-set="auto" data-t="theme.auto">Auto</button><button type="button"
@@ -1044,28 +974,20 @@
             data-t="theme.light">Light</button>
         </div></div>
       </div>
-    </div>
-
-    <div class="pv-sec adv-sec" data-t="server.sidebar">Sidebar (this browser)</div>
-    <div class="prot-table">
       <div class="prot-row">
         <div class="prot-main">
-          <div class="prot-desc" data-t="server.sidebar.desc">On a wide screen the tabs are listed down the left.
-            Hidden, they are behind the menu button, as on a phone.</div>
+          <div class="prot-title" data-t="server.sidebar.title">Sidebar</div>
+          <div class="prot-desc" data-t="server.sidebar.short">On a wide screen the tabs are listed down the left. Hidden, they are behind the menu button, as on a phone.</div>
         </div>
         <div class="prot-status"><div class="theme-seg" role="group" aria-label="Sidebar" data-t-aria-label="server.sidebar.group">
           <button type="button" data-sidebar-set="show" data-t="server.sidebar.show">Show</button><button type="button"
             data-sidebar-set="hide" data-t="server.sidebar.hide">Hide</button>
         </div></div>
       </div>
-    </div>
-
-    <div class="pv-sec adv-sec" data-t="server.language">Language (this browser)</div>
-    <div class="prot-table">
       <div class="prot-row">
         <div class="prot-main">
-          <div class="prot-desc" data-t="server.language.desc">Auto follows this device's language, and shows English
-            where there is no translation. Other phones and computers keep their own.</div>
+          <div class="prot-title" data-t="server.language.title">Language</div>
+          <div class="prot-desc" data-t="server.language.short">Auto follows this device's language, and shows English where there is no translation.</div>
         </div>
         <div class="prot-status"><div class="theme-seg" role="group" aria-label="Language" data-t-aria-label="server.language.group">
           <button type="button" data-lang-set="auto" data-t="theme.auto">Auto</button><button type="button"
@@ -1074,6 +996,60 @@
         </div></div>
       </div>
     </div>
+
+    <details class="pv-d srv-adv" id="srv-adv">
+      <summary><span data-t="server.advanced">Advanced</span> <span class="cur" data-t="server.advanced.cur">For developers and home-lab setups</span></summary>
+      <div class="pv-sub" data-t="server.advanced.desc">Nothing here needs changing for everyday use.</div>
+      <div class="prot-table">
+        <div class="prot-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.ntp.title">Set the clock from a time server</div>
+            <div class="prot-desc" data-t="server.ntp.short">For a network that runs its own time server, such as some routers and NAS boxes. The TV then no longer needs LG's time servers, which the ad blocker's Everything setting blocks.</div>
+            <form class="toast-form" id="ntp-form" hidden onsubmit="event.preventDefault();saveNtpServer();">
+              <input type="text" id="ntp-server" placeholder="Time server, such as 192.168.1.1" data-t-placeholder="server.ntp.placeholder"
+                maxlength="260" autocomplete="off" spellcheck="false" aria-label="Time server" data-t-aria-label="server.ntp.server"
+                oninput="this.dataset.dirty='1'">
+              <button type="submit" id="ntp-save" data-t="server.ntp.save">Save</button>
+            </form>
+            <div class="prot-desc" id="ntp-status" style="margin-top:8px" hidden></div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="ntp-toggle" onclick="toggleNtp()">&mdash;</button></div>
+        </div>
+        <div class="prot-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.prometheus.short.title">Prometheus metrics</div>
+            <div class="prot-desc" data-t="server.prometheus.short">Lets a Prometheus server on the network collect the TV's readings, at /api/prometheus/metrics. While off, the address does not exist.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="srv-prometheus" onclick="togglePrometheus()">&mdash;</button></div>
+        </div>
+        <div class="prot-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.devtools.short.title">Web app debugger</div>
+            <div class="prot-desc" data-t="server.devtools.short">In Developer Mode, lets developer tools on the network inspect the TV's web apps without an SSH tunnel. webOS leaves it open with no password, so keep it closed unless it is needed.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="srv-devtools" onclick="toggleNetworkDebugger()">&mdash;</button></div>
+        </div>
+      </div>
+
+      <div class="pv-g" data-t="server.experimental">Experimental features</div>
+      <div class="pv-gn" data-t="server.experimental.desc">On some TVs these have left the picture or sound off until the TV was unplugged.</div>
+      <div class="prot-table">
+        <div class="prot-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.experimental.tileHiding">Home screen tile hiding</div>
+            <div class="prot-desc" data-t="server.experimental.tileHiding.short">Allows hiding built-in apps from the Home screen, on the Apps tab.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="exp-tilehiding" onclick="toggleExpTileHiding()">&mdash;</button></div>
+        </div>
+        <div class="prot-row" id="exp-screensaver-row" hidden>
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.experimental.screensaver">Custom screen savers (webOS 10+)</div>
+            <div class="prot-desc" data-t="server.experimental.screensaver.short">Allows the dashboard's own screen savers on webOS 10 and later, on the Screensaver tab.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="exp-screensaver" onclick="toggleExpScreensaver()">&mdash;</button></div>
+        </div>
+      </div>
+    </details>
   </div>
 </section>
 

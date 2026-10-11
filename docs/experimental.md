@@ -1,6 +1,6 @@
 # Experimental features
 
-Two features are experimental and off by default. They are turned on under **Server** → **Experimental features**.
+Two features are experimental and off by default. They are turned on under **Server** → **Advanced** → **Experimental features**.
 
 ## Hiding home screen system apps
 

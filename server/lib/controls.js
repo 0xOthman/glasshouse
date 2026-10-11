@@ -179,6 +179,22 @@ function sendMediaKey(cmd, cb) {
 // at the call, where it shows, rather than answering as though it had worked.
 function isFromHbc() { return fromHbcFn(); }
 function getUpdateSummary() { return updateSummaryFn(); }
+
+/*
+ * Writes ntp settings and restarts the client with them. The answer waits for
+ * its first sync, so the Server tab shows straight away whether the server
+ * answered.
+ */
+function saveNtp(patch, cb) {
+  writeSettingsFn({ ntp: patch }, function (err) {
+    if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
+    if (config) {
+      config.ntp = config.ntp || {};
+      for (var k in patch) config.ntp[k] = patch[k];
+    }
+    if (!ntpModule.start(function () { cb(getUpdateSummary()); })) cb(getUpdateSummary());
+  });
+}
 function doRestartSelf() { return restartSelfFn(); }
 function doTvApp(action, cb) { return tvAppFn(action, cb); }
 
@@ -889,16 +905,14 @@ function doControl(action, value, cb) {
       if (ntpTarget && ntpTarget.error) {
         return cb({ ok: false, error: msg('srv.ntp.badServer', 'That is not a server name or address') });
       }
-      var ntpConf = ntpTarget ? { server: ntpTarget.server, port: ntpTarget.port } : { server: '' };
-      return writeSettingsFn({ ntp: ntpConf }, function (err) {
-        if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
-        if (config) {
-          config.ntp = config.ntp || {};
-          config.ntp.server = ntpConf.server;
-          if (ntpConf.port) config.ntp.port = ntpConf.port;
-        }
-        if (!ntpModule.start(function () { cb(getUpdateSummary()); })) cb(getUpdateSummary());
-      });
+      // A server saved is a server wanted: saving one switches it on.
+      var ntpConf = ntpTarget ? { server: ntpTarget.server, port: ntpTarget.port, enabled: true } : { server: '' };
+      return saveNtp(ntpConf, cb);
+
+    // The Server tab's switch. The server stays saved while off.
+    case 'setNtpEnabled':
+      if (!writeSettingsFn || !ntpModule) return cb({ ok: false, error: 'no NTP client configured' });
+      return saveNtp({ enabled: value === true || value === 'on' || value === 'true' }, cb);
 
     case 'setNetworkDebuggerAllowed':
       var allowDbg = (value === true || value === 'on' || value === 'true');

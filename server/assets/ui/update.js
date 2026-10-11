@@ -105,10 +105,8 @@ function renderUpdate(d) {
       disabled: !d.writable
     });
   }
-  if ('ntp' in d) {
-    renderNtp(d.ntp);
-    if (q('ntp-save')) q('ntp-save').disabled = !d.writable;
-    if (q('ntp-server')) q('ntp-server').disabled = !d.writable;
+  if (d.ntpSettings) {
+    renderNtp(d.ntp, d.ntpSettings, d.writable);
   }
 
   const ssRow = q('exp-screensaver-row');
@@ -138,7 +136,7 @@ function renderUpdate(d) {
   roll.disabled = working || updBusy;
   roll.textContent = t('server.rollback', 'Roll back to v{version}', { version: d.rollbackTo });
   roll.dataset.v = d.rollbackTo || '';
-  if (q('upd-prog').hidden) q('upd-btns').hidden = chk.hidden && inst.hidden && roll.hidden;
+  if (q('upd-prog').hidden) q('upd-btns').hidden = chk.hidden && inst.hidden;
 
   const vn = q('version-new');
   if (d.available) {
@@ -350,37 +348,73 @@ async function toggleExpTileHiding() {
   if (r && r.ok) renderUpdate(r); else loadUpdate();
 }
 
-// Network time (#633). The server answers a save once its first sync is
-// over, so the result shows without a second load.
-function renderNtp(n) {
-  const pill = q('ntp-pill'), status = q('ntp-status'), input = q('ntp-server');
-  if (!pill) return;
-  if (input && document.activeElement !== input && !input.dataset.dirty) {
-    input.value = n ? (n.port && n.port !== 123 ? n.server + ':' + n.port : n.server) : '';
+// Network time (#633). A switch, and the server's box only while it is on:
+// the server is kept while off, so switching back on needs no retyping.
+let ntpEditing = false;
+
+function renderNtp(n, cfg, writable) {
+  const toggle = q('ntp-toggle'), form = q('ntp-form'), status = q('ntp-status'), input = q('ntp-server');
+  if (!toggle) return;
+  const on = cfg.enabled;
+  if (on) ntpEditing = false;
+  updateToggle('ntp-toggle', {
+    cls: on ? 'good' : 'idle',
+    label: on ? t('common.on', 'On') : t('common.off', 'Off'),
+    on: on || ntpEditing,
+    disabled: !writable
+  });
+  form.hidden = !(on || ntpEditing);
+  q('ntp-save').disabled = !writable;
+  input.disabled = !writable;
+  if (document.activeElement !== input && !input.dataset.dirty) {
+    input.value = cfg.server ? (cfg.port && cfg.port !== 123 ? cfg.server + ':' + cfg.port : cfg.server) : '';
   }
-  if (!n) {
-    pill.className = 'pill idle';
-    pill.textContent = t('common.off', 'Off');
-    status.hidden = true;
+  status.classList.remove('row-err');
+  if (ntpEditing) {
+    status.hidden = false;
+    status.textContent = t('server.ntp.enter', 'Enter the time server and save to switch this on.');
     return;
   }
-  const failing = !!n.error;
-  pill.className = 'pill ' + (failing ? 'bad' : 'good');
-  pill.textContent = failing ? t('server.ntp.noAnswer', 'No answer') : t('common.on', 'On');
+  if (!on || !n) { status.hidden = true; return; }
   status.hidden = false;
-  status.textContent = failing
-    ? t('server.ntp.failing', 'The time server has not answered, so the TV keeps the time it has. {error}', { error: n.error })
-    : n.setAgoS !== null
-      ? t('server.ntp.set', 'Set the clock {set}; last checked {checked}. Clear the box and save to turn this off.',
+  if (n.error) {
+    status.classList.add('row-err');
+    status.textContent = t('server.ntp.failing', 'The time server has not answered, so the TV keeps the time it has. {error}', { error: n.error });
+  } else {
+    status.textContent = n.setAgoS !== null
+      ? t('server.ntp.setAgo', 'Set the clock {set}; last checked {checked}.',
           { set: cfgAge(n.setAgoS * 1000), checked: cfgAge(n.answeredAgoS * 1000) })
       : n.answeredAgoS !== null
-        ? t('server.ntp.right', 'Checked {checked}: the clock was already right. Clear the box and save to turn this off.',
-            { checked: cfgAge(n.answeredAgoS * 1000) })
+        ? t('server.ntp.rightAgo', 'Checked {checked}: the clock was already right.', { checked: cfgAge(n.answeredAgoS * 1000) })
         : t('server.ntp.asking', 'Asking the time server\u2026');
+  }
+}
+
+async function toggleNtp() {
+  const b = q('ntp-toggle'), input = q('ntp-server');
+  // Switching on with no server saved opens the box for one first.
+  if (!b.dataset.on && !input.value.trim()) {
+    ntpEditing = true;
+    loadUpdate();
+    q('ntp-form').hidden = false;
+    input.focus();
+    return;
+  }
+  // Switching off a box opened for a first server just closes it.
+  if (ntpEditing) {
+    ntpEditing = false;
+    delete input.dataset.dirty;
+    loadUpdate();
+    return;
+  }
+  b.disabled = true;
+  const r = await sendCommand('setNtpEnabled', !b.dataset.on);
+  if (r && r.ok) renderUpdate(r); else loadUpdate();
 }
 
 async function saveNtpServer() {
   const input = q('ntp-server'), btn = q('ntp-save');
+  if (!input.value.trim()) return input.focus();
   btn.disabled = true;
   const r = await sendCommand('setNtpServer', input.value.trim());
   btn.disabled = false;
@@ -388,6 +422,16 @@ async function saveNtpServer() {
   // A refusal, such as a mistyped address, is shown by sendCommand.
   if (r && r.ok) renderUpdate(r); else loadUpdate();
 }
+
+// Advanced stays open in this browser once opened.
+(function rememberServerAdvanced() {
+  const adv = q('srv-adv');
+  if (!adv) return;
+  try { if (localStorage.getItem('srvAdvOpen') === '1') adv.open = true; } catch (e) {}
+  adv.addEventListener('toggle', () => {
+    try { localStorage.setItem('srvAdvOpen', adv.open ? '1' : '0'); } catch (e) {}
+  });
+})();
 
 async function togglePrometheus() {
   const b = q('srv-prometheus');

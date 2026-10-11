@@ -66,13 +66,15 @@ var counters = null;
 var lastSetMono = null;
 
 /*
- * config.ntp as used, or null while no server is set.
+ * config.ntp as used, or null while it is off: no server, or enabled false.
+ * The Server tab's switch sets enabled and keeps the server for next time;
+ * a config with a server and no enabled is on, as before the switch.
  * @param {any} conf the server's config
  */
 function readSettings(conf) {
   var n = (conf && conf.ntp) || {};
   var server = typeof n.server === 'string' ? n.server.trim() : '';
-  if (!server) return null;
+  if (!server || n.enabled === false) return null;
   var port = parseInt(n.port, 10);
   if (!(port >= 1 && port <= 65535)) port = NTP_PORT;
   return { server: server, port: port };

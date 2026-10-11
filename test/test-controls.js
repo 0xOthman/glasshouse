@@ -362,8 +362,8 @@ console.log('Running test-controls.js ...');
     updateSummary: function () { return { ok: true }; }
   });
   controls.doControl('setNtpServer', 'time.lan:1123', function (res) { assert.strictEqual(res.ok, true); });
-  assert.deepEqual(saved, [{ ntp: { server: 'time.lan', port: 1123 } }]);
-  assert.deepEqual(config.ntp, { server: 'time.lan', port: 1123 });
+  assert.deepEqual(saved, [{ ntp: { server: 'time.lan', port: 1123, enabled: true } }]);
+  assert.deepEqual(config.ntp, { server: 'time.lan', port: 1123, enabled: true });
   assert.strictEqual(started, 1, 'restarted with it');
 
   controls.doControl('setNtpServer', 'time lan', function (res) { assert.strictEqual(res.ok, false); });
@@ -373,7 +373,11 @@ console.log('Running test-controls.js ...');
   assert.deepEqual(saved[1], { ntp: { server: '' } });
   assert.strictEqual(config.ntp.server, '', 'empty turns it off');
   assert.strictEqual(started, 2);
-  console.log('  ✓ the time server is saved and the client restarted, and a mistyped one refused');
+  controls.doControl('setNtpServer', 'time.lan', function () {});
+  controls.doControl('setNtpEnabled', false, function (res) { assert.strictEqual(res.ok, true); });
+  assert.deepEqual(saved[saved.length - 1], { ntp: { enabled: false } }, 'the switch leaves the server saved');
+  assert.strictEqual(config.ntp.server, 'time.lan');
+  console.log('  ✓ the time server is saved and the client restarted, a mistyped one refused, and the switch keeps it');
 })();
 
 console.log('ALL test-controls.js assertions passed!\n');
