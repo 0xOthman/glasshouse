@@ -238,6 +238,9 @@ async function tick() {
       q('source').textContent = d.display_title || d.app_name || d.app || '—';
     }
     q('source').parentElement.classList.toggle('dim', ps.screenOn === false && !isComp);
+    // In standby the source and picture lines are the last ones seen, not what
+    // the TV is doing. With only the screen off it is still playing them.
+    q('source').parentElement.classList.toggle('standby', ps.systemOn === false && !isComp);
     const pic = d.picture || {};
 
     // Summarise the collapsed groups so their current values are readable
