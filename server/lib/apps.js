@@ -20,6 +20,7 @@ var unlinkQuiet = require('./util').unlinkQuiet;
 var path = require('path');
 var execFile = require('child_process').execFile;
 var screensavers = require('./screensavers');
+var names = require('./names');
 
 var OVERRIDE_DIR = '/var/lib/tvweb/appinfo-overrides';
 var HIDDEN_APPS_FILE = '/var/lib/tvweb/hidden_apps';
@@ -112,7 +113,7 @@ function init(opts) {
 function isProtected(id) {
   if (!id || typeof id !== 'string') return true;
   if (PROTECTED_APP_IDS[id]) return true;
-  if (id.indexOf('com.webos.app.hdmi') === 0) return true;
+  if (names.isHdmiKey(names.shortAppId(id))) return true;
   if (id.indexOf('com.webos.app.input') === 0) return true;
   return false;
 }

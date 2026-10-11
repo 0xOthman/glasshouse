@@ -78,13 +78,13 @@ function hdmiSources(s) {
 // The HDMI inputs the TV names, by short id, as the other HDMI families number
 // them; AV and other inputs are left out.
 function hdmiInputNames(s) {
-  var names = s.inputs && typeof s.inputs === 'object' ? s.inputs : {};
-  return Object.keys(names).filter(function (k) { return /^hdmi[1-4]$/.test(k); }).sort()
-    .map(function (k) { return { input: k, name: names[k] }; });
+  var inputNames = s.inputs && typeof s.inputs === 'object' ? s.inputs : {};
+  return Object.keys(inputNames).filter(function (k) { return names.isHdmiKey(k); }).sort()
+    .map(function (k) { return { input: k, name: inputNames[k] }; });
 }
 
 function hdmiInput(link) {
-  return { input: 'hdmi' + link.input };
+  return { input: names.hdmiKey(link.input) };
 }
 
 function dynamicRange(s) {
@@ -497,7 +497,7 @@ var FAMILIES = [
     help: 'Always 1 for each HDMI input, labelled with the input, its app id, and the name given it in the TV\'s settings.',
     samples: function (s) {
       return hdmiInputNames(s).map(function (i) {
-        return [{ input: i.input, app_id: 'com.webos.app.' + i.input, name: i.name }, 1];
+        return [{ input: i.input, app_id: names.inputAppId(i.input), name: i.name }, 1];
       });
     }
   },

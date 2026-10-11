@@ -16,6 +16,7 @@ var msg = say.msg;
 var ha = require('./ha');
 var fetchLib = require('./fetch');
 var devtools = require('./devtools');
+var names = require('./names');
 
 var HA_CATEGORIES = ha.HA_CATEGORIES;
 var HA_ENTITIES = ha.HA_ENTITIES;
@@ -496,8 +497,8 @@ function inlineUI(html) {
     return '<style>\n' + part(rel) + '</style>\n';
   });
   html = html.replace(/(?:<script src="\/assets\/ui\/[\w-]+\.js"><\/script>\n)+/g, function (run) {
-    var names = run.match(/ui\/[\w-]+\.js/g);
-    return '<script>\n' + names.map(part).join('') + '</script>\n';
+    var scripts = run.match(/ui\/[\w-]+\.js/g);
+    return '<script>\n' + scripts.map(part).join('') + '</script>\n';
   });
   if (missing) { UI_MISSING = missing; return null; }
   return html;
@@ -1123,7 +1124,8 @@ function handleRequest(req, res) {
   if (pathname === '/api/game/fps') {
     var fps = gameModule.frameRate();
     return lunaFn('com.webos.applicationManager/getForegroundAppInfo', {}, function (fg) {
-      var onScreen = !!(fps.port && fg && fg.appId === 'com.webos.app.' + fps.port.toLowerCase());
+      var inputKey = (telemetryModule && telemetryModule.inputKey) || names.shortAppId;
+      var onScreen = !!(fps.port && fg && fg.appId && names.hdmiKeyForPortId(fps.port) === inputKey(fg.appId));
       send(res, 200, JSON.stringify({ ok: true, fps: onScreen ? fps : { frameRate: 0, vrrType: 'off', port: null } }));
     });
   }

@@ -262,7 +262,7 @@ function doControl(action, value, cb) {
     case 'input':
       if (!inputMap[value]) return cb({ ok: false, error: 'unknown input' });
       return luna('com.webos.applicationManager/launch',
-                  { id: 'com.webos.app.' + value },
+                  { id: names.inputAppId(value) },
                   function (r) { cb({ ok: !!(r && r.returnValue) }); });
 
     case 'launch_app':

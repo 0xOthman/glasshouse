@@ -17,6 +17,7 @@ var unlinkQuiet = require('./util').unlinkQuiet;
 var path = require('path');
 var execFile = require('child_process').execFile;
 var power = require('./power');
+var names = require('./names');
 
 var SCREENSAVER_APP_DIR = '/usr/palm/applications/com.webos.app.screensaver';
 var SCREENSAVER_DIR = '/var/lib/tvweb/screensaver';
@@ -71,6 +72,8 @@ var assetPathFn = null;
 var configObj = null;
 var injectKeyFn = null;
 var keyBackVal = null;
+// An app id's short id, an HDMI input's port key (hdmi3) under any app id.
+var inputKeyFn = names.shortAppId;
 var switchingSince = 0;
 
 function clearStagedScreensaver() {
@@ -111,6 +114,7 @@ function init(opts) {
   configObj = opts.config;
   injectKeyFn = opts.injectKey;
   keyBackVal = opts.KEY_BACK;
+  if (opts.inputKey) inputKeyFn = opts.inputKey;
 
   // Auto-heal: If the screensaver is currently stock (no active bind-mount on SCREENSAVER_APP_DIR),
   // but an orphaned marker remains in SCREENSAVER_DIR, remove it so the boot hook does not
@@ -449,8 +453,8 @@ function trigger(cb) {
     }
 
     lunaFn('com.webos.applicationManager/getForegroundAppInfo', {}, function (fg) {
-      var fgId = (fg && fg.appId) ? String(fg.appId).replace('com.webos.app.', '') : '';
-      if (/^hdmi[1-4]$/.test(fgId) || fgId === 'livetv') {
+      var fgId = (fg && fg.appId) ? inputKeyFn(fg.appId) : '';
+      if (names.isHdmiKey(fgId) || fgId === 'livetv') {
         return cb({ ok: false, error: msg('srv.saver.onlyInApps', 'the screen saver is only available from an app, not from {source}', { source: fgId }) });
       }
       lunaFn('com.webos.service.tvpower/power/turnOnScreenSaver', {}, function (r) {
