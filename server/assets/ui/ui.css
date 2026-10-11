@@ -125,6 +125,8 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
 /* Stale while the TV is off, so faded - but only to .8: at .55 the picture
    mode fell to 3.4:1 on black, under AA for small text. */
 .src.dim .t,.src.dim .stream-info{opacity:.8}
+/* Hidden rather than removed, so the masthead keeps its height. */
+.src.standby .t,.src.standby .stream-info{visibility:hidden}
 /* Panel state. A blanked screen is a normal state, not a fault, so it is
    carried by weight rather than by an alarm colour. */
 .st{font-size:12px;letter-spacing:.10em;text-transform:uppercase;color:var(--w60);
