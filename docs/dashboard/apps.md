@@ -15,6 +15,6 @@ The **Apps** tab, `/?tab=apps`, offers several ways to manage software on the TV
 
 Apps that check for an installation from the LG store may refuse to run when installed this way, and apps built for a newer webOS than the TV runs may not launch.
 
-![Apps tab: installed applications with uninstall actions, background services switched off, and saved web pages](../screenshots/apps.png)
+![Apps tab: installed applications with uninstall actions, background services switched off, apps kept ready in the background, and saved web pages](../screenshots/apps.png)
 
-*Installed applications, background services and saved web pages.*
+*Installed applications, background services, apps kept ready in the background and saved web pages.*
