@@ -818,7 +818,7 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:uppercase;color:var(--w60);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 /* The separator rides on the link so both appear only once a version is known. */
 #version{text-transform:none;color:inherit;text-decoration:none}
-#version::before{content:'|';margin:0 .55em;opacity:.45}
+#version{margin-left:.55em}
 #version:hover{color:var(--w80);text-decoration:underline}
 #version-new{text-transform:none;color:var(--cand);text-decoration:none;margin-left:.5em}
 #version-new:hover{text-decoration:underline}
