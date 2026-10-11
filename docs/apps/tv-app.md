@@ -1,0 +1,40 @@
+# The TV app
+
+The dashboard can also run directly on the TV's home screen, driven by the remote, for when there is no phone or laptop to hand.
+
+It is drawn on true black for OLED panels in 1080p, with high-contrast text and a layout designed for remote control: Left and Right flip between sections, Up and Down move within rows, and OK acts on the selected item.
+
+![The Glasshouse TV app showing live hardware metrics, temperatures, and storage health on true black](../screenshots/tv-app.png)
+
+*The TV app's Metrics view, showing SoC temperature, CPU load, memory, swap, eMMC storage wear, and TV model.*
+
+### Pairing and settings
+
+Its **Settings** tab gives the web dashboard's address, with a QR code to scan on a phone, and the TV's DNS name under it where the home network's DNS has one.
+
+Scanning the code automatically pairs the phone with the TV, passing the access token if one is configured, allowing the dashboard to be opened without typing an IP address with the remote.
+
+![Settings tab on the TV app, showing web dashboard address and pairing QR code](../screenshots/tv-app-settings.png)
+
+*The Settings view, presenting the web dashboard's LAN address and phone pairing QR code.*
+
+### Installing apps and system app hiding
+
+The **Apps** tab can install packages directly from the Homebrew Channel catalog: **Install apps** lists catalog entries by title, with updates first. The preview shows the app's background services, root access switches, and free storage space before confirming the install with the remote.
+
+It also provides system app hiding, allowing built-in LG apps and tiles (such as Always Ready, Alexa, or Camera) to be hidden from the webOS home screen.
+
+![Apps tab on the TV app, showing Homebrew catalog installation and home screen app hiding](../screenshots/tv-app-apps.png)
+
+*The Apps view, showing Homebrew Channel catalog browsing and system app hiding.*
+
+### Adding and removing the app
+
+A first install of Glasshouse adds the app to the TV's home screen; updating an existing install leaves the home screen alone.
+
+The app can be added or removed at any time:
+
+* **From the web dashboard**: Go to the **Server** tab and toggle the TV app.
+* **From deploy.sh**: Pass `--app` to add it or `--no-app` to omit it during installation.
+
+Removing the app changes nothing else, since the dashboard server continues to run in the background and reaches any browser on the network regardless. Where a TV model will not take the app, the control is hidden and everything else works as before.

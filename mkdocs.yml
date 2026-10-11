@@ -40,16 +40,19 @@ nav:
   - The dashboard:
       - dashboard/index.md
       - Control: dashboard/control.md
-      - Advanced Controls: dashboard/advanced.md
       - Metrics: dashboard/metrics.md
       - Apps: dashboard/apps.md
       - Privacy: dashboard/privacy.md
       - OLED Care: dashboard/oled-care.md
       - Game: dashboard/game.md
-      - Service menu: dashboard/service-menu.md
       - Screen savers: dashboard/screen-savers.md
-      - On the TV: dashboard/tv-app.md
+      - Advanced Controls: dashboard/advanced.md
+      - Service menu: dashboard/service-menu.md
       - Server: dashboard/server.md
+      - Tools: dashboard/tools.md
+  - Glasshouse apps:
+      - The TV app: apps/tv-app.md
+      - Android app: apps/android.md
   - Home Assistant:
       - HOME-ASSISTANT.md
       - Entities: HOME-ASSISTANT-ENTITIES.md
@@ -82,6 +85,7 @@ nav:
 # Kept until the Homebrew Channel listing is live (webosbrew/apps-repo#261).
 not_in_nav: |
   /install-homebrew-channel.md
+  /dashboard/tv-app.md
 
 extra_css:
   - stylesheets/extra.css

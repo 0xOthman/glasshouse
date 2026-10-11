@@ -37,9 +37,7 @@ cd glasshouse/server
 Find the TV's address under Settings → Network on the TV, or in the router's list of devices. The installer automatically uses SSH if the TV has it, and falls back to the Homebrew Channel's telnet if not.
 
 > [!CAUTION]
-> Telnet leaves an unauthenticated root shell open on the local network.
-> [Moving from telnet to SSH](SECURITY.md#moving-from-telnet-to-ssh)
-> takes about five minutes and is strongly recommended.
+> Rooting an LG TV will often open an unauthenticated telnet server by default, leaving a root shell open on the local network. It is good practice to turn telnet off and turn SSH on, for more secure access — [moving from telnet to SSH](SECURITY.md#moving-from-telnet-to-ssh) takes about five minutes and is strongly recommended.
 
 Then, from the `server/` directory in a terminal:
 
@@ -49,7 +47,7 @@ Then, from the `server/` directory in a terminal:
 
 For example, `./deploy.sh 192.168.1.50`. It takes about ten seconds and finishes by checking that the dashboard answers. When it says `done`, open **`http://<tv-ip>:8080/`** in a browser. If anything goes wrong, it stops and says why.
 
-A first install also adds the dashboard to the TV's home screen as an app, so it can be opened on the TV itself with the remote — see [The dashboard on the TV](dashboard/tv-app.md).
+A first install also adds the dashboard to the TV's home screen as an app, so it can be opened on the TV itself with the remote — see [The TV app](apps/tv-app.md).
 
 It can be removed again from the dashboard at any time. Updating an existing install leaves the home screen exactly as it is, so a removed app never comes back on its own.
 
