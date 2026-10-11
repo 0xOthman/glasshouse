@@ -4471,6 +4471,22 @@
   "text": "Hay una instalación en curso. Espera.",
   "from": "An install is running. Please wait."
  },
+ "tv.apps.preload.keep": {
+  "text": "Pulsa OK para mantenerla lista",
+  "from": "Press OK to keep it ready"
+ },
+ "tv.apps.preload.loadedNow": {
+  "text": "Está cargada ahora.",
+  "from": "It is loaded now."
+ },
+ "tv.apps.preload.memory": {
+  "text": "Esta ocupa unos {mb} MB cuando está cargada.",
+  "from": "This one takes about {mb} MB when loaded."
+ },
+ "tv.apps.preload.switchOff": {
+  "text": "Pulsa OK para dejar de mantenerla lista",
+  "from": "Press OK to stop keeping it ready"
+ },
  "tv.apps.service.disable": {
   "text": "Pulsa OK para desactivar el servicio",
   "from": "Press OK to disable service"
