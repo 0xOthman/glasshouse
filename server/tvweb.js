@@ -462,6 +462,7 @@ telemetry.init({
 
 var liveState = stateModule.init({
   inputNameMap: telemetry.inputNameMap,
+  inputKey: telemetry.inputKey,
   formatSoundOutput: telemetry.formatSoundOutput,
   clearCache: function (group) {
     telemetry.expireStats();

@@ -109,9 +109,9 @@ StateGroup.prototype._message = function (response) {
   this.snapshotPending = false;
 };
 
-function applicationValues(appId, inputNames) {
+function applicationValues(appId, inputNames, inputKey) {
   var full = String(appId || '');
-  var short = full.replace('com.webos.app.', '');
+  var short = inputKey ? inputKey(full) : full.replace('com.webos.app.', '');
   return {
     app_id: full,
     app: short,
@@ -156,6 +156,7 @@ function init(opts) {
   opts = opts || {};
   var state = new StateManager();
   var inputNames = opts.inputNameMap || {};
+  var inputKey = opts.inputKey || null;
   var clearCache = opts.clearCache || function () {};
   var groups = {};
   var pictureKeys = ['backlight', 'pictureMode', 'energySaving', 'screenShift', 'logoLuminanceAdjust'];
@@ -182,7 +183,7 @@ function init(opts) {
     'com.webos.applicationManager/getForegroundAppInfo', { subscribe: true }, null
   ), function (response) {
     clearCache('application');
-    return response.appId ? applicationValues(response.appId, inputNames) : null;
+    return response.appId ? applicationValues(response.appId, inputNames, inputKey) : null;
   });
   groups.audio = new StateGroup('audio', new luna.Subscription(
     MASTER_VOLUME, { subscribe: true }, null
@@ -217,7 +218,7 @@ function init(opts) {
       muted: stats.muted,
       output: stats.audio_output
     } : null;
-    var app = stats && stats.app_id ? applicationValues(stats.app_id, inputNames) : null;
+    var app = stats && stats.app_id ? applicationValues(stats.app_id, inputNames, inputKey) : null;
     var time = stats && stats.time;
 
     if (picture) apply('picture', {
@@ -280,5 +281,6 @@ function init(opts) {
 module.exports = {
   StateManager: StateManager,
   audioValues: audioValues,
+  applicationValues: applicationValues,
   init: init
 };

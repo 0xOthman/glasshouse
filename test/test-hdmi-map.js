@@ -131,7 +131,12 @@ c4.hdmiReceiverMap(checked(function (map) {
         var lines = require('../server/lib/prometheus').render(s3, '').split('\n').filter(function (l) {
           return /^glasshouse_hdmi_/.test(l);
         });
+        // The fixture's inputs have no appId, and are named by their port.
         assert.deepEqual(lines, [
+          'glasshouse_hdmi_input_info{input="hdmi1",app_id="com.webos.app.hdmi1",name="Streamer"} 1',
+          'glasshouse_hdmi_input_info{input="hdmi2",app_id="com.webos.app.hdmi2",name="HDMI 2"} 1',
+          'glasshouse_hdmi_input_info{input="hdmi3",app_id="com.webos.app.hdmi3",name="HDMI 3"} 1',
+          'glasshouse_hdmi_input_info{input="hdmi4",app_id="com.webos.app.hdmi4",name="PC"} 1',
           'glasshouse_hdmi_link_info{input="hdmi1",phy_mode="tmds_3g",chroma="ycbcr_422",hdcp="2_3"} 1',
           'glasshouse_hdmi_link_info{input="hdmi4",phy_mode="frl_48",chroma="rgb_444",hdcp="none"} 1',
           'glasshouse_hdmi_link_bits_per_second{input="hdmi1"} 4455000000',
