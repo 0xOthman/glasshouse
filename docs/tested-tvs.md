@@ -1,6 +1,6 @@
 # Tested TVs
 
-Confirmed on 42 TVs across 28 series so far (webOS 3.4 through 26). Other rooted models should work.
+Confirmed on 43 TVs across 28 series so far (webOS 3.4 through 26). Other rooted models should work.
 
 Sizes and regional variants of one series run the same software, so the table below has one row per series. Years are LG's model years; many TVs have since been updated to a later webOS.
 
@@ -27,7 +27,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | QNED82        | 2022 | LCD   | 7.6               | 1       |
 | LX3           | 2022 | OLED  | —                 | 1       |
 | CS            | 2022 | OLED  | 25                | 1       |
-| C3            | 2023 | OLED  | 25                | 2       |
+| C3            | 2023 | OLED  | 25 – 26           | 3       |
 | G3            | 2023 | OLED  | 26                | 1       |
 | B4            | 2024 | OLED  | 24                | 1       |
 | C4            | 2024 | OLED  | 24 – 25           | 4       |
@@ -84,6 +84,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | 43NU800BPSC | 26 (11.0.0)  | 43.02.50 | LCD   | Rooted with slopbro; privacy controls confirmed                |
 | OLED65G36LA | 26 (11.2.0)  | 43.21.71 | OLED  | Rooted with DualBro; privacy and app installs confirmed        |
 | OLED83G5WUA | 26 (11.2.0)  | 43.21.71 | OLED  | Rooted with DualBro; runs with internet access blocked         |
+| OLED42C35LA | 26 (11.2.0)  | 43.21.71 | OLED  | Working; Screensaver tab hidden, as screen savers are experimental there |
 
 </details>
 
