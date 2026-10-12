@@ -587,6 +587,13 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
 /* The update actions sit under the version, as small as the row's other
    controls. Rolling back is rarely wanted, so it is a link, not a button. */
 .upd-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+/* What each release since the installed one brings, from its notes' summary. */
+.upd-new{margin-top:12px;max-width:62ch}
+.upd-new-h{font-weight:500;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--w60);margin-bottom:6px}
+.upd-new-r{margin-bottom:10px;font-size:13px;color:var(--w80);line-height:1.5}
+.upd-new-r p{margin:0 0 4px;white-space:pre-line}
+.upd-new-v{font-weight:600;color:var(--w100);margin-right:8px}
+.upd-new a{color:var(--w60);text-decoration:underline;text-underline-offset:2px;font-size:12px}
 .link-btn{background:none;border:0;padding:0;min-height:0;margin-top:10px;cursor:pointer;
   font:400 12px 'Manrope';letter-spacing:.02em;text-transform:none;color:var(--w60);
   text-decoration:underline;text-underline-offset:2px}

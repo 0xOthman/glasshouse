@@ -50,8 +50,12 @@ const a = process.argv.slice(2);
 const url = a[a.length - 1];
 const out = a[a.indexOf('-o') + 1];
 const write = data => { if (out === '-') process.stdout.write(data); else fs.writeFileSync(out, data); };
+const rel = { tag_name: 'v' + process.env.UPGRADE_VERSION, html_url: 'https://example.invalid/', body: 'test' };
+// releases/latest for updaters before 0.91, the list for those since.
 if (/api\\.github\\.com\\/repos\\/.*\\/releases\\/latest/.test(url)) {
-  write(JSON.stringify({ tag_name: 'v' + process.env.UPGRADE_VERSION, html_url: 'https://example.invalid/', body: 'test' }));
+  write(JSON.stringify(rel));
+} else if (/api\\.github\\.com\\/repos\\/.*\\/releases\\?/.test(url)) {
+  write(JSON.stringify([rel]));
 } else if (/codeload\\.github\\.com\\/.*\\/tar\\.gz\\/refs\\/tags\\/v/.test(url)) {
   write(fs.readFileSync(process.env.UPGRADE_TARBALL));
 } else {

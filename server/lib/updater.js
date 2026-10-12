@@ -12,7 +12,10 @@ var probeFetch = fetch.probeFetch;
 var execErr = fetch.execErr;
 
 var UPDATE_REPO = 'rorygallagher2024/glasshouse';
-var UPDATE_API = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases/latest';
+// The recent releases rather than only the latest, for what each one since
+// the installed version brings.
+var UPDATE_API = 'https://api.github.com/repos/' + UPDATE_REPO + '/releases?per_page=10';
+var WHATS_NEW_MAX = 5;
 var UPDATE_TARBALL = 'https://codeload.github.com/' + UPDATE_REPO + '/tar.gz/refs/tags/v';
 var BOOT_HOOK = '/var/lib/webosbrew/init.d/50-tvweb';
 
@@ -25,6 +28,8 @@ var UPDATE = {
   latest: null,
   url: null,
   notes: null,
+  whatsNew: [],
+  whatsNewMore: 0,
   checked: 0,       // last check that got an answer
   attempted: 0,     // last check, answered or not
   error: null,
@@ -108,6 +113,8 @@ function updateSummary() {
     available: !!(UPDATE.latest && verNewer(UPDATE.latest, currentVersion)),
     url: UPDATE.url,
     notes: UPDATE.notes,
+    whatsNew: UPDATE.whatsNew,
+    whatsNewMore: UPDATE.whatsNewMore,
     error: UPDATE.error,
     client: fetch.client(),
     autoCheck: !!(config.update && config.update.check),
@@ -149,22 +156,68 @@ function checkForUpdate(force, cb) {
       setUpdateState(err.offline ? 'offline' : 'error', err.message);
       return cb(err, updateSummary());
     }
-    var rel = null;
-    try { rel = JSON.parse(body); } catch (e) {}
-    if (!rel || !rel.tag_name) {
-      var why = (rel && rel.message) ? rel.message : 'GitHub did not return a release';
+    var parsed = null;
+    try { parsed = JSON.parse(body); } catch (e) {}
+    var found = readReleases(parsed, currentVersion);
+    if (!found) {
+      var why = (parsed && parsed.message) ? parsed.message : 'GitHub did not return a release';
       setUpdateState('error', why);
       return cb(new Error(why), updateSummary());
     }
-    UPDATE.latest = String(rel.tag_name).replace(/^v/i, '');
-    UPDATE.url = rel.html_url || null;
-    UPDATE.notes = rel.body ? String(rel.body).slice(0, 800) : null;
+    UPDATE.latest = found.latest;
+    UPDATE.url = found.url;
+    UPDATE.notes = found.notes;
+    UPDATE.whatsNew = found.whatsNew;
+    UPDATE.whatsNewMore = found.more;
     UPDATE.checked = Date.now();
     setUpdateState(verNewer(UPDATE.latest, currentVersion) ? 'available' : 'current');
     console.log('update: installed v' + shownVersion + ', latest v' + UPDATE.latest +
                 ' (' + UPDATE.state + ', via ' + fetch.client() + ')');
     cb(null, updateSummary());
   });
+}
+
+/*
+ * A release's notes open with a short summary for people using Glasshouse,
+ * above a "## Details" heading with the full notes. The summary, as plain
+ * text, or null for a release without one (those before 0.91).
+ */
+function releaseSummary(body) {
+  var text = String(body || '').replace(/\r/g, '');
+  var m = /^##[ \t]+Details[ \t]*$/m.exec(text);
+  if (!m) return null;
+  var s = text.slice(0, m.index)
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/`([^`]*)`/g, '$1')
+    .trim();
+  return s ? s.slice(0, 600) : null;
+}
+
+/*
+ * From GitHub's release list (newest first): the latest release, and the
+ * summaries of those newer than `installed`, newest first, as { latest, url,
+ * notes, whatsNew: [{ version, summary, url }], more }. more counts the newer
+ * ones beyond WHATS_NEW_MAX or without a summary. null for no release.
+ */
+function readReleases(list, installed) {
+  if (list && !Array.isArray(list) && list.tag_name) list = [list];
+  if (!Array.isArray(list)) return null;
+  var stable = list.filter(function (r) { return r && r.tag_name && !r.draft && !r.prerelease; });
+  if (!stable.length) return null;
+  var newer = [];
+  stable.forEach(function (r) {
+    var v = String(r.tag_name).replace(/^v/i, '');
+    if (verNewer(v, installed)) newer.push({ version: v, summary: releaseSummary(r.body), url: r.html_url || null });
+  });
+  var shown = newer.filter(function (r) { return r.summary; }).slice(0, WHATS_NEW_MAX);
+  return {
+    latest: String(stable[0].tag_name).replace(/^v/i, ''),
+    url: stable[0].html_url || null,
+    notes: releaseSummary(stable[0].body),
+    whatsNew: shown,
+    more: newer.length - shown.length
+  };
 }
 
 function scheduleUpdateChecks(firstMs) {
@@ -433,6 +486,8 @@ module.exports = {
   scheduleUpdateChecks: scheduleUpdateChecks,
   setAutoCheck: setAutoCheck,
   verNewer: verNewer,
+  readReleases: readReleases,
+  releaseSummary: releaseSummary,
   declaredVersion: declaredVersion,
   displayVersion: displayVersion
 };

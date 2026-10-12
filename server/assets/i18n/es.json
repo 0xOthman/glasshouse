@@ -6078,5 +6078,25 @@
  "tv.viewOnly": {
   "text": "Solo visualización",
   "from": "View only"
+ },
+ "server.fullNotes": {
+  "text": "Notas completas de la versión",
+  "from": "Full release notes"
+ },
+ "server.whatsNew": {
+  "text": "Novedades",
+  "from": "What’s new"
+ },
+ "server.whatsNew.more": {
+  "text": "Y {n} versiones más",
+  "from": "And {n} more releases"
+ },
+ "server.whatsNew.moreOne": {
+  "text": "Y 1 versión más",
+  "from": "And 1 more release"
+ },
+ "tv.update.whatsNew.more.hint": {
+  "text": "Sus notas están en GitHub, en las versiones de Glasshouse.",
+  "from": "Their notes are on GitHub, under Glasshouse’s releases."
  }
 }
