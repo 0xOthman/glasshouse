@@ -267,6 +267,10 @@
   "text": "En inicio",
   "from": "On Home"
  },
+ "apps.home.parts": {
+  "text": "Partes de la pantalla de inicio",
+  "from": "Parts of the Home screen"
+ },
  "apps.home.restore": {
   "text": "Restaurar la pantalla de inicio de LG",
   "from": "Put back LG’s Home screen"

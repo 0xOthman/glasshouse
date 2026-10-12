@@ -68,6 +68,11 @@ function luna(uri, params, cb) {
   if (method === 'listLaunchPoints') r.launchPoints = tv.lps.slice();
   else if (method === 'addLaunchPoint') { r.launchPointId = String(tv.next++); tv.lps.push({ launchPointId: r.launchPointId, id: params.id }); }
   else if (method === 'removeLaunchPoint') tv.lps = tv.lps.filter(function (p) { return p.launchPointId !== params.launchPointId; });
+  else if (method === 'moveLaunchPoint') {
+    var at = -1;
+    tv.lps.forEach(function (p, i) { if (p.launchPointId === params.launchPointId) at = i; });
+    if (at !== -1) tv.lps.splice(params.position, 0, tv.lps.splice(at, 1)[0]);
+  }
   else if (method === 'getForegroundAppInfo') r.appId = 'com.webos.app.hdmi2';
   process.nextTick(function () { cb(r); });
 }
@@ -121,9 +126,14 @@ hs.getHomeScreen(checked(function (none) {
               assert.strictEqual(a.ok, true);
               var add = tv.calls.filter(function (c) { return /addLaunchPoint$/.test(c.uri); })[0];
               assert.deepEqual(add.params, { id: 'com.webos.app.hdmi2', title: 'Mac', params: {} });
+              assert.deepEqual(tv.lps.map(function (p) { return p.id; }),
+                ['com.webos.app.hdmi2', 'com.webos.app.hdmi3', 'youtube.leanback.v4'], 'inputs first, in HDMI order');
+              assert.ok(/kill \$\(pidof com\.webos\.app\.home\)/.test(shellRuns[shellRuns.length - 1]), 'home app restarted to show the order');
+              var runs = shellRuns.length;
               hs.setInput('hdmi2', true, checked(function () {
                 assert.strictEqual(tv.calls.filter(function (c) { return /addLaunchPoint$/.test(c.uri); }).length, 1, 'not added twice');
-                console.log('  ✓ an input is added as LG\'s own launch point, with the TV\'s name for it, once');
+                assert.strictEqual(shellRuns.length, runs, 'no restart when nothing moved');
+                console.log('  ✓ an input is added as LG\'s own launch point, with the TV\'s name for it, once, and the inputs put before the apps');
 
                 hs.restore(checked(function (back) {
                   assert.strictEqual(back.ok, true);

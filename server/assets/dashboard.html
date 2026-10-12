@@ -706,20 +706,6 @@ function appsRows(d) {
   var hs = d.homeScreen;
   if (hs && hs.parts) {
     r.push(head(t('apps.home', 'Home screen layout')));
-    for (var hp = 0; hp < hs.parts.length; hp++) {
-      var part = hs.parts[hp];
-      r.push({
-        label: part.title,
-        value: part.shown ? t('apps.home.shown', 'Shown') : t('apps.home.hidden', 'Hidden'),
-        cls: part.shown ? 'on' : 'off',
-        act: d.writable === false ? null : 'homePart',
-        key: part.id,
-        on: part.shown,
-        press: part.shown ? t('tv.apps.home.hide', 'Press OK to hide it') : t('tv.apps.home.show', 'Press OK to show it'),
-        // desc is the server's own words.
-        hint: part.desc + ' ' + t('tv.apps.home.restart', 'The Home screen starts again, which takes a few seconds.')
-      });
-    }
     var hin = hs.inputs || [];
     for (var hi = 0; hi < hin.length; hi++) {
       var inp = hin[hi];
@@ -732,6 +718,20 @@ function appsRows(d) {
         on: inp.onHome,
         press: inp.onHome ? t('tv.apps.home.inputOff', 'Press OK to take its tile off Home') : t('tv.apps.home.inputOn', 'Press OK to add a tile for it'),
         hint: t('tv.apps.home.input.hint', 'A tile among the apps on the Home screen that switches to this input.')
+      });
+    }
+    for (var hp = 0; hp < hs.parts.length; hp++) {
+      var part = hs.parts[hp];
+      r.push({
+        label: part.title,
+        value: part.shown ? t('apps.home.shown', 'Shown') : t('apps.home.hidden', 'Hidden'),
+        cls: part.shown ? 'on' : 'off',
+        act: d.writable === false ? null : 'homePart',
+        key: part.id,
+        on: part.shown,
+        press: part.shown ? t('tv.apps.home.hide', 'Press OK to hide it') : t('tv.apps.home.show', 'Press OK to show it'),
+        // desc is the server's own words.
+        hint: part.desc + ' ' + t('tv.apps.home.restart', 'The Home screen starts again, which takes a few seconds.')
       });
     }
     if (d.writable !== false) {
