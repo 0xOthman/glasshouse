@@ -11,6 +11,36 @@ var children = require('./children');
 // Overridable so the start-up test can run the whole server against a stand-in.
 var LUNA_SEND = process.env.TVWEB_LUNA_SEND || '/usr/bin/luna-send';
 
+// Older webOS uses com.webos.settingsservice, newer uses com.webos.service.settings.
+// Try the newer name first; if it fails, remember and use the legacy name.
+var SETTINGS_SERVICE = 'com.webos.service.settings/';
+var SETTINGS_SERVICE_LEGACY = 'com.webos.settingsservice/';
+var _settingsPrefix = null; // null = not yet probed
+
+function resolveUri(uri) {
+  if (uri.indexOf(SETTINGS_SERVICE) !== 0) return uri;
+  if (_settingsPrefix === SETTINGS_SERVICE_LEGACY) {
+    return SETTINGS_SERVICE_LEGACY + uri.slice(SETTINGS_SERVICE.length);
+  }
+  return uri;
+}
+
+function handleSettingsResult(uri, parsed) {
+  if (uri.indexOf(SETTINGS_SERVICE) !== 0) return;
+  if (_settingsPrefix !== null) return;
+  if (parsed && parsed.returnValue !== false) {
+    _settingsPrefix = SETTINGS_SERVICE;
+  }
+}
+
+function isSettingsNotFound(uri, parsed) {
+  return uri.indexOf(SETTINGS_SERVICE) === 0 &&
+    _settingsPrefix === null &&
+    parsed && parsed.returnValue === false &&
+    typeof parsed.errorText === 'string' &&
+    parsed.errorText.indexOf('Service does not exist') !== -1;
+}
+
 /*
  * One-shot calls run at most two at a time, the rest in turn. Node 0.12 on a
  * B8 (webOS 4) has frozen in its first second at start: a luna-send child
@@ -71,11 +101,26 @@ function runNow(job) {
     if (!err && stdout) {
       try { parsed = JSON.parse(stdout); } catch (e) {}
     }
+
+    // Settings service fallback: the first call that gets "Service does
+    // not exist" switches to the old name and retries transparently.
+    var rawUri = job.args[job.args.length - 2].replace('luna://', '');
+    if (isSettingsNotFound(rawUri, parsed) && !job.settingsRetried) {
+      _settingsPrefix = SETTINGS_SERVICE_LEGACY;
+      var oldUri = SETTINGS_SERVICE_LEGACY + rawUri.slice(SETTINGS_SERVICE.length);
+      job.args[job.args.length - 2] = 'luna://' + oldUri;
+      job.settingsRetried = true;
+      running++;
+      return run(job);
+    }
+    handleSettingsResult(rawUri, parsed);
+
     if (job.cb) job.cb(parsed, String(stdout || ''));
   });
 }
 
 function call(uri, payload, cb, appId) {
+  uri = resolveUri(uri);
   var args = appId ? ['-a', appId] : [];
   args = args.concat(['-n', '1', '-w', '2000', '-f', 'luna://' + uri, JSON.stringify(payload || {})]);
   waiting.push({ args: args, cb: cb });
@@ -132,7 +177,7 @@ Subscription.prototype._spawn = function () {
   var args = self.appId ? ['-a', self.appId] : [];
   // Formatted responses span several lines. Subscription responses are parsed
   // as one compact JSON response per line instead.
-  args = args.concat(['-i', 'luna://' + self.uri, JSON.stringify(self.payload)]);
+  args = args.concat(['-i', 'luna://' + resolveUri(self.uri), JSON.stringify(self.payload)]);
   self.buffer = '';
   self.child = spawn(LUNA_SEND, args);
 
