@@ -35,7 +35,7 @@ We prefer code review comments to follow the [Conventional Comments](https://con
 
 ### Strict ES5 for on-TV code
 
-The server runs on the TV under Node.js 0.12 (on webOS 3.x and 4.x models). All files executing on the TV must remain strict ES5:
+The server runs on the TV under Node.js 0.12 on webOS 3 and 4, and 0.10 on webOS 2. All files executing on the TV must remain strict ES5:
 
 * `server/tvweb.js`
 * `server/lib/*.js`
@@ -101,7 +101,8 @@ The automated checks run the server's code, not the TV. LG's services, the pictu
 * **Deploy the change to a rooted TV** with `server/deploy.sh <tv-ip>`, and use what it changes the way someone would: on the web dashboard, in the TV app, or from Home Assistant.
 * **Check that what's around it still works.** The TV still shows its inputs, sound still plays, and the dashboard keeps updating.
 * **Restart the server or the TV** if the change affects start-up, the boot hook (`server/50-tvweb.sh`), or anything that runs only once.
-* **Mind older TVs.** On webOS 3 and 4 the server runs on Node 0.12, and a call newer firmware accepts may not exist there. If you can only test on one generation, say which.
+* **Mind older TVs.** On webOS 2 to 4 the server runs on Node 0.10 or 0.12, and a call newer firmware accepts may not exist there. If you can only test on one generation, say which.
+* **Older TVs get fewer features, not a lower ceiling.** webOS 2 and 3 lack many of LG's services, so features that need them are left out there rather than held back everywhere: gate a feature on the TV's version or on the service answering. The oldest TVs set only one limit, that the server and the TV app stay ES5 for Node 0.10 and 0.12. Support for both goes together, once keeping it costs real development, such as wanting ES6 in the server.
 
 ### Testing details in the pull request
 

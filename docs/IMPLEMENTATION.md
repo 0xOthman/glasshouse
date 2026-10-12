@@ -54,7 +54,7 @@ Measured with `scripts/footprint.sh` on 2026-10-03, over a minute each, with MQT
 | TV | Server CPU (one core) | Server memory | luna-send children | TV memory available |
 | :-- | :-- | :-- | :-- | :-- |
 | OLED65B8SLC (webOS 4) | 1.4–1.7% | 29–42 MB | 5, 6 MB | 432–445 of 1976 MB |
-| OLED42C24LA (webOS 22) | 1.2–1.3% | 35–38 MB | 5, 10 MB | 525–535 of 1996 MB |
+| OLED42C24LA (webOS 9.2) | 1.2–1.3% | 35–38 MB | 5, 10 MB | 525–535 of 1996 MB |
 
 The children are the five subscriptions held open for live state. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
 
@@ -154,7 +154,7 @@ TV Speaker + Bluetooth with nothing paired.
 Whether the volume can be set, only stepped, or not changed at all where the
 sound goes comes from the same service's `adjustVolume`,
 `externalDeviceControl` and `volumeSyncable`. Those are not always right: an
-OLED65G5WUA (webOS 25) on optical showed a level of 10 that no change moved.
+OLED65G5WUA (webOS 10) on optical showed a level of 10 that no change moved.
 So when the TV refuses a volume or mute change with "Current Scenario doesn't
 support", the volume counts as not changeable until the sound goes elsewhere.
 
@@ -191,7 +191,7 @@ are used only where `/proc/stat` gives nothing.
 ## OLED panel counters, and their units
 
 The panel timers do not share a unit, which is the single easiest thing to get
-wrong here. Furthermore, webOS 9+ (webOS 22+, e.g. LG C2) moved several counters
+wrong here. Furthermore, webOS 9 and later (e.g. a C2 updated to 9.2) moved several counters
 to a dedicated service and changed filesystem file paths:
 
 | Value | Older webOS (B8, 4.x–8.x) | Modern webOS (C2, 9.x / 22+) | Unit |
@@ -570,12 +570,12 @@ advertising**, which is why they are a separate tier:
 tier adds whatever that file says, so a firmware using neither is still covered.
 
 `wiselg.com` is not on either list, though the full tier still blocks it if
-`appInstallService` names it as its store. On webOS 26 the Content Store's
+`appInstallService` names it as its store. On webOS 11 the Content Store's
 first request goes to `<country>.tv.wiselg.com`, and a factory-reset TV asks for
 `ngfts.tv.wiselg.com` during setup
 ([Huttunen](https://fabricati-diem.inform.social/post/deshittification-as-a-service-part2-bypassing-the-app-store-gatekeeper/)),
 which suggests it is that release's service platform, in place of the SDP
-hosts. None of the tested TVs runs webOS 26, and Huttunen reports Netflix
+hosts. None of the tested TVs runs webOS 11, and Huttunen reports Netflix
 being interrupted after a cold boot with it blocked.
 
 The `lgtvcommon.com`, `lgtviot.com` and `ueiwsp.com` rows, and
@@ -597,7 +597,7 @@ webOS sets its clock from the `X-Server-Time` header of LG's SDP servers
 lost its time in a power cut could not set it again, and anything using HTTPS
 fails while the clock is wrong.
 
-After a factory reset, a webOS 26 TV's clock falls back to its firmware build
+After a factory reset, a webOS 11 TV's clock falls back to its firmware build
 date in 2024 rather than to 1970, which passes a plain year check but still
 fails certificate validation
 ([Huttunen, Fabricati Diem](https://fabricati-diem.inform.social/post/deshittification-as-a-service/)).
@@ -945,7 +945,7 @@ The debloating engine (`server/lib/services.js`) manages background system daemo
   1. `/etc/palm/activities/com.webos.service.tvdataexchanger/activity-com.webos.service.tvdataexchanger.json` statically registers an activity with `"foreground": true` and `"continuous": true` that triggers on `luna://com.webos.service.tvpower/power/getPowerState` during `"Prepare Power On"` and `"Prepare Resume"`.
   2. Because the activity is marked `foreground: true`, ActivityManager treats this as an essential foreground transition barrier.
   3. When `tvdataexchanger.service` is masked by systemd, the Luna callback (`luna://com.webos.service.tvdataexchanger/startPowerOnDefault`) fails or hangs.
-  4. On webOS 24+ (e.g. LG G4), this failure stalls the power-on handoff to `com.webos.applicationManager`.
+  4. On webOS 9 and later (e.g. LG G4), this failure stalls the power-on handoff to `com.webos.applicationManager`.
   5. As a result, `videooutputd` never receives a matching `vssForegroundAppId` from `getForegroundApps`. In `videooutputd`, the `MAIN` sink starts muted at boot and only unmutes when the connecting app matches `vssForegroundAppId`. With the foreground state stalled at `unknown`, `videooutputd` holds `muted: true` indefinitely.
 * **Why Disabling Offers No Benefit**: On consumer/retail TVs where Hotel Mode is disabled (`enableHotelMode == 0`), `tvdataexchanger`'s power-on handlers (`CHotel::loadAvSettings()` and `CHotel::runAspectRatio()`) abort immediately. It does not touch AV settings or display configurations on consumer sets, uses negligible RAM (~1.8 MB), and consumes 0% CPU after boot.
 
@@ -963,7 +963,7 @@ The debloating engine (`server/lib/services.js`) manages background system daemo
 
 Custom QML screensavers are staged in `/var/lib/tvweb/screensaver` and bind-mounted over `/usr/palm/applications/com.webos.app.screensaver`.
 
-* **Cold Boot vs Quick Start+**: On Quick Start+ suspend-to-RAM, active bind-mounts persist in memory. On a cold boot (such as after the 4-hour OLED Pixel Cleaning cycle or extended standby on webOS 24/25), `/var/lib/webosbrew/init.d/50-tvweb` re-applies the bind-mount if `/var/lib/tvweb/screensaver/.tvweb-screensaver` is present.
+* **Cold Boot vs Quick Start+**: On Quick Start+ suspend-to-RAM, active bind-mounts persist in memory. On a cold boot (such as after the 4-hour OLED Pixel Cleaning cycle or extended standby on webOS 9 and 10), `/var/lib/webosbrew/init.d/50-tvweb` re-applies the bind-mount if `/var/lib/tvweb/screensaver/.tvweb-screensaver` is present.
 * **Reverting to Stock**: When the user selects "LG default" (`stock`), `screensavers.setScreensaver('stock')` unmounts the live overlay and deletes `.tvweb-screensaver` along with all staged files. Without this cleanup, the boot hook would see the stale marker file on cold boot and re-mount the previously staged screensaver. `screensavers.init()` also auto-heals any orphaned marker files if the live screensaver is currently stock.
 
 ---

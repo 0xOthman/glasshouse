@@ -1,7 +1,7 @@
 /*
  * LG's On Timer and Off Timer: the TV switches itself on or off at a set
  * time, once or on chosen days of the week. They are settings in the 'time'
- * category, as LG's Settings app (webOS 22) writes them.
+ * category, as LG's Settings app (webOS 9.2) writes them.
  *
  * The repeat days are a bitmask, Sunday as bit 0 through Saturday as bit 6,
  * and 0 means once. LG's app reads and writes them so.
@@ -102,7 +102,7 @@ function set(luna, value, cb) {
 
     /*
      * LG's scheduler takes a timer's time and days when the timer is switched
-     * on, and not when they change while it is on: a C2 (webOS 22) kept
+     * on, and not when they change while it is on: a C2 (webOS 9.2) kept
      * 12:54 for an Off Timer whose setting said 12:59. LG's own menu switches
      * the timer off while it is edited and back on after, so this does the
      * same: off, the changes, then on.
@@ -119,7 +119,7 @@ function set(luna, value, cb) {
     if (value.timer !== 'on') return rearm();
 
     /*
-     * LG's app on webOS 22 will not switch the On Timer on while it is set to
+     * LG's app on webOS 9.2 will not switch the On Timer on while it is set to
      * Live TV with no channel, as it is on a TV never tuned (a C2 came so); it
      * turns the TV on to Home instead where there is no tuner. So does this,
      * where the TV has a Home app. webOS 3-5 has none, and its own menu (a B8 on

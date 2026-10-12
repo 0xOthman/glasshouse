@@ -56,6 +56,13 @@ function toBuffer(data, enc) {
   return typeof Buffer.from === 'function' ? Buffer.from(data, enc) : new Buffer(data, enc);
 }
 
+// Buffer#equals arrived in node 0.11.13; webOS 2 runs 0.10.
+function sameBytes(a, b) {
+  if (a.length !== b.length) return false;
+  for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 function allocBuffer(n) {
   if (typeof Buffer.alloc === 'function') return Buffer.alloc(n);
   var b = new Buffer(n);
@@ -125,6 +132,7 @@ module.exports = {
   monotonicMs: monotonicMs,
   toBuffer: toBuffer,
   allocBuffer: allocBuffer,
+  sameBytes: sameBytes,
   readJson: readJson,
   writeJsonAtomic: writeJsonAtomic,
   unlinkQuiet: unlinkQuiet,

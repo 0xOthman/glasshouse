@@ -476,7 +476,9 @@ function createMockRes(cb) {
     assert.strictEqual(res.statusCode, 200);
     var body = JSON.parse(res.body);
     assert.strictEqual(body.ok, true);
-    assert.deepEqual(controlDispatched, { action: 'volumeUp', val: null });
+    // val == null: node 0.10's deepEqual tells undefined from null.
+    assert.strictEqual(controlDispatched.action, 'volumeUp');
+    assert.ok(controlDispatched.val == null);
   });
   routes.handleRequest(reqCtrl, resCtrl);
   reqCtrl.emit('data', JSON.stringify({ action: 'volumeUp' }));
@@ -757,7 +759,12 @@ function createMockRes(cb) {
   var fetchLib = require('../server/lib/fetch');
   var root = path.join(os.tmpdir(), 'tvweb-sideload-test-' + process.pid);
   var staging = path.join(root, 'staging');
-  childProcess.execSync('mkdir -p "' + staging + '" "' + path.join(root, 'state') + '"');
+  // execSync arrived in node 0.12; webOS 2 runs 0.10.
+  [staging, path.join(root, 'state')].forEach(function mkdirp(dir) {
+    if (fs.existsSync(dir)) return;
+    mkdirp(path.dirname(dir));
+    fs.mkdirSync(dir);
+  });
   var cfgFile = path.join(root, 'config.json');
   var df = path.join(root, 'df');
   function fakeDf(avail) {

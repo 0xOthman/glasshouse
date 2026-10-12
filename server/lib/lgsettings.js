@@ -31,7 +31,7 @@
 var msg = require('./say').msg;
 
 // LG's ads and promotions. Each is 'on' when the ads show; the names and
-// meanings are those of LG's own Settings menu on webOS 22.
+// meanings are those of LG's own Settings menu on webOS 9.2.
 var ROWS = [
   { id: 'screenSaverAd', section: 'promotions', category: 'general', key: 'screenSaverAd', on: 'on', off: 'off',
     title: msg('srv.lgs.screenSaverAd', 'Screen saver ads'),
@@ -52,7 +52,7 @@ var ROWS = [
     title: msg('srv.lgs.aiSettingsNudge', 'Smart tips in Settings'),
     desc: msg('srv.lgs.aiSettingsNudge.desc', 'Suggested settings shown in LG\'s Settings menu. LG calls this Smart Tips in Settings.') },
 
-  // LG's Game Optimizer, from its own app on webOS 22. LG keeps these for the
+  // LG's Game Optimizer, from its own app on webOS 9.2. LG keeps these for the
   // game input and genre in use, which it reports as the category's
   // dimension, and applies them while the picture mode is Game Optimizer.
   { id: 'gameGenre', section: 'game', category: 'other', key: 'gameGenre', type: 'choice',
@@ -324,7 +324,7 @@ function set(id, value, cb) {
   /*
    * LG's menu greys out an HDMI input's settings while another input is on
    * screen, but its settings service stores a write regardless (a C2 did, on
-   * webOS 22). So for those the greying is checked here, fresh, and honoured.
+   * webOS 9.2). So for those the greying is checked here, fresh, and honoured.
    */
   luna('com.webos.service.settings/getSystemSettingDesc', { category: r.category, keys: [r.key] }, function (d) {
     var x = d && d.results && d.results[0];

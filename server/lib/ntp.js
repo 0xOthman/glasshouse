@@ -13,6 +13,7 @@ var dgram = require('dgram');
 var dns = require('dns');
 var monotonicMs = require('./util').monotonicMs;
 var allocBuffer = require('./util').allocBuffer;
+var sameBytes = require('./util').sameBytes;
 
 var NTP_PORT = 123;
 var PACKET_BYTES = 48;
@@ -158,7 +159,7 @@ function buildRequest(nowMs) {
 function answersRequest(reply, request) {
   if (reply.length < PACKET_BYTES) return false;
   var originate = reply.slice(ORIGINATE, ORIGINATE + 8);
-  return originate.equals(request.slice(TRANSMIT, TRANSMIT + 8));
+  return sameBytes(originate, request.slice(TRANSMIT, TRANSMIT + 8));
 }
 
 /**

@@ -306,7 +306,7 @@ test('getLogs stitches entries from rotated log tvweb.log.1 across rotation boun
   var path = require('path');
   var os = require('os');
 
-  var tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tvweb-rot-test-'));
+  var tmpDir = tempDir('tvweb-rot-test-');
   var logPath = path.join(tmpDir, 'tvweb.log');
   var rotPath = path.join(tmpDir, 'tvweb.log.1');
 
@@ -427,7 +427,7 @@ test('getLogs with redact: true redacts sensitive entries in results', function 
   var path = require('path');
   var os = require('os');
 
-  var tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tvweb-redact-test-'));
+  var tmpDir = tempDir('tvweb-redact-test-');
   var logPath = path.join(tmpDir, 'tvweb.log');
   var oldEnv = process.env.TVWEB_LOG;
   process.env.TVWEB_LOG = logPath;
@@ -472,6 +472,15 @@ test('shouldLog filters log levels according to quiet, info, and debug modes', f
   assert.strictEqual(logs.shouldLog('DBG', 'debug'), true);
 });
 
+// fs.mkdtempSync arrived in node 5; webOS 2 and 4 run 0.10 and 0.12.
+var tempDirs = 0;
+function tempDir(prefix) {
+  var fs = require('fs'), os = require('os'), path = require('path');
+  var dir = path.join(os.tmpdir(), prefix + process.pid + '-' + (tempDirs++));
+  fs.mkdirSync(dir);
+  return dir;
+}
+
 // Run all tests
 var failures = 0;
 // Every async test and the synchronous pass, so a test registered after an
@@ -500,6 +509,9 @@ tests.forEach(function (t) {
   } catch (e) {
     failures++;
     console.log('  ✗ ' + t[0] + '\n      ' + (e.stack || e.message));
+    // An async test that threw never calls back: counted as done here, or the
+    // run never finishes and exits 0 with the failure unreported.
+    if (t[1].length > 0) { asyncLeft--; checkDone(); }
   }
 });
 asyncLeft--;

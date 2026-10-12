@@ -93,8 +93,8 @@ with `removeLaunchPoint`.
 **Which TVs have this home app.** Glasshouse's Home screen layout is offered
 only on webOS 9. webOS 3 and 4 have a different, plainer home app, and webOS 10
 and later have a Flutter one (its log lines come from `flutter-client`). The
-QML has code for webOS 23 (`webOS23Test`, the `webOS23` app list style), so a
-webOS 8 TV may read the same layout file; that has not been tried.
+QML has code for LG's webOS 23 (`webOS23Test`, the `webOS23` app list style),
+so a webOS 8 TV may read the same layout file; that has not been tried.
 
 ## Boot and app state (webOS 9.2.2, C2)
 

@@ -43,7 +43,7 @@ At least one part stays. A change takes a few seconds, while the Home screen sta
 
 **Put back LG's Home screen** shows every part again and takes off the input tiles added here; ones added on the TV stay. The TV app has the same switches.
 
-It is offered on webOS 9 (webOS 24), where it has been tried on a C2. webOS 3 and 4 have a much plainer Home screen, and webOS 10 and later a different home app, so neither has it. A webOS 8 TV may have the same home app; it is not offered there until one has been tried.
+It is offered on webOS 9 (LG's webOS 24), where it has been tried on a C2. webOS 3 and 4 have a much plainer Home screen, and webOS 10 and later a different home app, so neither has it. A webOS 8 TV may have the same home app; it is not offered there until one has been tried.
 
 ### Quick Access
 
