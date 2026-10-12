@@ -28,6 +28,23 @@ Lists the web pages on the Home screen, each of which opens in the TV's browser.
 
 ## Home screen and remote
 
+### Home screen layout
+
+Switches parts of LG's Home screen off, for a Home screen with only the apps and inputs on it:
+
+* **Banner**: the large picture at the top, with LG's adverts or, with them off, its own message and a Go to Apps button. The profile, notifications, settings and search buttons beside it go with it; Settings and search stay on the remote's own buttons.
+* **Quick Cards**: the coloured buttons for LG's offers, Sports, Gaming, Music and others.
+* **App tiles**: the row of apps and inputs.
+* **Recent Input and Device Functions**: the last input used, and cards for editing the app list, the TV guide, the user guide and Home Hub.
+
+At least one part stays. A change takes a few seconds, while the Home screen starts again, and lasts through restarts and power cuts. The rows further down, such as Live TV and LG Channels, come from LG's servers and stay.
+
+**Inputs on Home** adds a tile for each HDMI input, named as the TV names it, among the apps. It is LG's own tile for the input, so it can be moved or removed on the TV like any other.
+
+**Put back LG's Home screen** shows every part again and takes off the input tiles added here; ones added on the TV stay. The TV app has the same switches.
+
+It is offered on webOS 9 (webOS 24), where it has been tried on a C2. webOS 3 and 4 have a much plainer Home screen, and webOS 10 and later a different home app, so neither has it. A webOS 8 TV may have the same home app; it is not offered there until one has been tried.
+
 ### Quick Access
 
 Sets what each number key on the remote opens when it is held: an installed app, an HDMI input or Live TV, for keys 1 to 9. Holding 0 shows the list on the TV. A change applies straight away, the same as changing it in the TV's own Quick Access list, which shows it too.
