@@ -167,4 +167,44 @@ console.log('Running test-updater.js ...');
   console.log('  \u2713 the version line is where every installed updater looks for it');
 })();
 
+// What's new: the summary above "## Details" in each release since the installed one.
+(function testWhatsNew() {
+  var sum = updater.releaseSummary('Works on older TVs, back to [webOS 2](https://x/).\n\n## Details\n\n* Long notes (#681).');
+  assert.strictEqual(sum, 'Works on older TVs, back to webOS 2.');
+  assert.strictEqual(updater.releaseSummary('* Old-style notes, no summary (#600).'), null, 'no heading, no summary');
+  assert.strictEqual(updater.releaseSummary('## Details\n\nOnly details.'), null, 'an empty summary is none');
+
+  function rel(v, body, extra) {
+    var r = { tag_name: 'v' + v, html_url: 'https://x/v' + v, body: body };
+    for (var k in extra || {}) r[k] = extra[k];
+    return r;
+  }
+  var list = [
+    rel('0.93.0-rc1', 'Test build.\n\n## Details\nx', { prerelease: true }),
+    rel('0.92.0', 'Second.\n\n## Details\nx'),
+    rel('0.91.0', 'First.\n\n## Details\nx'),
+    rel('0.90.0', '* Before summaries.'),
+    rel('0.89.1', 'Installed.\n\n## Details\nx')
+  ];
+  var found = updater.readReleases(list, '0.89.1');
+  assert.strictEqual(found.latest, '0.92.0', 'a pre-release is not the latest');
+  assert.strictEqual(found.notes, 'Second.');
+  assert.deepEqual(found.whatsNew.map(function (r) { return r.version + ' ' + r.summary; }), ['0.92.0 Second.', '0.91.0 First.']);
+  assert.strictEqual(found.more, 1, 'the one without a summary is counted');
+  assert.strictEqual(updater.readReleases(list, '0.92.0').whatsNew.length, 0, 'nothing new when up to date');
+  assert.strictEqual(updater.readReleases({ message: 'API rate limit exceeded' }, '0.89.1'), null);
+  assert.strictEqual(updater.readReleases(rel('0.92.0', 'One.\n\n## Details\nx'), '0.91.0').latest, '0.92.0', 'a single release still reads');
+  // Whatever GitHub sends, nothing throws, a stray tag is not the latest, and
+  // only an https link is passed on.
+  var odd = updater.readReleases([null, { tag_name: 'latest' }, { tag_name: 123 }, { body: 'no tag' },
+    { tag_name: 'v0.99.0', body: { x: 1 }, html_url: 5 }], '0.90.0');
+  assert.strictEqual(odd.latest, '0.99.0');
+  assert.strictEqual(odd.url, null);
+  assert.strictEqual(odd.notes, null);
+  [null, 'text', 42, {}, [], [{ tag_name: 'v1.0.0', draft: true }]].forEach(function (x) {
+    assert.strictEqual(updater.readReleases(x, '0.90.0'), null);
+  });
+  console.log('  ✓ each release since the installed one gives its summary, newest first, and older notes none');
+})();
+
 console.log('ALL test-updater.js assertions passed!\n');

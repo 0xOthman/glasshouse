@@ -72,6 +72,13 @@ Publishing a release runs [`homebrew-channel.yml`](https://github.com/rorygallag
 attaches it and the Homebrew Channel manifest to the release, and records the
 package's sha256 in the manifest.
 
+A release's notes open with a short summary for people using Glasshouse, one
+to three plain lines, then a `## Details` heading with the full notes and their
+pull requests. The Server tab, the TV app and Home Assistant's update entity
+show only the summary, so it leaves out changes to the docs and the code
+that people using it would not notice. Releases before 0.91 have no summary,
+and show none.
+
 ## Running them locally
 
 From the repository root:

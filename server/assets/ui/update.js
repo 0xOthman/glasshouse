@@ -55,6 +55,7 @@ function renderUpdate(d) {
     ? t('server.available.hbc', 'v{version} is out. Update Glasshouse in the Homebrew Channel, or sideload the latest .ipk from GitHub releases.', { version: d.latest })
     : t('server.available', 'v{version} is out. Installing it replaces the server and restarts it.', { version: d.latest });
   desc.hidden = !d.available;
+  renderWhatsNew(d);
 
   updateToggle('upd-auto', {
     cls: d.autoCheck ? 'good' : 'idle',
@@ -146,6 +147,25 @@ function renderUpdate(d) {
   } else {
     vn.hidden = true;
   }
+}
+
+// What each release since the installed one brings: the summary at the top of
+// its notes. Older releases have none, and are counted instead.
+function renderWhatsNew(d) {
+  const box = q('upd-new');
+  if (!box) return;
+  const list = (d.available && d.whatsNew) || [];
+  box.hidden = !list.length;
+  if (!list.length) { box.innerHTML = ''; return; }
+  const more = d.whatsNewMore || 0;
+  box.innerHTML = `<div class="upd-new-h">${esc(t('server.whatsNew', 'What\u2019s new'))}</div>` +
+    list.map(r => `<div class="upd-new-r">
+      <p><span class="upd-new-v">v${esc(r.version)}</span>${esc(r.summary)}</p>
+      ${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(t('server.fullNotes', 'Full release notes'))}</a>` : ''}
+    </div>`).join('') +
+    (more ? `<div class="upd-new-r"><a href="${esc(REPO + '/releases')}" target="_blank" rel="noopener">${esc(more === 1
+      ? t('server.whatsNew.moreOne', 'And 1 more release')
+      : t('server.whatsNew.more', 'And {n} more releases', { n: more }))}</a></div>` : '');
 }
 
 async function loadUpdate() {

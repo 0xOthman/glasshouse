@@ -82,8 +82,11 @@ function githubSaid(status, url) {
                { where: where });
   }
   if (status === 403 || status === 429) {
-    return msg('srv.fetch.githubLimit', '{status} for {where} - either the API rate limit for this address is spent (60 an hour unauthenticated), or something on the network refused the request',
-               { status: status, where: where });
+    return msg('srv.fetch.githubLimit', 'GitHub refused the request ({status}). It allows 60 checks an hour from one address, so try again in an hour; if it keeps happening, something on the network may be blocking it.',
+               { status: status });
+  }
+  if (status >= 500) {
+    return msg('srv.fetch.githubDown', 'GitHub is not answering at the moment ({status}). Try again later.', { status: status });
   }
   return hostSaid(status, url, 'GitHub');
 }

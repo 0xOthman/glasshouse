@@ -1174,6 +1174,22 @@ function updateRows(d) {
         hint: t('tv.update.install.hint', 'Downloads and installs v{version} directly on the TV. The TV server restarts automatically.', { version: d.latest })
       });
     }
+    // What each release since the installed one brings: the summary at the
+    // top of its notes, shown as the row's hint.
+    var wn = d.whatsNew || [];
+    if (wn.length) {
+      r.push(head(t('server.whatsNew', 'What\u2019s new')));
+      for (var w = 0; w < wn.length; w++) {
+        r.push({ label: 'v' + wn[w].version, value: '', plain: true, hint: wn[w].summary });
+      }
+      if (d.whatsNewMore) {
+        r.push({
+          label: d.whatsNewMore === 1 ? t('server.whatsNew.moreOne', 'And 1 more release') : t('server.whatsNew.more', 'And {n} more releases', { n: d.whatsNewMore }),
+          value: '', plain: true,
+          hint: t('tv.update.whatsNew.more.hint', 'Their notes are on GitHub, under Glasshouse\u2019s releases.')
+        });
+      }
+    }
   } else if (d.latest) {
     r.push({
       label: t('tv.update.latestRelease', 'Latest release'),

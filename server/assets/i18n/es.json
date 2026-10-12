@@ -3080,8 +3080,12 @@
   "from": "GitHub returned 404 for {where} - no release published yet, or the repository is not visible"
  },
  "srv.fetch.githubLimit": {
-  "text": "{status} para {where}: se ha agotado el límite de la API para esta dirección (60 por hora sin autenticar), o algo de la red rechazó la petición",
-  "from": "{status} for {where} - either the API rate limit for this address is spent (60 an hour unauthenticated), or something on the network refused the request"
+  "text": "GitHub rechazó la solicitud ({status}). Permite 60 comprobaciones por hora desde una misma dirección, así que inténtalo de nuevo en una hora; si sigue pasando, puede que algo en la red la esté bloqueando.",
+  "from": "GitHub refused the request ({status}). It allows 60 checks an hour from one address, so try again in an hour; if it keeps happening, something on the network may be blocking it."
+ },
+ "srv.fetch.githubDown": {
+  "text": "GitHub no responde en este momento ({status}). Inténtalo de nuevo más tarde.",
+  "from": "GitHub is not answering at the moment ({status}). Try again later."
  },
  "srv.fetch.hostError": {
   "text": "{host} respondió con un error para {where}",
@@ -6078,5 +6082,25 @@
  "tv.viewOnly": {
   "text": "Solo visualización",
   "from": "View only"
+ },
+ "server.fullNotes": {
+  "text": "Notas completas de la versión",
+  "from": "Full release notes"
+ },
+ "server.whatsNew": {
+  "text": "Novedades",
+  "from": "What’s new"
+ },
+ "server.whatsNew.more": {
+  "text": "Y {n} versiones más",
+  "from": "And {n} more releases"
+ },
+ "server.whatsNew.moreOne": {
+  "text": "Y 1 versión más",
+  "from": "And 1 more release"
+ },
+ "tv.update.whatsNew.more.hint": {
+  "text": "Sus notas están en GitHub, en las versiones de Glasshouse.",
+  "from": "Their notes are on GitHub, under Glasshouse’s releases."
  }
 }

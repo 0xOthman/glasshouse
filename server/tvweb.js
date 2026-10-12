@@ -1018,6 +1018,22 @@ function setupHomeAssistant() {
    * state, and this changes once a day at most while telemetry goes out every
    * few seconds.
    */
+  /*
+   * What the releases since the installed one bring, newest first, as whole
+   * summaries: Home Assistant caps release_summary at 255 characters and drops
+   * the message whole if it is longer.
+   */
+  function haReleaseSummary(whatsNew) {
+    var out = '';
+    for (var i = 0; i < whatsNew.length; i++) {
+      var line = (whatsNew.length > 1 ? 'v' + whatsNew[i].version + ': ' : '') + whatsNew[i].summary;
+      var next = out ? out + '\n\n' + line : line;
+      if (next.length > 255) return out || line.slice(0, 254) + '\u2026';
+      out = next;
+    }
+    return out;
+  }
+
   function publishUpdate() {
     if (!mqttClient.connected) return;
     var upd = updater.UPDATE;
@@ -1031,9 +1047,8 @@ function setupHomeAssistant() {
     // the whole message: before the first check, 2 minutes after start (#586).
     if (upd.latest) state.latest_version = upd.latest;
     if (upd.url) state.release_url = upd.url;
-    // Home Assistant caps this at 255 characters and drops the message whole
-    // if it is longer.
-    if (upd.notes) state.release_summary = upd.notes.slice(0, 255);
+    var summary = haReleaseSummary(upd.whatsNew || []);
+    if (summary) state.release_summary = summary;
     mqttClient.publish(mqttTopics.update, JSON.stringify(state), true);
   }
   updater.setPublishHandler(publishUpdate, publishDiscovery);
