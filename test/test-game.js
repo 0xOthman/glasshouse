@@ -48,7 +48,7 @@ var cache = luna.createCache(function (uri, payload, cb) {
 var ttls = [];
 var game = require('../server/lib/game');
 var names = require('../server/lib/names');
-// A G5 (webOS 25) reported HDMI 3 under another app id: here HDMI 4 is also
+// A G5 (webOS 10) reported HDMI 3 under another app id: here HDMI 4 is also
 // com.example.hdmi4, as telemetry's inputKey maps it.
 game.init({
   lunaCached: function (uri, payload, ttl, cb) { ttls.push(ttl); cache.get(uri, payload, ttl, cb); },

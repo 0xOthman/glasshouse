@@ -14,7 +14,7 @@ Testing section.
 
 # Code map
 
-The server runs on the TV under node 0.12, so it and the pages the TV's own
+The server runs on the TV under node 0.12 (0.10 on webOS 2), so it and the pages the TV's own
 browser shows are strict ES5: `scripts/check-es5.py` lists what it rejects.
 Only `ui.html` and `assets/ui/` run in a phone or computer's browser and may
 use modern JavaScript.
@@ -122,6 +122,14 @@ Skip comments that restate the code.
 
 Keep the measured facts that justify a decision (an observed value, a version,
 a threshold). Drop the story around them.
+
+## webOS versions
+
+Name a webOS version as the TV reports it (`/etc/issue`, the dashboard): webOS
+4.4, webOS 9, webOS 10. LG's year names (webOS 22 to 26) are the reported major
+version plus 15; give one only in brackets, as "LG's webOS 25", where an owner
+would look for it. A TV's model year is not its webOS: the C2 runs 9.2.
+docs/tested-tvs.md#webos-version-numbers has the table.
 
 ## Names in code
 

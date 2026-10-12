@@ -131,7 +131,7 @@ var lastPicModes = [];
 var inputNameMap = {};
 /*
  * Short app ids an HDMI input reports that are not its port's, to the port's
- * key. A G5 (webOS 25) gave HDMI 3 a button labelled "Sling TV" that the input
+ * key. A G5 (webOS 10) gave HDMI 3 a button labelled "Sling TV" that the input
  * command refused, so its app id there was evidently not com.webos.app.hdmi3.
  */
 var inputAppAliases = {};
@@ -664,7 +664,7 @@ function hdmiDiagnostics(raw, port) {
 
   // isFreeSync is the VRR mode rather than a flag: 1 for FreeSync, 2 for
   // HDMI Forum VRR, which G-SYNC uses over HDMI (a PC at 4K120 on a C4,
-  // webOS 24, #475). Any mode but 0 is VRR.
+  // webOS 9, #475). Any mode but 0 is VRR.
   var isVrr = (vrrMatch && vrrMatch[1] !== '0') ||
               (vrrMinMax && (parseInt(vrrMinMax[1], 10) > 0 || parseInt(vrrMinMax[2], 10) > 0));
 
@@ -862,7 +862,7 @@ function signalFormat(reply) {
  * "Current Scenario doesn't support volume change".
  *
  * The newer audio service says so outright: adjustVolume and
- * externalDeviceControl (C2, webOS 22, which still reports a level of 10 over
+ * externalDeviceControl (C2, webOS 9.2, which still reports a level of 10 over
  * optical). volumeSyncable counts as settable too: an LG soundbar on eARC
  * whose level the TV shows and sets (SC9S on a C3, #406) is that case, and on
  * the C2 it is false over optical and over HDMI ARC with nothing answering.
@@ -895,7 +895,7 @@ function soundRoute(vs, sound) {
  * The route the TV last refused a volume or mute change on ("Current Scenario
  * doesn't support volume change"), which counts as no volume control until
  * the sound goes elsewhere. The flags above are not always right: an
- * OLED65G5WUA (webOS 25) on optical showed a settable level of 10 that no
+ * OLED65G5WUA (webOS 10) on optical showed a settable level of 10 that no
  * change moved.
  */
 var lastSoundRoute = null;
@@ -1561,7 +1561,7 @@ function collectStats(cb) {
   isCollecting = true;
 
   // The first collection after start-up asks every luna service afresh, none
-  // of it cached yet: 4.7-4.8s on a C2 (webOS 22), over the 4.5s limit that
+  // of it cached yet: 4.7-4.8s on a C2 (webOS 9.2), over the 4.5s limit that
   // later ones stay well within.
   var safetyTimeout = setTimeout(function () {
     if (isCollecting) {

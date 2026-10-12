@@ -43,7 +43,7 @@ When PicCap is answering on the TV, Glasshouse discovers a **PicCap Capture** sw
 
 Unlike standard desktop operating systems where screen recorders capture an OS framebuffer, webOS routes video content directly to dedicated hardware display pipelines. PicCap works by interfacing with low-level native capture libraries:
 
-* **`libvtcapture`:** Used on webOS 5.x through webOS 23 (firmware with Alpha 7 and Alpha 9 processors). Captures frames from the video hardware with low overhead.
+* **`libvtcapture`:** Used on webOS 5 through 8 (firmware with Alpha 7 and Alpha 9 processors). Captures frames from the video hardware with low overhead.
 * **`libdile_vt`:** Used on older webOS releases (webOS 3.5 to 4.5) and certain lower-power chipsets.
 
 PicCap captures frames at a configured resolution and frame rate, downsamples them, and sends them via FlatBuffers or ProtoBuffer over your local network to the Hyperion port (default `19445`).

@@ -417,7 +417,7 @@ console.log('Running test-telemetry.js ...');
 
 (function testVolumeControl() {
   var vc = telemetry.volumeControl;
-  // C2 (webOS 22): the newer service says how
+  // C2 (webOS 9.2): the newer service says how
   assert.strictEqual(vc({ adjustVolume: true, externalDeviceControl: false, volume: 9 }), 'level');
   assert.strictEqual(vc({ adjustVolume: false, externalDeviceControl: false, volume: 10 }), 'none', 'optical');
   assert.strictEqual(vc({ adjustVolume: false, externalDeviceControl: true, volumeSyncable: false, volume: 10 }), 'steps', 'HDMI ARC');

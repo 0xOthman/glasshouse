@@ -1,6 +1,8 @@
 # Tested TVs
 
-Confirmed on 43 TVs across 28 series so far (webOS 3.4 through 26). Other rooted models should work.
+Confirmed on 44 TVs across 29 series so far (webOS 2.2 through 11, which LG calls webOS 26). Other rooted models should work.
+
+Versions here are the ones the TV reports itself, as the dashboard shows them; [webOS version numbers](#webos-version-numbers) below gives LG's names for them.
 
 Sizes and regional variants of one series run the same software, so the table below has one row per series. Years are LG's model years; many TVs have since been updated to a later webOS.
 
@@ -8,6 +10,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 
 | Series        | Year | Panel | webOS seen        | Reports |
 | :------------ | :--- | :---- | :---------------- | :------ |
+| LF632V        | 2015 | LCD   | 2.2               | 1       |
 | UH6030        | 2016 | LCD   | 3.4               | 1       |
 | UH610V        | 2016 | LCD   | 3.4               | 1       |
 | UH635V        | 2016 | LCD   | 3.x               | 1       |
@@ -22,26 +25,27 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | C1            | 2021 | OLED  | 6.x               | 2       |
 | UP80          | 2021 | LCD   | 6.5               | 1       |
 | UP81          | 2021 | LCD   | 6.5               | 1       |
-| C2            | 2022 | OLED  | 9.2 (22)          | 1       |
-| G2            | 2022 | OLED  | 7.4 (22)          | 1       |
+| C2            | 2022 | OLED  | 9.2               | 1       |
+| G2            | 2022 | OLED  | 7.4               | 1       |
 | QNED82        | 2022 | LCD   | 7.6               | 1       |
 | LX3           | 2022 | OLED  | —                 | 1       |
-| CS            | 2022 | OLED  | 25                | 1       |
-| C3            | 2023 | OLED  | 25 – 26           | 3       |
-| G3            | 2023 | OLED  | 26                | 1       |
-| B4            | 2024 | OLED  | 24                | 1       |
-| C4            | 2024 | OLED  | 24 – 25           | 4       |
-| G4            | 2024 | OLED  | 24 – 25           | 2       |
-| UT81          | 2024 | LCD   | 25                | 1       |
-| C5            | 2025 | OLED  | 25                | 3       |
-| G5            | 2025 | OLED  | 25 – 26           | 2       |
-| NU80          | 2026 | LCD   | 26                | 1       |
+| CS            | 2022 | OLED  | 10                | 1       |
+| C3            | 2023 | OLED  | 10 – 11           | 3       |
+| G3            | 2023 | OLED  | 11                | 1       |
+| B4            | 2024 | OLED  | 9                 | 1       |
+| C4            | 2024 | OLED  | 9 – 10            | 4       |
+| G4            | 2024 | OLED  | 9 – 10            | 2       |
+| UT81          | 2024 | LCD   | 10                | 1       |
+| C5            | 2025 | OLED  | 10                | 3       |
+| G5            | 2025 | OLED  | 10 – 11           | 2       |
+| NU80          | 2026 | LCD   | 11                | 1       |
 
 <details markdown="1">
 <summary>All reports</summary>
 
 | Model       | webOS        | Firmware | Panel | Notes                                                          |
 | :---------- | :----------- | :------- | :---- | :------------------------------------------------------------- |
+| 49LF632V-ZC | 2.2.3        | —        | LCD   | Settings service under its older name; server on Node 0.10     |
 | 43UH610V-ZB | 3.4.3        | 05.70.50 | LCD   | No SoC temp, eMMC wear, or OLED metrics by hardware design     |
 | 55UH6030-UC | 3.4.3        | —        | LCD   |                                                                |
 | 58UH635V    | 3.x          | 05.70.40 | LCD   | no eMMC wear reported                                          |
@@ -62,30 +66,50 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | OLED55C1PUB | 6.x (6.3+)   | 03.53.45 | OLED  | SSH install and MQTT bridge confirmed                          |
 | 50UP81006LR | 6.5.0        | 03.51.16 | LCD   | Installed over telnet; in-app update confirmed                 |
 | 43UP80006LA | 6.5.3        | 03.53.45 | LCD   | MQTT bridge confirmed                                          |
-| OLED65G29LA | 7.4.0 (22)   | 04.40.90 | OLED  | Confirmed working                                              |
+| OLED65G29LA | 7.4.0        | 04.40.90 | OLED  | Confirmed working                                              |
 | 55QNED826QB | 7.6.0        | 04.60.90 | LCD   | Installed over SSH; MQTT bridge confirmed                      |
-| OLED42C24LA | 9.2.2 (22+)  | 23.25.55 | OLED  | Rooted with jsbro-autoroot                                     |
-| OLED55C4PUA | 24 (9.2.0)   | 23.20.35 | OLED  | Rooted with faultmanager; SSH install; no internet access      |
-| OLED55B46LA | 24 (9.24.8)  | 23.23.30 | OLED  | Installed over telnet                                          |
-| OLED55G42LW | 24           | 33.31.68 | OLED  | Rooted with slopbro, not the Homebrew Channel                  |
-| 50UT81006LA | 25 (10.2.1)  | 33.22.56 | LCD   | Partial: blocking works; some settings reported not to apply   |
-| OLED55C31LA | 25 (10.2.2)  | 33.22.80 | OLED  | Installed over SSH; in-app updates confirmed                   |
-| OLED65CSPSA | 25 (10.3.0)  | 33.31.20 | OLED  | Reported working                                               |
-| OLED65C41LA | 25 (10.3.0)  | 33.31.24 | OLED  | Rooted with Dangbro; installed with webOS Dev Manager          |
-| OLED65C3PUA | 25 (10.3.1)  | 33.31.68 | OLED  | MQTT and volume control confirmed                              |
-| OLED65C4PSA | 25 (10.3.1)  | 33.31.6  | OLED  |                                                                |
-| OLED65G45LW | 25 (10.3.1)  | —        | OLED  | Rooted with Dangbro                                            |
-| OLED77C4PSA | 25 (10.3.1)  | 33.31.68 | OLED  | Rooted with Dangbro; resolution reported stuck at 1920x1081    |
-| OLED48C55LA | 25 (10.3.1)  | 33.31.68 | OLED  | Installed over telnet; in-app update to 0.37.2 confirmed       |
-| OLED77C57LA | 25 (10.3.1)  | 33.31.68 | OLED  | MQTT, privacy, screen saver and web dashboard confirmed        |
-| OLED48C5PUA | 25 (10.3.1)  | 33.31.69 | OLED  | Rooted with slopbro; dashboard, telemetry and API .ipk installs |
-| OLED65G5WUA | 25           | 33.30.69 | OLED  | No screen saver tab; volume stuck at +10 on optical output     |
+| OLED42C24LA | 9.2.2        | 23.25.55 | OLED  | Rooted with jsbro-autoroot                                     |
+| OLED55C4PUA | 9.2.0        | 23.20.35 | OLED  | Rooted with faultmanager; SSH install; no internet access      |
+| OLED55B46LA | 9.24.8       | 23.23.30 | OLED  | Installed over telnet                                          |
+| OLED55G42LW | 9            | 33.31.68 | OLED  | Rooted with slopbro, not the Homebrew Channel                  |
+| 50UT81006LA | 10.2.1       | 33.22.56 | LCD   | Partial: blocking works; some settings reported not to apply   |
+| OLED55C31LA | 10.2.2       | 33.22.80 | OLED  | Installed over SSH; in-app updates confirmed                   |
+| OLED65CSPSA | 10.3.0       | 33.31.20 | OLED  | Reported working                                               |
+| OLED65C41LA | 10.3.0       | 33.31.24 | OLED  | Rooted with Dangbro; installed with webOS Dev Manager          |
+| OLED65C3PUA | 10.3.1       | 33.31.68 | OLED  | MQTT and volume control confirmed                              |
+| OLED65C4PSA | 10.3.1       | 33.31.6  | OLED  |                                                                |
+| OLED65G45LW | 10.3.1       | —        | OLED  | Rooted with Dangbro                                            |
+| OLED77C4PSA | 10.3.1       | 33.31.68 | OLED  | Rooted with Dangbro; resolution reported stuck at 1920x1081    |
+| OLED48C55LA | 10.3.1       | 33.31.68 | OLED  | Installed over telnet; in-app update to 0.37.2 confirmed       |
+| OLED77C57LA | 10.3.1       | 33.31.68 | OLED  | MQTT, privacy, screen saver and web dashboard confirmed        |
+| OLED48C5PUA | 10.3.1       | 33.31.69 | OLED  | Rooted with slopbro; dashboard, telemetry and API .ipk installs |
+| OLED65G5WUA | 10           | 33.30.69 | OLED  | No screen saver tab; volume stuck at +10 on optical output     |
 | 42LX3Q6LA   | —            | 33.31.68 | OLED  | Flex; model number has no OLED prefix                          |
-| 43NU800BPSC | 26 (11.0.0)  | 43.02.50 | LCD   | Rooted with slopbro; privacy controls confirmed                |
-| OLED65G36LA | 26 (11.2.0)  | 43.21.71 | OLED  | Rooted with DualBro; privacy and app installs confirmed        |
-| OLED83G5WUA | 26 (11.2.0)  | 43.21.71 | OLED  | Rooted with DualBro; runs with internet access blocked         |
-| OLED42C35LA | 26 (11.2.0)  | 43.21.71 | OLED  | Working; Screensaver tab hidden, as screen savers are experimental there |
+| 43NU800BPSC | 11.0.0       | 43.02.50 | LCD   | Rooted with slopbro; privacy controls confirmed                |
+| OLED65G36LA | 11.2.0       | 43.21.71 | OLED  | Rooted with DualBro; privacy and app installs confirmed        |
+| OLED83G5WUA | 11.2.0       | 43.21.71 | OLED  | Rooted with DualBro; runs with internet access blocked         |
+| OLED42C35LA | 11.2.0       | 43.21.71 | OLED  | Working; Screensaver tab hidden, as screen savers are experimental there |
 
 </details>
+
+## webOS version numbers
+
+LG names webOS versions two ways. The TV itself, and this project, use the version it reports (`/etc/issue`, or the dashboard's Metrics tab): 3.4, 4.4, 9.2 and so on. From 2022 LG markets them by year instead, so the same software is also called webOS 22, 23, 24 and so on: always the reported major version plus 15.
+
+| The TV reports | LG calls it    | First shipped on |
+| :------------- | :------------- | :--------------- |
+| 1.x            | webOS 1.0      | 2014 TVs         |
+| 2.x            | webOS 2.0      | 2015 TVs         |
+| 3.x            | webOS 3.0, 3.5 | 2016–2017 TVs    |
+| 4.x            | webOS 4.0, 4.5 | 2018–2019 TVs    |
+| 5.x            | webOS 5.0      | 2020 TVs         |
+| 6.x            | webOS 6.0      | 2021 TVs         |
+| 7.x            | webOS 22       | 2022 TVs         |
+| 8.x            | webOS 23       | 2023 TVs         |
+| 9.x            | webOS 24       | 2024 TVs         |
+| 10.x           | webOS 25       | 2025 TVs         |
+| 11.x           | webOS 26       | 2026 TVs         |
+
+LG's updates have moved some TVs to a later version than they shipped with, so a TV's model year does not give its webOS: a 2022 C2 updated to webOS 24 reports 9.2.
 
 **Tested on another model?** Please [open an issue](https://github.com/rorygallagher2024/glasshouse/issues/new) with the TV model, webOS version, and the contents of `/var/lib/tvweb/tvweb.log` — whether everything worked or something broke — and we will add a row.

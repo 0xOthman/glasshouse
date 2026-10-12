@@ -441,7 +441,7 @@ function restartSamNow(cb) {
   function executeRestart(savedAppId) {
     /*
      * systemd rate-limits on-failure restarts - StartLimitBurst=5 inside
-     * StartLimitIntervalSec=10s on webOS 5 and webOS 22 TVs. Hiding a run of
+     * StartLimitIntervalSec=10s on webOS 5 and webOS 9 TVs. Hiding a run of
      * tiles restarts sam once each, so from the sixth restart on systemd refuses
      * and leaves the unit failed: no home screen, and the next launch lands on
      * the last input. Clearing the counter first makes each kill look like the

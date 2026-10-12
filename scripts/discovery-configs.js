@@ -8,7 +8,7 @@
  *   node scripts/discovery-configs.js [--server <dir>] [lg settings rows file]
  *
  * The rows default to test/fixtures/lgsettings-c2-webos22.json, as a C2 on
- * webOS 22 reports LG's settings. --server builds from another copy of
+ * webOS 9.2 reports LG's settings. --server builds from another copy of
  * server/, such as a release's, which check-entity-stability.py compares.
  */
 var fs = require('fs');

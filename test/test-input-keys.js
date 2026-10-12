@@ -11,7 +11,7 @@ var state = require('../server/lib/state');
 
 console.log('Running test-input-keys.js ...');
 
-// As reported on a G5 (webOS 25): HDMI 3 under another app id, named "Sling
+// As reported on a G5 (webOS 10): HDMI 3 under another app id, named "Sling
 // TV". The id is a stand-in; the TV's own was not captured. The last entry is
 // not an HDMI input and gets no button.
 var DEVICES = [

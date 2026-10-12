@@ -2,7 +2,7 @@
 #
 # Helper for server/lib/remotebuttons.js.
 # Reads remote button events on webOS using non-blocking I/O.
-# Compatible with both Python 2.7 (webOS 4) and Python 3 (webOS 22+).
+# Compatible with both Python 2.7 (webOS 4) and Python 3 (webOS 7 and later).
 #
 import os
 import sys

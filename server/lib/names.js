@@ -210,7 +210,7 @@ var APP_PREFIX = 'com.webos.app.';
 /*
  * HDMI inputs go by the port's key, hdmi3, whatever else the TV calls them:
  * HDMI_3 in eim's input list, com.webos.app.hdmi3 as the usual app id. A G5
- * (webOS 25) reported one input under another app id, so the app id is not
+ * (webOS 10) reported one input under another app id, so the app id is not
  * enough on its own: aliases maps such short ids to their port's key.
  */
 function hdmiKey(port) {
