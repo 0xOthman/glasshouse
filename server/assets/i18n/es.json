@@ -947,6 +947,14 @@
   "text": "Sonido",
   "from": "Sound"
  },
+ "ctl.soundFormat": {
+  "text": "Formato de sonido",
+  "from": "Sound format"
+ },
+ "ctl.soundFormat.desc": {
+  "text": "Lo que envía la app o la entrada en pantalla, tal como lo recibe la TV.",
+  "from": "What the app or input on screen is sending, as the TV receives it."
+ },
  "ctl.soundOutput": {
   "text": "Salida",
   "from": "Output"

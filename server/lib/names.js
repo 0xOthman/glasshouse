@@ -367,6 +367,54 @@ function soundOutput(raw) {
 }
 
 /*
+ * The format of the sound being played, as the audio service's
+ * tv/getAudioInputProperty names it: a C2 (webOS 9.2) gave pcm for an HDMI
+ * source and opus for YouTube, and its audio libraries name the rest.
+ */
+var AUDIO_CODECS = {
+  pcm: 'PCM',
+  lpcm: 'PCM',
+  aac: 'AAC',
+  heaac: 'HE-AAC',
+  ac3: 'Dolby Digital',
+  eac3: 'Dolby Digital Plus',
+  ac4: 'Dolby AC-4',
+  truehd: 'Dolby TrueHD',
+  dts: 'DTS',
+  dtshd: 'DTS-HD',
+  dtsx: 'DTS:X',
+  mpeg: 'MPEG audio',
+  mpegh: 'MPEG-H',
+  mp3: 'MP3',
+  opus: 'Opus',
+  vorbis: 'Vorbis',
+  flac: 'FLAC'
+};
+
+// A codec outside the table is shown as the TV gives it, in capitals.
+function audioCodec(raw) {
+  var codec = String(raw || '').toLowerCase();
+  return {
+    display: AUDIO_CODECS.hasOwnProperty(codec) ? AUDIO_CODECS[codec] : codec.toUpperCase(),
+    label: snakeCase(codec)
+  };
+}
+
+/*
+ * The same answer's immersive: none, or the object-based format on top of the
+ * codec. The libraries spell Atmos atmos, DOLBY_ATMOS and "Dolby Atmos".
+ * null for none or nothing.
+ */
+function audioImmersive(raw) {
+  var v = String(raw || '').toLowerCase().replace(/[\s_:-]+/g, '');
+  if (!v || v === 'none') return null;
+  if (v === 'atmos' || v === 'dolbyatmos') return { display: 'Dolby Atmos', label: 'dolby_atmos' };
+  if (v === 'dtsx') return { display: 'DTS:X', label: 'dts_x' };
+  if (v === 'mpegh') return { display: 'MPEG-H', label: 'mpeg_h' };
+  return { display: String(raw), label: snakeCase(String(raw)) };
+}
+
+/*
  * What the settings service accepts for logoLuminanceAdjust, per
  * getSystemSettingValues on a B8, and its names. "strong" is the strongest,
  * not an on/off; the TV's own menu shows it as High.
@@ -446,6 +494,8 @@ module.exports = {
   pictureMode: pictureMode,
   SOUND_OUTPUTS: SOUND_OUTPUTS,
   soundOutput: soundOutput,
+  audioCodec: audioCodec,
+  audioImmersive: audioImmersive,
   LOGO_DIMMING: LOGO_DIMMING,
   ENERGY_SAVING_STEPS: ENERGY_SAVING_STEPS,
   REFRESHER_STATUSES: REFRESHER_STATUSES,
