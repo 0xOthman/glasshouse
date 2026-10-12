@@ -8,7 +8,7 @@ Hides built-in LG apps, such as Gallery, Music and Sports, from the Home screen 
 
 ## Custom screen savers on webOS 10 and later
 
-Replaces LG's screen saver with one of the dashboard's own, chosen on the **Screensaver** tab. It is experimental only on webOS 10 and later. On webOS 9 and earlier, custom screen savers work without turning anything on.
+Replaces LG's screen saver with one of the dashboard's own, chosen on the **Screensaver** tab. It is experimental only on webOS 10 and later, where the Screensaver tab itself also has the switch, above the list. On webOS 9 and earlier, custom screen savers work without turning anything on.
 
 ## Why they're experimental
 

@@ -4055,6 +4055,22 @@
   "text": "Desactivar salvapantallas",
   "from": "Dismiss screen saver"
  },
+ "ss.exp.confirm": {
+  "text": "¿Activar los salvapantallas personalizados?\n\nEn webOS 10 y posteriores, usar uno ha dejado a veces la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV. Desenchufarla un minuto lo arregla.",
+  "from": "Switch on custom screen savers?\n\nOn webOS 10 and later, using one has sometimes left the picture, the sound and HDMI control off until the TV was unplugged. Unplugging the TV for a minute puts it right."
+ },
+ "ss.exp.desc": {
+  "text": "En webOS 10 y posteriores, usar uno ha dejado a veces la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV.",
+  "from": "On webOS 10 and later, using one has sometimes left the picture, the sound and HDMI control off until the TV was unplugged."
+ },
+ "ss.exp.onTitle": {
+  "text": "Salvapantallas personalizados: activados (experimental)",
+  "from": "Custom screen savers: on (experimental)"
+ },
+ "ss.exp.title": {
+  "text": "Los salvapantallas personalizados son experimentales en esta TV",
+  "from": "Custom screen savers are experimental on this TV"
+ },
  "ss.external.active": {
   "text": "Un salvapantallas homebrew de terceros está activo actualmente en la TV. Seleccionar un salvapantallas de Glasshouse lo reemplazará.",
   "from": "A third-party homebrew screen saver is currently active on the TV. Selecting a Glasshouse screen saver will replace it."
@@ -5262,6 +5278,18 @@
  "tv.privacy.sharesWith": {
   "text": "Desactivar esto también desactiva {names}.",
   "from": "Switching this off also switches off {names}."
+ },
+ "tv.saver.allow.again": {
+  "text": "Pulsa OK de nuevo para activarlos",
+  "from": "Press OK again to switch on"
+ },
+ "tv.saver.allow.off": {
+  "text": "Pulsa OK para desactivarlos",
+  "from": "Press OK to switch off"
+ },
+ "tv.saver.allow.on": {
+  "text": "Pulsa OK para activarlos (experimental)",
+  "from": "Press OK to switch on (experimental)"
  },
  "tv.saver.alreadyInUse": {
   "text": "Ya está en uso",

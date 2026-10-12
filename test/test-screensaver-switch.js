@@ -111,8 +111,10 @@ realNextTick(function () {
           // 4. Going back to LG's screen saver is still allowed, with the pause
           screensavers.setScreensaver('stock', 'dim', function (s) {
             assert.strictEqual(s.ok, true);
-            // Back on LG's, there is nothing left to choose: the tab goes.
-            assert.strictEqual(screensavers.screensaverList().available, false);
+            // Back on LG's, the tab stays, to offer the switch that turns
+            // custom screen savers on, and they are still held back.
+            assert.strictEqual(screensavers.screensaverList().available, true);
+            assert.strictEqual(screensavers.screensaverList().held, true);
             assert.strictEqual(restarts.length, 1);
             assert.ok(/restart --no-block sam/.test(restarts[0]));
             assert.strictEqual(s.switching, true);

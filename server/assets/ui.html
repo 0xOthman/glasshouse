@@ -569,6 +569,16 @@
 </section>
 
 <section class="priv panel" id="sspane" role="tabpanel" hidden>
+  <!-- On webOS 10 and later custom screen savers are experimental (#366). -->
+  <div class="prot-table ss-exp" id="ss-exp" hidden>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" id="ss-exp-title"></div>
+        <div class="prot-desc" id="ss-exp-desc"></div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="ss-exp-btn" onclick="toggleSsExperimental()">&mdash;</button></div>
+    </div>
+  </div>
   <div class="ss-split">
   <div id="ss-list" class="ss-list"></div>
   <div class="ss-side">
