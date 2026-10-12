@@ -79,7 +79,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   # The unit tests on the node each kind of supported TV runs, since a
-  # laptop's node accepts calls an older one lacks: 0.12 on webOS 4 (B8),
+  # laptop's node accepts calls an older one lacks: 0.10 on webOS 2
+  # (49LF632V), 0.12 on webOS 4 (B8),
   # 8.12 on webOS 6 (50UP81006LR) and 16 on webOS 9 (C2), and on 20, the
   # runner's own. In parallel, each its own job.
   tv-node:
@@ -87,7 +88,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['0.12', '8.12', '16', '20', '24']
+        node: ['0.10', '0.12', '8.12', '16', '20', '24']
     name: Unit tests (Node ${{ matrix.node }})
     steps:
       - uses: actions/checkout@v7

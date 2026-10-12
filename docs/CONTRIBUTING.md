@@ -102,6 +102,7 @@ The automated checks run the server's code, not the TV. LG's services, the pictu
 * **Check that what's around it still works.** The TV still shows its inputs, sound still plays, and the dashboard keeps updating.
 * **Restart the server or the TV** if the change affects start-up, the boot hook (`server/50-tvweb.sh`), or anything that runs only once.
 * **Mind older TVs.** On webOS 2 to 4 the server runs on Node 0.10 or 0.12, and a call newer firmware accepts may not exist there. If you can only test on one generation, say which.
+* **Older TVs get fewer features, not a lower ceiling.** webOS 2 and 3 lack many of LG's services, so features that need them are left out there rather than held back everywhere: gate a feature on the TV's version or on the service answering. The oldest TVs set only one limit, that the server and the TV app stay ES5 for Node 0.10 and 0.12. Support for both goes together, once keeping it costs real development, such as wanting ES6 in the server.
 
 ### Testing details in the pull request
 

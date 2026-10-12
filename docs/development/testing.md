@@ -28,7 +28,7 @@ something is wrong, and Home Assistant and the TV's own browser fail quietly.
 
 ## On each supported TV's node
 
-The unit tests run on node 0.12 (webOS 4, the B8), 8.12 (webOS 6), 16
+The unit tests run on node 0.10 (webOS 2, a 49LF632V), 0.12 (webOS 4, the B8), 8.12 (webOS 6), 16
 (webOS 9, the C2), 20 and 24, each in parallel in the [`tv-node` job](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/checks.yml#L72-L85). A computer's node
 accepts calls an older one lacks.
 
