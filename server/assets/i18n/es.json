@@ -6102,5 +6102,49 @@
  "tv.update.whatsNew.more.hint": {
   "text": "Sus notas están en GitHub, en las versiones de Glasshouse.",
   "from": "Their notes are on GitHub, under Glasshouse’s releases."
+ },
+ "apps.home.exp.confirm": {
+  "text": "¿Activar el diseño de la pantalla de inicio?\n\nEn webOS 10, Glasshouse coloca su propio diseño de la pantalla de inicio sobre el de LG cada vez que el TV se inicia, así que el de LG puede verse un momento antes, y solo se ha probado en unos pocos TV. Restaurar la pantalla de inicio de LG, o desactivar esto, lo deshace.",
+  "from": "Switch on Home screen layout?\n\nOn webOS 10 Glasshouse lays its own Home screen layout over LG’s each time the TV starts, so LG’s can show for a moment first, and it has been tried on only a few TVs. Put back LG’s Home screen, or switching this off, undoes it."
+ },
+ "apps.home.exp.desc": {
+  "text": "En webOS 10, Glasshouse coloca su propio diseño de la pantalla de inicio sobre el de LG cada vez que el TV se inicia, así que el de LG puede verse un momento antes, y solo se ha probado en unos pocos TV. Restaurar la pantalla de inicio de LG, o desactivar esto, lo deshace.",
+  "from": "On webOS 10 Glasshouse lays its own Home screen layout over LG’s each time the TV starts, so LG’s can show for a moment first, and it has been tried on only a few TVs. Put back LG’s Home screen, or switching this off, undoes it."
+ },
+ "apps.home.exp.title": {
+  "text": "Experimental en este TV",
+  "from": "Experimental on this TV"
+ },
+ "server.experimental.homeLayout": {
+  "text": "Diseño de la pantalla de inicio (webOS 10)",
+  "from": "Home screen layout (webOS 10)"
+ },
+ "server.experimental.homeLayout.short": {
+  "text": "Permite desactivar partes de la pantalla de inicio de LG en webOS 10, en la pestaña Apps.",
+  "from": "Allows switching off parts of LG’s Home screen on webOS 10, on the Apps tab."
+ },
+ "srv.home.notAllowed": {
+  "text": "Activa primero el diseño de la pantalla de inicio. Es experimental en este TV.",
+  "from": "Switch on Home screen layout first. It is experimental on this TV."
+ },
+ "srv.home.recommended": {
+  "text": "Fila de recomendaciones",
+  "from": "Recommended shelf"
+ },
+ "srv.home.recommended.desc": {
+  "text": "La fila de programas y películas que recomienda LG, debajo de las apps.",
+  "from": "The row of programmes and films LG recommends, below the apps."
+ },
+ "srv.home.sideIcons": {
+  "text": "Botones laterales",
+  "from": "Side buttons"
+ },
+ "srv.home.sideIcons.desc": {
+  "text": "Los botones de perfil, notificaciones, ajustes y búsqueda junto al banner. Ajustes y búsqueda siguen en los botones del mando.",
+  "from": "The profile, notifications, settings and search buttons beside the banner. Settings and search stay on the remote's own buttons."
+ },
+ "tv.apps.home.exp.hint": {
+  "text": "Actívalo desde el panel en un navegador, en Apps, donde está su advertencia.",
+  "from": "Switch it on from the dashboard in a browser, under Apps, where its warning is."
  }
 }

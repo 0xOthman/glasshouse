@@ -563,6 +563,7 @@ function updateSummary() {
   s.allowTileHiding = !!(appsModule && appsModule.tileHidingAllowed && appsModule.tileHidingAllowed());
   s.allowOnWebos10 = !!(screensaversModule && screensaversModule.allowedAnyway && screensaversModule.allowedAnyway());
   s.isWebos10 = !!(screensaversModule && screensaversModule.slowSwitch && screensaversModule.slowSwitch());
+  s.homeLayout = homeScreenModule ? homeScreenModule.experimental() : null;
   s.prometheusEnabled = prometheusEnabled();
   s.ntp = ntpModule ? ntpModule.getStatus() : null;
   // What is saved, on or off, so the switch can show a server kept while off.
@@ -1303,6 +1304,14 @@ function handleRequest(req, res) {
       if (!homeScreenModule) return send(res, 503, JSON.stringify({ ok: false, error: 'home screen module unavailable' }));
       function done(r) { send(res, r && r.ok ? 200 : 400, JSON.stringify(r)); }
       body = body || {};
+      if (typeof body.allow === 'boolean') {
+        var allowHome = body.allow;
+        return writeSettings({ allowHomeLayout: allowHome }, function (err) {
+          if (err) return done({ ok: false, error: 'could not save setting: ' + err.message });
+          config.allowHomeLayout = allowHome;
+          homeScreenModule.allowChanged(allowHome, done);
+        });
+      }
       if (body.restore === true) return homeScreenModule.restore(done);
       if (typeof body.part === 'string') return homeScreenModule.setPart(body.part, !!body.shown, done);
       if (typeof body.input === 'string') return homeScreenModule.setInput(body.input, !!body.onHome, done);

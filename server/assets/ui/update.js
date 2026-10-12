@@ -110,6 +110,19 @@ function renderUpdate(d) {
     renderNtp(d.ntp, d.ntpSettings, d.writable);
   }
 
+  const hlRow = q('exp-homelayout-row');
+  if (hlRow) {
+    hlRow.hidden = !d.homeLayout;
+    if (d.homeLayout) {
+      updateToggle('exp-homelayout', {
+        cls: d.homeLayout.allowed ? 'good' : 'idle',
+        label: d.homeLayout.allowed ? t('common.on', 'On') : t('common.off', 'Off'),
+        on: d.homeLayout.allowed,
+        disabled: !d.writable
+      });
+    }
+  }
+
   const ssRow = q('exp-screensaver-row');
   if (ssRow) {
     ssRow.hidden = !d.isWebos10;

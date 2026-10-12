@@ -706,6 +706,17 @@ function appsRows(d) {
   var hs = d.homeScreen;
   if (hs && hs.parts) {
     r.push(head(t('apps.home', 'Home screen layout')));
+    // Experimental on webOS 10: switched on from the dashboard in a browser,
+    // where its warning is.
+    var locked = !!(hs.experimental && !hs.experimental.allowed);
+    if (locked) {
+      r.push({
+        label: t('apps.home.exp.title', 'Experimental on this TV'),
+        value: t('common.off', 'Off'),
+        cls: 'off',
+        hint: t('tv.apps.home.exp.hint', 'Switch it on from the dashboard in a browser, under Apps, where its warning is.')
+      });
+    }
     var hin = hs.inputs || [];
     for (var hi = 0; hi < hin.length; hi++) {
       var inp = hin[hi];
@@ -713,7 +724,7 @@ function appsRows(d) {
         label: inp.title,
         value: inp.onHome ? t('apps.home.onHome', 'On Home') : t('apps.home.notOnHome', 'Not on Home'),
         cls: inp.onHome ? 'on' : 'off',
-        act: d.writable === false ? null : 'homeInput',
+        act: d.writable === false || locked ? null : 'homeInput',
         key: inp.id,
         on: inp.onHome,
         press: inp.onHome ? t('tv.apps.home.inputOff', 'Press OK to take its tile off Home') : t('tv.apps.home.inputOn', 'Press OK to add a tile for it'),
@@ -726,7 +737,7 @@ function appsRows(d) {
         label: part.title,
         value: part.shown ? t('apps.home.shown', 'Shown') : t('apps.home.hidden', 'Hidden'),
         cls: part.shown ? 'on' : 'off',
-        act: d.writable === false ? null : 'homePart',
+        act: d.writable === false || locked ? null : 'homePart',
         key: part.id,
         on: part.shown,
         press: part.shown ? t('tv.apps.home.hide', 'Press OK to hide it') : t('tv.apps.home.show', 'Press OK to show it'),
@@ -734,7 +745,7 @@ function appsRows(d) {
         hint: part.desc + ' ' + t('tv.apps.home.restart', 'The Home screen starts again, which takes a few seconds.')
       });
     }
-    if (d.writable !== false) {
+    if (d.writable !== false && !locked) {
       r.push({
         label: t('apps.home.restore', 'Put back LG\u2019s Home screen'),
         value: t('tv.apps.home.restore.value', 'Put back'),

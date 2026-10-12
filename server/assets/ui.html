@@ -706,6 +706,15 @@
     <details class="pv-d" id="disc-homescreen" hidden>
       <summary><span data-t="apps.home">Home screen layout</span> <span class="cur" id="apps-home-summary"></span></summary>
       <div class="pv-sub" data-t="apps.home.desc">Which parts of LG&rsquo;s Home screen show, and which inputs have a tile among the apps. A change takes a few seconds, while the Home screen starts again.</div>
+      <div class="prot-table" id="apps-home-exp" hidden>
+        <div class="prot-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="apps.home.exp.title">Experimental on this TV</div>
+            <div class="prot-desc" data-t="apps.home.exp.desc">On webOS 10 Glasshouse lays its own Home screen layout over LG&rsquo;s each time the TV starts, so LG&rsquo;s can show for a moment first, and it has been tried on only a few TVs. Put back LG&rsquo;s Home screen, or switching this off, undoes it.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="btn-home-allow" onclick="toggleHomeLayoutAllowed('btn-home-allow')">&mdash;</button></div>
+        </div>
+      </div>
       <div class="pv-g" id="apps-home-inputs-h" data-t="apps.home.inputs">Inputs on Home</div>
       <div class="prot-table" id="apps-home-inputs"></div>
       <div class="pv-g" data-t="apps.home.parts">Parts of the Home screen</div>
@@ -1086,6 +1095,13 @@
             <div class="prot-desc" data-t="server.experimental.tileHiding.short">Allows hiding built-in apps from the Home screen, on the Apps tab.</div>
           </div>
           <div class="prot-status"><button type="button" class="pill idle" id="exp-tilehiding" onclick="toggleExpTileHiding()">&mdash;</button></div>
+        </div>
+        <div class="prot-row" id="exp-homelayout-row" hidden>
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.experimental.homeLayout">Home screen layout (webOS 10)</div>
+            <div class="prot-desc" data-t="server.experimental.homeLayout.short">Allows switching off parts of LG&rsquo;s Home screen on webOS 10, on the Apps tab.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="exp-homelayout" onclick="toggleHomeLayoutAllowed('exp-homelayout')">&mdash;</button></div>
         </div>
         <div class="prot-row" id="exp-screensaver-row" hidden>
           <div class="prot-main">

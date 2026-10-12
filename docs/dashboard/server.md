@@ -29,4 +29,4 @@ Folded away, since nothing in it needs changing for everyday use. Once opened, i
 * **Set the clock from a time server** switches the TV over to [a time server on the local network](../ntp.md), for networks that run one. Switched on, it asks for the server's address. Switched off, the address is kept for next time.
 * **Prometheus metrics** turns on the [Prometheus endpoint](../PROMETHEUS.md).
 * **Web app debugger** opens or closes Developer Mode's debugger to the network. It is closed unless it is needed, since webOS leaves it open with no password.
-* **Experimental features**: hiding built-in apps from the Home screen, and custom screen savers on webOS 10 and later. See [Experimental features](../experimental.md) for why they are experimental.
+* **Experimental features**: hiding built-in apps from the Home screen, custom screen savers on webOS 10 and later, and the Home screen layout on webOS 10. See [Experimental features](../experimental.md) for why they are experimental.

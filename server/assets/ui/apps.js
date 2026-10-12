@@ -377,6 +377,21 @@ function renderHomeScreen(d) {
   if (!disc) return;
   disc.hidden = !hs;
   if (!hs) return;
+  // On webOS 10 the feature is experimental: shown, but off until switched on.
+  const exp = hs.experimental;
+  const usable = !!d.writable && (!exp || exp.allowed);
+  const expBox = q('apps-home-exp');
+  if (expBox) {
+    expBox.hidden = !exp;
+    if (exp) {
+      updateToggle('btn-home-allow', {
+        cls: exp.allowed ? 'good' : 'idle',
+        label: exp.allowed ? t('common.on', 'On') : t('common.off', 'Off'),
+        on: exp.allowed,
+        disabled: !d.writable
+      });
+    }
+  }
   const hidden = hs.parts.filter(p => !p.shown).length;
   const summary = q('apps-home-summary');
   if (summary) {
@@ -396,7 +411,7 @@ function renderHomeScreen(d) {
           id: 'btn-home-' + esc(p.id),
           cls: p.shown ? 'good' : 'idle',
           label: p.shown ? t('apps.home.shown', 'Shown') : t('apps.home.hidden', 'Hidden'),
-          disabled: !d.writable,
+          disabled: !usable,
           onclick: "setHomePart('" + esc(p.id) + "', " + (!p.shown) + ")"
         })}
       </div>
@@ -415,7 +430,7 @@ function renderHomeScreen(d) {
           id: 'btn-home-' + esc(i.id),
           cls: i.onHome ? 'good' : 'idle',
           label: i.onHome ? t('apps.home.onHome', 'On Home') : t('apps.home.notOnHome', 'Not on Home'),
-          disabled: !d.writable,
+          disabled: !usable,
           onclick: "setHomeInput('" + esc(i.id) + "', " + (!i.onHome) + ")"
         })}
       </div>
@@ -423,7 +438,7 @@ function renderHomeScreen(d) {
   }
   const restore = q('btn-home-restore');
   if (restore) {
-    restore.disabled = !d.writable;
+    restore.disabled = !usable;
     restore.textContent = t('apps.home.restore', 'Put back LG’s Home screen');
   }
 }
@@ -453,6 +468,15 @@ async function postHomeScreen(btnId, body) {
 function setHomePart(id, shown) { return postHomeScreen('btn-home-' + id, { part: id, shown }); }
 function setHomeInput(id, onHome) { return postHomeScreen('btn-home-' + id, { input: id, onHome }); }
 function restoreHome() { return postHomeScreen('btn-home-restore', { restore: true }); }
+
+// The experimental switch, from the Apps tab or Server -> Advanced.
+async function toggleHomeLayoutAllowed(btnId) {
+  const b = q(btnId);
+  const turnOn = !(b && b.dataset.on);
+  if (turnOn && !confirm(t('apps.home.exp.confirm', 'Switch on Home screen layout?\n\nOn webOS 10 Glasshouse lays its own Home screen layout over LG\u2019s each time the TV starts, so LG\u2019s can show for a moment first, and it has been tried on only a few TVs. Put back LG\u2019s Home screen, or switching this off, undoes it.'))) return;
+  await postHomeScreen(btnId, { allow: turnOn });
+  if (typeof loadUpdate === 'function') loadUpdate();
+}
 
 function renderPreload(d) {
   const disc = q('disc-preload');

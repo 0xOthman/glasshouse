@@ -6,8 +6,10 @@
  * whose supported() says yes is used; a TV with none has no Home screen
  * section. A module gives parts() as [{ id, title, desc, shown }], setPart(id,
  * shown, cb) and restore(cb), and says with inputTiles whether HDMI inputs can
- * be added as tiles there. Supporting another webOS is a new module in the
- * list, with nothing else to change.
+ * be added as tiles there. One marked experimental is offered only once its
+ * allowed() says yes (allowHomeLayout in config.json), and one with reapply()
+ * has it called when the server starts. Supporting another webOS is a new
+ * module in the list, with nothing else to change.
  *
  * An input tile is LG's own launch point for the input's app
  * (com.webos.app.hdmi1 and so on), added as a saved web page is. The ones
@@ -23,7 +25,7 @@ var fs = require('fs');
 var path = require('path');
 var msg = require('./say').msg;
 
-var LAYOUTS = [require('./homescreen-webos9')];
+var LAYOUTS = [require('./homescreen-webos9'), require('./homescreen-webos10')];
 var INPUTS = ['hdmi1', 'hdmi2', 'hdmi3', 'hdmi4'];
 var APP_PREFIX = 'com.webos.app.';
 
@@ -85,7 +87,12 @@ function inputLaunchPoints(cb) {
  */
 function getHomeScreen(cb) {
   if (!layout || !lunaFn) return cb(null);
-  var out = { parts: layout.parts(), inputs: null };
+  var out = {
+    parts: layout.parts(),
+    inputs: null,
+    // null, or whether the experimental feature has been switched on.
+    experimental: layout.experimental ? { allowed: layout.allowed() } : null
+  };
   if (!layout.inputTiles) return cb(out);
   inputLaunchPoints(function (lps) {
     if (lps) {
@@ -107,6 +114,7 @@ function setPart(id, shown, cb) {
  */
 function setInput(id, onHome, cb) {
   if (!layout || !layout.inputTiles) return cb({ ok: false, error: msg('srv.home.unsupported', 'This TV\'s Home screen cannot be changed from here') });
+  if (layout.experimental && !layout.allowed()) return cb({ ok: false, error: msg('srv.home.notAllowed', 'Switch on Home screen layout first. It is experimental on this TV.') });
   if (INPUTS.indexOf(id) === -1) return cb({ ok: false, error: msg('srv.home.unknownInput', 'There is no such input') });
   inputLaunchPoints(function (lps) {
     if (!lps) return cb({ ok: false, error: msg('srv.home.noTiles', 'Could not read the TV\'s Home screen tiles. Try again in a moment.') });
@@ -169,6 +177,24 @@ function removeLaunchPoints(ids, cb) {
   })();
 }
 
+// null where the TV's Home screen layout is not experimental, else { allowed }.
+function experimental() {
+  return layout && layout.experimental ? { allowed: layout.allowed() } : null;
+}
+
+// Called once allowHomeLayout has been saved: switched off, LG's Home is put back.
+function allowChanged(allow, cb) {
+  if (allow || !layout || !layout.experimental) return cb({ ok: true });
+  restore(cb);
+}
+
+// At start: a layout that does not outlast a restart of the TV, put back.
+function reapply(cb) {
+  cb = cb || function () {};
+  if (!layout || !layout.reapply) return cb();
+  layout.reapply(cb);
+}
+
 /*
  * LG's Home screen back: its own layout, and none of the input tiles added
  * here. cb({ ok }).
@@ -193,6 +219,9 @@ module.exports = {
   setPart: setPart,
   setInput: setInput,
   restore: restore,
+  allowChanged: allowChanged,
+  experimental: experimental,
+  reapply: reapply,
   INPUTS: INPUTS
 };
 
