@@ -231,7 +231,10 @@ function tarballTop(dir) {
   return null;
 }
 
+// zlib's sync calls arrived in node 0.11.12; webOS 2 runs 0.10, which has
+// only the async one.
 function inflate(buf, cb) {
+  if (typeof zlib.gunzipSync !== 'function') return zlib.gunzip(buf, cb);
   var out;
   try { out = zlib.gunzipSync(buf); } catch (e) { return cb(e); }
   cb(null, out);

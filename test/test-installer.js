@@ -25,6 +25,43 @@ function alloc(n) {
   return b;
 }
 function buf(s) { return typeof Buffer.from === 'function' ? Buffer.from(s) : new Buffer(s); }
+
+/*
+ * zlib.gzipSync arrived in node 0.11.12, and node 0.10 (webOS 2) has only the
+ * async call: there, a gzip of stored, uncompressed deflate blocks, which any
+ * gunzip reads.
+ */
+var CRC_TABLE = (function () {
+  var t = [];
+  for (var n = 0; n < 256; n++) {
+    var c = n;
+    for (var k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function gzipSync(data) {
+  if (typeof zlib.gzipSync === 'function') return zlib.gzipSync(data);
+  var crc = 0xffffffff;
+  for (var i = 0; i < data.length; i++) crc = CRC_TABLE[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
+  crc = (crc ^ 0xffffffff) >>> 0;
+  var parts = [new Buffer([0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 0xff])];
+  var at = 0;
+  do {
+    var len = Math.min(65535, data.length - at);
+    var head = alloc(5);
+    head[0] = at + len >= data.length ? 1 : 0;
+    head.writeUInt16LE(len, 1);
+    head.writeUInt16LE(0xffff - len, 3);
+    parts.push(head, data.slice(at, at + len));
+    at += len;
+  } while (at < data.length);
+  var tail = alloc(8);
+  tail.writeUInt32LE(crc, 0);
+  tail.writeUInt32LE(data.length >>> 0, 4);
+  parts.push(tail);
+  return Buffer.concat(parts);
+}
 function padNum(n, width) { var s = n.toString(8); while (s.length < width) s = '0' + s; return s; }
 function field(h, off, text) { buf(text).copy(h, off); }
 
@@ -101,10 +138,10 @@ function makeIpk(o) {
   for (var pad = 0; pad < 40; pad++) {
     var text = control || ('Package: ' + pkg + '\nVersion: ' + version + '\nArchitecture: all\nDescription: ' +
                            new Array(pad + 2).join('x') + '\n');
-    ctl = zlib.gzipSync(tar([tarEntry('./control', text)]));
+    ctl = gzipSync(tar([tarEntry('./control', text)]));
     if (!o.oddControl || ctl.length % 2 === 1) break;
   }
-  var dat = zlib.gzipSync(Buffer.concat([tar(entries), o.tail || alloc(0)]));
+  var dat = gzipSync(Buffer.concat([tar(entries), o.tail || alloc(0)]));
   if (o.emptyMember === 'control.tar.gz') ctl = alloc(0);
   if (o.emptyMember === 'data.tar.gz') dat = alloc(0);
   var parts = [buf('!<arch>\n'), arMember('debian-binary', buf('2.0\n')), arMember('control.tar.gz', ctl),

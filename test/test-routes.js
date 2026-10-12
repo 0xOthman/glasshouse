@@ -476,7 +476,9 @@ function createMockRes(cb) {
     assert.strictEqual(res.statusCode, 200);
     var body = JSON.parse(res.body);
     assert.strictEqual(body.ok, true);
-    assert.deepEqual(controlDispatched, { action: 'volumeUp', val: null });
+    // val == null: node 0.10's deepEqual tells undefined from null.
+    assert.strictEqual(controlDispatched.action, 'volumeUp');
+    assert.ok(controlDispatched.val == null);
   });
   routes.handleRequest(reqCtrl, resCtrl);
   reqCtrl.emit('data', JSON.stringify({ action: 'volumeUp' }));

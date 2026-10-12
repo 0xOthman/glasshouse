@@ -46,8 +46,9 @@ var sandbox = {
   setTimeout: function () {}
 };
 
-vm.createContext(sandbox);
-vm.runInContext(scriptMatch[1], sandbox);
+// runInNewContext rather than createContext and runInContext: node 0.10's
+// createContext returns a copy instead of the sandbox itself.
+vm.runInNewContext(scriptMatch[1], sandbox);
 
 // 1. sysRows omits eMMC health when emmcWear is false or health is unknown
 (function testEmmcHealthVisibility() {
