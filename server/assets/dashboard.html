@@ -835,7 +835,7 @@ function privacyRows(d) {
     var cur = AB[abMode] || AB.off;
     r.push(head(t('tv.privacy.head.adAndTrackerBlocking', 'Ad and tracker blocking')));
     r.push({ label: t('tv.privacy.blocking', 'Blocking'), value: cur.label, cls: abMode === 'off' ? 'off' : 'on',
-             act: 'adblock', key: cur.next,
+             act: 'adblock', key: cur.next, from: abMode,
              press: cur.press,
              hint: cur.hint + ' ' + t('tv.privacy.blocking.streaming', 'Streaming apps are untouched.') });
   }
@@ -1691,7 +1691,8 @@ function flash(text) {
   el.textContent = text;
   el.className = 'on';
   if (flashTimer) clearTimeout(flashTimer);
-  flashTimer = setTimeout(function () { el.className = ''; }, 2400);
+  // Long enough to read: a sentence of advice needs more than a short confirmation.
+  flashTimer = setTimeout(function () { el.className = ''; }, Math.max(2400, String(text).length * 55));
 }
 
 // ---- data ----
@@ -1985,7 +1986,11 @@ function activate() {
         return;
       }
       r.confirming = false;
-      return send({ action: 'setAdBlock', value: r.key });
+      // LG's apps can keep a blocked address for about a minute after
+      // Everything is switched off, so say so then.
+      return send({ action: 'setAdBlock', value: r.key }, r.from === 'full'
+        ? t('pv.adblock.reconnect', "LG's apps, such as the Content Store and LG Channels, can take about a minute to connect again. If one shows an error, exit it and open it again after a minute.")
+        : undefined);
     case 'acr':
       return send({ action: 'acr', value: !r.on }, r.on ? t('tv.flash.switchedOff', 'Switched off') : t('tv.flash.switchedOn', 'Switched on'));
     case 'open':

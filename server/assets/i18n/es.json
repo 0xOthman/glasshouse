@@ -1839,6 +1839,10 @@
   "text": "No hay nada bloqueado. Las direcciones de publicidad y telemetría de LG funcionan con normalidad.",
   "from": "Nothing is blocked. LG’s advertising and telemetry addresses work as normal."
  },
+ "pv.adblock.reconnect": {
+  "text": "Las apps de LG, como la tienda de contenidos y LG Channels, pueden tardar alrededor de un minuto en volver a conectarse. Si una muestra un error, ciérrala y vuelve a abrirla pasado un minuto.",
+  "from": "LG's apps, such as the Content Store and LG Channels, can take about a minute to connect again. If one shows an error, exit it and open it again after a minute."
+ },
  "pv.adblock.troubleshoot": {
   "text": "Si una app o un servicio de LG deja de funcionar con el bloqueador activado, desactívalo para comprobar si es la causa.",
   "from": "If an app or one of LG's services stops working while the blocker is on, switch it off to check whether it is the cause."

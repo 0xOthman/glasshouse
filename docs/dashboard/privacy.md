@@ -21,6 +21,8 @@ On the **everything** tier, after a power cut the TV is left to set its clock fr
 
 If an app or one of LG's services stops working while the blocker is on, switch it off to check whether it is the cause.
 
+After switching away from **everything**, LG's own apps, such as the Content Store and LG Channels, can take about a minute to connect again: they run in a browser engine that keeps a looked-up address for about a minute. If one shows an error, exit it and open it again after a minute. A restart is not needed.
+
 What ACR collects and what LG Ad Solutions does with it is set out in [What LG's ACR does](../ACR.md).
 
 ![Privacy tab: an overview of what is still on, then the ad and telemetry blocker, advertising identifier, the data collection agreements grouped by subject with toggles, and what is running now](../screenshots/privacy.png)
