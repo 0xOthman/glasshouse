@@ -630,6 +630,12 @@ async function tick() {
     }
 
     if (d.sound) {
+      // The format of what is playing: set only while something plays.
+      const fmtIn = d.sound.input;
+      if (q('sound-format-set')) q('sound-format-set').hidden = !(fmtIn && fmtIn.codec);
+      if (fmtIn && fmtIn.codec && q('sound-format')) {
+        q('sound-format').textContent = (fmtIn.immersive ? fmtIn.codec + ' \u00b7 ' + fmtIn.immersive : fmtIn.codec).toUpperCase();
+      }
       // The TV reports optical as external_optical (B8, C2) and its speakers as
       // internal on some firmware; the buttons carry the other id.
       const soRaw = { external_optical: 'optical', internal: 'tv_speaker' }[d.sound.output_raw] || d.sound.output_raw || '';

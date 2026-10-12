@@ -333,6 +333,8 @@
             onchange="if (this.value) sendCommand('soundOutput', this.value)"></select>
         </div>
       </div>
+      <!-- Only while something plays: the TV reports no format otherwise. -->
+      <div class="set" id="sound-format-set" hidden><div class="lbl"><span data-t="ctl.soundFormat">Current sound format</span> &middot; <span id="sound-format" class="num" translate="no">&mdash;</span></div></div>
     </details>
 
     <details class="disc" id="disc-apps">

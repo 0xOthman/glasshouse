@@ -947,6 +947,10 @@
   "text": "Sonido",
   "from": "Sound"
  },
+ "ctl.soundFormat": {
+  "text": "Formato de sonido actual",
+  "from": "Current sound format"
+ },
  "ctl.soundOutput": {
   "text": "Salida",
   "from": "Output"

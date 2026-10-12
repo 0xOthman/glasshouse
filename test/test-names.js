@@ -187,6 +187,19 @@ assert.deepEqual(names.vrrType(''), { label: 'off' });
 assert.deepEqual(names.vrrType(null), { label: 'off' });
 console.log('  ✓ VRR type, off without one');
 
+assert.strictEqual(names.audioCodec('pcm').display, 'PCM');
+assert.strictEqual(names.audioCodec('opus').display, 'Opus');
+assert.strictEqual(names.audioCodec('eac3').display, 'Dolby Digital Plus');
+assert.strictEqual(names.audioCodec('EAC3').display, 'Dolby Digital Plus');
+assert.strictEqual(names.audioCodec('alac').display, 'ALAC', 'an unknown codec as the TV gives it');
+assert.strictEqual(names.audioImmersive('none'), null);
+assert.strictEqual(names.audioImmersive(''), null);
+assert.strictEqual(names.audioImmersive('atmos').display, 'Dolby Atmos');
+assert.strictEqual(names.audioImmersive('DOLBY_ATMOS').display, 'Dolby Atmos');
+assert.strictEqual(names.audioImmersive('Dolby Atmos').display, 'Dolby Atmos');
+assert.strictEqual(names.audioImmersive('dtsx').display, 'DTS:X');
+console.log('  ✓ the sound format and its immersive layer, as the audio service names them');
+
 assert.strictEqual(names.hdmiKeyForPortId('HDMI_3'), 'hdmi3');
 assert.strictEqual(names.hdmiKeyForPortId('HDMI4'), 'hdmi4', 'getVRRInfo leaves the underscore out');
 assert.strictEqual(names.hdmiKeyForPortId('HDMI_5'), null);

@@ -384,6 +384,16 @@ var FAMILIES = [
     }
   },
   {
+    name: 'glasshouse_sound_input_info', type: 'gauge',
+    help: 'Always 1 while something plays, labelled with the format of the sound the app or input sends, such as pcm, opus, or eac3, and its immersive layer, such as dolby_atmos, or none. Absent while nothing plays.',
+    samples: function (s) {
+      var codec = path(s, ['sound', 'input', 'codec_raw']);
+      if (typeof codec !== 'string' || !codec) return [];
+      var immersive = names.audioImmersive(path(s, ['sound', 'input', 'immersive_raw']));
+      return [[{ codec: names.audioCodec(codec).label, immersive: immersive ? immersive.label : 'none' }, 1]];
+    }
+  },
+  {
     name: 'glasshouse_volume_ratio', type: 'gauge',
     help: 'Volume of the sound output from 0 to 1, while the TV sets the level rather than only stepping it or not controlling it.',
     samples: function (s) {

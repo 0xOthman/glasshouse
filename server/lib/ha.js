@@ -52,6 +52,7 @@ var HA_ENTITIES = [
   { id: 'app', type: 'select', name: 'Application', cat: 'controls' },
   { id: 'active_app', type: 'sensor', name: 'Active App', cat: 'controls' },
   { id: 'play_state', type: 'sensor', name: 'Player State', cat: 'controls' },
+  { id: 'sound_format', type: 'sensor', name: 'Sound Format', cat: 'controls' },
   { id: 'volume_up', type: 'button', name: 'Volume Up', cat: 'controls' },
   { id: 'volume_down', type: 'button', name: 'Volume Down', cat: 'controls' },
   { id: 'remote_up', type: 'button', name: 'Remote Up', cat: 'controls' },
@@ -607,6 +608,22 @@ function buildEntities(opts) {
           // anything wide-gamut. A set that does not report one reports none.
           value_template: '{{ value_json.picture_engine.colorimetry if value_json.picture_engine and value_json.picture_engine.colorimetry else none }}',
           icon: 'mdi:palette-swatch'
+        }
+      },
+      {
+        type: 'sensor', id: 'sound_format',
+        payload: {
+          name: 'Sound Format',
+          state_topic: topic.telemetry,
+          // The format of what is playing, as the dashboard's Sound panel shows
+          // it; None while nothing plays, rather than unknown, so automations
+          // can tell the two apart from the TV being unreachable.
+          value_template: '{% set i = value_json.sound.input if value_json.sound and value_json.sound.input else none %}' +
+            '{{ (i.codec ~ (" · " ~ i.immersive if i.immersive else "")) if i else "None" }}',
+          json_attributes_topic: topic.telemetry,
+          json_attributes_template: '{% set i = value_json.sound.input if value_json.sound and value_json.sound.input else {} %}' +
+            '{{ {"codec": i.codec_raw if i.codec_raw else none, "immersive": i.immersive_raw if i.immersive_raw else none} | tojson }}',
+          icon: 'mdi:surround-sound'
         }
       },
       {
@@ -1330,7 +1347,7 @@ function buildEntities(opts) {
  * Settings and facts that stay true while the TV is off - picture mode,
  * volume, panel hours, model - keep their last value.
  */
-var OFF_TEXT = ['active_app', 'play_state', 'dynamic_range', 'video_signal', 'hdmi_link_mode',
+var OFF_TEXT = ['active_app', 'play_state', 'sound_format', 'dynamic_range', 'video_signal', 'hdmi_link_mode',
                 'hdmi_chroma', 'hdmi_hdcp', 'video_colorimetry', 'panel_dimming'];
 var OFF_BINARY = ['hdmi_allm', 'hdmi_vrr', 'screen_saver_active', 'oled_asbl_dimmer'];
 var AWAKE_ONLY = {
@@ -1434,6 +1451,7 @@ function filterWithholds(entities, opts) {
   }
 
   if (!caps.hasMediaState) withhold(byId('play_state'));
+  if (!caps.hasSoundFormat) withhold(byId('sound_format'));
 
   if (!caps.hasHdrStatus) withhold(byId('video_colorimetry'));
 
