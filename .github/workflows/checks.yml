@@ -74,7 +74,7 @@ jobs:
         run: |
           gh release download -R webosbrew/dev-toolbox-cli -p 'webosbrew-toolbox-*_amd64.deb' -D /tmp/toolbox
           sudo apt-get install -y /tmp/toolbox/*.deb
-          webosbrew-ipk-verify --format markdown --details --fw-releases '>=4.4' dist/*.ipk
+          webosbrew-ipk-verify --format markdown --details --fw-releases '>=2.2' dist/*.ipk
         env:
           GH_TOKEN: ${{ github.token }}
 

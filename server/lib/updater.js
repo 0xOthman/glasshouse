@@ -189,7 +189,7 @@ function releaseSummary(body) {
   var s = text.slice(0, m.index)
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/(\*\*|__)(.*?)\1/g, '$2')
-    .replace(/`([^`]*)`/g, '$1')
+    .replace(/\x60([^\x60]*)\x60/g, '$1')
     .trim();
   return s ? s.slice(0, 600) : null;
 }
