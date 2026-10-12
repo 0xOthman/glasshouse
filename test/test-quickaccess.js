@@ -1,7 +1,7 @@
 /**
  * test/test-quickaccess.js - The remote's Quick Access keys are read and set
- * as LG's own Quick Access screen does: setSystemSettings to set a key,
- * resetSystemSettings to put back LG's default
+ * as LG's own Quick Access screen does, and a key cleared here is written
+ * empty rather than reset to LG's default
  *
  * Strict ES5: runs on node 0.12.
  */
@@ -57,7 +57,7 @@ function checked(fn) {
 qa.getQuickAccess(checked(function (r) {
   assert.strictEqual(r.supported, true);
   assert.deepEqual(r.keys.map(function (k) { return k.title; }),
-    ['BBC iPlayer', 'Live TV, channel 101', 'Apple TV', 'com.fvp.itv (not installed)', '', '', '', '', 'Self Diagnosis']);
+    ['BBC iPlayer', 'Live TV, channel 101', 'Apple TV', 'App not installed', '', '', '', '', 'Self Diagnosis']);
   assert.strictEqual(r.keys[3].installed, false);
   assert.strictEqual(r.keys[8].lgDefault, true);
   assert.deepEqual(r.choices.map(function (c) { return c.id; }),
@@ -73,9 +73,10 @@ qa.getQuickAccess(checked(function (r) {
 
     qa.setQuickAccess(9, '', checked(function (s2) {
       assert.strictEqual(s2.ok, true);
-      var reset = tv.calls[tv.calls.length - 1];
-      assert.deepEqual(reset, { uri: 'com.webos.settingsservice/resetSystemSettings', params: { category: 'option', keys: ['magicNum9'] } });
-      console.log('  ✓ clearing a key puts back LG\'s default for it');
+      var cleared = tv.calls[tv.calls.length - 1];
+      // Written empty, not reset: LG's default for 9 on a C2 is Quick Help.
+      assert.deepEqual(cleared, { uri: 'com.webos.settingsservice/setSystemSettings', params: { category: 'option', settings: { magicNum9: { id: '', params: {} } } } });
+      console.log('  ✓ clearing a key leaves it opening nothing, even where LG has a default for it');
 
       var before = tv.calls.length;
       qa.setQuickAccess(0, 'netflix', checked(function (s3) {

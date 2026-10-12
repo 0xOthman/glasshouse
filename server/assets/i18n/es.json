@@ -560,8 +560,8 @@
   "from": "Nothing set"
  },
  "apps.quickAccess.reset": {
-  "text": "Ninguna (la de LG por defecto)",
-  "from": "None (LG’s default)"
+  "text": "Ninguna",
+  "from": "None"
  },
  "apps.service.active": {
   "text": "Activo",
@@ -3868,8 +3868,8 @@
   "from": "Live TV"
  },
  "srv.quickAccess.notInstalled": {
-  "text": "{id} (no instalada)",
-  "from": "{id} (not installed)"
+  "text": "App no instalada",
+  "from": "App not installed"
  },
  "srv.quickAccess.saveFailed": {
   "text": "La TV no guardó el cambio",

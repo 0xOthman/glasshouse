@@ -333,13 +333,14 @@ function renderQuickAccess(d) {
       ${icon}
       <div class="prot-main">
         <div class="prot-title"><span class="qa-key">${k.key}</span> ${esc(k.id ? k.title : t('apps.quickAccess.none', 'Nothing set'))}</div>
+        ${!k.installed ? `<div class="prot-desc" translate="no">${esc(k.id)}</div>` : ''}
         ${k.lgDefault ? `<div class="prot-desc">${esc(t('apps.quickAccess.lgDefault', 'Set by LG'))}</div>` : ''}
       </div>
       <div class="prot-status">
         <select class="pill-sel qa-sel" data-key="${k.key}" ${d.writable ? '' : 'disabled'}
           aria-label="${esc(t('apps.quickAccess.keyLabel', 'Key {key}', { key: k.key }))}" onchange="setQuickAccessKey(this)">
           ${current}
-          <option value=""${!k.id ? ' selected' : ''}>${esc(t('apps.quickAccess.reset', 'None (LG\u2019s default)'))}</option>
+          <option value=""${!k.id ? ' selected' : ''}>${esc(t('apps.quickAccess.reset', 'None'))}</option>
           <optgroup label="${esc(t('apps.quickAccess.inputs', 'Inputs'))}">${inputs.map(c => opt(c, k.id)).join('')}</optgroup>
           <optgroup label="${esc(t('apps.quickAccess.apps', 'Apps'))}">${apps.map(c => opt(c, k.id)).join('')}</optgroup>
         </select>

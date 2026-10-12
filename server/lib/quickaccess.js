@@ -4,10 +4,10 @@
  *
  * LG calls it Magic Number. Each key is a setting in the option category,
  * magicNum1 to magicNum9, holding { id, params }; LG's own Quick Access screen
- * (com.webos.app.magicnum) writes one with setSystemSettings and clears one
- * with resetSystemSettings, which puts back LG's default for that key. That is
- * empty, or an app LG ships there with override: true (self-diagnosis on 9 on
- * a C2). A live TV channel is com.webos.app.livetv with params.channelNumber.
+ * (com.webos.app.magicnum) writes one with setSystemSettings. Its own clear,
+ * resetSystemSettings, puts back LG's default for the key, which can be an app
+ * LG ships there with override: true (Quick Help on 9 on a C2), so a key
+ * cleared here is written empty instead, as LG stores an unset key. A live TV channel is com.webos.app.livetv with params.channelNumber.
  * A B8 (webOS 4.4) and a C2 (webOS 9.2) both have the keys. 0 is not one: it
  * opens the list.
  *
@@ -95,8 +95,9 @@ function getQuickAccess(cb) {
         var params = v.params && typeof v.params === 'object' ? v.params : {};
         // LG presets keys for its region's apps whether or not they are
         // installed (BBC iPlayer and others on a UK C2 without them).
-        var title = !id ? '' : titles[id] ||
-          msg('srv.quickAccess.notInstalled', '{id} (not installed)', { id: id });
+        // The TV knows an app's name only once it is installed: such a key
+        // is named for that, and the dashboard shows its id beneath.
+        var title = !id ? '' : titles[id] || msg('srv.quickAccess.notInstalled', 'App not installed');
         if (id === LIVE_TV && params.channelNumber) {
           title = msg('srv.quickAccess.channel', 'Live TV, channel {channel}', { channel: params.channelNumber });
         }
@@ -108,30 +109,29 @@ function getQuickAccess(cb) {
 }
 
 /*
- * Sets key n to open id, or with no id puts back LG's default for it, as
- * clearing a key on the TV does. id has to be an input or an app on the Home
- * screen. cb({ ok, error }).
+ * Sets key n to open id, or with no id leaves it opening nothing. id has to be
+ * an input or an app on the Home screen. cb({ ok, error }).
  */
 function setQuickAccess(n, id, cb) {
   if (!lunaFn) return cb({ ok: false, error: 'no luna wrapper' });
   n = validKey(n);
   if (n === null) return cb({ ok: false, error: msg('srv.quickAccess.badKey', 'Quick Access keys are 1 to 9') });
   id = String(id || '').trim();
-  if (!id) {
-    return lunaFn(SERVICE + '/resetSystemSettings', { category: 'option', keys: [settingKey(n)] }, function (r) {
-      cb(r && r.returnValue ? { ok: true } : { ok: false, error: msg('srv.quickAccess.saveFailed', 'The TV did not save the change') });
-    });
-  }
+  if (!id) return writeKey(n, '', cb);
   listApps(function (apps) {
     var allowed = inputChoices().concat(appChoices(apps)).some(function (c) { return c.id === id; });
     if (!allowed) return cb({ ok: false, error: msg('srv.quickAccess.unknownApp', 'That app is not on this TV') });
-    var settings = {};
-    settings[settingKey(n)] = { id: id, params: {} };
-    lunaFn(SERVICE + '/setSystemSettings', { category: 'option', settings: settings }, function (r) {
-      if (!r || !r.returnValue) return cb({ ok: false, error: msg('srv.quickAccess.saveFailed', 'The TV did not save the change') });
-      console.log('quickaccess: key ' + n + ' opens ' + id);
-      cb({ ok: true });
-    });
+    writeKey(n, id, cb);
+  });
+}
+
+function writeKey(n, id, cb) {
+  var settings = {};
+  settings[settingKey(n)] = { id: id, params: {} };
+  lunaFn(SERVICE + '/setSystemSettings', { category: 'option', settings: settings }, function (r) {
+    if (!r || !r.returnValue) return cb({ ok: false, error: msg('srv.quickAccess.saveFailed', 'The TV did not save the change') });
+    console.log('quickaccess: key ' + n + (id ? ' opens ' + id : ' cleared'));
+    cb({ ok: true });
   });
 }
 
