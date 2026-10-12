@@ -96,6 +96,43 @@ and later have a Flutter one (its log lines come from `flutter-client`). The
 QML has code for LG's webOS 23 (`webOS23Test`, the `webOS23` app list style),
 so a webOS 8 TV may read the same layout file; that has not been tried.
 
+## Keeping a TV awake while off (webOS 4.4.3, B8)
+
+The question was whether the B8 could stay reachable while switched off, as
+the C2 does with LG's Stay connected (`general.alwaysOn`, Active Standby at
+12.5 W). It cannot in any useful way.
+
+- **Switching off passes through Active Standby**: screen off, everything
+  running, at about **37 W** on an OLED65B8SLC (50 W on). With Quick Start+
+  it then suspends to RAM, and the PSU clicks off. Panel maintenance after
+  switch-off runs in that Active Standby state.
+- **`com.webos.service.tvpower` takes votes.** Programs register with
+  `power/registerSuspendRequest`, `registerPrepareSuspend` and
+  `registerActiveStandbyRequest` (`{ clientName, subscribe: true }`), and
+  answer with the matching `response…` method. `power/getClientList` lists
+  them; besides LG's services, `homekit`, `physical-device-manager` and
+  `webos-connman-adapter` ask for Active Standby, and the AirPlay module
+  votes on suspend. homekit answers `{ "clientName", "ack": true|false,
+  "timestamp" }`, echoing the request's timestamp.
+- **Refusing to suspend does not keep it awake.** With a client registered on
+  all three answering `ack: false` to suspend and `ack: true` to Active
+  Standby, the next switch-off went from 37 W to 0 W and the TV booted from
+  scratch when switched on again (uptime 156 s, power-on reason `remoteKey`),
+  instead of resuming. A switch-off with no such client resumed with its
+  uptime intact.
+- Even held there, 37 W around the clock is about 0.9 kWh a day. The low-power
+  awake state behind Stay connected arrived with LG's 2022 TVs (webOS 7).
+
+## LG's blocked-app list on webOS 10 (C2, webOS 10.3.1)
+
+On a C2 updated to webOS 10.3.1, adding an app on the Home screen
+(`com.webos.app.camera`) to configd's `profile.blockedAppList` left it on Home
+and sam's pid unchanged, checked from 0.01 s to 10 s after. On webOS 9.2.2 the
+same change takes the app off Home within 2 s, which is how tile hiding and
+screen savers make sam reread apps without restarting it (#366). On webOS 9.2.2
+`/usr/sbin/sam` names `profile.blockedAppList`; whether webOS 10's does is not
+yet known.
+
 ## Boot and app state (webOS 9.2.2, C2)
 
 - The kernel command line has `snapshot resume=/dev/mmcblk0p51 criu_enabled`.
