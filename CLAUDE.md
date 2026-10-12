@@ -12,6 +12,20 @@ A PR that has not been tried on a real TV stays a draft, even when feedback on
 it is wanted. Mark it ready for review once it has been, with the result in its
 Testing section.
 
+## Docs move with the change
+
+A change updates the docs that describe it, in the same PR, before it is
+pushed:
+
+- CI, tests or `scripts/`: docs/development/testing.md. Its links into
+  `.github/workflows/*.yml` name line ranges, so check them whenever a
+  workflow changes.
+- Something the dashboards show or do: docs/dashboard/ for that tab, and its
+  screenshot once released.
+- Anything the server changes on the TV: docs/TV-CHANGES.md.
+- What contributors must do differently: docs/CONTRIBUTING.md.
+- A finding about how LG's software works: docs/development/TV-RESEARCH.md.
+
 # Code map
 
 The server runs on the TV under node 0.12 (0.10 on webOS 2), so it and the pages the TV's own
