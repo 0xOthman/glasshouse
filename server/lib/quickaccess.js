@@ -134,16 +134,29 @@ function setQuickAccess(n, id, cb) {
   readKeys(function (settings) {
     if (!settings) return cb({ ok: false, error: msg('srv.quickAccess.unsupported', 'This TV\'s Quick Access cannot be changed from here') });
     if (!id) return writeKey(n, '', cb);
-    setTo(n, id, cb);
+    var current = settings[settingKey(n)].id;
+    setTo(n, id, current && current !== id, cb);
   });
 }
 
-function setTo(n, id, cb) {
+/*
+ * A B8 (webOS 4.4) holding the key presses in the remote's key filter takes
+ * a change to an empty key but keeps opening the old app after a change to a
+ * set one. LG's own screen clears a key before setting
+ * it, and so is this: emptied, then set 500 ms later.
+ */
+var CLEAR_FIRST_MS = 500;
+
+function setTo(n, id, clearFirst, cb) {
   listApps(function (apps) {
     if (!apps) return cb({ ok: false, error: msg('srv.quickAccess.noApps', 'Could not read the TV\'s apps. Try again in a moment.') });
     var allowed = inputChoices().concat(appChoices(apps)).some(function (c) { return c.id === id; });
     if (!allowed) return cb({ ok: false, error: msg('srv.quickAccess.unknownApp', 'That app is not on this TV') });
-    writeKey(n, id, cb);
+    if (!clearFirst) return writeKey(n, id, cb);
+    writeKey(n, '', function (r) {
+      if (!r.ok) return cb(r);
+      setTimeout(function () { writeKey(n, id, cb); }, CLEAR_FIRST_MS);
+    });
   });
 }
 

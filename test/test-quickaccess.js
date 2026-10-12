@@ -66,10 +66,12 @@ qa.getQuickAccess(checked(function (r) {
 
   qa.setQuickAccess(4, 'netflix', checked(function (s) {
     assert.strictEqual(s.ok, true);
-    var set = tv.calls[tv.calls.length - 1];
-    assert.strictEqual(set.uri, 'com.webos.settingsservice/setSystemSettings');
-    assert.deepEqual(set.params, { category: 'option', settings: { magicNum4: { id: 'netflix', params: {} } } });
-    console.log('  ✓ a key is set as LG\'s Quick Access screen sets it');
+    // Key 4 was set: emptied first, or a B8 keeps opening the old app.
+    var writes = tv.calls.slice(-2);
+    assert.deepEqual(writes.map(function (c) { return c.uri; }), ['com.webos.settingsservice/setSystemSettings', 'com.webos.settingsservice/setSystemSettings']);
+    assert.deepEqual(writes[0].params, { category: 'option', settings: { magicNum4: { id: '', params: {} } } });
+    assert.deepEqual(writes[1].params, { category: 'option', settings: { magicNum4: { id: 'netflix', params: {} } } });
+    console.log('  ✓ a key already set is emptied and then set, as LG\'s Quick Access screen does');
 
     qa.setQuickAccess(9, '', checked(function (s2) {
       assert.strictEqual(s2.ok, true);
@@ -77,6 +79,13 @@ qa.getQuickAccess(checked(function (r) {
       // Written empty, not reset: LG's default for 9 on a C2 is Quick Help.
       assert.deepEqual(cleared, { uri: 'com.webos.settingsservice/setSystemSettings', params: { category: 'option', settings: { magicNum9: { id: '', params: {} } } } });
       console.log('  ✓ clearing a key leaves it opening nothing, even where LG has a default for it');
+
+      var beforeEmpty = tv.calls.length;
+      qa.setQuickAccess(5, 'netflix', checked(function (s2b) {
+        assert.strictEqual(s2b.ok, true);
+        var sets = tv.calls.slice(beforeEmpty).filter(function (c) { return /setSystemSettings$/.test(c.uri); });
+        assert.deepEqual(sets.map(function (c) { return c.params.settings.magicNum5.id; }), ['netflix']);
+        console.log('  ✓ an empty key is set in one write');
 
       var before = tv.calls.length;
       qa.setQuickAccess(0, 'netflix', checked(function (s3) {
@@ -131,6 +140,7 @@ qa.getQuickAccess(checked(function (r) {
               }));
             }));
           }));
+        }));
         }));
       }));
     }));
