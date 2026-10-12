@@ -69,6 +69,8 @@ var servicesModule = null;
 var preloadModule = null;
 /** @type {typeof import('./quickaccess')} */
 var quickAccessModule = null;
+/** @type {typeof import('./homescreen')} */
+var homeScreenModule = null;
 /** @type {typeof import('./screensavers')} */
 var screensaversModule = null;
 /** @type {typeof import('./updater')} */
@@ -1171,7 +1173,11 @@ function handleRequest(req, res) {
           if (!quickAccessModule) return send(res, 200, JSON.stringify(d));
           quickAccessModule.getQuickAccess(function (qa) {
             d.quickAccess = qa && qa.supported ? qa : null;
-            send(res, 200, JSON.stringify(d));
+            if (!homeScreenModule) return send(res, 200, JSON.stringify(d));
+            homeScreenModule.getHomeScreen(function (hs) {
+              d.homeScreen = hs;
+              send(res, 200, JSON.stringify(d));
+            });
           });
         });
       });
@@ -1286,6 +1292,21 @@ function handleRequest(req, res) {
       servicesModule.toggleService(body && body.id, !!(body && body.disabled), function (r) {
         send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
       });
+    });
+  }
+
+  if (pathname === '/api/homescreen' && req.method === 'POST') {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      if (!homeScreenModule) return send(res, 503, JSON.stringify({ ok: false, error: 'home screen module unavailable' }));
+      function done(r) { send(res, r && r.ok ? 200 : 400, JSON.stringify(r)); }
+      body = body || {};
+      if (body.restore === true) return homeScreenModule.restore(done);
+      if (typeof body.part === 'string') return homeScreenModule.setPart(body.part, !!body.shown, done);
+      if (typeof body.input === 'string') return homeScreenModule.setInput(body.input, !!body.onHome, done);
+      done({ ok: false, error: 'part, input or restore expected' });
     });
   }
 
@@ -1486,6 +1507,7 @@ function init(opts) {
   if (opts.services) servicesModule = opts.services;
   if (opts.preload) preloadModule = opts.preload;
   if (opts.quickAccess) quickAccessModule = opts.quickAccess;
+  if (opts.homeScreen) homeScreenModule = opts.homeScreen;
   if (opts.screensavers) screensaversModule = opts.screensavers;
   if (opts.updater) updaterModule = opts.updater;
   if (opts.logs) logsModule = opts.logs;

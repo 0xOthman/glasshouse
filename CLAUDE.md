@@ -30,7 +30,8 @@ use modern JavaScript.
   subscriptions), `children` (the turn every child process start waits
   for), `notifications`, `privacy` (consent, ad blocking),
   `devtools` (closing the web app debugger to the network),
-  `oled` (panel care, service menu), `lgsettings` (LG's own settings as
+  `oled` (panel care, service menu), `homescreen` and `homescreen-webos9`
+  (LG's Home screen layout and input tiles, one module per home app), `lgsettings` (LG's own settings as
   rows), `game`, `apps` (tiles, uninstall, saved pages), `installer` and
   `repo` (installing .ipk packages, the Homebrew Channel catalog),
   `services` (background services), `screensavers`, `updater` and `fetch`
@@ -59,7 +60,9 @@ handed to another through init() is typed with
 For background, open the doc for the area rather than README.md:
 docs/IMPLEMENTATION.md (platform quirks and how each subsystem works),
 docs/HOME-ASSISTANT.md (setup) and docs/HOME-ASSISTANT-ENTITIES.md (entities), docs/TV-CHANGES.md (what the server changes
-on the TV), docs/development/tv-specs/index.md (hardware of the tested TVs), docs/ACR.md,
+on the TV), docs/development/tv-specs/index.md (hardware of the tested TVs),
+docs/development/TV-RESEARCH.md (how LG's software was found to work, to
+read before investigating it again and to add findings to), docs/ACR.md,
 docs/SECURITY.md and docs/STRINGS.md.
 
 # Writing conventions

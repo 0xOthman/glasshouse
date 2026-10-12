@@ -702,6 +702,49 @@ function appsRows(d) {
     }
   }
 
+  // Parts of LG's Home screen, and inputs as tiles on it (lib/homescreen.js).
+  var hs = d.homeScreen;
+  if (hs && hs.parts) {
+    r.push(head(t('apps.home', 'Home screen layout')));
+    for (var hp = 0; hp < hs.parts.length; hp++) {
+      var part = hs.parts[hp];
+      r.push({
+        label: part.title,
+        value: part.shown ? t('apps.home.shown', 'Shown') : t('apps.home.hidden', 'Hidden'),
+        cls: part.shown ? 'on' : 'off',
+        act: d.writable === false ? null : 'homePart',
+        key: part.id,
+        on: part.shown,
+        press: part.shown ? t('tv.apps.home.hide', 'Press OK to hide it') : t('tv.apps.home.show', 'Press OK to show it'),
+        // desc is the server's own words.
+        hint: part.desc + ' ' + t('tv.apps.home.restart', 'The Home screen starts again, which takes a few seconds.')
+      });
+    }
+    var hin = hs.inputs || [];
+    for (var hi = 0; hi < hin.length; hi++) {
+      var inp = hin[hi];
+      r.push({
+        label: inp.title,
+        value: inp.onHome ? t('apps.home.onHome', 'On Home') : t('apps.home.notOnHome', 'Not on Home'),
+        cls: inp.onHome ? 'on' : 'off',
+        act: d.writable === false ? null : 'homeInput',
+        key: inp.id,
+        on: inp.onHome,
+        press: inp.onHome ? t('tv.apps.home.inputOff', 'Press OK to take its tile off Home') : t('tv.apps.home.inputOn', 'Press OK to add a tile for it'),
+        hint: t('tv.apps.home.input.hint', 'A tile among the apps on the Home screen that switches to this input.')
+      });
+    }
+    if (d.writable !== false) {
+      r.push({
+        label: t('apps.home.restore', 'Put back LG\u2019s Home screen'),
+        value: t('tv.apps.home.restore.value', 'Put back'),
+        cls: 'act', act: 'homeRestore',
+        press: t('tv.apps.home.restore.press', 'Press OK to put it back'),
+        hint: t('tv.apps.home.restore.hint', 'Every part shown again, and the input tiles added here taken off.')
+      });
+    }
+  }
+
   // Quick Access, as it is set: changing it is in the browser dashboard,
   // where picking from every app is easier than with the remote.
   var qa = d.quickAccess;
@@ -1932,6 +1975,18 @@ function activate() {
       flash(nextDisabled ? t('tv.apps.service.disablingName', 'Disabling {name}…', { name: r.title || r.key }) : t('tv.apps.service.enablingName', 'Enabling {name}…', { name: r.title || r.key }));
       render();
       return sendPost('/api/services/toggle', { id: r.key, disabled: nextDisabled }, nextDisabled ? t('tv.apps.service.disabled', 'Service disabled') : t('tv.apps.service.enabled', 'Service enabled'));
+    case 'homePart':
+      r.value = t('tv.apps.home.changing', 'Changing\u2026');
+      render();
+      return sendPost('/api/homescreen', { part: r.key, shown: !r.on }, r.on ? t('tv.apps.home.hidden', 'Hidden from Home') : t('tv.apps.home.shownFlash', 'Shown on Home'));
+    case 'homeInput':
+      r.value = t('tv.apps.home.changing', 'Changing\u2026');
+      render();
+      return sendPost('/api/homescreen', { input: r.key, onHome: !r.on }, r.on ? t('tv.apps.home.inputRemoved', 'Tile taken off Home') : t('tv.apps.home.inputAdded', 'Tile added to Home'));
+    case 'homeRestore':
+      r.value = t('tv.apps.home.changing', 'Changing\u2026');
+      render();
+      return sendPost('/api/homescreen', { restore: true }, t('tv.apps.home.restored', 'LG\u2019s Home screen put back'));
     case 'preloadToggle':
       var makeOff = r.on;
       r.value = makeOff ? t('tv.disabling', 'Disabling…') : t('tv.enabling', 'Enabling…');

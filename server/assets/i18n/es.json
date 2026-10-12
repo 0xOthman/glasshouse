@@ -231,6 +231,50 @@
   "text": "Apps y lanzador de la pantalla de inicio",
   "from": "Apps & Home Screen Launcher"
  },
+ "apps.home": {
+  "text": "Diseño de la pantalla de inicio",
+  "from": "Home screen layout"
+ },
+ "apps.home.asLg": {
+  "text": "Como lo tiene LG",
+  "from": "As LG has it"
+ },
+ "apps.home.desc": {
+  "text": "Qué partes de la pantalla de inicio de LG se muestran y qué entradas tienen un icono entre las apps. Un cambio tarda unos segundos, mientras la pantalla de inicio se vuelve a abrir.",
+  "from": "Which parts of LG’s Home screen show, and which inputs have a tile among the apps. A change takes a few seconds, while the Home screen starts again."
+ },
+ "apps.home.failed": {
+  "text": "No se pudo cambiar la pantalla de inicio: {error}",
+  "from": "Could not change the Home screen: {error}"
+ },
+ "apps.home.hidden": {
+  "text": "Oculto",
+  "from": "Hidden"
+ },
+ "apps.home.hiddenOf": {
+  "text": "{n} de {total} ocultas",
+  "from": "{n} of {total} hidden"
+ },
+ "apps.home.inputs": {
+  "text": "Entradas en la pantalla de inicio",
+  "from": "Inputs on Home"
+ },
+ "apps.home.notOnHome": {
+  "text": "No está en inicio",
+  "from": "Not on Home"
+ },
+ "apps.home.onHome": {
+  "text": "En inicio",
+  "from": "On Home"
+ },
+ "apps.home.restore": {
+  "text": "Restaurar la pantalla de inicio de LG",
+  "from": "Put back LG’s Home screen"
+ },
+ "apps.home.shown": {
+  "text": "Visible",
+  "from": "Shown"
+ },
  "apps.install": {
   "text": "Instalar aplicaciones homebrew",
   "from": "Install homebrew apps"
@@ -3883,6 +3927,66 @@
   "text": "Las teclas de acceso rápido son del 1 al 9",
   "from": "Quick Access keys are 1 to 9"
  },
+ "srv.home.apps": {
+  "text": "Iconos de apps",
+  "from": "App tiles"
+ },
+ "srv.home.apps.desc": {
+  "text": "La fila de apps y entradas.",
+  "from": "The row of apps and inputs."
+ },
+ "srv.home.banner": {
+  "text": "Banner",
+  "from": "Banner"
+ },
+ "srv.home.banner.desc": {
+  "text": "La imagen grande de arriba, con los anuncios de LG o su propio mensaje, y los botones de perfil, notificaciones, ajustes y búsqueda junto a ella.",
+  "from": "The large picture at the top, with LG's adverts or its own message, and the profile, notifications, settings and search buttons beside it."
+ },
+ "srv.home.deviceFunctions": {
+  "text": "Entrada reciente y funciones del dispositivo",
+  "from": "Recent Input and Device Functions"
+ },
+ "srv.home.deviceFunctions.desc": {
+  "text": "La última entrada usada y tarjetas para editar la lista de apps, la guía de TV, la guía del usuario y Home Hub.",
+  "from": "The last input used, and cards for editing the app list, the TV guide, the user guide and Home Hub."
+ },
+ "srv.home.hdmi": {
+  "text": "HDMI {n}",
+  "from": "HDMI {n}"
+ },
+ "srv.home.keepOne": {
+  "text": "Al menos una parte de la pantalla de inicio tiene que quedarse",
+  "from": "At least one part of the Home screen has to stay"
+ },
+ "srv.home.noLayout": {
+  "text": "No se pudo leer el diseño de la pantalla de inicio de LG",
+  "from": "Could not read LG's Home screen layout"
+ },
+ "srv.home.noTiles": {
+  "text": "No se pudieron leer los iconos de la pantalla de inicio del TV. Inténtalo de nuevo en un momento.",
+  "from": "Could not read the TV's Home screen tiles. Try again in a moment."
+ },
+ "srv.home.quickCards": {
+  "text": "Quick Cards",
+  "from": "Quick Cards"
+ },
+ "srv.home.quickCards.desc": {
+  "text": "Los botones de colores para las ofertas de LG, Deportes, Juegos, Música y otros.",
+  "from": "The coloured buttons for LG's offers, Sports, Gaming, Music and others."
+ },
+ "srv.home.unknownInput": {
+  "text": "No existe esa entrada",
+  "from": "There is no such input"
+ },
+ "srv.home.unknownPart": {
+  "text": "No existe esa parte de la pantalla de inicio",
+  "from": "There is no such part of the Home screen"
+ },
+ "srv.home.unsupported": {
+  "text": "La pantalla de inicio de este TV no se puede cambiar desde aquí",
+  "from": "This TV's Home screen cannot be changed from here"
+ },
  "srv.quickAccess.channel": {
   "text": "TV en directo, canal {channel}",
   "from": "Live TV, channel {channel}"
@@ -4546,6 +4650,66 @@
  "tv.apps.install.browse": {
   "text": "Ver",
   "from": "Browse"
+ },
+ "tv.apps.home.changing": {
+  "text": "Cambiando…",
+  "from": "Changing…"
+ },
+ "tv.apps.home.hidden": {
+  "text": "Oculto en inicio",
+  "from": "Hidden from Home"
+ },
+ "tv.apps.home.hide": {
+  "text": "Pulsa OK para ocultarlo",
+  "from": "Press OK to hide it"
+ },
+ "tv.apps.home.input.hint": {
+  "text": "Un icono entre las apps de la pantalla de inicio que cambia a esta entrada.",
+  "from": "A tile among the apps on the Home screen that switches to this input."
+ },
+ "tv.apps.home.inputAdded": {
+  "text": "Icono añadido al inicio",
+  "from": "Tile added to Home"
+ },
+ "tv.apps.home.inputOff": {
+  "text": "Pulsa OK para quitar su icono del inicio",
+  "from": "Press OK to take its tile off Home"
+ },
+ "tv.apps.home.inputOn": {
+  "text": "Pulsa OK para añadir un icono",
+  "from": "Press OK to add a tile for it"
+ },
+ "tv.apps.home.inputRemoved": {
+  "text": "Icono quitado del inicio",
+  "from": "Tile taken off Home"
+ },
+ "tv.apps.home.restart": {
+  "text": "La pantalla de inicio se vuelve a abrir, lo que tarda unos segundos.",
+  "from": "The Home screen starts again, which takes a few seconds."
+ },
+ "tv.apps.home.restore.hint": {
+  "text": "Todas las partes visibles de nuevo y sin los iconos de entradas añadidos aquí.",
+  "from": "Every part shown again, and the input tiles added here taken off."
+ },
+ "tv.apps.home.restore.press": {
+  "text": "Pulsa OK para restaurarla",
+  "from": "Press OK to put it back"
+ },
+ "tv.apps.home.restore.value": {
+  "text": "Restaurar",
+  "from": "Put back"
+ },
+ "tv.apps.home.restored": {
+  "text": "Pantalla de inicio de LG restaurada",
+  "from": "LG’s Home screen put back"
+ },
+ "tv.apps.home.show": {
+  "text": "Pulsa OK para mostrarlo",
+  "from": "Press OK to show it"
+ },
+ "tv.apps.home.shownFlash": {
+  "text": "Visible en inicio",
+  "from": "Shown on Home"
  },
  "tv.apps.install.busy.hint": {
   "text": "Puede tardar uno o dos minutos. Atrás vuelve a funcionar al terminar.",

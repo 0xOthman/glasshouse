@@ -257,6 +257,7 @@ function renderAppsPanel() {
 
   renderPreload(d);
   renderQuickAccess(d);
+  renderHomeScreen(d);
 
   // Render Background Services
   const svcsList = q('apps-services-list');
@@ -369,6 +370,90 @@ async function setQuickAccessKey(sel) {
 }
 
 // Apps LG keeps loaded in the background (#624).
+// Parts of LG's Home screen, and inputs as tiles on it (lib/homescreen.js).
+function renderHomeScreen(d) {
+  const disc = q('disc-homescreen');
+  const hs = d.homeScreen;
+  if (!disc) return;
+  disc.hidden = !hs;
+  if (!hs) return;
+  const hidden = hs.parts.filter(p => !p.shown).length;
+  const summary = q('apps-home-summary');
+  if (summary) {
+    summary.textContent = hidden
+      ? t('apps.home.hiddenOf', '{n} of {total} hidden', { n: hidden, total: hs.parts.length })
+      : t('apps.home.asLg', 'As LG has it');
+  }
+  const parts = q('apps-home-parts');
+  if (parts) {
+    parts.innerHTML = hs.parts.map(p => `<div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title">${esc(p.title)}</div>
+        <div class="prot-desc">${esc(p.desc)}</div>
+      </div>
+      <div class="prot-status">
+        ${renderToggle({
+          id: 'btn-home-' + esc(p.id),
+          cls: p.shown ? 'good' : 'idle',
+          label: p.shown ? t('apps.home.shown', 'Shown') : t('apps.home.hidden', 'Hidden'),
+          disabled: !d.writable,
+          onclick: "setHomePart('" + esc(p.id) + "', " + (!p.shown) + ")"
+        })}
+      </div>
+    </div>`).join('');
+  }
+  const inputs = q('apps-home-inputs');
+  const inputsHead = q('apps-home-inputs-h');
+  const showInputs = !!(hs.inputs && hs.inputs.length);
+  if (inputsHead) inputsHead.hidden = !showInputs;
+  if (inputs) {
+    inputs.hidden = !showInputs;
+    inputs.innerHTML = showInputs ? hs.inputs.map(i => `<div class="prot-row">
+      <div class="prot-main"><div class="prot-title">${esc(i.title)}</div></div>
+      <div class="prot-status">
+        ${renderToggle({
+          id: 'btn-home-' + esc(i.id),
+          cls: i.onHome ? 'good' : 'idle',
+          label: i.onHome ? t('apps.home.onHome', 'On Home') : t('apps.home.notOnHome', 'Not on Home'),
+          disabled: !d.writable,
+          onclick: "setHomeInput('" + esc(i.id) + "', " + (!i.onHome) + ")"
+        })}
+      </div>
+    </div>`).join('') : '';
+  }
+  const restore = q('btn-home-restore');
+  if (restore) {
+    restore.disabled = !d.writable;
+    restore.textContent = t('apps.home.restore', 'Put back LG’s Home screen');
+  }
+}
+
+async function postHomeScreen(btnId, body) {
+  const btn = q(btnId);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = t('apps.service.updating', 'Updating…');
+  }
+  let error = null;
+  try {
+    const res = await fetch(api('/api/homescreen'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const r = await res.json();
+    if (!r || !r.ok) error = (r && r.error) || t('common.unknownError', 'unknown error');
+  } catch (e) {
+    error = e.message;
+  }
+  if (error) alert(t('apps.home.failed', 'Could not change the Home screen: {error}', { error }));
+  loadApps();
+}
+
+function setHomePart(id, shown) { return postHomeScreen('btn-home-' + id, { part: id, shown }); }
+function setHomeInput(id, onHome) { return postHomeScreen('btn-home-' + id, { input: id, onHome }); }
+function restoreHome() { return postHomeScreen('btn-home-restore', { restore: true }); }
+
 function renderPreload(d) {
   const disc = q('disc-preload');
   const list = q('apps-preload-list');
