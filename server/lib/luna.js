@@ -11,13 +11,8 @@ var children = require('./children');
 // Overridable so the start-up test can run the whole server against a stand-in.
 var LUNA_SEND = process.env.TVWEB_LUNA_SEND || '/usr/bin/luna-send';
 
-/*
- * The settings service was renamed between webOS generations:
- * com.webos.settingsservice (older) vs com.webos.service.settings (newer).
- * The codebase uses the newer name. On the first call, try it as-is; if
- * the TV answers "Service does not exist", remember and remap to the old
- * name for every call after that.
- */
+// Older webOS uses com.webos.settingsservice, newer uses com.webos.service.settings.
+// Try the newer name first; if it fails, remember and use the legacy name.
 var SETTINGS_SERVICE = 'com.webos.service.settings/';
 var SETTINGS_SERVICE_LEGACY = 'com.webos.settingsservice/';
 var _settingsPrefix = null; // null = not yet probed
