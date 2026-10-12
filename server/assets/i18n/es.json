@@ -3867,6 +3867,10 @@
   "text": "TV en directo",
   "from": "Live TV"
  },
+ "srv.quickAccess.noApps": {
+  "text": "No se pudieron leer las apps de la TV. Inténtalo de nuevo en un momento.",
+  "from": "Could not read the TV's apps. Try again in a moment."
+ },
  "srv.quickAccess.notInstalled": {
   "text": "App no instalada",
   "from": "App not installed"
@@ -3878,6 +3882,10 @@
  "srv.quickAccess.unknownApp": {
   "text": "Esa app no está en esta TV",
   "from": "That app is not on this TV"
+ },
+ "srv.quickAccess.unsupported": {
+  "text": "El acceso rápido de esta TV no se puede cambiar desde aquí",
+  "from": "This TV's Quick Access cannot be changed from here"
  },
  "srv.repo.notCatalog": {
   "text": "no es un catálogo de paquetes: {url}",

@@ -62,16 +62,26 @@ function appChoices(apps) {
     .sort(function (x, y) { return x.title.toLowerCase() < y.title.toLowerCase() ? -1 : 1; });
 }
 
+/*
+ * The keys, or null where the TV does not have them all as { id, params }. A
+ * webOS that kept the names but stored them otherwise would read as unset and
+ * be written in a shape it does not use, so it is left alone instead.
+ */
 function readKeys(cb) {
   lunaFn(SERVICE + '/getSystemSettings', { category: 'option', keys: KEYS.map(settingKey) }, function (r) {
     var s = r && r.returnValue !== false && r.settings;
-    cb(s && s.hasOwnProperty(settingKey(1)) ? s : null);
+    var whole = !!s && KEYS.every(function (n) {
+      var v = s[settingKey(n)];
+      return !!v && typeof v === 'object' && typeof v.id === 'string';
+    });
+    cb(whole ? s : null);
   });
 }
 
+// The TV's apps, or null where it did not answer with any.
 function listApps(cb) {
   lunaFn('com.webos.applicationManager/listApps', {}, function (r) {
-    cb((r && Array.isArray(r.apps)) ? r.apps : []);
+    cb((r && Array.isArray(r.apps) && r.apps.length) ? r.apps : null);
   });
 }
 
@@ -85,6 +95,10 @@ function getQuickAccess(cb) {
   readKeys(function (settings) {
     if (!settings) return cb({ ok: true, supported: false });
     listApps(function (apps) {
+      // Without the app list nothing can be called not installed: the keys
+      // show their ids, and nothing is offered to set them to but the inputs.
+      var known = !!apps;
+      apps = apps || [];
       var titles = {};
       apps.forEach(function (a) { if (a && a.id) titles[a.id] = a.title || a.id; });
       var inputs = inputChoices();
@@ -97,11 +111,11 @@ function getQuickAccess(cb) {
         // installed (BBC iPlayer and others on a UK C2 without them).
         // The TV knows an app's name only once it is installed: such a key
         // is named for that, and the dashboard shows its id beneath.
-        var title = !id ? '' : titles[id] || msg('srv.quickAccess.notInstalled', 'App not installed');
+        var title = !id ? '' : titles[id] || (known ? msg('srv.quickAccess.notInstalled', 'App not installed') : id);
         if (id === LIVE_TV && params.channelNumber) {
           title = msg('srv.quickAccess.channel', 'Live TV, channel {channel}', { channel: params.channelNumber });
         }
-        return { key: n, id: id, title: title, lgDefault: v.override === true, installed: !id || !!titles[id] };
+        return { key: n, id: id, title: title, lgDefault: v.override === true, installed: !id || !known || !!titles[id] };
       });
       cb({ ok: true, supported: true, keys: keys, choices: inputs.concat(appChoices(apps)) });
     });
@@ -117,8 +131,16 @@ function setQuickAccess(n, id, cb) {
   n = validKey(n);
   if (n === null) return cb({ ok: false, error: msg('srv.quickAccess.badKey', 'Quick Access keys are 1 to 9') });
   id = String(id || '').trim();
-  if (!id) return writeKey(n, '', cb);
+  readKeys(function (settings) {
+    if (!settings) return cb({ ok: false, error: msg('srv.quickAccess.unsupported', 'This TV\'s Quick Access cannot be changed from here') });
+    if (!id) return writeKey(n, '', cb);
+    setTo(n, id, cb);
+  });
+}
+
+function setTo(n, id, cb) {
   listApps(function (apps) {
+    if (!apps) return cb({ ok: false, error: msg('srv.quickAccess.noApps', 'Could not read the TV\'s apps. Try again in a moment.') });
     var allowed = inputChoices().concat(appChoices(apps)).some(function (c) { return c.id === id; });
     if (!allowed) return cb({ ok: false, error: msg('srv.quickAccess.unknownApp', 'That app is not on this TV') });
     writeKey(n, id, cb);

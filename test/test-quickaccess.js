@@ -85,14 +85,50 @@ qa.getQuickAccess(checked(function (r) {
           assert.strictEqual(s4.ok, false, 'an app the TV does not have');
           qa.setQuickAccess(3, 'com.webos.app.self-diagnosis', checked(function (s5) {
             assert.strictEqual(s5.ok, false, 'a hidden app is not offered');
-            assert.ok(tv.calls.slice(before).every(function (c) { return !/set|reset/i.test(c.uri.split('/')[1]); }), 'nothing written');
+            assert.ok(tv.calls.slice(before).every(function (c) { return !/^(set|reset)SystemSettings$/.test(c.uri.split('/')[1]); }), 'nothing written');
             console.log('  ✓ keys outside 1 to 9, and apps not offered, are refused without writing');
 
             qa.init({ luna: function (u, p, cb) { process.nextTick(function () { cb({ returnValue: true, settings: {} }); }); } });
             qa.getQuickAccess(checked(function (r2) {
               assert.strictEqual(r2.supported, false);
               console.log('  ✓ a TV without the keys has no Quick Access');
-              console.log('ALL test-quickaccess.js assertions passed!\n');
+
+              // The same names stored another way: left alone, never written.
+              var writes = 0;
+              qa.init({ luna: function (u, p, cb) {
+                if (/^(set|reset)SystemSettings$/.test(u.split('/')[1])) writes++;
+                var s = {};
+                for (var n = 1; n <= 9; n++) s['magicNum' + n] = 'netflix';
+                process.nextTick(function () { cb({ returnValue: true, settings: s, apps: APPS }); });
+              } });
+              qa.getQuickAccess(checked(function (r3) {
+                assert.strictEqual(r3.supported, false);
+                qa.setQuickAccess(1, '', checked(function (s6) {
+                  assert.strictEqual(s6.ok, false);
+                  assert.strictEqual(writes, 0, 'nothing written to keys in another format');
+                  console.log('  ✓ keys stored in another format are left alone and never written');
+
+                  // No app list: ids shown as they are, and nothing set.
+                  freshTv();
+                  qa.init({ inputNames: {}, luna: function (u, p, cb) {
+                    tv.calls.push({ uri: u, params: p });
+                    var r = { returnValue: true };
+                    if (u === 'com.webos.settingsservice/getSystemSettings') r.settings = tv.settings;
+                    else if (u === 'com.webos.applicationManager/listApps') r = null;
+                    process.nextTick(function () { cb(r); });
+                  } });
+                  qa.getQuickAccess(checked(function (r4) {
+                    assert.strictEqual(r4.keys[0].title, 'bbc.iplayer.3.0', 'not called not installed');
+                    assert.strictEqual(r4.keys[0].installed, true);
+                    qa.setQuickAccess(4, 'netflix', checked(function (s7) {
+                      assert.strictEqual(s7.ok, false);
+                      assert.ok(!tv.calls.some(function (c) { return /setSystemSettings/.test(c.uri); }), 'nothing written');
+                      console.log('  ✓ without the app list, keys show their ids and nothing is set');
+                      console.log('ALL test-quickaccess.js assertions passed!\n');
+                    }));
+                  }));
+                }));
+              }));
             }));
           }));
         }));
