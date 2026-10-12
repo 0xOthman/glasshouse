@@ -1004,6 +1004,8 @@ function offeredSoundOutputs(values, cfg, current) {
 }
 
 var lastSoundOutputs = [];
+// The sound playing's format, as last answered; null while nothing plays.
+var lastSoundInput = null;
 
 // The outputs on offer, kept for Home Assistant's select; cb(ids).
 function soundOutputs(current, cb) {
@@ -1863,13 +1865,18 @@ function collectStats(cb) {
           mode: (snd && snd.settings && snd.settings.soundMode) || 'standard'
         };
         // The format of what is playing, from an app or an input alike; none
-        // while nothing plays. Not waited for, as the outputs below.
+        // while nothing plays. The last answer goes out and the next is asked
+        // for behind it: waiting on the answer only some collections got it,
+        // and the dashboard's line came and went every few seconds.
+        if (lastSoundInput) out.sound.input = lastSoundInput;
         lunaCachedFn('com.webos.service.audio/tv/getAudioInputProperty', {}, 3000, function (ap) {
-          var prop = ap && ap.returnValue !== false && Array.isArray(ap.audioInputProperty) ? ap.audioInputProperty[0] : null;
-          if (!out.sound || !prop || !prop.codec) return;
-          out.sound.input = { codec: names.audioCodec(prop.codec).display, codec_raw: String(prop.codec) };
+          if (!ap || ap.returnValue === false) return;
+          var prop = Array.isArray(ap.audioInputProperty) ? ap.audioInputProperty[0] : null;
+          if (!prop || !prop.codec) { lastSoundInput = null; return; }
+          var input = { codec: names.audioCodec(prop.codec).display, codec_raw: String(prop.codec) };
           var immersive = names.audioImmersive(prop.immersive);
-          if (immersive) out.sound.input.immersive = immersive.display;
+          if (immersive) input.immersive = immersive.display;
+          lastSoundInput = input;
         });
         // Not waited for: the list changes rarely, and Home Assistant reads
         // the last one, which a later collection brings.
