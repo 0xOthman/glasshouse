@@ -53,6 +53,7 @@ var appsModule = require('./lib/apps');
 var samrescan = require('./lib/samrescan');
 var servicesModule = require('./lib/services');
 var preload = require('./lib/preload');
+var quickAccess = require('./lib/quickaccess');
 var telemetry = require('./lib/telemetry');
 var controls = require('./lib/controls');
 var routes = require('./lib/routes');
@@ -443,6 +444,7 @@ samrescan.init({ luna: luna });
 appsModule.init({ luna: luna, config: CONFIG });
 servicesModule.init({ stateDir: __dirname });
 preload.init({ luna: luna, stateDir: __dirname });
+quickAccess.init({ luna: luna, inputNames: telemetry.inputNameMap });
 screensavers.init({
   luna: luna,
   assetPath: assetPath,
@@ -769,6 +771,7 @@ routes.init({
   apps: appsModule,
   services: servicesModule,
   preload: preload,
+  quickAccess: quickAccess,
   screensavers: screensavers,
   updater: updater,
   tvApp: tvApp,

@@ -14,6 +14,12 @@ Lists the Homebrew Channel catalog, with Install, Update or Uninstall for each a
 
 Lists the apps downloaded from the LG store or installed by hand, with their version and vendor. Uninstall deletes an app completely and frees its storage. LG's built-in apps can't be removed this way; they can be hidden instead.
 
+## Quick Access
+
+Sets what each number key on the remote opens when it is held: an installed app, an HDMI input or Live TV, for keys 1 to 9. Holding 0 shows the list on the TV. A change applies straight away, the same as changing it in the TV's own Quick Access list, which shows it too.
+
+**None (LG's default)** gives a key back to LG: usually nothing, though LG puts some apps on keys itself, such as its help on 9. A key LG set for an app that is not installed, as it does for some regions' channel apps, says so. A key set to a live TV channel on the TV shows the channel, and can be changed here but not set to another channel. The TV app lists the keys without changing them.
+
 ## Hide home screen system apps
 
 Hides built-in LG apps that can't be uninstalled, such as Gallery, Music, Sports, Alexa and the User Guide, from the Home screen ribbon. The apps themselves stay on the TV, and switching the feature off brings every one back.

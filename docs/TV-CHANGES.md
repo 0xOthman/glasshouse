@@ -45,7 +45,7 @@ menus. Uninstalling the dashboard leaves them as they are.
 | :----- | :--- |
 | Uninstalling an app | Permanent; reinstall it from the LG Content Store |
 | Installing an app | Installed as a developer app; remove it from the Apps tab or the Homebrew Channel. Its services stay elevated to root if that was chosen |
-| Picture mode, energy saving, sound output, Quick Start+, sleep timer | Ordinary TV settings |
+| Picture mode, energy saving, sound output, Quick Start+, sleep timer, Quick Access keys | Ordinary TV settings |
 | Screen Shift, Logo Luminance Adjustment | OLED panel settings in the TV's own menus |
 | Global Stress Reduction and Temporal Peak Control | OLED burn-in protections. Switching one off asks for confirmation, and neither is exposed to Home Assistant. Not switched back on by uninstalling |
 | Service menu lock | Unlocking asks for confirmation. Not locked again by uninstalling |

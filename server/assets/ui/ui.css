@@ -1052,3 +1052,6 @@ button.tools-switch.on:hover{border-color:var(--edge)}
   .tools-buttons .pill{flex:1 1 0}
   .tools-toolbar-grp{flex-direction:column;align-items:flex-start;gap:6px}
 }
+/* Quick Access: the key's number before what it opens. */
+.qa-key{display:inline-block;min-width:1.4em;font-family:'Outfit';font-weight:300;font-size:20px;color:var(--w100);margin-right:6px}
+.qa-sel{max-width:240px}

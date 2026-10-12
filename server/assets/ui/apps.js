@@ -256,6 +256,7 @@ function renderAppsPanel() {
   }
 
   renderPreload(d);
+  renderQuickAccess(d);
 
   // Render Background Services
   const svcsList = q('apps-services-list');
@@ -304,6 +305,66 @@ function renderAppsPanel() {
       }
     }
   }
+}
+
+// The remote's Quick Access keys: holding 1 to 9 opens what is set here.
+function renderQuickAccess(d) {
+  const disc = q('disc-quickaccess');
+  const list = q('apps-qa-list');
+  const qa = d.quickAccess;
+  if (!disc) return;
+  disc.hidden = !qa;
+  if (!qa) return;
+  const set = qa.keys.filter(k => k.id).length;
+  if (q('apps-qa-summary')) q('apps-qa-summary').textContent = t('apps.quickAccess.count', '{n} of 9 set', { n: set });
+  if (!list || list.contains(document.activeElement)) return;
+  const inputs = qa.choices.filter(c => c.kind === 'input');
+  const apps = qa.choices.filter(c => c.kind === 'app');
+  const opt = (c, cur) => `<option value="${esc(c.id)}"${c.id === cur ? ' selected' : ''}>${esc(c.title)}</option>`;
+  list.innerHTML = qa.keys.map(k => {
+    const known = !k.id || qa.choices.some(c => c.id === k.id);
+    // A key set to something not offered here (a channel, a hidden LG app)
+    // keeps it on the list, so the select shows what the key does now.
+    const current = known ? '' : `<option value="${esc(k.id)}" selected>${esc(k.title)}</option>`;
+    const icon = k.id ? `<img src="${api('/api/apps/icon?id=' + encodeURIComponent(k.id))}" width="38" height="38"
+      style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">`
+      : `<div style="width:38px;height:38px;flex-shrink:0"></div>`;
+    return `<div class="prot-row qa-row">
+      ${icon}
+      <div class="prot-main">
+        <div class="prot-title"><span class="qa-key">${k.key}</span> ${esc(k.id ? k.title : t('apps.quickAccess.none', 'Nothing set'))}</div>
+        ${k.lgDefault ? `<div class="prot-desc">${esc(t('apps.quickAccess.lgDefault', 'Set by LG'))}</div>` : ''}
+      </div>
+      <div class="prot-status">
+        <select class="pill-sel qa-sel" data-key="${k.key}" ${d.writable ? '' : 'disabled'}
+          aria-label="${esc(t('apps.quickAccess.keyLabel', 'Key {key}', { key: k.key }))}" onchange="setQuickAccessKey(this)">
+          ${current}
+          <option value=""${!k.id ? ' selected' : ''}>${esc(t('apps.quickAccess.reset', 'None (LG\u2019s default)'))}</option>
+          <optgroup label="${esc(t('apps.quickAccess.inputs', 'Inputs'))}">${inputs.map(c => opt(c, k.id)).join('')}</optgroup>
+          <optgroup label="${esc(t('apps.quickAccess.apps', 'Apps'))}">${apps.map(c => opt(c, k.id)).join('')}</optgroup>
+        </select>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function setQuickAccessKey(sel) {
+  sel.disabled = true;
+  let error = null;
+  try {
+    const res = await fetch(api('/api/quickaccess'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: Number(sel.dataset.key), id: sel.value })
+    });
+    const r = await res.json();
+    if (!r || !r.ok) error = (r && r.error) || t('common.unknownError', 'unknown error');
+  } catch (e) {
+    error = e.message;
+  }
+  sel.blur();
+  if (error) alert(t('apps.quickAccess.failed', 'Could not change it: {error}', { error }));
+  await loadApps();
 }
 
 // Apps LG keeps loaded in the background (#624).
