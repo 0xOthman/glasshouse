@@ -8,7 +8,7 @@ The **Advanced** tab, `/?tab=advanced`, surfaces system settings that LG places 
 
 Switched off, an LG TV sleeps within a couple of minutes, and the dashboard and Home Assistant bridge sleep with it. On TVs that have LG's Always-on setting, **Stay connected when off** keeps the TV on the network with the screen dark instead: the dashboard keeps answering, Home Assistant keeps its readings and controls, and either can switch the TV back on.
 
-The cost is power. On an OLED42C24LA it draws about 12 W while off (11.9 to 12.5 W measured), against almost nothing in normal standby. That is the TV keeping itself awake, and it cannot be brought down from the TV's software: with Glasshouse stopped the draw was the same, and running on fewer processor cores made no difference either.
+The cost is power. On an OLED42C24LA it draws about 12 W while off (11.9 to 12.5 W measured), against almost nothing in normal standby. Glasshouse running makes effectively no difference: with it stopped, the draw was the same.
 
 LG added this low-power awake state with its 2022 TVs (webOS 7). Older TVs can only stay awake in the state they pass through while switching off, which drew about 37 W on an OLED65B8SLC (webOS 4), so they are not offered the switch.
 
