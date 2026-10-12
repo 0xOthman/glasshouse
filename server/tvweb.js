@@ -1048,6 +1048,7 @@ function setupHomeAssistant() {
 
   var lastPicSig = '';
   var lastSoundSig = '';
+  var lastSoundFormatCap = false;
   publishNow = function () { publishTelemetry(); };
 
   /*
@@ -1204,6 +1205,13 @@ function setupHomeAssistant() {
       if (soundSig && soundSig !== lastSoundSig) {
         lastSoundSig = soundSig;
         console.log('mqtt: sound outputs on offer (' + soundSig + ') - republishing discovery');
+        publishDiscovery();
+      }
+      // The Sound Format sensor appears once the TV has answered the call.
+      var soundFormatCap = telemetry.hasSoundFormat();
+      if (soundFormatCap && !lastSoundFormatCap) {
+        lastSoundFormatCap = true;
+        console.log('mqtt: the TV reports its sound format - republishing discovery');
         publishDiscovery();
       }
       // Launch App's options are the installed apps, and live in discovery too.

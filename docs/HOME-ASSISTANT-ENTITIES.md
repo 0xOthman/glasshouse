@@ -81,6 +81,7 @@ Playback reaches an HDMI source over CEC, where the TV has only one key for both
 | `sensor` | `sensor.lg_tv_panel_dimming` | Panel Dimming | Dynamic backlight/panel dimming state |
 | `sensor` | `sensor.lg_tv_audio_output` | Audio Output | Output the audio service is driving (e.g. *HDMI ARC*, *Headphone / AUX*) |
 | `sensor` | `sensor.lg_tv_active_app` | Active App | Current foreground app or friendly CEC device |
+| `sensor` | `sensor.lg_tv_sound_format` | Sound Format | Format of the sound the app or input on screen is sending, as the dashboard's Sound panel shows it (e.g. *Opus*, *PCM*, *Dolby Digital Plus · Dolby Atmos*), or *None* while nothing plays. Attributes `codec` and `immersive` give the TV's own names (`eac3`, `atmos`). Published once the TV has answered with a format, which webOS 4 does not |
 | `sensor` | `sensor.lg_tv_play_state` | Player State | State of the TV's own media pipeline (`playing`, `paused`, `stopped`), or `idle` with nothing playing. Published once the TV has reported playback, and kept from then on |
 
 The five HDMI entities are published per field, and only once the TV has

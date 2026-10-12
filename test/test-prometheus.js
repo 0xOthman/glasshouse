@@ -76,6 +76,7 @@ function sampleLines(text) {
     'glasshouse_oled_protection_enabled',
     'glasshouse_picture_backlight_ratio',
     'glasshouse_sound_info',
+    'glasshouse_sound_input_info',
     'glasshouse_volume_ratio',
     'glasshouse_muted',
     'glasshouse_foreground_app_info',
@@ -108,12 +109,17 @@ function sampleLines(text) {
   ]);
 
   var C4_NTP = { at: 1791576408500, offsetMs: -606.25, roundTripMs: 1.5, stratum: 4 };
+  // The C4's stats while a Dolby Atmos title plays, which no capture has.
+  var c4Playing = JSON.parse(JSON.stringify(require('./fixtures/stats-c4-webos9.json')));
+  c4Playing.sound = c4Playing.sound || {};
+  c4Playing.sound.input = { codec: 'Dolby Digital Plus', codec_raw: 'eac3', immersive: 'Dolby Atmos', immersive_raw: 'atmos' };
   var renderings = {
     b8: prometheus.render(require('./fixtures/stats-b8-webos4.json'), '0.80.1'),
     g4: prometheus.render(require('./fixtures/stats-g4-webos9.json'), '0.80.1'),
     c4: prometheus.render(require('./fixtures/stats-c4-webos9.json'), '0.80.1', { messages: { system: 12 }, errors: 0 },
       { sets: 1, errors: 0, last: C4_NTP }),
     c4hdr: prometheus.render(require('./fixtures/stats-c4-webos9-hdr.json'), '0.80.1'),
+    c4playing: prometheus.render(c4Playing, '0.80.1'),
     c4standby: prometheus.render(require('./fixtures/stats-c4-webos9-standby.json'), '0.80.1'),
     cx: prometheus.render(require('./fixtures/stats-cx-webos5.json'), '0.80.1'),
     cxhdr: prometheus.render(require('./fixtures/stats-cx-webos5-hdr.json'), '0.80.1'),
@@ -639,7 +645,13 @@ function sampleLines(text) {
   // No sound settings and no mute reading: no samples.
   assert.deepEqual(sound({ volume: 10, volume_control: 'level', muted: null }), ['glasshouse_volume_ratio 0.1']);
   assert.deepEqual(sound({ sound: null }), []);
-  console.log('  ✓ the sound output, mode, volume, and mute are exported');
+  // The format of what plays, only while something does.
+  assert.deepEqual(sound({ sound: { input: { codec: 'Opus', codec_raw: 'opus' } } }).filter(function (l) { return /input/.test(l); }),
+    ['glasshouse_sound_input_info{codec="opus",immersive="none"} 1']);
+  assert.deepEqual(sound({ sound: { input: { codec: 'Dolby Digital Plus', codec_raw: 'eac3', immersive: 'Dolby Atmos', immersive_raw: 'atmos' } } })
+    .filter(function (l) { return /input/.test(l); }), ['glasshouse_sound_input_info{codec="eac3",immersive="dolby_atmos"} 1']);
+  assert.deepEqual(sound({ sound: { output_raw: 'tv_speaker' } }).filter(function (l) { return /input/.test(l); }), []);
+  console.log('  ✓ the sound output, mode, volume, mute and the format playing are exported');
 })();
 
 // 3. Label values are escaped, and a missing one is empty rather than omitted

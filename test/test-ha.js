@@ -135,11 +135,13 @@ console.log('Running test-ha.js ...');
       emmcWearPresent: true,
       hasLightSensor: true,
       updateCheck: true,
-      hasGpuClock: true
+      hasGpuClock: true,
+      hasSoundFormat: true
     }
   });
   var oledIds = {};
   oledList.forEach(function (e) { oledIds[e.id] = true; });
+  assert.strictEqual(oledIds.sound_format, true, 'a TV that reports its sound format gets the sensor');
   assert.strictEqual(oledIds.oled_screen_shift, true, 'OLED must retain oled_screen_shift');
   assert.strictEqual(oledIds.oled_logo_dimming, true, 'OLED must retain oled_logo_dimming');
   assert.strictEqual(oledIds.pixel_refresher_schedule, true, 'OLED must retain pixel_refresher_schedule');
@@ -161,6 +163,7 @@ console.log('Running test-ha.js ...');
   });
   var lcdIds = {};
   lcdList.forEach(function (e) { lcdIds[e.id] = true; });
+  assert.strictEqual(!lcdIds.sound_format, true, 'a TV that has not reported its sound format (webOS 4) does not');
   assert.strictEqual(!lcdIds.oled_screen_shift, true, 'LCD must withhold oled_screen_shift');
   assert.strictEqual(!lcdIds.oled_logo_dimming, true, 'LCD must withhold oled_logo_dimming');
   assert.strictEqual(!lcdIds.pixel_refresher_schedule, true, 'LCD must withhold pixel_refresher_schedule');
