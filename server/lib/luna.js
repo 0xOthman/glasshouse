@@ -42,12 +42,19 @@ function diedEarly(err) {
   return !!(err && err.signal && !err.killed);
 }
 
+/*
+ * Node's own limit on a child's output is 200 KB up to node 10, and a reply
+ * over it comes back as an error with nothing parsed. listApps with -f was
+ * 219 KB on an OLED48CXPUB (webOS 5.6, node v8.12.0) with 120 apps.
+ */
+var MAX_REPLY = 4 * 1024 * 1024;
+
 function run(job) {
   children.launch(function () { runNow(job); });
 }
 
 function runNow(job) {
-  execFile(LUNA_SEND, job.args, { timeout: 3500 }, function (err, stdout) {
+  execFile(LUNA_SEND, job.args, { timeout: 3500, maxBuffer: MAX_REPLY }, function (err, stdout) {
     running--;
     if (diedEarly(err)) {
       var uri = job.args[job.args.length - 2];

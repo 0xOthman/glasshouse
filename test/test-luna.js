@@ -10,7 +10,9 @@ var script = [];
 // The module keeps its own reference to execFile, so this has to be in place
 // before it is required.
 var startedAt = [];
+var lastOpts = null;
 child.execFile = function (file, args, opts, cb) {
+  lastOpts = opts;
   runs.push(args[args.length - 2]);
   startedAt.push(Date.now());
   var next = script.shift();
@@ -71,6 +73,8 @@ script = [{ err: aborted() }, { out: '{"returnValue":true,"modelName":"50UP81006
 luna.call('com.webos.service.tv.systemproperty/getSystemProperties', { keys: ['modelName'] }, function (r) {
   assert.strictEqual(runs.length, 2);
   assert.strictEqual(r && r.modelName, '50UP81006LR');
+  // node's default up to version 10 is 200 KB, less than listApps on a CX
+  assert.ok(lastOpts.maxBuffer >= 1024 * 1024, 'a reply over 200 KB would be lost');
   assert.ok(/died \(SIGABRT\) before answering, trying once more/.test(errors[0]));
   console.log('  ✓ an aborted call runs once more and returns the second answer');
 
