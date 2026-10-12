@@ -34,7 +34,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | G3            | 2023 | OLED  | 11                | 1       |
 | B4            | 2024 | OLED  | 9                 | 1       |
 | C4            | 2024 | OLED  | 9 – 10            | 4       |
-| G4            | 2024 | OLED  | 9 – 10            | 2       |
+| G4            | 2024 | OLED  | 10                | 2       |
 | UT81          | 2024 | LCD   | 10                | 1       |
 | C5            | 2025 | OLED  | 10                | 3       |
 | G5            | 2025 | OLED  | 10 – 11           | 2       |
@@ -71,7 +71,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | OLED42C24LA | 9.2.2        | 23.25.55 | OLED  | Rooted with jsbro-autoroot                                     |
 | OLED55C4PUA | 9.2.0        | 23.20.35 | OLED  | Rooted with faultmanager; SSH install; no internet access      |
 | OLED55B46LA | 9.24.8       | 23.23.30 | OLED  | Installed over telnet                                          |
-| OLED55G42LW | 9            | 33.31.68 | OLED  | Rooted with slopbro, not the Homebrew Channel                  |
+| OLED55G42LW | 10           | 33.31.68 | OLED  | Rooted with slopbro, not the Homebrew Channel                  |
 | 50UT81006LA | 10.2.1       | 33.22.56 | LCD   | Partial: blocking works; some settings reported not to apply   |
 | OLED55C31LA | 10.2.2       | 33.22.80 | OLED  | Installed over SSH; in-app updates confirmed                   |
 | OLED65CSPSA | 10.3.0       | 33.31.20 | OLED  | Reported working                                               |
