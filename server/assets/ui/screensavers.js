@@ -53,6 +53,7 @@ async function loadScreensavers() {
   if (!d || !d.ok) { showErr((d && d.error) || t('ss.readFailed', 'Could not read the screen savers')); return; }
   ssCurrent = d.current;
   ssSwitching = !!d.switching;
+  renderSsExperimental(d);
   const locked = !d.writable || ssSwitching;
 
   box.innerHTML = d.modes.map(m => `
@@ -81,8 +82,7 @@ async function loadScreensavers() {
   q('ss-note').textContent = extNote + (!d.writable
     ? t('ss.controlsOff', 'Controls are disabled in config.json, so the screen saver cannot be changed from here.')
     : ssSwitching ? SS_SWITCHING
-    : d.held ? t('ss.held', 'Custom screen savers are turned off on this TV for now. On webOS 10 and later they can leave the picture, the sound and HDMI control off until the TV is unplugged. Switch to LG\'s screen saver to stop using this one now; otherwise it goes when the TV is next fully restarted.')
-    : d.heldOverridden ? t('common.heldOverridden', 'Turned back on with allowOnWebos10 in config.json. On webOS 10 and later custom screen savers and tile hiding have left the picture, the sound and HDMI control off until the TV was unplugged.')
+    : d.held && d.current !== 'stock' ? t('ss.held', 'Custom screen savers are turned off on this TV for now. On webOS 10 and later they can leave the picture, the sound and HDMI control off until the TV is unplugged. Switch to LG\'s screen saver to stop using this one now; otherwise it goes when the TV is next fully restarted.')
     : (d.slowSwitch ? t('ss.slowSwitch', 'On this TV, switching to or from the LG default takes about a minute, and the screen goes dark while it does.') + ' ' : '')
       + t('ss.firmwareNote', 'Note: if a firmware update is applied, the screen saver will be restored to the LG default.'));
   ssWritable = d.writable;
@@ -91,6 +91,39 @@ async function loadScreensavers() {
 
   clearTimeout(ssSwitchPoll);
   if (ssSwitching) ssSwitchPoll = setTimeout(() => { if (activeTab === 'screensaver') loadScreensavers(); }, 4000);
+}
+
+/*
+ * On webOS 10 and later, where LG's screen saver is a Flutter app, custom ones
+ * are experimental (#366): the switch is here, where people look for them, as
+ * well as under Server → Advanced, and turning it on asks first.
+ */
+function renderSsExperimental(d) {
+  const box = q('ss-exp');
+  if (!box) return;
+  const shown = !!(d.held || d.heldOverridden);
+  box.hidden = !shown;
+  if (!shown) return;
+  const on = !!d.heldOverridden;
+  q('ss-exp-title').textContent = on
+    ? t('ss.exp.onTitle', 'Custom screen savers: on (experimental)')
+    : t('ss.exp.title', 'Custom screen savers are experimental on this TV');
+  q('ss-exp-desc').textContent = t('ss.exp.desc', 'On webOS 10 and later, using one has sometimes left the picture, the sound and HDMI control off until the TV was unplugged.');
+  updateToggle('ss-exp-btn', {
+    cls: on ? 'good' : 'idle',
+    label: on ? t('common.on', 'On') : t('common.off', 'Off'),
+    on: on,
+    disabled: !d.writable
+  });
+}
+
+async function toggleSsExperimental() {
+  const b = q('ss-exp-btn');
+  const turnOn = !b.dataset.on;
+  if (turnOn && !confirm(t('ss.exp.confirm', 'Switch on custom screen savers?\n\nOn webOS 10 and later, using one has sometimes left the picture, the sound and HDMI control off until the TV was unplugged. Unplugging the TV for a minute puts it right.'))) return;
+  b.disabled = true;
+  await sendCommand('setWebos10ScreensaversAllowed', turnOn);
+  loadScreensavers();
 }
 
 document.addEventListener('click', async ev => {

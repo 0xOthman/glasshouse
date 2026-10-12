@@ -28,7 +28,6 @@ const TAB_DOCS = {
   mqtt: 'HOME-ASSISTANT/', server: 'dashboard/server/', tools: 'dashboard/tools/'
 };
 let activeTab = null;
-let ssHeld = false;   // see checkScreensaverTab
 // null until the first telemetry says either way.
 let isOledSet = null;
 
@@ -47,7 +46,6 @@ function showTab(name) {
    * /?tab=oledcare off an OLED set every time.
    */
   if (name === 'oledcare' && isOledSet === false) name = 'control';
-  if (name === 'screensaver' && ssHeld) name = 'control';
   activeTab = name;
   for (const [key, id] of Object.entries(TABS)) {
     const el = q(id);
@@ -103,16 +101,6 @@ if (tabsNav) {
 }
 // Reveals the Game tab on TVs with LG's Game Optimizer.
 loadGame();
-
-/* Where custom screen savers are held back (#366) the tab has nothing to offer
-   once LG's is in use. Shown until the server says so, as every other TV has it. */
-(async function checkScreensaverTab() {
-  let d;
-  try { d = await (await fetch(api('/api/screensaver'), { cache: 'no-store' })).json(); } catch (e) { return; }
-  ssHeld = !!(d && d.available === false);
-  q('tab-btn-screensaver').hidden = ssHeld;
-  if (ssHeld && activeTab === 'screensaver') showTab('control');
-})();
 
 // The menu bar names the tab on show, in the page's language: the strings are
 // put in at DOMContentLoaded, after the first showTab.

@@ -262,10 +262,9 @@ function screensaverList() {
     modes: out,
     writable: !!(configObj && configObj.allowControl),
     slowSwitch: slowSwitch(),
-    // Held back, there is nothing to choose once LG's is in use, so both
-    // dashboards drop the tab; while one of ours still is, it stays so the
-    // owner can switch back without waiting for a full restart.
-    available: !heldBack() || cur !== 'stock',
+    // Always: held back, the tab offers the switch that turns custom screen
+    // savers on, with its warning. A hidden tab read as broken (#630, #665).
+    available: true,
     held: heldBack(),
     heldOverridden: heldOverridden(),
     switching: switching(),
