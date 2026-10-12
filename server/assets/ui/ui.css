@@ -690,7 +690,6 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .pv-d>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:16px;
   font-family:'Outfit';font-weight:300;font-size:clamp(20px,2.4vw,26px);color:var(--w100);
   margin:0;padding:20px 0 14px;min-height:44px;border-top:1px solid var(--w12)}
-#disc-install-apps>summary,#appspane>.pv-d:first-of-type>summary{border-top:0;padding-top:0}
 .pv-d>summary:hover .cur{color:var(--w80)}
 .pv-d>summary::-webkit-details-marker{display:none}
 .pv-d>summary::after{content:'+';font-family:'Manrope';font-size:20px;line-height:1;color:var(--w60)}
@@ -728,6 +727,12 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .pv-sec{margin-bottom:26px}
 /* The Advanced tab's later sections sit apart from the table above them. */
 .adv-sec{margin-top:clamp(34px,4.5vw,48px)}
+/* The Apps tab's groups: a small-caps label over the folded sections, which
+   keep their larger titles. A group whose sections this TV has none of goes. */
+.apps-grp+.apps-grp{margin-top:clamp(34px,4.5vw,48px)}
+.apps-grp:not(:has(>details:not([hidden]))){display:none}
+.apps-grp-h{font-weight:500;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--w80);margin:0 0 6px}
+.apps-grp-d{margin-bottom:6px}
 /* The Advanced tab's settings, side by side in at most two columns where
    they fit, so a description sits beside its switch instead of running the
    full width away from it. Text at the Privacy tab's sizes (15px names, 13px

@@ -203,6 +203,30 @@
   "text": "1 app",
   "from": "1 app"
  },
+ "apps.group.apps": {
+  "text": "Apps",
+  "from": "Apps"
+ },
+ "apps.group.apps.desc": {
+  "text": "Las apps y páginas web del TV: añadirlas y quitarlas.",
+  "from": "The apps and web pages on the TV: adding them and removing them."
+ },
+ "apps.group.bg": {
+  "text": "Segundo plano",
+  "from": "Background"
+ },
+ "apps.group.bg.desc": {
+  "text": "Lo que el TV ejecuta sin que se le pida. Desactivar parte de ello libera memoria.",
+  "from": "What the TV runs without being asked. Switching some of it off frees memory."
+ },
+ "apps.group.launch": {
+  "text": "Pantalla de inicio y mando",
+  "from": "Home screen and remote"
+ },
+ "apps.group.launch.desc": {
+  "text": "Lo que muestra la pantalla de inicio y lo que abren las teclas numéricas del mando.",
+  "from": "What the Home screen shows, and what the remote’s number keys open."
+ },
  "apps.heading": {
   "text": "Apps y lanzador de la pantalla de inicio",
   "from": "Apps & Home Screen Launcher"

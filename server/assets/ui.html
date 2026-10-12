@@ -602,136 +602,150 @@
 <section class="priv panel" id="appspane" role="tabpanel" hidden>
   <div class="lbl" data-t="apps.heading">Apps &amp; Home Screen Launcher</div>
 
+  <div class="apps-grp" id="apps-grp-apps">
+    <div class="apps-grp-h" data-t="apps.group.apps">Apps</div>
+    <div class="pv-sub apps-grp-d" data-t="apps.group.apps.desc">The apps and web pages on the TV: adding them and removing them.</div>
 
-  <details class="pv-d" id="disc-install-apps">
-    <summary><span data-t="apps.install">Install homebrew apps</span> <span class="cur" id="apps-catalog-summary"></span></summary>
-    <div class="pv-sub" data-t="apps.install.desc">Apps from the Homebrew Channel catalog.</div>
-    <form class="toast-form" onsubmit="event.preventDefault();">
-      <input type="search" id="catalog-search" placeholder="Search apps" data-t-placeholder="apps.install.search" maxlength="60"
-        autocomplete="off" spellcheck="false" oninput="renderCatalog()">
-    </form>
-    <div class="sub page-add-msg" id="catalog-msg" role="alert"></div>
-    <div class="pv-note" id="install-status" hidden>
-      <div class="upd-prog" id="inst-prog">
-        <div class="upd-step" id="inst-step"></div>
-        <div class="track" id="inst-track" hidden><b id="inst-bar"></b></div>
-      </div>
-    </div>
-    <div id="install-modal" class="modal-backdrop" hidden onclick="if(event.target===this)cancelInstall()">
-      <div class="modal-card" id="install-panel" hidden>
-        <div class="prot-title" id="inst-title">&mdash;</div>
-        <div class="prot-desc" id="inst-meta">&mdash;</div>
-        <div class="prot-desc" id="inst-apps"></div>
-        <div id="inst-services-row" hidden>
-          <div class="prot-desc" id="inst-services"></div>
-          <label class="cfg-ent-chk"><input type="checkbox" id="inst-root"><span data-t="apps.install.root">Run services as root (needs the Homebrew Channel)</span></label>
-          <div class="prot-desc" id="inst-root-note" hidden></div>
-        </div>
-        <div class="prot-desc" id="inst-cpu" hidden></div>
-        <div class="prot-desc" id="inst-screensaver" hidden></div>
-        <div class="prot-desc" id="inst-space"></div>
-        <div class="prot-desc" id="inst-hash" hidden></div>
-        <div id="inst-store-row" hidden>
-          <div class="prot-desc" data-t="apps.install.store.warn">This app was installed from the LG store. Replacing it stops store updates for it.</div>
-          <label class="cfg-ent-chk"><input type="checkbox" id="inst-replace"><span data-t="apps.install.store.replace">Replace the store version</span></label>
-        </div>
-        <div class="btns" style="margin-top:16px;max-width:420px">
-          <button type="button" id="inst-confirm" onclick="confirmInstall()" data-t="apps.install.confirm">Install</button>
-          <button type="button" id="inst-cancel" onclick="cancelInstall()" data-t="common.cancel">Cancel</button>
+    <details class="pv-d" id="disc-install-apps">
+      <summary><span data-t="apps.install">Install homebrew apps</span> <span class="cur" id="apps-catalog-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.install.desc">Apps from the Homebrew Channel catalog.</div>
+      <form class="toast-form" onsubmit="event.preventDefault();">
+        <input type="search" id="catalog-search" placeholder="Search apps" data-t-placeholder="apps.install.search" maxlength="60"
+          autocomplete="off" spellcheck="false" oninput="renderCatalog()">
+      </form>
+      <div class="sub page-add-msg" id="catalog-msg" role="alert"></div>
+      <div class="pv-note" id="install-status" hidden>
+        <div class="upd-prog" id="inst-prog">
+          <div class="upd-step" id="inst-step"></div>
+          <div class="track" id="inst-track" hidden><b id="inst-bar"></b></div>
         </div>
       </div>
-    </div>
-    <div class="prot-table" id="apps-catalog-list">
-      <div class="sub" style="padding:16px 0" data-t="apps.install.loading">Loading the catalog&hellip;</div>
-    </div>
-  </details>
+      <div id="install-modal" class="modal-backdrop" hidden onclick="if(event.target===this)cancelInstall()">
+        <div class="modal-card" id="install-panel" hidden>
+          <div class="prot-title" id="inst-title">&mdash;</div>
+          <div class="prot-desc" id="inst-meta">&mdash;</div>
+          <div class="prot-desc" id="inst-apps"></div>
+          <div id="inst-services-row" hidden>
+            <div class="prot-desc" id="inst-services"></div>
+            <label class="cfg-ent-chk"><input type="checkbox" id="inst-root"><span data-t="apps.install.root">Run services as root (needs the Homebrew Channel)</span></label>
+            <div class="prot-desc" id="inst-root-note" hidden></div>
+          </div>
+          <div class="prot-desc" id="inst-cpu" hidden></div>
+          <div class="prot-desc" id="inst-screensaver" hidden></div>
+          <div class="prot-desc" id="inst-space"></div>
+          <div class="prot-desc" id="inst-hash" hidden></div>
+          <div id="inst-store-row" hidden>
+            <div class="prot-desc" data-t="apps.install.store.warn">This app was installed from the LG store. Replacing it stops store updates for it.</div>
+            <label class="cfg-ent-chk"><input type="checkbox" id="inst-replace"><span data-t="apps.install.store.replace">Replace the store version</span></label>
+          </div>
+          <div class="btns" style="margin-top:16px;max-width:420px">
+            <button type="button" id="inst-confirm" onclick="confirmInstall()" data-t="apps.install.confirm">Install</button>
+            <button type="button" id="inst-cancel" onclick="cancelInstall()" data-t="common.cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div class="prot-table" id="apps-catalog-list">
+        <div class="sub" style="padding:16px 0" data-t="apps.install.loading">Loading the catalog&hellip;</div>
+      </div>
+    </details>
 
-  <details class="pv-d" id="disc-installed-apps">
-    <summary><span data-t="apps.uninstall">Uninstall applications</span> <span class="cur" id="apps-installed-summary"></span></summary>
-    <div class="pv-sub" data-t="apps.uninstall.desc">Store downloads and user-installed applications. Click Uninstall to permanently remove the application and free up internal eMMC flash storage space.</div>
-    <div class="prot-table" id="apps-installed-list">
-      <div class="sub" style="padding:16px 0" data-t="apps.loadingInstalled">Loading installed apps&hellip;</div>
-    </div>
-  </details>
+    <details class="pv-d" id="disc-sideload-apps">
+      <summary><span data-t="apps.sideload.heading">Install app from a URL or file</span> <span class="cur" id="apps-sideload-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.sideload.desc">Install an application package (.ipk) directly from a download link or by uploading a file from your computer.</div>
+      <div class="pv-note" id="sideload-off" hidden>
+        <div class="prot-title" data-t="apps.sideload.off.title">Install from a URL or a file</div>
+        <div class="prot-desc" data-t="apps.sideload.off.desc">This is off, because a package from outside the catalog can run anything on the TV. You can turn it on below, or by setting a token.</div>
+        <div style="margin-top:10px"><button type="button" class="pill warn" id="btn-sideload-enable" onclick="toggleSideload(true)" data-t="apps.sideload.enable">Turn on install from URL or file&hellip;</button></div>
+      </div>
+      <div id="sideload-box" hidden>
+        <div class="prot-title" data-t="apps.sideload.url.title">From URL&hellip;</div>
+        <form class="toast-form page-add" id="sl-url-form" onsubmit="event.preventDefault();startUrlInstall();">
+          <input type="text" id="sl-url" placeholder="Address of an .ipk, such as https://example.org/app.ipk" data-t-placeholder="apps.sideload.url.placeholder" maxlength="2048"
+            autocomplete="off" spellcheck="false">
+          <input type="text" id="sl-sha" placeholder="sha256 (optional)" data-t-placeholder="apps.sideload.sha.placeholder" maxlength="64"
+            autocomplete="off" spellcheck="false">
+          <button type="submit" id="sl-url-btn" data-t="apps.sideload.url.go">Download and check</button>
+        </form>
+        <div class="prot-title" data-t="apps.sideload.file.title">Upload .ipk</div>
+        <form class="toast-form page-add" id="sl-file-form" onsubmit="event.preventDefault();uploadIpk();">
+          <input type="file" id="sl-file" accept=".ipk" aria-label="Package file" data-t-aria-label="apps.sideload.file.label">
+          <button type="submit" id="sl-file-btn" data-t="apps.sideload.file.go">Upload and check</button>
+        </form>
+        <div style="margin-top:12px"><button type="button" class="pill idle" id="btn-sideload-disable" onclick="toggleSideload(false)" data-t="apps.sideload.disable">Turn off install from URL or file</button></div>
+      </div>
+    </details>
 
-  <details class="pv-d" id="disc-quickaccess" hidden>
-    <summary><span data-t="apps.quickAccess">Quick Access</span> <span class="cur" id="apps-qa-summary"></span></summary>
-    <div class="pv-sub" data-t="apps.quickAccess.desc">Holding a number key on the remote opens the app or input set for it. A change here applies on the TV straight away.</div>
-    <div class="prot-table" id="apps-qa-list"></div>
-  </details>
+    <details class="pv-d" id="disc-installed-apps">
+      <summary><span data-t="apps.uninstall">Uninstall applications</span> <span class="cur" id="apps-installed-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.uninstall.desc">Store downloads and user-installed applications. Click Uninstall to permanently remove the application and free up internal eMMC flash storage space.</div>
+      <div class="prot-table" id="apps-installed-list">
+        <div class="sub" style="padding:16px 0" data-t="apps.loadingInstalled">Loading installed apps&hellip;</div>
+      </div>
+    </details>
 
-  <details class="pv-d" id="disc-system-tiles">
-    <summary><span data-t="apps.tiles">Hide home screen system apps</span> <span class="cur" id="apps-tiles-summary"></span></summary>
-    <div class="pv-sub" data-t="apps.tiles.desc">Hide built-in LG apps (Gallery, Music, Sports, Always Ready, Alexa, etc.) from the TV's home launcher ribbon.</div>
-    <div class="btns" style="margin-top:14px;max-width:520px">
-      <button type="button" id="tile-hiding-off" onclick="setTileHiding(false)" data-t="apps.tiles.off">Off (Stock)</button>
-      <button type="button" id="tile-hiding-on" onclick="setTileHiding(true)" data-t="apps.tiles.on">On (Custom)</button>
-    </div>
-    <div class="sub" id="apps-hidden-count" style="margin-top:8px">&mdash;</div>
-    <div class="pv-note" id="tile-hiding-overridden" style="margin-top:12px" hidden data-t="common.heldOverridden">Turned back on with allowOnWebos10 in config.json. On webOS 10 and later custom screen savers and tile hiding have left the picture, the sound and HDMI control off until the TV was unplugged.</div>
-    <div class="pv-note" id="tile-hiding-held" style="margin-top:12px" hidden data-t="apps.tiles.held">Hiding system apps is turned off on this TV for now. On webOS 10 and later it can leave the picture, the sound and HDMI control off until the TV is unplugged. Apps already hidden come back after the TV is next fully restarted.</div>
-    <div class="pv-note" id="tile-hiding-warning" style="margin-top:12px" hidden><b data-t="apps.tiles.warn.lead">When enabled:</b> <span data-t="apps.tiles.warn">On each cold boot of your TV, this can cause a brief 1-second blank screen or input refresh before returning to your active HDMI source.</span></div>
-    <div class="prot-table" id="apps-tiles-list" style="margin-top:16px">
-      <div class="sub" style="padding:16px 0" data-t="apps.loadingSystem">Loading system apps&hellip;</div>
-    </div>
-  </details>
-
-  <details class="pv-d" id="disc-system-services" hidden>
-    <summary><span data-t="apps.services">Turn off background services</span> <span class="cur" id="apps-services-summary"></span></summary>
-    <div class="pv-sub" data-t="apps.services.desc">Non-essential background services discovered on this TV. Disable unnecessary services to reduce memory usage, eliminate background telemetry, and speed up boot times.</div>
-    <div class="prot-table" id="apps-services-list">
-      <div class="sub" style="padding:16px 0" data-t="apps.loadingServices">Loading background services&hellip;</div>
-    </div>
-  </details>
-
-  <details class="pv-d" id="disc-preload" hidden>
-    <summary><span data-t="apps.preload">Apps kept ready in the background</span> <span class="cur" id="apps-preload-summary"></span></summary>
-    <div class="pv-sub" data-t="apps.preload.desc">LG keeps these apps loaded in the background so they open
-      faster, including ones that are never used, and each takes up memory. An app switched off frees its
-      memory once it is next closed or the TV restarts, and takes a few seconds longer to open.</div>
-    <div class="prot-table" id="apps-preload-list"></div>
-  </details>
-
-  <details class="pv-d" id="disc-saved-pages">
-    <summary><span data-t="apps.pages">Saved web pages</span> <span class="cur" id="apps-pages-summary"></span></summary>
-    <div class="pv-sub" data-t="apps.pages.desc">Web pages on the TV's home screen, each opening in its browser. A page saved
-      from the browser takes its whole title as its name, so a long one can be given a shorter name
-      here. Pages can also be added, pointed at a new address, or removed.</div>
-    <div class="prot-table" id="apps-pages-list"></div>
-    <form class="toast-form page-add" id="page-add" onsubmit="event.preventDefault();addPage();">
-      <input type="text" id="page-add-url" placeholder="Web address, such as bbc.co.uk/weather" data-t-placeholder="apps.pages.urlPlaceholder" maxlength="2048"
-        autocomplete="off" spellcheck="false">
-      <input type="text" id="page-add-name" placeholder="Name (optional)" data-t-placeholder="apps.pages.namePlaceholder" maxlength="60" autocomplete="off">
-      <button type="submit" id="page-add-btn" data-t="apps.pages.add">Add to home screen</button>
-    </form>
-    <div class="sub page-add-msg" id="page-add-msg" role="alert"></div>
-  </details>
-
-  <details class="pv-d" id="disc-sideload-apps">
-    <summary><span data-t="apps.sideload.heading">Install app from a URL or file</span> <span class="cur" id="apps-sideload-summary"></span></summary>
-    <div class="pv-sub" data-t="apps.sideload.desc">Install an application package (.ipk) directly from a download link or by uploading a file from your computer.</div>
-    <div class="pv-note" id="sideload-off" hidden>
-      <div class="prot-title" data-t="apps.sideload.off.title">Install from a URL or a file</div>
-      <div class="prot-desc" data-t="apps.sideload.off.desc">This is off, because a package from outside the catalog can run anything on the TV. You can turn it on below, or by setting a token.</div>
-      <div style="margin-top:10px"><button type="button" class="pill warn" id="btn-sideload-enable" onclick="toggleSideload(true)" data-t="apps.sideload.enable">Turn on install from URL or file&hellip;</button></div>
-    </div>
-    <div id="sideload-box" hidden>
-      <div class="prot-title" data-t="apps.sideload.url.title">From URL&hellip;</div>
-      <form class="toast-form page-add" id="sl-url-form" onsubmit="event.preventDefault();startUrlInstall();">
-        <input type="text" id="sl-url" placeholder="Address of an .ipk, such as https://example.org/app.ipk" data-t-placeholder="apps.sideload.url.placeholder" maxlength="2048"
+    <details class="pv-d" id="disc-saved-pages">
+      <summary><span data-t="apps.pages">Saved web pages</span> <span class="cur" id="apps-pages-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.pages.desc">Web pages on the TV's home screen, each opening in its browser. A page saved
+        from the browser takes its whole title as its name, so a long one can be given a shorter name
+        here. Pages can also be added, pointed at a new address, or removed.</div>
+      <div class="prot-table" id="apps-pages-list"></div>
+      <form class="toast-form page-add" id="page-add" onsubmit="event.preventDefault();addPage();">
+        <input type="text" id="page-add-url" placeholder="Web address, such as bbc.co.uk/weather" data-t-placeholder="apps.pages.urlPlaceholder" maxlength="2048"
           autocomplete="off" spellcheck="false">
-        <input type="text" id="sl-sha" placeholder="sha256 (optional)" data-t-placeholder="apps.sideload.sha.placeholder" maxlength="64"
-          autocomplete="off" spellcheck="false">
-        <button type="submit" id="sl-url-btn" data-t="apps.sideload.url.go">Download and check</button>
+        <input type="text" id="page-add-name" placeholder="Name (optional)" data-t-placeholder="apps.pages.namePlaceholder" maxlength="60" autocomplete="off">
+        <button type="submit" id="page-add-btn" data-t="apps.pages.add">Add to home screen</button>
       </form>
-      <div class="prot-title" data-t="apps.sideload.file.title">Upload .ipk</div>
-      <form class="toast-form page-add" id="sl-file-form" onsubmit="event.preventDefault();uploadIpk();">
-        <input type="file" id="sl-file" accept=".ipk" aria-label="Package file" data-t-aria-label="apps.sideload.file.label">
-        <button type="submit" id="sl-file-btn" data-t="apps.sideload.file.go">Upload and check</button>
-      </form>
-      <div style="margin-top:12px"><button type="button" class="pill idle" id="btn-sideload-disable" onclick="toggleSideload(false)" data-t="apps.sideload.disable">Turn off install from URL or file</button></div>
-    </div>
-  </details>
+      <div class="sub page-add-msg" id="page-add-msg" role="alert"></div>
+    </details>
+  </div>
+
+  <div class="apps-grp" id="apps-grp-launch">
+    <div class="apps-grp-h" data-t="apps.group.launch">Home screen and remote</div>
+    <div class="pv-sub apps-grp-d" data-t="apps.group.launch.desc">What the Home screen shows, and what the remote&rsquo;s number keys open.</div>
+
+    <details class="pv-d" id="disc-quickaccess" hidden>
+      <summary><span data-t="apps.quickAccess">Quick Access</span> <span class="cur" id="apps-qa-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.quickAccess.desc">Holding a number key on the remote opens the app or input set for it. A change here applies on the TV straight away.</div>
+      <div class="prot-table" id="apps-qa-list"></div>
+    </details>
+
+    <details class="pv-d" id="disc-system-tiles">
+      <summary><span data-t="apps.tiles">Hide home screen system apps</span> <span class="cur" id="apps-tiles-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.tiles.desc">Hide built-in LG apps (Gallery, Music, Sports, Always Ready, Alexa, etc.) from the TV's home launcher ribbon.</div>
+      <div class="btns" style="margin-top:14px;max-width:520px">
+        <button type="button" id="tile-hiding-off" onclick="setTileHiding(false)" data-t="apps.tiles.off">Off (Stock)</button>
+        <button type="button" id="tile-hiding-on" onclick="setTileHiding(true)" data-t="apps.tiles.on">On (Custom)</button>
+      </div>
+      <div class="sub" id="apps-hidden-count" style="margin-top:8px">&mdash;</div>
+      <div class="pv-note" id="tile-hiding-overridden" style="margin-top:12px" hidden data-t="common.heldOverridden">Turned back on with allowOnWebos10 in config.json. On webOS 10 and later custom screen savers and tile hiding have left the picture, the sound and HDMI control off until the TV was unplugged.</div>
+      <div class="pv-note" id="tile-hiding-held" style="margin-top:12px" hidden data-t="apps.tiles.held">Hiding system apps is turned off on this TV for now. On webOS 10 and later it can leave the picture, the sound and HDMI control off until the TV is unplugged. Apps already hidden come back after the TV is next fully restarted.</div>
+      <div class="pv-note" id="tile-hiding-warning" style="margin-top:12px" hidden><b data-t="apps.tiles.warn.lead">When enabled:</b> <span data-t="apps.tiles.warn">On each cold boot of your TV, this can cause a brief 1-second blank screen or input refresh before returning to your active HDMI source.</span></div>
+      <div class="prot-table" id="apps-tiles-list" style="margin-top:16px">
+        <div class="sub" style="padding:16px 0" data-t="apps.loadingSystem">Loading system apps&hellip;</div>
+      </div>
+    </details>
+  </div>
+
+  <div class="apps-grp" id="apps-grp-bg">
+    <div class="apps-grp-h" data-t="apps.group.bg">Background</div>
+    <div class="pv-sub apps-grp-d" data-t="apps.group.bg.desc">What the TV runs without being asked. Switching some of it off frees memory.</div>
+
+    <details class="pv-d" id="disc-preload" hidden>
+      <summary><span data-t="apps.preload">Apps kept ready in the background</span> <span class="cur" id="apps-preload-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.preload.desc">LG keeps these apps loaded in the background so they open
+        faster, including ones that are never used, and each takes up memory. An app switched off frees its
+        memory once it is next closed or the TV restarts, and takes a few seconds longer to open.</div>
+      <div class="prot-table" id="apps-preload-list"></div>
+    </details>
+
+    <details class="pv-d" id="disc-system-services" hidden>
+      <summary><span data-t="apps.services">Turn off background services</span> <span class="cur" id="apps-services-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.services.desc">Non-essential background services discovered on this TV. Disable unnecessary services to reduce memory usage, eliminate background telemetry, and speed up boot times.</div>
+      <div class="prot-table" id="apps-services-list">
+        <div class="sub" style="padding:16px 0" data-t="apps.loadingServices">Loading background services&hellip;</div>
+      </div>
+    </details>
+  </div>
 </section>
 
 <section class="priv panel" id="privpane" role="tabpanel" hidden>

@@ -702,6 +702,23 @@ function appsRows(d) {
     }
   }
 
+  // Quick Access, as it is set: changing it is in the browser dashboard,
+  // where picking from every app is easier than with the remote.
+  var qa = d.quickAccess;
+  if (qa && qa.keys) {
+    r.push(head(t('apps.quickAccess', 'Quick Access')));
+    for (var qk = 0; qk < qa.keys.length; qk++) {
+      var key = qa.keys[qk];
+      r.push({
+        label: String(key.key),
+        value: key.id ? key.title : t('apps.quickAccess.none', 'Nothing set'),
+        cls: key.id ? 'on' : 'off',
+        hint: t('apps.quickAccess.desc', 'Holding a number key on the remote opens the app or input set for it. A change here applies on the TV straight away.') + ' ' +
+              t('tv.apps.quickAccess.browser', 'Change them from the dashboard in a browser.')
+      });
+    }
+  }
+
   var sys = d.systemTiles || [];
   if (sys.length > 0) {
     r.push(head(t('tv.apps.head.hideHomeScreenSystem', 'Hide Home Screen System Apps')));
@@ -741,45 +758,6 @@ function appsRows(d) {
     }
   }
 
-  var svcs = d.services || [];
-  if (svcs.length > 0) {
-    r.push(head(t('tv.apps.head.turnOffBackgroundServices', 'Turn Off Background Services')));
-    for (var k = 0; k < svcs.length; k++) {
-      var s = svcs[k];
-      var isActive = !s.disabled, still = s.disabled && s.running;
-      r.push({
-        label: s.title || s.id,
-        value: isActive ? t('metrics.hdmi.active', 'Active') : still ? t('apps.service.stillRunning', 'Disabled, still running') : t('mqtt.cat.disabled', 'Disabled'),
-        cls: isActive ? 'good' : 'warn',
-        act: 'serviceToggle',
-        key: s.id,
-        title: s.title || s.id,
-        on: isActive,
-        press: isActive ? t('tv.apps.service.disable', 'Press OK to disable service') : t('tv.apps.service.enable', 'Press OK to enable service'),
-        // badge and desc are the server's own words, in English.
-        hint: (s.badge ? '[' + s.badge + '] ' : '') + (s.desc || '') +
-              (still ? ' ' + t('apps.service.restarted', 'Switched off, but something on the TV has started it again.') : '')
-      });
-    }
-  }
-
-  // Quick Access, as it is set: changing it is in the browser dashboard,
-  // where picking from every app is easier than with the remote.
-  var qa = d.quickAccess;
-  if (qa && qa.keys) {
-    r.push(head(t('apps.quickAccess', 'Quick Access')));
-    for (var qk = 0; qk < qa.keys.length; qk++) {
-      var key = qa.keys[qk];
-      r.push({
-        label: String(key.key),
-        value: key.id ? key.title : t('apps.quickAccess.none', 'Nothing set'),
-        cls: key.id ? 'on' : 'off',
-        hint: t('apps.quickAccess.desc', 'Holding a number key on the remote opens the app or input set for it. A change here applies on the TV straight away.') + ' ' +
-              t('tv.apps.quickAccess.browser', 'Change them from the dashboard in a browser.')
-      });
-    }
-  }
-
   var pre = d.preload || [];
   if (pre.length > 0) {
     r.push(head(t('apps.preload', 'Apps kept ready in the background')));
@@ -798,6 +776,28 @@ function appsRows(d) {
         hint: t('apps.preload.desc', 'LG keeps these apps loaded in the background so they open faster, including ones that are never used, and each takes up memory. An app switched off frees its memory once it is next closed or the TV restarts, and takes a few seconds longer to open.') +
               (a.memoryMb ? ' ' + t('tv.apps.preload.memory', 'This one takes about {mb} MB when loaded.', { mb: a.memoryMb }) : '') +
               (a.loaded ? ' ' + t('tv.apps.preload.loadedNow', 'It is loaded now.') : '')
+      });
+    }
+  }
+
+  var svcs = d.services || [];
+  if (svcs.length > 0) {
+    r.push(head(t('tv.apps.head.turnOffBackgroundServices', 'Turn Off Background Services')));
+    for (var k = 0; k < svcs.length; k++) {
+      var s = svcs[k];
+      var isActive = !s.disabled, still = s.disabled && s.running;
+      r.push({
+        label: s.title || s.id,
+        value: isActive ? t('metrics.hdmi.active', 'Active') : still ? t('apps.service.stillRunning', 'Disabled, still running') : t('mqtt.cat.disabled', 'Disabled'),
+        cls: isActive ? 'good' : 'warn',
+        act: 'serviceToggle',
+        key: s.id,
+        title: s.title || s.id,
+        on: isActive,
+        press: isActive ? t('tv.apps.service.disable', 'Press OK to disable service') : t('tv.apps.service.enable', 'Press OK to enable service'),
+        // badge and desc are the server's own words, in English.
+        hint: (s.badge ? '[' + s.badge + '] ' : '') + (s.desc || '') +
+              (still ? ' ' + t('apps.service.restarted', 'Switched off, but something on the TV has started it again.') : '')
       });
     }
   }
