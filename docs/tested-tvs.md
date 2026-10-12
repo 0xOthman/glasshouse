@@ -1,6 +1,6 @@
 # Tested TVs
 
-Confirmed on 44 TVs across 29 series so far (webOS 2.2 through 11, which LG calls webOS 26). Other rooted models should work. The oldest, webOS 2 and 3, have fewer of LG's services, so some readings and controls do not appear there.
+Confirmed on 44 TVs across 29 series so far, running webOS 2.2 through 11 (LG's webOS 26). Other rooted models should work. The oldest, webOS 2 and 3, have fewer of LG's services, so some readings and controls do not appear there.
 
 Versions here are the ones the TV reports itself, as the dashboard shows them; [webOS version numbers](#webos-version-numbers) below gives LG's names for them.
 
