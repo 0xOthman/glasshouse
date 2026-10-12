@@ -269,12 +269,27 @@ q('pv-consent').addEventListener('click', async (ev) => {
 });
 
 
+/*
+ * LG's web apps run in one browser engine that stays up from boot, and it keeps
+ * a looked-up address for about a minute: on a C2 (webOS 9.2) the Content
+ * Store still failed 15 s after Everything was switched off and opened after a
+ * minute, with LG's device sign-in fine throughout. So the note shows on
+ * leaving Everything, for two minutes.
+ */
+let adblockReconnectTimer = null;
+
 async function setAdBlockMode(mode) {
   const full = q('ab-full');
+  const leavingFull = mode !== 'full' && !!(full && full.classList.contains('on'));
   if (mode === 'full' && !(full && full.classList.contains('on')) &&
       !confirm(t('pv.adblock.full.confirm', 'Everything also blocks LG\u2019s platform services, so the LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working. Switch to Everything?'))) return;
   for (const m of ['off', 'ads', 'full']) { const b = q('ab-' + m); if (b) b.disabled = true; }
-  await sendCommand('setAdBlock', mode);
+  const r = await sendCommand('setAdBlock', mode);
+  if (r && r.ok && leavingFull && q('adblock-reconnect')) {
+    q('adblock-reconnect').hidden = false;
+    clearTimeout(adblockReconnectTimer);
+    adblockReconnectTimer = setTimeout(() => { q('adblock-reconnect').hidden = true; }, 120000);
+  }
   await loadPrivacy();
   for (const m of ['off', 'ads', 'full']) { const b = q('ab-' + m); if (b) b.disabled = false; }
 }
