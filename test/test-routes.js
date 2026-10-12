@@ -759,7 +759,12 @@ function createMockRes(cb) {
   var fetchLib = require('../server/lib/fetch');
   var root = path.join(os.tmpdir(), 'tvweb-sideload-test-' + process.pid);
   var staging = path.join(root, 'staging');
-  childProcess.execSync('mkdir -p "' + staging + '" "' + path.join(root, 'state') + '"');
+  // execSync arrived in node 0.12; webOS 2 runs 0.10.
+  [staging, path.join(root, 'state')].forEach(function mkdirp(dir) {
+    if (fs.existsSync(dir)) return;
+    mkdirp(path.dirname(dir));
+    fs.mkdirSync(dir);
+  });
   var cfgFile = path.join(root, 'config.json');
   var df = path.join(root, 'df');
   function fakeDf(avail) {
