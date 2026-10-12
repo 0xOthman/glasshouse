@@ -763,6 +763,23 @@ function appsRows(d) {
     }
   }
 
+  // Quick Access, as it is set: changing it is in the browser dashboard,
+  // where picking from every app is easier than with the remote.
+  var qa = d.quickAccess;
+  if (qa && qa.keys) {
+    r.push(head(t('apps.quickAccess', 'Quick Access')));
+    for (var qk = 0; qk < qa.keys.length; qk++) {
+      var key = qa.keys[qk];
+      r.push({
+        label: String(key.key),
+        value: key.id ? key.title : t('apps.quickAccess.none', 'Nothing set'),
+        cls: key.id ? 'on' : 'off',
+        hint: t('apps.quickAccess.desc', 'Holding a number key on the remote opens the app or input set for it. A change here applies on the TV straight away.') + ' ' +
+              t('tv.apps.quickAccess.browser', 'Change them from the dashboard in a browser.')
+      });
+    }
+  }
+
   var pre = d.preload || [];
   if (pre.length > 0) {
     r.push(head(t('apps.preload', 'Apps kept ready in the background')));

@@ -67,6 +67,8 @@ var appsModule = null;
 var servicesModule = null;
 /** @type {typeof import('./preload')} */
 var preloadModule = null;
+/** @type {typeof import('./quickaccess')} */
+var quickAccessModule = null;
 /** @type {typeof import('./screensavers')} */
 var screensaversModule = null;
 /** @type {typeof import('./updater')} */
@@ -1166,7 +1168,11 @@ function handleRequest(req, res) {
         if (!preloadModule) return send(res, 200, JSON.stringify(d));
         preloadModule.getPreload(function (pRes) {
           d.preload = (pRes && pRes.apps) || [];
-          send(res, 200, JSON.stringify(d));
+          if (!quickAccessModule) return send(res, 200, JSON.stringify(d));
+          quickAccessModule.getQuickAccess(function (qa) {
+            d.quickAccess = qa && qa.supported ? qa : null;
+            send(res, 200, JSON.stringify(d));
+          });
         });
       });
     });
@@ -1278,6 +1284,18 @@ function handleRequest(req, res) {
   if (pathname === '/api/services/toggle' && req.method === 'POST') {
     return readJsonBody(req, res, function (body) {
       servicesModule.toggleService(body && body.id, !!(body && body.disabled), function (r) {
+        send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
+      });
+    });
+  }
+
+  if (pathname === '/api/quickaccess' && req.method === 'POST') {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      if (!quickAccessModule) return send(res, 503, JSON.stringify({ ok: false, error: 'quick access module unavailable' }));
+      quickAccessModule.setQuickAccess(body && body.key, body && body.id, function (r) {
         send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
       });
     });
@@ -1467,6 +1485,7 @@ function init(opts) {
   if (opts.apps) appsModule = opts.apps;
   if (opts.services) servicesModule = opts.services;
   if (opts.preload) preloadModule = opts.preload;
+  if (opts.quickAccess) quickAccessModule = opts.quickAccess;
   if (opts.screensavers) screensaversModule = opts.screensavers;
   if (opts.updater) updaterModule = opts.updater;
   if (opts.logs) logsModule = opts.logs;

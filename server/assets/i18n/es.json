@@ -523,6 +523,46 @@
   "text": "unos {mb} MB cuando está cargada",
   "from": "about {mb} MB when loaded"
  },
+ "apps.quickAccess": {
+  "text": "Acceso rápido",
+  "from": "Quick Access"
+ },
+ "apps.quickAccess.apps": {
+  "text": "Apps",
+  "from": "Apps"
+ },
+ "apps.quickAccess.count": {
+  "text": "{n} de 9 asignadas",
+  "from": "{n} of 9 set"
+ },
+ "apps.quickAccess.desc": {
+  "text": "Mantener pulsada una tecla numérica del mando abre la app o la entrada asignada. Un cambio aquí se aplica en la TV al momento.",
+  "from": "Holding a number key on the remote opens the app or input set for it. A change here applies on the TV straight away."
+ },
+ "apps.quickAccess.failed": {
+  "text": "No se pudo cambiar: {error}",
+  "from": "Could not change it: {error}"
+ },
+ "apps.quickAccess.inputs": {
+  "text": "Entradas",
+  "from": "Inputs"
+ },
+ "apps.quickAccess.keyLabel": {
+  "text": "Tecla {key}",
+  "from": "Key {key}"
+ },
+ "apps.quickAccess.lgDefault": {
+  "text": "Asignada por LG",
+  "from": "Set by LG"
+ },
+ "apps.quickAccess.none": {
+  "text": "Sin asignar",
+  "from": "Nothing set"
+ },
+ "apps.quickAccess.reset": {
+  "text": "Ninguna",
+  "from": "None"
+ },
  "apps.service.active": {
   "text": "Activo",
   "from": "Active"
@@ -3815,6 +3855,38 @@
   "text": "no se pudo leer la lista de procesos",
   "from": "could not read process list"
  },
+ "srv.quickAccess.badKey": {
+  "text": "Las teclas de acceso rápido son del 1 al 9",
+  "from": "Quick Access keys are 1 to 9"
+ },
+ "srv.quickAccess.channel": {
+  "text": "TV en directo, canal {channel}",
+  "from": "Live TV, channel {channel}"
+ },
+ "srv.quickAccess.liveTv": {
+  "text": "TV en directo",
+  "from": "Live TV"
+ },
+ "srv.quickAccess.noApps": {
+  "text": "No se pudieron leer las apps de la TV. Inténtalo de nuevo en un momento.",
+  "from": "Could not read the TV's apps. Try again in a moment."
+ },
+ "srv.quickAccess.notInstalled": {
+  "text": "App no instalada",
+  "from": "App not installed"
+ },
+ "srv.quickAccess.saveFailed": {
+  "text": "La TV no guardó el cambio",
+  "from": "The TV did not save the change"
+ },
+ "srv.quickAccess.unknownApp": {
+  "text": "Esa app no está en esta TV",
+  "from": "That app is not on this TV"
+ },
+ "srv.quickAccess.unsupported": {
+  "text": "El acceso rápido de esta TV no se puede cambiar desde aquí",
+  "from": "This TV's Quick Access cannot be changed from here"
+ },
  "srv.repo.notCatalog": {
   "text": "no es un catálogo de paquetes: {url}",
   "from": "not a package catalog: {url}"
@@ -4606,6 +4678,10 @@
  "tv.apps.preload.switchOff": {
   "text": "Pulsa OK para dejar de mantenerla lista",
   "from": "Press OK to stop keeping it ready"
+ },
+ "tv.apps.quickAccess.browser": {
+  "text": "Cámbialas desde el panel en un navegador.",
+  "from": "Change them from the dashboard in a browser."
  },
  "tv.apps.service.disable": {
   "text": "Pulsa OK para desactivar el servicio",
