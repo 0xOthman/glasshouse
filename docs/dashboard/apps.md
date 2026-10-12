@@ -39,7 +39,7 @@ Switches parts of LG's Home screen off, for a Home screen with only the apps and
 
 At least one part stays. A change takes a few seconds, while the Home screen starts again, and lasts through restarts and power cuts. The rows further down, such as Live TV and LG Channels, come from LG's servers and stay.
 
-**Inputs on Home** adds a tile for each HDMI input, named as the TV names it, among the apps. It is LG's own tile for the input, so it can be moved or removed on the TV like any other.
+**Inputs on Home** adds a tile for each HDMI input, named as the TV names it. The input tiles go before the apps, in HDMI order; adding one moves any input tiles moved elsewhere back to the front, and starts the Home screen again to show it. It is LG's own tile for the input, so it can be moved or removed on the TV like any other.
 
 **Put back LG's Home screen** shows every part again and takes off the input tiles added here; ones added on the TV stay. The TV app has the same switches.
 

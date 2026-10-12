@@ -50,6 +50,17 @@ advert row shows Recent Input and Device Functions instead.
 `{ id: "com.webos.app.hdmi2", title: "Mac", params: {} }` is accepted, and the
 tile shows LG's HDMI icon and opens the input.
 
+**A tile can be moved.** `applicationManager/moveLaunchPoint` with
+`{ launchPointId, position }` (0 is first) changes the order the app manager
+lists, and the order stays, but the home app shows it only once it starts
+again. A tile added with `addLaunchPoint` goes at the end of the apps, and
+shows straight away.
+
+**The banner cannot be blanked.** The layout's other banner types,
+`AlwaysReadyPreview` and `Seiro`, in the `Hero` item's place, draw the same
+picture, "Start a new experience with webOS." and Go to Apps button while Home
+Promotion is off. That picture and text are in the home app's own files.
+
 **The home app reads its layout only when it starts.** Reopening Home does not
 reload it. Restarting it:
 

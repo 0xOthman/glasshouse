@@ -227,6 +227,7 @@ module.exports = {
   parts: parts,
   setPart: setPart,
   restore: restore,
+  restartHome: restartHome,
   inputTiles: true,
   PARTS: PARTS
 };

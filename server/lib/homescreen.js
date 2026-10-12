@@ -120,7 +120,7 @@ function setInput(id, onHome, cb) {
         added[id] = r.launchPointId;
         writeAdded(added);
         console.log('homescreen: ' + id + ' added to Home');
-        cb({ ok: true });
+        inputsFirst(function () { cb({ ok: true }); });
       });
     }
     removeLaunchPoints(have, function () {
@@ -129,6 +129,35 @@ function setInput(id, onHome, cb) {
       console.log('homescreen: ' + id + ' taken off Home');
       cb({ ok: true });
     });
+  });
+}
+
+/*
+ * Input tiles at the front of the app list, in HDMI order, where LG adds a
+ * new tile at the end. The home app shows a moved tile only once it starts
+ * again (a C2, webOS 9.2.2), so it is restarted, and only when one moved.
+ */
+function inputsFirst(cb) {
+  lunaFn('com.webos.applicationManager/listLaunchPoints', {}, function (r) {
+    var lps = r && Array.isArray(r.launchPoints) ? r.launchPoints : [];
+    var order = lps.map(function (p) { return p && p.launchPointId; });
+    var want = [];
+    INPUTS.forEach(function (id) {
+      for (var i = 0; i < lps.length; i++) {
+        if (lps[i] && lps[i].id === APP_PREFIX + id) { want.push(lps[i].launchPointId); return; }
+      }
+    });
+    var inPlace = want.every(function (lp, i) { return order[i] === lp; });
+    if (inPlace) return cb();
+    var n = 0;
+    (function next() {
+      if (n >= want.length) {
+        console.log('homescreen: input tiles moved before the apps');
+        return layout.restartHome ? layout.restartHome(cb) : cb();
+      }
+      var lp = want[n];
+      lunaFn('com.webos.applicationManager/moveLaunchPoint', { launchPointId: lp, position: n++ }, function () { next(); });
+    })();
   });
 }
 
