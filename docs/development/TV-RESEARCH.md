@@ -123,6 +123,26 @@ the C2 does with LG's Stay connected (`general.alwaysOn`, Active Standby at
 - Even held there, 37 W around the clock is about 0.9 kWh a day. The low-power
   awake state behind Stay connected arrived with LG's 2022 TVs (webOS 7).
 
+## Standby power with Stay connected (webOS 9.2.2, C2)
+
+With `general.alwaysOn` on and the TV switched off (`power/getPowerState`
+reads Active Standby), an OLED42C24LA drew 11.9 to 12.2 W at the wall. The
+processor is fixed at 1.4 GHz (the only frequency offered, `performance`
+governor), and LG runs three of its four cores, switching cores on and off
+itself (224 core starts in five hours). About 40% of those three cores was in
+use: `ls-hubd`, `iconnectivity`, Glasshouse's server and YouTube kept ready.
+None of it showed at the wall:
+
+| Change | Draw |
+|---|---|
+| None | 12.0 W |
+| Glasshouse's server and watchdog stopped | 11.9 to 12.2 W |
+| Also down to two cores (LG kept bringing a third back) | 11.9 to 12.1 W |
+
+`iconnectivity` cannot be stopped: `ls-hubd` starts it again on demand within
+5 s. The load average of about 12 comes from a dozen of LG's driver threads in
+uninterruptible sleep, not from work.
+
 ## LG's blocked-app list on webOS 10 (C2, webOS 10.3.1)
 
 On a C2 updated to webOS 10.3.1, adding an app on the Home screen
