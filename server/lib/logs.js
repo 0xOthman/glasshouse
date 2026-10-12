@@ -454,7 +454,7 @@ function redact(str) {
     // Passwords, credentials, and basic auth in URLs
     .replace(/(:\/\/[^:]+:)[^@\s]+(@)/g, '$1<REDACTED>$2')
     // URL query tokens and auth keys (e.g. ?k=..., &token=...)
-    .replace(/((\?|&)(?:k|token|key|api_key|auth)=)[^&\s"'`>]+/gi, '$1<REDACTED>')
+    .replace(/((\?|&)(?:k|token|key|api_key|auth)=)[^&\s"'\x60>]+/gi, '$1<REDACTED>')
     // Bearer authorization tokens
     .replace(/(Bearer\s+)[A-Za-z0-9_\-\.]+/gi, '$1<REDACTED>')
     // Key-value credentials (e.g. password: "foo", secret = "bar")
