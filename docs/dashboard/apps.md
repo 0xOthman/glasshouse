@@ -2,9 +2,9 @@
 
 The **Apps** tab, `/?tab=apps`, has three groups: **Apps**, for installing and removing apps and the web pages saved to the Home screen; **Home screen and remote**, for what the Home screen shows and what the remote's number keys open; and **Background**, for the memory LG's background apps and services take up.
 
-![Apps tab in three groups: installed applications and saved web pages under Apps, Quick Access and hidden system apps under Home screen and remote, and apps kept ready and background services under Background](../screenshots/apps.png)
+![Apps tab in three groups: installed applications and saved web pages under Apps, the Home screen layout with its inputs and parts, Quick Access and hidden system apps under Home screen and remote, and apps kept ready and background services under Background](../screenshots/apps.png)
 
-*The three groups, with installed applications, saved web pages, apps kept ready in the background and background services open.*
+*The three groups, with installed applications, saved web pages, the Home screen layout, apps kept ready in the background and background services open.*
 
 ## Apps
 
