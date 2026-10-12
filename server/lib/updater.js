@@ -200,20 +200,27 @@ function releaseSummary(body) {
  * notes, whatsNew: [{ version, summary, url }], more }. more counts the newer
  * ones beyond WHATS_NEW_MAX or without a summary. null for no release.
  */
+function linkOf(r) {
+  return typeof r.html_url === 'string' && /^https:\/\//.test(r.html_url) ? r.html_url : null;
+}
+
 function readReleases(list, installed) {
   if (list && !Array.isArray(list) && list.tag_name) list = [list];
   if (!Array.isArray(list)) return null;
-  var stable = list.filter(function (r) { return r && r.tag_name && !r.draft && !r.prerelease; });
+  // Only tags that are versions, so a stray tag cannot pose as the latest.
+  var stable = list.filter(function (r) {
+    return r && /^v?\d+\.\d+/.test(String(r.tag_name || '')) && !r.draft && !r.prerelease;
+  });
   if (!stable.length) return null;
   var newer = [];
   stable.forEach(function (r) {
     var v = String(r.tag_name).replace(/^v/i, '');
-    if (verNewer(v, installed)) newer.push({ version: v, summary: releaseSummary(r.body), url: r.html_url || null });
+    if (verNewer(v, installed)) newer.push({ version: v, summary: releaseSummary(r.body), url: linkOf(r) });
   });
   var shown = newer.filter(function (r) { return r.summary; }).slice(0, WHATS_NEW_MAX);
   return {
     latest: String(stable[0].tag_name).replace(/^v/i, ''),
-    url: stable[0].html_url || null,
+    url: linkOf(stable[0]),
     notes: releaseSummary(stable[0].body),
     whatsNew: shown,
     more: newer.length - shown.length

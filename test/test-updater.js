@@ -194,6 +194,16 @@ console.log('Running test-updater.js ...');
   assert.strictEqual(updater.readReleases(list, '0.92.0').whatsNew.length, 0, 'nothing new when up to date');
   assert.strictEqual(updater.readReleases({ message: 'API rate limit exceeded' }, '0.89.1'), null);
   assert.strictEqual(updater.readReleases(rel('0.92.0', 'One.\n\n## Details\nx'), '0.91.0').latest, '0.92.0', 'a single release still reads');
+  // Whatever GitHub sends, nothing throws, a stray tag is not the latest, and
+  // only an https link is passed on.
+  var odd = updater.readReleases([null, { tag_name: 'latest' }, { tag_name: 123 }, { body: 'no tag' },
+    { tag_name: 'v0.99.0', body: { x: 1 }, html_url: 5 }], '0.90.0');
+  assert.strictEqual(odd.latest, '0.99.0');
+  assert.strictEqual(odd.url, null);
+  assert.strictEqual(odd.notes, null);
+  [null, 'text', 42, {}, [], [{ tag_name: 'v1.0.0', draft: true }]].forEach(function (x) {
+    assert.strictEqual(updater.readReleases(x, '0.90.0'), null);
+  });
   console.log('  ✓ each release since the installed one gives its summary, newest first, and older notes none');
 })();
 
