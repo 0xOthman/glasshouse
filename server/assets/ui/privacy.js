@@ -67,11 +67,16 @@ async function switchAllOff() {
   const go = q('ps-go'), msg = q('ps-msg');
   go.disabled = true;
   go.dataset.busy = '1';
+  go.classList.add('busy');
   go.textContent = t('pv.switchingOff', 'Switching off\u2026');
   msg.textContent = '';
-  const r = await sendCommand('privacyAllOff');
-  delete go.dataset.busy;
-  msg.textContent = r && r.ok ? t('pv.done', 'Done.') : '';
+  try {
+    const r = await sendCommand('privacyAllOff');
+    msg.textContent = r && r.ok ? t('pv.done', 'Done.') : '';
+  } finally {
+    delete go.dataset.busy;
+    go.classList.remove('busy');
+  }
   loadPrivacy();
 }
 
@@ -301,6 +306,8 @@ async function privAction(action) {
   const question = action === 'resetAdId' ? t('pv.adid.reset.confirm', 'Really reset the advertising ID?')
     : t('pv.cookies.clear.confirm', 'Really clear ad cookies?');
   if (!confirm(question)) return;
+  const btn = q(action === 'resetAdId' ? 'adid-reset' : 'adcookies-clear');
+  if (btn) btn.classList.add('busy');
   setBusy(true, 'tx');
   try {
     const r = await fetch(api('/api/control'), {
@@ -317,6 +324,9 @@ async function privAction(action) {
         : t('pv.adid.reset.same', 'Reset was accepted, but the identifier did not change.');
     }
   } catch (e) { showErr(e.message); return; }
-  finally { setBusy(false); }
+  finally {
+    if (btn) btn.classList.remove('busy');
+    setBusy(false);
+  }
   setTimeout(loadPrivacy, 800);
 }

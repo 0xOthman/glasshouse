@@ -239,7 +239,8 @@ async function saveSettings() {
   const pass = q('cfg-pass').value;
   if (pass !== '' || !cfgPasswordSet) body.mqtt.password = pass;
 
-  q('cfg-save-btn').disabled = true;
+  const saveBtn = q('cfg-save-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.classList.add('busy'); }
   cfgMsg(t('mqtt.saving', 'Saving...'));
   try {
     const r = await fetch(api('/api/settings'), {
@@ -247,11 +248,15 @@ async function saveSettings() {
       body: JSON.stringify(body)
     });
     const j = await r.json();
-    if (!j.ok) { cfgMsg(j.error || t('mqtt.saveFailed', 'Save failed'), 'bad'); q('cfg-save-btn').disabled = false; return; }
+    if (!j.ok) {
+      cfgMsg(j.error || t('mqtt.saveFailed', 'Save failed'), 'bad');
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('busy'); }
+      return;
+    }
     cfgMsg(t('mqtt.restarting', 'Saved. Restarting...'));
     await waitForServer();
   } catch (e) {
     cfgMsg(e.message, 'bad');
-    q('cfg-save-btn').disabled = false;
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('busy'); }
   }
 }

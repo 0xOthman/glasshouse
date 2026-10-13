@@ -314,7 +314,10 @@ html.nav-hidden .sidenav-head{height:auto;padding-bottom:6px}
 html.nav-hidden .sidenav .tabs{margin-top:12px}
 html.nav-hidden .nav-close{display:block}
 html.nav-hidden body.nav-open{overflow:hidden}
-@media (prefers-reduced-motion:reduce){ .sidenav,.sidenav.open{transition:none} }
+@media (prefers-reduced-motion:reduce){
+  .sidenav,.sidenav.open{transition:none}
+  button.busy, button.btn-busy{animation:none}
+}
 #panels{margin-top:var(--panels-gap)}
 /* A panel is the whole width now, so the columns come from the panel itself
    rather than from the page splitting in two. */
@@ -464,6 +467,27 @@ button[disabled]:hover{color:var(--w60);border-color:var(--w12)}
    what someone hovering it wants. */
 button.btn-off{opacity:.28;cursor:not-allowed}
 button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transparent}
+
+/* Micro-loading / busy state: an action is executing in the background.
+   Keeps the button legible and active with a breathing pulse and subtle shimmer,
+   preventing duplicate clicks while acknowledging the interaction immediately. */
+@keyframes btnPulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes btnShimmer{0%{background-position:-160px 0}100%{background-position:160px 0}}
+button.busy, button.btn-busy{
+  color:var(--w100) !important;border-color:var(--w60) !important;
+  cursor:wait !important;pointer-events:none;
+}
+button.busy:not(.pill), button.btn-busy:not(.pill){
+  background:linear-gradient(90deg,transparent 0%,var(--w12) 50%,transparent 100%) !important;
+  background-size:160px 100% !important;
+  animation:btnShimmer 1.5s infinite linear, btnPulse 1.2s ease-in-out infinite;
+}
+button.busy[disabled], button.btn-busy[disabled]{
+  opacity:1 !important;cursor:wait !important;
+}
+button.pill.busy:not([style*="--p"]){
+  animation:btnPulse 1.2s ease-in-out infinite;
+}
 .dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,auto);
       gap:8px;max-width:260px;margin:0 auto 14px}
 /* The arrows are glyphs, not words: the button voice everywhere else is
