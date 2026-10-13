@@ -891,12 +891,8 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .mqtt-net-meta{margin-left:14px;font-size:11px;color:var(--w60);display:flex;align-items:center;
   gap:6px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mqtt-net-metric{font-variant-numeric:tabular-nums;color:var(--w80)}
-.mqtt-test-box{margin-top:14px;padding-top:12px;border-top:1px solid var(--w06);
-  display:flex;flex-direction:column;gap:8px}
-.mqtt-test-box button.pill{align-self:flex-start;min-height:28px;padding:0 12px}
-.mqtt-test-res{display:flex;align-items:center;gap:8px;font-size:12px;min-width:0}
-.mqtt-test-res .pill{flex-shrink:0}
-.mqtt-test-msg{color:var(--w70);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.mqtt-net.error .mqtt-net-track{background:rgba(255,48,48,.45)}
+.mqtt-net.error .mqtt-net-metric{color:var(--red)}
 .proc{display:grid;grid-template-columns:1fr auto;gap:14px;padding:9px 0;
   border-bottom:1px solid var(--w06);font-size:14px}
 .proc .p-name{color:var(--w80);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

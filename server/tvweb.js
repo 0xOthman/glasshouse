@@ -790,7 +790,14 @@ routes.init({
   assetPath: assetPath,
   assetDirs: ASSET_DIRS,
   luna: luna,
-  getMqttStatus: function () { return MQTT_STATUS; },
+  getMqttStatus: function () {
+    if (activeMqttClient && activeMqttClient.connected && activeMqttClient.latencyMs != null) {
+      MQTT_STATUS.latencyMs = activeMqttClient.latencyMs;
+    } else {
+      MQTT_STATUS.latencyMs = null;
+    }
+    return MQTT_STATUS;
+  },
   testMqtt: MiniMQTT.testConnection,
   appsChanged: appsChanged,
   logs: logsModule,
@@ -886,6 +893,7 @@ var MQTT_STATUS = {
   since: Date.now(),
   lastPublish: 0
 };
+var activeMqttClient = null;
 
 function mqttStatus(state, detail) {
   if (MQTT_STATUS.state !== state) MQTT_STATUS.since = Date.now();
@@ -931,6 +939,7 @@ function setupHomeAssistant() {
       retain: true
     }
   });
+  activeMqttClient = mqttClient;
   piccap.attachMqtt({ client: mqttClient, prefix: pfx, allowControl: CONFIG.allowControl });
   piccapChanged = function () {
     if (!mqttClient.connected) return;

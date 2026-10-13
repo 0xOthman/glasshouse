@@ -65,8 +65,12 @@ function renderMqttTopology(st) {
   st = cfgLastStatus || { state: 'disabled' };
 
   const isEnabled = q('cfg-enabled') ? q('cfg-enabled').classList.contains('on') : (st.state !== 'disabled');
+  const isErr = isEnabled && st.state === 'error';
   const netEl = q('mqtt-net');
-  if (netEl) netEl.classList.toggle('off', !isEnabled);
+  if (netEl) {
+    netEl.classList.toggle('off', !isEnabled);
+    netEl.classList.toggle('error', isErr);
+  }
 
   // 1. TV Node
   const tvName = (cfgDevice && cfgDevice.name) || (q('cfg-devname') && q('cfg-devname').value) || 'LG webOS TV';
@@ -78,11 +82,19 @@ function renderMqttTopology(st) {
     if (!isEnabled) {
       q('mqtt-net-last-pub').textContent = t('common.off', 'Off');
     } else if (st.state === 'connected') {
-      q('mqtt-net-last-pub').textContent = t('mqtt.net.telemetryAge', 'Telemetry: {age}', { age: cfgAge(st.lastPublishMs) });
+      let metric = t('mqtt.net.reachable', 'Reachable');
+      if (st.latencyMs != null) {
+        metric += ' · ' + t('mqtt.net.latency', '{ms} ms', { ms: st.latencyMs });
+      }
+      if (st.lastPublishMs != null) {
+        metric += ' · ' + t('mqtt.net.pubAge', 'pub {age}', { age: cfgAge(st.lastPublishMs) });
+      }
+      q('mqtt-net-last-pub').textContent = metric;
     } else if (st.state === 'connecting') {
       q('mqtt-net-last-pub').textContent = t('mqtt.state.connecting', 'Connecting');
     } else if (st.state === 'error') {
-      q('mqtt-net-last-pub').textContent = st.detail || t('mqtt.state.error', 'Error');
+      const errText = st.detail || t('mqtt.state.error', 'Error');
+      q('mqtt-net-last-pub').textContent = t('mqtt.net.unreachable', 'Unreachable') + ': ' + errText;
     } else {
       q('mqtt-net-last-pub').textContent = t('common.off', 'Off');
     }
@@ -265,7 +277,6 @@ async function loadSettings() {
       if (input && !input._mqttBound) {
         input._mqttBound = true;
         input.addEventListener('input', () => {
-          if (q('mqtt-test-res')) q('mqtt-test-res').hidden = true;
           renderMqttTopology(cfgLastStatus);
         });
       }
@@ -283,67 +294,6 @@ async function loadSettings() {
       ? t('mqtt.save.note', 'Saving restarts the server. The dashboard reconnects on its own.')
       : t('mqtt.controlsOff', 'Controls are disabled in config.json, so settings cannot be changed from here.'));
   } catch (e) { cfgMsg(e.message, 'bad'); }
-}
-
-async function testMqttConnection() {
-  const btn = q('mqtt-test-btn');
-  const resBox = q('mqtt-test-res');
-  const pill = q('mqtt-test-pill');
-  const msg = q('mqtt-test-msg');
-  const pubPkt = q('mqtt-packet-pub');
-
-  const host = q('cfg-host').value.trim();
-  if (!host) {
-    if (resBox) resBox.hidden = false;
-    if (pill) { pill.className = 'pill bad'; pill.textContent = t('mqtt.test.failed', 'Failed'); }
-    if (msg) msg.textContent = t('mqtt.test.noBroker', 'No broker address configured to test');
-    return;
-  }
-
-  if (btn) {
-    btn.disabled = true;
-    btn.classList.add('busy');
-    btn.textContent = t('mqtt.test.testing', 'Testing...');
-  }
-  if (resBox) resBox.hidden = true;
-  if (pubPkt) pubPkt.classList.add('ping');
-
-  const payload = {
-    host: host,
-    port: q('cfg-port').value === '' ? null : q('cfg-port').value,
-    tls: q('cfg-tls').classList.contains('on'),
-    tlsRejectUnauthorized: q('cfg-verify').classList.contains('on'),
-    username: q('cfg-user').value,
-    password: q('cfg-pass').value
-  };
-
-  try {
-    const r = await fetch(api('/api/mqtt/test'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const j = await r.json();
-    if (resBox) resBox.hidden = false;
-    if (j.ok) {
-      if (pill) { pill.className = 'pill good'; pill.textContent = t('mqtt.test.reachable', 'Reachable'); }
-      if (msg) msg.textContent = t('mqtt.test.latency', '{ms} ms latency', { ms: j.latencyMs });
-    } else {
-      if (pill) { pill.className = 'pill bad'; pill.textContent = t('mqtt.test.failed', 'Failed'); }
-      if (msg) msg.textContent = j.error || t('mqtt.test.unreachable', 'Broker unreachable');
-    }
-  } catch (err) {
-    if (resBox) resBox.hidden = false;
-    if (pill) { pill.className = 'pill bad'; pill.textContent = t('mqtt.test.failed', 'Failed'); }
-    if (msg) msg.textContent = err.message || t('mqtt.test.unreachable', 'Broker unreachable');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.classList.remove('busy');
-      btn.textContent = t('mqtt.test.button', 'Test connection');
-    }
-    if (pubPkt) pubPkt.classList.remove('ping');
-  }
 }
 
 async function saveSettings() {

@@ -71,6 +71,9 @@ function MiniMQTT(opts) {
   this.retryTimer = null;
   this.subscriptions = [];
   this.listeners = {};
+  this.connectStart = 0;
+  this.pingStart = 0;
+  this.latencyMs = null;
 }
 
 MiniMQTT.prototype.on = function(event, fn) {
@@ -119,6 +122,7 @@ MiniMQTT.prototype.connect = function() {
     socket = net.createConnection({ host: this.opts.host, port: this.opts.port || 1883 });
   }
   this.client = socket;
+  this.connectStart = Date.now();
 
   socket.on(self.opts.tls ? 'secureConnect' : 'connect', function() {
     socket.write(encodeConnectPacket(self.opts));
@@ -134,6 +138,7 @@ MiniMQTT.prototype.connect = function() {
     var wasConnected = self.connected;
     self.connected = false;
     self.client = null;
+    self.latencyMs = null;
     clearInterval(self.pingTimer);
     if (wasConnected) {
       console.log('mqtt: disconnected from ' + self.opts.host + ':' + (self.opts.port || (self.opts.tls ? 8883 : 1883)));
@@ -177,6 +182,7 @@ MiniMQTT.prototype._parse = function() {
       var returnCode = packetBody[1];
       if (returnCode === 0) {
         this.connected = true;
+        this.latencyMs = this.connectStart ? (Date.now() - this.connectStart) : null;
         var self = this;
         clearInterval(this.pingTimer);
         /*
@@ -193,6 +199,7 @@ MiniMQTT.prototype._parse = function() {
             console.log('mqtt: no answer from ' + self.opts.host + ' - reconnecting');
             return self.client.destroy();
           }
+          self.pingStart = Date.now();
           self.client.write(toBuffer([0xc0, 0x00])); // PINGREQ
         }, 30000);
         // Resubscribe to all saved subscriptions
@@ -201,7 +208,19 @@ MiniMQTT.prototype._parse = function() {
         }
         this.emit('connect');
       } else {
-        this.emit('error', new Error('CONNACK rejected with code ' + returnCode));
+        var CONNACK_ERRORS = {
+          1: 'unacceptable protocol version',
+          2: 'identifier rejected',
+          3: 'server unavailable',
+          4: 'bad username or password',
+          5: 'not authorized'
+        };
+        var errDesc = CONNACK_ERRORS[returnCode] || ('CONNACK rejected with code ' + returnCode);
+        this.emit('error', new Error(errDesc));
+      }
+    } else if (packetType === 13) { // PINGRESP
+      if (this.pingStart) {
+        this.latencyMs = Date.now() - this.pingStart;
       }
     } else if (packetType === 3) { // PUBLISH
       var qos = (flags >> 1) & 0x03;

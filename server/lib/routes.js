@@ -1484,7 +1484,8 @@ function handleRequest(req, res) {
         tls: mqttStat.tls,
         detail: mqttStat.detail,
         forMs: Date.now() - (mqttStat.since || Date.now()),
-        lastPublishMs: mqttStat.lastPublish ? Date.now() - mqttStat.lastPublish : null
+        lastPublishMs: mqttStat.lastPublish ? Date.now() - mqttStat.lastPublish : null,
+        latencyMs: mqttStat.latencyMs || null
       }
     }));
   }

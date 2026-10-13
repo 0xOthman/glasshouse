@@ -45,7 +45,7 @@ Connecting Glasshouse to Home Assistant takes only a few minutes.
 
 The server saves `config.json` on the TV and restarts itself; the dashboard reconnects automatically after a few seconds. Home Assistant discovers the TV within seconds of the bridge connecting under **Settings** → **Devices & Services** → **MQTT**.
 
-The MQTT panel displays a live bridge topology visual connecting the TV and broker, animating telemetry publishes and providing a **Test connection** button to probe broker reachability and round-trip latency. Any incorrect address or rejected credentials surface immediately.
+The MQTT panel displays a live connection visual between the TV and MQTT server, animating telemetry publishes, tracking reachability and round-trip ping latency automatically, and surfacing rejected credentials or unreachable hosts immediately.
 
 ### Setting it up from a config file
 
