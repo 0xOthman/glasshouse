@@ -1022,6 +1022,8 @@ button.tools-switch.on:hover{border-color:var(--edge)}
   box-shadow:0 0 6px rgba(48,222,97,.6);animation:livePulse 2s infinite}
 .live-dot.paused{background:var(--w40);box-shadow:none;animation:none}
 @keyframes livePulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+.autoscroll-icon{display:inline-block;flex:none;transition:transform .16s ease,opacity .16s ease}
+button.tools-switch:not(.on) .autoscroll-icon{opacity:.45}
 
 
 /* Terminal View */

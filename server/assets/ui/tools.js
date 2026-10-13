@@ -352,11 +352,24 @@ function toggleToolsLive() {
   scheduleToolsPoll();
 }
 
+function setAutoScroll(on) {
+  toolsAutoScroll = !!on;
+  setToolsSwitch('tools-autoscroll-btn', toolsAutoScroll);
+  showToolsJump();
+}
+
+function toggleToolsAutoScroll() {
+  if (!toolsAutoScroll) {
+    scrollToolsToBottom();
+  } else {
+    setAutoScroll(false);
+  }
+}
+
 function scrollToolsToBottom() {
   const container = q('tools-log-entries');
   if (container) {
-    toolsAutoScroll = true;
-    showToolsJump();
+    setAutoScroll(true);
     try {
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     } catch (_) {
@@ -484,9 +497,12 @@ function setupToolsScrollListener() {
   if (container && !container._toolsScrollBound) {
     container._toolsScrollBound = true;
     container.addEventListener('scroll', () => {
-      const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 35;
-      toolsAutoScroll = atBottom;
-      showToolsJump();
+      const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distFromBottom > 40 && toolsAutoScroll) {
+        setAutoScroll(false);
+      } else if (distFromBottom < 15 && !toolsAutoScroll) {
+        setAutoScroll(true);
+      }
     });
   }
 }
