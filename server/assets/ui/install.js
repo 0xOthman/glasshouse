@@ -41,6 +41,44 @@ function installIdle() {
   return !installSnap || !(INSTALL_BUSY[installSnap.state] || installSnap.state === 'awaiting-confirm');
 }
 
+let catalogCategory = 'all';
+
+function appCategory(a) {
+  // If the repository provides an explicit category, use it directly
+  if (a.category) {
+    const c = String(a.category).toLowerCase().trim();
+    if (c === 'game' || c === 'games' || c === 'emulator' || c === 'emulators') return 'game';
+    if (c === 'screensaver' || c === 'screensavers') return 'screensaver';
+    if (c === 'amblight' || c === 'ambilight' || c === 'lighting') return 'amblight';
+    if (c === 'multimedia' || c === 'media' || c === 'video' || c === 'audio' || c === 'music' || c === 'streaming' || c === 'internet') return 'multimedia';
+    if (c === 'utility' || c === 'utilities' || c === 'system' || c === 'tools') return 'utility';
+    return c;
+  }
+  // Dynamic keyword and topic classification from package metadata (no hardcoded app IDs)
+  const text = ((a.id || '') + ' ' + (a.title || '') + ' ' + (a.description || '')).toLowerCase();
+  if (text.includes('screensaver') || text.includes('screen saver') || text.includes('idlegif')) return 'screensaver';
+  if (text.includes('piccap') || text.includes('hyperion') || text.includes('hyperhdr') || text.includes('ambilight')) return 'amblight';
+  if (!text.includes('terminal') && (text.includes('game') || text.includes('gaming') || text.includes('pinball') || text.includes('doom') || text.includes('retroarch') || text.includes('emulator') || text.includes('arcade') || text.includes('openttd') || text.includes('steam link') || text.includes('gamestream') || text.includes('punktfunk'))) {
+    return 'game';
+  }
+  if (text.includes('player') || text.includes('jellyfin') || text.includes('plex') || text.includes('kodi') || text.includes('stream') || text.includes('media') || text.includes('video') || text.includes('music') || text.includes('audio') || text.includes('twitch') || text.includes('youtube') || text.includes('bilibili') || text.includes('crunchyroll') || text.includes('iptv') || text.includes('photo') || text.includes('gallery') || text.includes('immich') || text.includes('subsonic') || text.includes('cinema') || text.includes('decotv') || text.includes('tvheadend')) {
+    return 'multimedia';
+  }
+  return 'utility';
+}
+
+function setCatalogCategory(cat) {
+  catalogCategory = cat;
+  const container = q('catalog-categories');
+  if (container) {
+    const btns = container.querySelectorAll('button');
+    for (let i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('on', btns[i].dataset.cat === cat);
+    }
+  }
+  renderCatalog();
+}
+
 function renderCatalog() {
   const list = q('apps-catalog-list');
   if (!list || !catalogData) return;
@@ -55,9 +93,12 @@ function renderCatalog() {
     return;
   }
   const term = q('catalog-search').value.trim().toLowerCase();
-  const shown = apps.filter(a => !term ||
-    (a.title || '').toLowerCase().includes(term) || (a.id || '').toLowerCase().includes(term) ||
-    (a.description || '').toLowerCase().includes(term));
+  const shown = apps.filter(a => {
+    if (catalogCategory !== 'all' && appCategory(a) !== catalogCategory) return false;
+    if (!term) return true;
+    return (a.title || '').toLowerCase().includes(term) || (a.id || '').toLowerCase().includes(term) ||
+      (a.description || '').toLowerCase().includes(term);
+  });
   if (!shown.length) {
     list.innerHTML = `<div class="sub" style="padding:16px 0">${esc(t('apps.install.noMatch', 'No apps match.'))}</div>`;
     return;

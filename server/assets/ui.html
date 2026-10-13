@@ -621,6 +621,14 @@
     <details class="pv-d" id="disc-install-apps">
       <summary><span data-t="apps.install">Install homebrew apps</span> <span class="cur" id="apps-catalog-summary"></span></summary>
       <div class="pv-sub" data-t="apps.install.desc">Apps from the Homebrew Channel catalog.</div>
+      <div class="catalog-seg" id="catalog-categories" role="group" aria-label="Category" data-t-aria-label="apps.catalog.categories">
+        <button type="button" class="catalog-cat-btn on" data-cat="all" onclick="setCatalogCategory('all')" data-t="apps.cat.all">All</button>
+        <button type="button" class="catalog-cat-btn" data-cat="multimedia" onclick="setCatalogCategory('multimedia')" data-t="apps.cat.media">Media</button>
+        <button type="button" class="catalog-cat-btn" data-cat="game" onclick="setCatalogCategory('game')" data-t="apps.cat.games">Games</button>
+        <button type="button" class="catalog-cat-btn" data-cat="utility" onclick="setCatalogCategory('utility')" data-t="apps.cat.utilities">Utilities</button>
+        <button type="button" class="catalog-cat-btn" data-cat="amblight" onclick="setCatalogCategory('amblight')" data-t="apps.cat.amblight">Ambilight</button>
+        <button type="button" class="catalog-cat-btn" data-cat="screensaver" onclick="setCatalogCategory('screensaver')" data-t="apps.cat.screensavers">Screensavers</button>
+      </div>
       <form class="toast-form" onsubmit="event.preventDefault();">
         <input type="search" id="catalog-search" placeholder="Search apps" data-t-placeholder="apps.install.search" maxlength="60"
           autocomplete="off" spellcheck="false" oninput="renderCatalog()">

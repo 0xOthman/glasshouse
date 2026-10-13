@@ -195,6 +195,34 @@
   "text": "Menú de servicio",
   "from": "Service Menu"
  },
+ "apps.cat.all": {
+  "text": "Todos",
+  "from": "All"
+ },
+ "apps.cat.amblight": {
+  "text": "Ambilight",
+  "from": "Ambilight"
+ },
+ "apps.cat.games": {
+  "text": "Juegos",
+  "from": "Games"
+ },
+ "apps.cat.media": {
+  "text": "Multimedia",
+  "from": "Media"
+ },
+ "apps.cat.screensavers": {
+  "text": "Salvapantallas",
+  "from": "Screensavers"
+ },
+ "apps.cat.utilities": {
+  "text": "Utilidades",
+  "from": "Utilities"
+ },
+ "apps.catalog.categories": {
+  "text": "Categoría",
+  "from": "Category"
+ },
  "apps.count": {
   "text": "{n} apps",
   "from": "{n} apps"

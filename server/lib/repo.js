@@ -78,6 +78,7 @@ function parsePackage(item, pageBase) {
     ipkUrl: ipkUrl,
     sha256: hash,
     size: size,
+    category: stringOrEmpty(item.category) || stringOrEmpty(m.category),
     rootRequired: m.rootRequired === true ? true : m.rootRequired === 'optional' ? 'optional' : false
   };
 }
