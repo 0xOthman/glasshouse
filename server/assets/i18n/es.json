@@ -1232,12 +1232,12 @@
   "from": "LG OLED TV"
  },
  "lang.en": {
-  "text": "English",
-  "from": "English"
+  "text": "EN",
+  "from": "EN"
  },
  "lang.es": {
-  "text": "Español",
-  "from": "Español"
+  "text": "ES",
+  "from": "ES"
  },
  "lgs.hdmi.audioFormat": {
   "text": "Formato de audio",
