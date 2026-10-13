@@ -554,8 +554,10 @@ working: `getent hosts ad.lgsmartad.com` returns `0.0.0.0`.
 
 Other tools edit `/etc/hosts` too: AmazOff points
 `cloudfront.xp-assets.aiv-cdn.net` at its local nginx. The table carries their
-lines over each time it is written, and they go back into the file underneath
-when it is switched off. A line is the blocker's own if it is a comment, a
+lines over each time it is written. Switched off, the table comes down unless
+the file underneath lacks some of them: on a C4 on webOS 10.3.1 that file is on
+the read-only squashfs rootfs, so the table goes back up blocking nothing, and
+stays until the next reboot. A line is the blocker's own if it is a comment, a
 localhost line or a sinkhole (`0.0.0.0` or `::`), which also covers the
 Homebrew Channel's update block, and anyone else's otherwise. At boot,
 `50-tvweb` takes them from that boot's `/etc/hosts` before mounting and drops

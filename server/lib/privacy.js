@@ -512,26 +512,31 @@ function applyHostsTable(cb) {
       function (err) { clearCache(); cb(err ? 'could not mount the hosts table' : null); });
   }
   clearSdpTimer();
-  var foreign = currentForeignHostsLines();
-  // What other tools added while the table was up went into it, so it goes
-  // back into the hosts file left underneath, where that one can be written.
-  var handBack = function () {
-    var missing = foreign.filter(function (line) { return currentForeignHostsLines().indexOf(line) === -1; });
-    if (missing.length) {
-      try {
-        var hosts = fs.readFileSync('/etc/hosts', 'utf8');
-        if (hosts && hosts.charAt(hosts.length - 1) !== '\n') hosts += '\n';
-        fs.writeFileSync('/etc/hosts', hosts + missing.join('\n') + '\n', 'utf8');
-      } catch (e) {}
-    }
-    done();
+  // Other tools' lines went into the table while it was up, and the
+  // /etc/hosts underneath can be on the read-only rootfs (a C4 on webOS
+  // 10.3.1), where they cannot go back. Then the table goes back up, blocking
+  // nothing, until the next reboot.
+  var foreign = mounted ? currentForeignHostsLines() : [];
+  var settle = function () {
+    var below = currentForeignHostsLines();
+    var lost = foreign.filter(function (line) { return below.indexOf(line) === -1; });
+    if (!lost.length) return done();
+    execFile('/bin/mount', ['--bind', ADBLOCK_HOSTS_FILE, '/etc/hosts'], { timeout: 3000 },
+      function (err) { clearCache(); cb(err ? 'could not mount the hosts table' : null); });
   };
   var liftHbc = function () {
     var hosts = readTrimmed('/etc/hosts') || '';
-    if (hosts.indexOf('webosbrew startup script') === -1) return handBack();
-    execFile('/bin/umount', ['/etc/hosts'], { timeout: 3000 }, function () { handBack(); });
+    if (hosts.indexOf('webosbrew startup script') === -1) return settle();
+    execFile('/bin/umount', ['/etc/hosts'], { timeout: 3000 }, function () { settle(); });
   };
   if (!mounted) return liftHbc();
+  if (foreign.length) {
+    try {
+      writeHostsTable('off');
+    } catch (e) {
+      return cb('could not write the hosts table: ' + e.message);
+    }
+  }
   execFile('/bin/umount', ['/etc/hosts'], { timeout: 3000 }, function () { clearCache(); liftHbc(); });
 }
 
