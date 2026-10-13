@@ -20,7 +20,6 @@ Shows the installed version and whether a newer release is out. **Check now** lo
 
 Folded away, since nothing in it needs changing for everyday use. Once opened, it stays open in that browser.
 
-* **Block TV software updates** stops the TV installing LG's system updates, which can take away the access Glasshouse runs with. Apps, and Glasshouse's own updates, are not affected.
 * **Set the clock from a time server** switches the TV over to [a time server on the local network](../ntp.md), for networks that run one. Switched on, it asks for the server's address. Switched off, the address is kept for next time.
 * **Prometheus metrics** turns on the [Prometheus endpoint](../PROMETHEUS.md).
 * **Web app debugger** opens or closes Developer Mode's debugger to the network. It is closed unless it is needed, since webOS leaves it open with no password.

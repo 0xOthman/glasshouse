@@ -622,6 +622,19 @@
       <div class="prot-status"><button type="button" class="pill idle" id="lt_logo" onclick="toggleLight('logoLight')">&mdash;</button></div>
     </div>
   </div>
+
+  <div class="pv-sec adv-sec" id="adv-updates" data-t="adv.systemUpdates">System updates</div>
+  <div class="prot-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="server.tvUpdates.block">Block TV software updates</div>
+        <div class="prot-desc" data-t="server.tvUpdates.block.desc">Stops the TV installing LG's system
+          updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are
+          unaffected.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="upd-tvblock" onclick="toggleTvUpdates()">&mdash;</button></div>
+    </div>
+  </div>
 </section>
 
 <section class="priv panel" id="sspane" role="tabpanel" hidden>
@@ -863,7 +876,7 @@
       <div class="pv-note"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
         the LG ThinQ app can no longer control the TV, and the app store, software updates and LG
         Channels may stop working.</b> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
-        updates under Advanced on the Server tab.</span></div>
+        updates in the Advanced tab.</span></div>
     </div>
 
     <div>
@@ -1071,15 +1084,6 @@
       <summary><span data-t="server.advanced">Advanced</span> <span class="cur" data-t="server.advanced.cur">For developers and home-lab setups</span></summary>
       <div class="pv-sub" data-t="server.advanced.desc">Nothing here needs changing for everyday use.</div>
       <div class="prot-table">
-        <div class="prot-row">
-          <div class="prot-main">
-            <div class="prot-title" data-t="server.tvUpdates.block">Block TV software updates</div>
-            <div class="prot-desc" data-t="server.tvUpdates.block.desc">Stops the TV installing LG's system
-              updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are
-              unaffected.</div>
-          </div>
-          <div class="prot-status"><button type="button" class="pill idle" id="upd-tvblock" onclick="toggleTvUpdates()">&mdash;</button></div>
-        </div>
         <div class="prot-row">
           <div class="prot-main">
             <div class="prot-title" data-t="server.ntp.title">Set the clock from a time server</div>

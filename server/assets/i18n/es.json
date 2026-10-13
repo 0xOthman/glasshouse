@@ -135,6 +135,10 @@
   "text": "Mantiene la TV en la red mientras está apagada, salvo cinco horas cada noche, para que este tablero y Home Assistant sigan funcionando y puedan volver a encenderla. La pantalla permanece a oscuras. Gasta unos 12 W en una LG C2, frente a casi nada en el modo en espera normal.",
   "from": "Keeps the TV on the network while it is switched off, apart from five hours each night, so this dashboard and Home Assistant keep working and can switch it back on. The screen stays dark. Uses about 12 W on an LG C2, against almost nothing in normal standby."
  },
+ "adv.systemUpdates": {
+  "text": "Actualizaciones del sistema",
+  "from": "System updates"
+ },
  "adv.timer.fri": {
   "text": "Vie",
   "from": "Fri"
@@ -2008,8 +2012,8 @@
   "from": "Also blocks LG's platform services, so the LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working."
  },
  "pv.adblock.full.updates": {
-  "text": "Para bloquear solo las actualizaciones del sistema, usa Bloquear actualizaciones de software de la TV en Avanzado en la pestaña Servidor.",
-  "from": "To stop only system updates, use Block TV software updates under Advanced on the Server tab."
+  "text": "Para bloquear solo las actualizaciones del sistema, usa Bloquear actualizaciones de software de la TV en la pestaña Avanzado.",
+  "from": "To stop only system updates, use Block TV software updates in the Advanced tab."
  },
  "pv.adblock.full.warn": {
   "text": "«Todo» también bloquea los servicios de la plataforma de LG, así que la app LG ThinQ ya no puede controlar la TV, y la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
