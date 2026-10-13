@@ -842,15 +842,33 @@ function createMockRes(cb) {
     req.resumed = 0;
     req.pause = function () { req.paused++; };
     req.resume = function () { req.resumed++; };
-    routes.handleRequest(req, createMockRes(function (r) { cb(r, r.body ? JSON.parse(r.body) : null, req); }));
+    var answered = false;
+    routes.handleRequest(req, createMockRes(function (r) {
+      answered = true;
+      cb(r, r.body ? JSON.parse(r.body) : null, req);
+    }));
     var chunks = o.chunks || [];
+    var retries = 0;
     (function next(i) {
       setTimeout(function () {
-        if (req.destroyed) return;
-        if (i < chunks.length) { req.emit('data', chunks[i]); return next(i + 1); }
+        if (req.destroyed || answered) return;
+        if (i < chunks.length) {
+          if (req.listeners('data').length === 0) {
+            if (++retries > 100) return;
+            return setTimeout(function () { next(i); }, 10);
+          }
+          req.emit('data', chunks[i]);
+          return next(i + 1);
+        }
         if (o.then === 'abort') { req.emit('aborted'); req.emit('close'); return cb(null, null, req); }
         if (o.then === 'close') { req.emit('close'); return cb(null, null, req); }
-        if (o.then !== 'none') req.emit('end');
+        if (o.then !== 'none') {
+          if (req.listeners('end').length === 0) {
+            if (++retries > 100) return;
+            return setTimeout(function () { next(i); }, 10);
+          }
+          req.emit('end');
+        }
       }, 15);
     })(0);
   }
