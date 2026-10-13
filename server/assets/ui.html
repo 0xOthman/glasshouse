@@ -1002,6 +1002,18 @@
         </div>
         <div class="prot-status"><span class="pill idle" id="upd-pill">&mdash;</span></div>
       </div>
+      <div class="prot-row" id="daemon-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.daemon.title">Daemon health</div>
+          <div class="prot-desc" id="daemon-desc">&mdash;</div>
+        </div>
+        <div class="prot-status" id="daemon-status">
+          <span class="app-badge" id="daemon-badge-port" hidden></span>
+          <span class="app-badge" id="daemon-badge-mem" hidden></span>
+          <span class="app-badge" id="daemon-badge-uptime" hidden></span>
+          <span class="pill good" id="daemon-pill" data-t="server.daemon.running">Running</span>
+        </div>
+      </div>
       <div class="prot-row">
         <div class="prot-main">
           <div class="prot-title" data-t="server.checkDaily">Check for updates daily</div>

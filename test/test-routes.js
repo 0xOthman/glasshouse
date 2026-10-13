@@ -233,6 +233,10 @@ function createMockRes(cb) {
   assert.strictEqual(summary.allowTileHiding, true);
   assert.strictEqual(summary.allowOnWebos10, true);
   assert.strictEqual(summary.isWebos10, true);
+  assert.ok(summary.daemon, 'has daemon health info');
+  assert.strictEqual(typeof summary.daemon.port, 'number');
+  assert.strictEqual(typeof summary.daemon.uptime, 'number');
+  assert.strictEqual(typeof summary.daemon.pid, 'number');
 
   // Write top-level primitive values along with section updates
   routes.writeSettings({ allowTileHiding: false, allowOnWebos10: true, mqtt: { port: 1883 } }, function (err) {

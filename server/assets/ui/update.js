@@ -56,6 +56,7 @@ function renderUpdate(d) {
     : t('server.available', 'v{version} is out. Installing it replaces the server and restarts it.', { version: d.latest });
   desc.hidden = !d.available;
   renderWhatsNew(d);
+  renderDaemonHealth(d.daemon);
 
   updateToggle('upd-auto', {
     cls: d.autoCheck ? 'good' : 'idle',
@@ -166,6 +167,77 @@ function renderWhatsNew(d) {
     (more ? `<div class="upd-new-r"><a href="${esc(REPO + '/releases')}" target="_blank" rel="noopener">${esc(more === 1
       ? t('server.whatsNew.moreOne', 'And 1 more release')
       : t('server.whatsNew.more', 'And {n} more releases', { n: more }))}</a></div>` : '');
+}
+
+function renderDaemonHealth(dm) {
+  const row = q('daemon-row');
+  if (!row) return;
+  if (!dm) {
+    row.hidden = true;
+    return;
+  }
+  row.hidden = false;
+  const descEl = q('daemon-desc');
+  const bPort = q('daemon-badge-port');
+  const bMem = q('daemon-badge-mem');
+  const bUp = q('daemon-badge-uptime');
+  const pill = q('daemon-pill');
+
+  if (pill) {
+    pill.className = 'pill good';
+    pill.textContent = t('server.daemon.running', 'Running');
+  }
+
+  if (bPort) {
+    if (dm.port) {
+      bPort.textContent = t('server.daemon.portBadge', 'Port {port}', { port: dm.port });
+      bPort.title = t('server.daemon.portTooltip', 'Listening port');
+      bPort.hidden = false;
+    } else {
+      bPort.hidden = true;
+    }
+  }
+
+  if (bMem) {
+    if (dm.rss) {
+      const rssMb = Math.round(dm.rss / 1048576);
+      bMem.textContent = t('server.daemon.memBadge', '{n} MB RAM', { n: rssMb });
+      bMem.title = t('server.daemon.memTooltip', 'Memory (RSS)');
+      bMem.hidden = false;
+    } else {
+      bMem.hidden = true;
+    }
+  }
+
+  if (bUp) {
+    if (dm.uptime != null) {
+      const s = dm.uptime;
+      const dd = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600), mm = Math.floor((s % 3600) / 60);
+      const upStr = dd ? t('footer.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
+        : (hh ? t('footer.uptime.hours', '{h}h {m}m', { h: hh, m: mm })
+        : t('server.daemon.uptimeMins', '{m}m', { m: mm || 1 }));
+      bUp.textContent = t('footer.up', 'Up {time}', { time: upStr });
+      bUp.title = t('server.daemon.uptimeTooltip', 'Process uptime');
+      bUp.hidden = false;
+    } else {
+      bUp.hidden = true;
+    }
+  }
+
+  if (descEl) {
+    const portStr = dm.port ? String(dm.port) : '8080';
+    const pidPart = dm.pid ? ' (' + t('server.daemon.pid', 'PID {pid}', { pid: dm.pid }) + ')' : '';
+    const rssMb = dm.rss ? Math.round(dm.rss / 1048576) + ' MB RSS' : '';
+    const heapStr = dm.heapUsed && dm.heapTotal
+      ? Math.round(dm.heapUsed / 1048576) + ' / ' + Math.round(dm.heapTotal / 1048576) + ' MB heap'
+      : '';
+    const memDetails = [rssMb, heapStr].filter(Boolean).join(', ');
+    descEl.textContent = t('server.daemon.desc', 'Glasshouse background daemon listening on port {port}. {memDetails}{pid}.', {
+      port: portStr,
+      memDetails: memDetails ? memDetails + ' ' : '',
+      pid: pidPart
+    });
+  }
 }
 
 async function loadUpdate() {

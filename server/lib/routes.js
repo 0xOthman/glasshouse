@@ -598,6 +598,20 @@ function updateSummary() {
     enabled: !!(ntpConf.server && String(ntpConf.server).trim()) && ntpConf.enabled !== false
   };
   s.syslog = syslogModule && syslogModule.getStatus ? syslogModule.getStatus() : null;
+  var mem = null;
+  try {
+    if (typeof process !== 'undefined' && process.memoryUsage) {
+      mem = process.memoryUsage();
+    }
+  } catch (e) {}
+  s.daemon = {
+    uptime: (typeof process !== 'undefined' && process.uptime) ? Math.floor(process.uptime()) : null,
+    pid: (typeof process !== 'undefined' && process.pid) ? process.pid : null,
+    port: (config && config.port) || 8080,
+    rss: (mem && typeof mem.rss === 'number') ? mem.rss : null,
+    heapUsed: (mem && typeof mem.heapUsed === 'number') ? mem.heapUsed : null,
+    heapTotal: (mem && typeof mem.heapTotal === 'number') ? mem.heapTotal : null
+  };
   return s;
 }
 

@@ -1250,6 +1250,21 @@ function updateRows(d) {
   }
 
   r.push(head(t('tv.update.head.information', 'Information')));
+  if (d.daemon) {
+    var dMemMb = d.daemon.rss ? Math.round(d.daemon.rss / 1048576) + ' MB' : '';
+    var dUp = d.daemon.uptime ? fmtUptime(d.daemon.uptime) : '';
+    var dParts = [];
+    if (d.daemon.port) dParts.push(':' + d.daemon.port);
+    if (dUp) dParts.push(dUp);
+    if (dMemMb) dParts.push(dMemMb);
+    r.push({
+      label: t('tv.update.daemonHealth', 'Background daemon'),
+      value: dParts.join(' · ') || t('server.daemon.running', 'Running'),
+      cls: 'on',
+      plain: true,
+      hint: t('tv.update.daemonHealth.hint', 'Glasshouse background process status, listening port, and memory footprint.')
+    });
+  }
   if (d.checkedMs !== null && d.checkedMs !== undefined) {
     var mins = Math.floor(d.checkedMs / 60000);
     var checkedStr = mins < 1 ? t('tv.update.checked.now', 'Just now') : (mins === 1 ? t('tv.update.checked.oneMin', '1 min ago') : t('tv.update.checked.mins', '{n} mins ago', { n: mins }));

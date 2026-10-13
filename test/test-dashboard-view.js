@@ -166,4 +166,22 @@ vm.runInNewContext(scriptMatch[1] + '\n;' + testPagingSnippet, sandbox);
   console.log('  ✓ page() jumps 6 rows, skips headers, and respects list bounds');
 })();
 
+// 5. updateRows includes background daemon info when provided
+(function testUpdateRowsDaemonHealth() {
+  assert.strictEqual(typeof sandbox.updateRows, 'function', 'updateRows function exists');
+  var rows = sandbox.updateRows({
+    ok: true,
+    installed: '0.92.0',
+    daemon: {
+      uptime: 3600,
+      port: 8080,
+      rss: 20971520
+    }
+  });
+  var daemonRow = rows.filter(function (r) { return r.label === 'Background daemon'; })[0];
+  assert.ok(daemonRow, 'has Background daemon row');
+  assert.strictEqual(daemonRow.value, ':8080 · 1h 0m · 20 MB', 'formats daemon health value correctly');
+  console.log('  ✓ updateRows includes Background daemon health row');
+})();
+
 console.log('ALL test-dashboard-view.js assertions passed!\n');
