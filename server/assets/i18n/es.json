@@ -135,6 +135,10 @@
   "text": "Mantiene la TV en la red mientras está apagada, salvo cinco horas cada noche, para que este tablero y Home Assistant sigan funcionando y puedan volver a encenderla. La pantalla permanece a oscuras. Gasta unos 12 W en una LG C2, frente a casi nada en el modo en espera normal.",
   "from": "Keeps the TV on the network while it is switched off, apart from five hours each night, so this dashboard and Home Assistant keep working and can switch it back on. The screen stays dark. Uses about 12 W on an LG C2, against almost nothing in normal standby."
  },
+ "adv.systemUpdates": {
+  "text": "Actualizaciones del sistema",
+  "from": "System updates"
+ },
  "adv.timer.fri": {
   "text": "Vie",
   "from": "Fri"
@@ -1228,12 +1232,12 @@
   "from": "LG OLED TV"
  },
  "lang.en": {
-  "text": "English",
-  "from": "English"
+  "text": "EN",
+  "from": "EN"
  },
  "lang.es": {
-  "text": "Español",
-  "from": "Español"
+  "text": "ES",
+  "from": "ES"
  },
  "lgs.hdmi.audioFormat": {
   "text": "Formato de audio",
@@ -1771,6 +1775,10 @@
   "text": "Abrir menú",
   "from": "Open menu"
  },
+ "nav.pref": {
+  "text": "Preferencias",
+  "from": "Preferences"
+ },
  "nav.sections": {
   "text": "Secciones",
   "from": "Sections"
@@ -2004,8 +2012,8 @@
   "from": "Also blocks LG's platform services, so the LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working."
  },
  "pv.adblock.full.updates": {
-  "text": "Para bloquear solo las actualizaciones del sistema, usa Bloquear actualizaciones de software de la TV en la pestaña Servidor.",
-  "from": "To stop only system updates, use Block TV software updates in the Server tab."
+  "text": "Para bloquear solo las actualizaciones del sistema, usa Bloquear actualizaciones de software de la TV en la pestaña Avanzado.",
+  "from": "To stop only system updates, use Block TV software updates in the Advanced tab."
  },
  "pv.adblock.full.warn": {
   "text": "«Todo» también bloquea los servicios de la plataforma de LG, así que la app LG ThinQ ya no puede controlar la TV, y la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
@@ -2136,8 +2144,8 @@
   "from": "Could not read the agreements file."
  },
  "pv.consent.note": {
-  "text": "Estos valores se escriben en la TV y sobreviven a un reinicio. Un marcador registra lo que la TV guardó; no es prueba de que LG lo respete. Las filas atenuadas son de solo lectura, cada una por la razón indicada junto a ella.",
-  "from": "These write to the TV and survive a reboot. A flag records what the TV stored — it is not proof LG honours it. Dimmed rows are read-only, each for the reason given beside it."
+  "text": "Estos valores se escriben en la TV y sobreviven a un reinicio. Un marcador registra lo que la TV guardó; no es prueba de que LG lo respete.",
+  "from": "These write to the TV and survive a reboot. A flag records what the TV stored — it is not proof LG honours it."
  },
  "pv.consent.path": {
   "text": "Ajustes → General → Acerca de esta TV → Acuerdos de usuario",
@@ -2403,10 +2411,6 @@
   "text": "Idioma",
   "from": "Language"
  },
- "server.language.short": {
-  "text": "Automático sigue el idioma de este dispositivo y muestra inglés donde no hay traducción.",
-  "from": "Auto follows this device's language, and shows English where there is no translation."
- },
  "server.language.title": {
   "text": "Idioma",
   "from": "Language"
@@ -2491,10 +2495,6 @@
   "text": "Ocultar",
   "from": "Hide"
  },
- "server.sidebar.short": {
-  "text": "En una pantalla ancha las pestañas aparecen a la izquierda. Ocultas, están tras el botón de menú, como en un teléfono.",
-  "from": "On a wide screen the tabs are listed down the left. Hidden, they are behind the menu button, as on a phone."
- },
  "server.sidebar.show": {
   "text": "Mostrar",
   "from": "Show"
@@ -2563,25 +2563,9 @@
   "text": "Actualizado a v{version}",
   "from": "Updated to v{version}"
  },
- "server.theme.short": {
-  "text": "Automático sigue el modo claro u oscuro de este dispositivo. El botón al final del pie de página también lo cambia.",
-  "from": "Auto follows this device's light or dark setting. The button at the end of the footer changes it too."
- },
  "server.theme.title": {
   "text": "Tema",
   "from": "Theme"
- },
- "server.thisBrowser": {
-  "text": "Este navegador",
-  "from": "This browser"
- },
- "server.thisBrowser.desc": {
-  "text": "Se guarda solo en este navegador: otros teléfonos y ordenadores mantienen el suyo.",
-  "from": "Kept in this browser only: other phones and computers keep their own."
- },
- "server.tv": {
-  "text": "La TV",
-  "from": "The TV"
  },
  "server.tvApp.added": {
   "text": "Añadida",

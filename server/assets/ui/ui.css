@@ -265,6 +265,23 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
    the baseline. */
 .sidenav-foot{margin-top:auto;padding-top:24px}
 .sidenav-foot .nav-rule{margin:0 24px 10px}
+.nav-pref{margin:0 12px 2px}
+.nav-pref>summary{list-style:none;display:flex;align-items:center;gap:14px;padding:11px 12px;border-radius:2px;
+  font:500 12px 'Manrope';letter-spacing:.14em;text-transform:uppercase;color:var(--w50);cursor:pointer;user-select:none;
+  transition:background .12s ease,color .12s ease}
+.nav-pref>summary::-webkit-details-marker{display:none}
+.nav-pref>summary:hover{color:var(--w90);background:var(--w06)}
+.nav-pref>summary:focus-visible{outline:2px solid var(--w80);outline-offset:-2px}
+.nav-pref[open]>summary{color:var(--w100)}
+.nav-pref-arrow{width:12px;height:12px;margin-left:auto;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.7;transition:transform .15s ease}
+.nav-pref[open] .nav-pref-arrow{transform:rotate(180deg)}
+.nav-pref-body{display:flex;flex-direction:column;gap:10px;padding:4px 12px 14px}
+.nav-pref-grp{display:flex;flex-direction:column;gap:5px}
+.nav-pref-lbl{font:500 10px 'Manrope';letter-spacing:.12em;text-transform:uppercase;color:var(--w40)}
+.nav-pref .theme-seg{display:flex;gap:4px;width:100%}
+.nav-pref .theme-seg button{flex:1;min-width:0;height:28px;min-height:0;padding:0 4px;font-size:11px;
+  letter-spacing:.06em;text-transform:uppercase;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nav-help{display:flex;align-items:center;gap:14px;margin:0 12px;padding:11px 12px;border-radius:2px;
   font:500 12px 'Manrope';letter-spacing:.14em;text-transform:uppercase;color:var(--w50);text-decoration:none;
   transition:background .12s ease,color .12s ease}
@@ -294,7 +311,7 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
   html:not(.nav-hidden) .tabs button{padding-top:9px;padding-bottom:9px}
 }
 /* The drawer: below 1024px, and on a wide screen whose sidebar is hidden
-   (Server tab, kept per browser). */
+   (Preferences, kept per browser). */
 @media (max-width:1023px){
   .nav-bar{display:block;margin-top:clamp(20px,3vw,30px);border-bottom:1px solid var(--w12)}
   .nav-toggle{display:flex;align-items:center;gap:14px;min-height:0;height:46px;padding:0 4px;margin-left:var(--nav-toggle-pull);background:transparent;border:0;color:var(--w100);cursor:pointer;font:500 12px 'Manrope';letter-spacing:.14em;text-transform:uppercase}
@@ -303,6 +320,8 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
   .sidenav.open{transform:none;visibility:visible;transition:transform .22s ease}
   .sidenav-head{height:auto;padding-bottom:6px}
   .sidenav .tabs{margin-top:12px}
+  .nav-pref-sidebar{display:none}
+  .nav-pref .theme-seg button{height:32px;font-size:11px}
   .nav-close{display:block}
   body.nav-open{overflow:hidden}
 }
@@ -316,7 +335,7 @@ html.nav-hidden .sidenav .tabs{margin-top:12px}
 html.nav-hidden .nav-close{display:block}
 html.nav-hidden body.nav-open{overflow:hidden}
 @media (prefers-reduced-motion:reduce){
-  .sidenav,.sidenav.open{transition:none}
+  .sidenav,.sidenav.open,.nav-pref-arrow{transition:none}
   button.busy, button.btn-busy{animation:none}
 }
 #panels{margin-top:var(--panels-gap)}

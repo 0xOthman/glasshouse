@@ -1,10 +1,10 @@
 # Server
 
-The **Server** tab, `/?tab=server`, holds Glasshouse's own settings, in four groups: Glasshouse itself, the TV, this browser, and an Advanced section for developers and home-lab setups.
+The **Server** tab, `/?tab=server`, holds Glasshouse's own settings: Glasshouse itself and an Advanced section for developers and home-lab setups. Preferences for this browser (theme, sidebar, and language) are located in the sidebar navigation area.
 
-![Server tab: Glasshouse's version and updates, the app on the TV's home screen, blocking the TV's software updates, the theme, sidebar and language for this browser, and the Advanced section](../screenshots/server.png)
+![Server tab: Glasshouse's version and updates, the app on the TV's home screen, and the Advanced section](../screenshots/server.png)
 
-*Glasshouse's updates, the TV's updates, this browser's settings and Advanced.*
+*Glasshouse's updates and the Advanced section.*
 
 ## Glasshouse
 
@@ -15,14 +15,6 @@ Shows the installed version and whether a newer release is out. **Check now** lo
 **Server health** shows the background process uptime and memory footprint on the TV.
 
 **App on the TV's home screen** adds or removes [the dashboard's own app](../apps/tv-app.md), which opens it on the TV and is driven by the remote.
-
-## The TV
-
-**Block TV software updates** stops the TV installing LG's system updates, which can take away the access Glasshouse runs with. Apps, and Glasshouse's own updates, are not affected.
-
-## This browser
-
-The **theme**, the **sidebar** and the **language** apply to the browser they are set in, so other phones and computers keep their own.
 
 ## Advanced
 

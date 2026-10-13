@@ -59,6 +59,10 @@ Per-port settings for HDMI Deep Colour (extended bandwidth for 4K HDR) and audio
 
 * **Standby light:** Toggles the red standby indicator LED located on the front bezel of the TV.
 
-![Advanced tab: Quick Boot, Stay connected when off with its nightly power-down hours, Wake-on-LAN, LG logo, auto device detection and the standby light](../screenshots/advanced.png)
+## System updates
 
-*The TV's own settings, grouped as Power, Display, Sound, HDMI inputs, Devices and Front lights.*
+* **Block TV software updates:** Stops the TV installing LG's system updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are unaffected.
+
+![Advanced tab: Quick Boot, Stay connected when off with its nightly power-down hours, Wake-on-LAN, LG logo, auto device detection, the standby light and system updates](../screenshots/advanced.png)
+
+*The TV's own settings, grouped as Power, Display, Sound, HDMI inputs, Devices, Front lights and System updates.*

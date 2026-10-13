@@ -190,7 +190,7 @@ async function loadPrivacy() {
     q('pv-consent').innerHTML = html || `<div class="d">${esc(t('pv.consent.failed', 'Could not read the agreements file.'))}</div>`;
     // The menu path is set in bold inside the sentence, so it goes in after escaping.
     q('pv-consent-note').innerHTML = cw
-      ? esc(t('pv.consent.note', 'These write to the TV and survive a reboot. A flag records what the TV stored \u2014 it is not proof LG honours it. Dimmed rows are read-only, each for the reason given beside it.'))
+      ? esc(t('pv.consent.note', 'These write to the TV and survive a reboot. A flag records what the TV stored \u2014 it is not proof LG honours it.'))
       : esc(t('pv.consent.readOnly', 'Controls are disabled in config.json, so these can only be read. Change them on the TV under {path}.'))
           .replace('{path}', '<b>' + esc(t('pv.consent.path', 'Settings \u2192 General \u2192 About This TV \u2192 User Agreements')) + '</b>');
     /* A folded section still has to say where it stands, or folding it just
