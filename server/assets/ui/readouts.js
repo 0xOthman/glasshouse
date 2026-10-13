@@ -276,6 +276,7 @@ async function tick() {
       const ltLogoVal = getLease('logoLight', lights.logo);
       advPill('logolight', 'lt_logo', lights.hasLogo ? (ltLogoVal !== undefined ? ltLogoVal : lights.logo) : undefined);
       if (q('adv-display')) q('adv-display').hidden = d.lgLogo === undefined;
+      if (q('adv-lights')) q('adv-lights').hidden = lights.standby === undefined && !lights.hasLogo;
       const pc = d.piccapCapture;
       const pcVal = getLease('piccap', pc ? pc.running : undefined);
       advPill('piccap', 'btn_piccap', pc ? (pcVal !== undefined ? pcVal : pc.running) : undefined);

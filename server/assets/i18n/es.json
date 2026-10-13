@@ -103,6 +103,10 @@
   "text": "Energía",
   "from": "Power"
  },
+ "adv.powerStandby": {
+  "text": "Energía y reposo",
+  "from": "Power & standby"
+ },
  "adv.quickBoot": {
   "text": "Arranque rápido",
   "from": "Quick Boot"
@@ -159,13 +163,17 @@
   "text": "Mié",
   "from": "Wed"
  },
+ "adv.timers": {
+  "text": "Temporizadores",
+  "from": "Timers"
+ },
  "adv.wol": {
   "text": "Wake-on-LAN",
   "from": "Wake-on-LAN"
  },
  "adv.wol.desc": {
-  "text": "Permite que Home Assistant, un teléfono u otro dispositivo de la red enciendan la TV desde el modo en espera. La guía de Home Assistant explica cómo configurarlo. LG lo llama Mobile TV On.",
-  "from": "Lets Home Assistant, a phone or another device on the network switch the TV on from standby. The Home Assistant guide shows how to set it up. LG calls this Mobile TV On."
+  "text": "Permite que Home Assistant, un teléfono u otro dispositivo de la red enciendan la TV desde el modo en espera. Requiere Arranque rápido (Quick Start+) para mantener la conexión de red activa al apagarse. La guía de Home Assistant explica cómo configurarlo. LG lo llama Mobile TV On.",
+  "from": "Lets Home Assistant, a phone or another device on the network switch the TV on from standby. Requires Quick Boot (Quick Start+) to keep the network connection responsive while off. The Home Assistant guide shows how to set it up. LG calls this Mobile TV On."
  },
  "app.accessibility": {
   "text": "Accesibilidad",
@@ -5392,8 +5400,8 @@
   "from": "{time}, repeats {days}"
  },
  "tv.options.wol.hint": {
-  "text": "Permite que Home Assistant, un teléfono u otro dispositivo de la red enciendan la TV desde el modo en espera. LG lo llama Mobile TV On.",
-  "from": "Lets Home Assistant, a phone or another device on the network switch the TV on from standby. LG calls this Mobile TV On."
+  "text": "Permite que Home Assistant, un teléfono u otro dispositivo de la red enciendan la TV desde el modo en espera. Requiere Arranque rápido (Quick Start+) para mantener la conexión de red activa al apagarse. LG lo llama Mobile TV On.",
+  "from": "Lets Home Assistant, a phone or another device on the network switch the TV on from standby. Requires Quick Boot (Quick Start+) to keep the network connection responsive while off. LG calls this Mobile TV On."
  },
  "tv.press.change": {
   "text": "Pulsa OK para cambiar",

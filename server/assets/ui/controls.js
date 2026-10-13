@@ -247,6 +247,9 @@ function powerTimerRows(timers) {
     }
     if (days) for (const b of days.children) b.classList.toggle('on', tm.days.indexOf(Number(b.dataset.day)) !== -1);
   });
+  if (q('adv-timers')) {
+    q('adv-timers').hidden = !shownPowerTimer('on') && !shownPowerTimer('off');
+  }
   const note = q('ontimer-autooff');
   if (note) note.hidden = !(timers && timers.on && timers.on.autoOff);
 }
