@@ -939,6 +939,11 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
 #apps-catalog-list .prot-status{max-width:100%}
 #apps-catalog-list .prot-status button{max-width:100%;white-space:normal}
 #apps-installed-list .prot-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.app-storage-badge{
+  font-family:'Manrope',sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em;
+  padding:3px 8px;border-radius:6px;background:var(--w06);color:var(--w80);
+  border:1px solid var(--edge);white-space:nowrap;font-variant-numeric:tabular-nums;
+}
 /* Renaming a saved page happens in its own row: the name becomes the field. */
 .page-edit{display:flex;gap:8px;margin:0}
 .page-edit{flex-wrap:wrap}

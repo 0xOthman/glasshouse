@@ -691,8 +691,10 @@ function appsRows(d) {
     r.push(head(t('tv.apps.head.uninstallApplications', 'Uninstall Applications')));
     for (var j = 0; j < inst.length; j++) {
       var app = inst[j];
+      var sz = app.size ? fmtSize(app.size) : '';
       r.push({
         label: app.title || app.id,
+        ver: sz,
         value: t('apps.uninstall.button', 'Uninstall'),
         cls: 'bad',
         act: 'uninstall',

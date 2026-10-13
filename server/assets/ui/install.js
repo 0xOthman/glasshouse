@@ -143,13 +143,6 @@ function renderCatalog() {
   }).join('');
 }
 
-function fmtSize(n) {
-  if (typeof n !== 'number' || n <= 0) return '';
-  if (n < 1048576) return t('apps.install.kb', '{n} KB', { n: Math.round(n / 1024) });
-  const mb = n / 1048576;
-  return t('apps.install.mb', '{n} MB', { n: mb >= 10 ? Math.round(mb) : Math.round(mb * 10) / 10 });
-}
-
 function fmtMb(n) { return t('apps.install.mb', '{n} MB', { n: Math.round(n / 1048576) }); }
 
 /* The update tab's bar, for installs: a download or upload moves it by what
