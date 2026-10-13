@@ -1643,6 +1643,10 @@
   "text": "Sin intermediario configurado",
   "from": "No broker configured"
  },
+ "mqtt.net.server": {
+  "text": "Servidor MQTT",
+  "from": "MQTT server"
+ },
  "mqtt.net.telemetryAge": {
   "text": "Telemetría: {age}",
   "from": "Telemetry: {age}"

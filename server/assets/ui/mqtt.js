@@ -82,7 +82,7 @@ function renderMqttTopology(st) {
     } else if (st.state === 'connecting') {
       q('mqtt-net-last-pub').textContent = t('mqtt.state.connecting', 'Connecting');
     } else if (st.state === 'error') {
-      q('mqtt-net-last-pub').textContent = t('mqtt.state.error', 'Error');
+      q('mqtt-net-last-pub').textContent = st.detail || t('mqtt.state.error', 'Error');
     } else {
       q('mqtt-net-last-pub').textContent = t('common.off', 'Off');
     }
@@ -96,11 +96,12 @@ function renderMqttTopology(st) {
 
   // 3. Broker Node
   const brokerText = st.broker || (q('cfg-host') && q('cfg-host').value ? (q('cfg-host').value + ':' + (q('cfg-port').value || (q('cfg-tls').classList.contains('on') ? '8883' : '1883'))) : '');
-  if (q('mqtt-node-broker-name')) q('mqtt-node-broker-name').textContent = brokerText || t('mqtt.net.noBroker', 'No broker configured');
+  if (q('mqtt-node-broker-name')) q('mqtt-node-broker-name').textContent = t('mqtt.net.server', 'MQTT server');
   if (q('mqtt-node-broker-sub')) {
-    let sub = isEnabled ? (CFG_STATE[st.state] ? CFG_STATE[st.state].label : t('common.off', 'Off')) : t('common.off', 'Off');
-    if (isEnabled && st.state === 'error' && st.detail) sub = st.detail;
-    q('mqtt-node-broker-sub').textContent = sub;
+    q('mqtt-node-broker-sub').textContent = brokerText || t('mqtt.net.noBroker', 'No broker configured');
+  }
+  if (q('mqtt-node-broker')) {
+    q('mqtt-node-broker').title = (isEnabled && st.state === 'error' && st.detail) ? st.detail : '';
   }
   const tlsTag = q('mqtt-node-broker-tls');
   if (tlsTag) tlsTag.hidden = !st.tls && !(q('cfg-tls') && q('cfg-tls').classList.contains('on'));
