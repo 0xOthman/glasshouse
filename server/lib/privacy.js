@@ -320,7 +320,39 @@ function sinkhole(lines, host) {
   lines.push('::\t' + host);
 }
 
-function adBlockHostsTable(mode) {
+/*
+ * Lines other tools put in /etc/hosts, such as AmazOff's redirect of Amazon's
+ * player to a local nginx. Rewriting the table, or mounting it, would
+ * otherwise drop them. A line is this table's own if it is a comment, a
+ * localhost line, a sinkhole (0.0.0.0 or ::) or names a host the table decides
+ * on: the Homebrew Channel points the update servers at 127.0.0.1 and ::1
+ * (a C4 on webOS 10.3.1), and those must not outlive update blocking being
+ * switched off. 50-tvweb.sh carries the rest over at boot the same way.
+ */
+function foreignHostsLines(text) {
+  var managed = adBlockAds().concat(ADBLOCK_PLATFORM, ADBLOCK_SDP, HBC_UPDATE_HOSTS);
+  var kept = [];
+  var lines = String(text || '').split('\n');
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line || line.charAt(0) === '#') continue;
+    if (/^(0\.0\.0\.0|::)\s/.test(line) || /localhost|ip6-/.test(line)) continue;
+    var names = line.split(/\s+/).slice(1);
+    if (names.some(function (n) { return managed.indexOf(n.toLowerCase()) !== -1; })) continue;
+    if (kept.indexOf(line) === -1) kept.push(line);
+  }
+  return kept;
+}
+
+function currentForeignHostsLines() {
+  try {
+    return foreignHostsLines(fs.readFileSync('/etc/hosts', 'utf8'));
+  } catch (e) {
+    return [];
+  }
+}
+
+function adBlockHostsTable(mode, foreign) {
   var list = adBlockList(mode);
   var lines = [
     '127.0.0.1\tlocalhost.localdomain\tlocalhost',
@@ -337,8 +369,17 @@ function adBlockHostsTable(mode) {
     lines.push('', '# TV software updates, blocked by the flag the Homebrew Channel also uses');
     for (var u = 0; u < HBC_UPDATE_HOSTS.length; u++) sinkhole(lines, HBC_UPDATE_HOSTS[u]);
   }
+  if (foreign && foreign.length) {
+    lines.push('', '# Kept from /etc/hosts, where other tools put them');
+    lines.push.apply(lines, foreign);
+  }
   lines.push('');
   return lines.join('\n');
+}
+
+// In place, not renamed over: app jails bind-mount this file as their hosts.
+function writeHostsTable(mode) {
+  fs.writeFileSync(ADBLOCK_HOSTS_FILE, adBlockHostsTable(mode, currentForeignHostsLines()), 'utf8');
 }
 
 function clearSdpTimer() {
@@ -360,7 +401,7 @@ function finalizeSdpBlock(logMsg) {
   if (logMsg) console.log(logMsg);
   if (flagMode() === 'full' && isTableMounted()) {
     try {
-      fs.writeFileSync(ADBLOCK_HOSTS_FILE, adBlockHostsTable('full'), 'utf8');
+      writeHostsTable('full');
       clearCache();
     } catch (e) {}
   }
@@ -465,7 +506,7 @@ function applyHostsTable(cb) {
   var done = function () { clearCache(); cb(null); };
   if (mode !== 'off' || tvUpdatesBlocked()) {
     try {
-      fs.writeFileSync(ADBLOCK_HOSTS_FILE, adBlockHostsTable(mode), 'utf8');
+      writeHostsTable(mode);
     } catch (e) {
       return cb('could not write the hosts table: ' + e.message);
     }
@@ -476,12 +517,31 @@ function applyHostsTable(cb) {
       function (err) { clearCache(); cb(err ? 'could not mount the hosts table' : null); });
   }
   clearSdpTimer();
+  // Other tools' lines went into the table while it was up, and the
+  // /etc/hosts underneath can be on the read-only rootfs (a C4 on webOS
+  // 10.3.1), where they cannot go back. Then the table goes back up, blocking
+  // nothing, until the next reboot.
+  var foreign = mounted ? currentForeignHostsLines() : [];
+  var settle = function () {
+    var below = currentForeignHostsLines();
+    var lost = foreign.filter(function (line) { return below.indexOf(line) === -1; });
+    if (!lost.length) return done();
+    execFile('/bin/mount', ['--bind', ADBLOCK_HOSTS_FILE, '/etc/hosts'], { timeout: 3000 },
+      function (err) { clearCache(); cb(err ? 'could not mount the hosts table' : null); });
+  };
   var liftHbc = function () {
     var hosts = readTrimmed('/etc/hosts') || '';
-    if (hosts.indexOf('webosbrew startup script') === -1) return done();
-    execFile('/bin/umount', ['/etc/hosts'], { timeout: 3000 }, function () { done(); });
+    if (hosts.indexOf('webosbrew startup script') === -1) return settle();
+    execFile('/bin/umount', ['/etc/hosts'], { timeout: 3000 }, function () { settle(); });
   };
   if (!mounted) return liftHbc();
+  if (foreign.length) {
+    try {
+      writeHostsTable('off');
+    } catch (e) {
+      return cb('could not write the hosts table: ' + e.message);
+    }
+  }
   execFile('/bin/umount', ['/etc/hosts'], { timeout: 3000 }, function () { clearCache(); liftHbc(); });
 }
 
@@ -523,7 +583,7 @@ function checkBootAdBlock(cliMode) {
     // takes effect without the mode being switched off and on.
     var mode = flagMode();
     var need = mode !== 'off' || tvUpdatesBlocked();
-    if (need) fs.writeFileSync(ADBLOCK_HOSTS_FILE, adBlockHostsTable(mode), 'utf8');
+    if (need) writeHostsTable(mode);
     if (need && !isTableMounted()) {
       execFile('/bin/mount', ['--bind', ADBLOCK_HOSTS_FILE, '/etc/hosts'], { timeout: 3000 }, function (err) {
         clearCache();
@@ -1012,7 +1072,7 @@ function learnCountry() {
     if (!/^[a-z]{2}$/.test(cc) || cc === (readTrimmed(COUNTRY_FILE) || '').toLowerCase()) return;
     try {
       fs.writeFileSync(COUNTRY_FILE, cc, 'utf8');
-      if (isTableMounted()) fs.writeFileSync(ADBLOCK_HOSTS_FILE, adBlockHostsTable(flagMode()), 'utf8');
+      if (isTableMounted()) writeHostsTable(flagMode());
     } catch (e) {}
   });
 }
@@ -1040,6 +1100,7 @@ module.exports = {
   ADBLOCK_ADS: ADBLOCK_ADS,
   ADBLOCK_PLATFORM: ADBLOCK_PLATFORM,
   adBlockHostsTable: adBlockHostsTable,
+  foreignHostsLines: foreignHostsLines,
   CONSENT_LABELS: CONSENT_LABELS,
   CONSENT_LOCKED: CONSENT_LOCKED,
   CONSENT_GROUPS: CONSENT_GROUPS,

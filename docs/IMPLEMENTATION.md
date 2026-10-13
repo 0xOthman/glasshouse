@@ -552,6 +552,21 @@ The blocklist is applied by bind-mounting a generated hosts file over
 same technique webosbrew uses for `/etc/shadow` and `/etc/motd`. Verified
 working: `getent hosts ad.lgsmartad.com` returns `0.0.0.0`.
 
+Other tools edit `/etc/hosts` too: AmazOff points
+`cloudfront.xp-assets.aiv-cdn.net` at its local nginx. The table carries their
+lines over each time it is written. Switched off, the table comes down unless
+the file underneath lacks some of them: on a C4 on webOS 10.3.1 that file is on
+the read-only squashfs rootfs, so the table goes back up blocking nothing, and
+stays until the next reboot. A line is the blocker's own if it is a comment, a
+localhost line, a sinkhole (`0.0.0.0` or `::`) or names a host the table
+decides on, and anyone else's otherwise. The last rule is for the Homebrew
+Channel's update block, which points LG's update servers at `127.0.0.1` and
+`::1` and must not outlive update blocking being switched off. At boot,
+`50-tvweb` takes them from that boot's `/etc/hosts` before mounting and drops
+the previous boot's, so a tool that is no longer started leaves nothing behind.
+The table is written in place rather than replaced, since app jails such as
+Amazon's bind-mount it as their own `tmp/hosts` while it is mounted.
+
 Nine of the nineteen domains are ad, tracking and diagnostics hosts that
 nothing on the TV needs. The other ten are **LG infrastructure rather than
 advertising**, which is why they are a separate tier:
