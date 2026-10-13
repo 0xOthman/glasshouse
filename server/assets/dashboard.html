@@ -1250,6 +1250,22 @@ function updateRows(d) {
   }
 
   r.push(head(t('tv.update.head.information', 'Information')));
+  if (d.daemon) {
+    var dMemMb = d.daemon.rss ? Math.round(d.daemon.rss / 1048576) + ' MB RAM' : '';
+    var dUp = d.daemon.uptime ? fmtUptime(d.daemon.uptime) : '';
+    var dParts = [];
+    if (dUp) dParts.push(dUp);
+    if (dMemMb) dParts.push(dMemMb);
+    if (dParts.length) {
+      r.push({
+        label: t('tv.update.serverHealth', 'Server health'),
+        value: dParts.join(' · '),
+        cls: 'on',
+        plain: true,
+        hint: t('tv.update.serverHealth.hint', 'Memory footprint and uptime of the Glasshouse background process on this TV.')
+      });
+    }
+  }
   if (d.checkedMs !== null && d.checkedMs !== undefined) {
     var mins = Math.floor(d.checkedMs / 60000);
     var checkedStr = mins < 1 ? t('tv.update.checked.now', 'Just now') : (mins === 1 ? t('tv.update.checked.oneMin', '1 min ago') : t('tv.update.checked.mins', '{n} mins ago', { n: mins }));

@@ -56,6 +56,9 @@ function renderUpdate(d) {
     : t('server.available', 'v{version} is out. Installing it replaces the server and restarts it.', { version: d.latest });
   desc.hidden = !d.available;
   renderWhatsNew(d);
+  if (d.daemon !== undefined) {
+    renderServerHealth(d.daemon);
+  }
 
   updateToggle('upd-auto', {
     cls: d.autoCheck ? 'good' : 'idle',
@@ -166,6 +169,44 @@ function renderWhatsNew(d) {
     (more ? `<div class="upd-new-r"><a href="${esc(REPO + '/releases')}" target="_blank" rel="noopener">${esc(more === 1
       ? t('server.whatsNew.moreOne', 'And 1 more release')
       : t('server.whatsNew.more', 'And {n} more releases', { n: more }))}</a></div>` : '');
+}
+
+function renderServerHealth(dm) {
+  const row = q('server-health-row');
+  if (!row) return;
+  if (!dm) {
+    row.hidden = true;
+    return;
+  }
+  row.hidden = false;
+  const bMem = q('server-badge-mem');
+  const bUp = q('server-badge-uptime');
+
+  if (bMem) {
+    if (dm.rss) {
+      const rssMb = Math.round(dm.rss / 1048576);
+      bMem.textContent = t('server.health.memBadge', '{n} MB RAM', { n: rssMb });
+      bMem.title = t('server.health.memTooltip', 'Memory (RSS)');
+      bMem.hidden = false;
+    } else {
+      bMem.hidden = true;
+    }
+  }
+
+  if (bUp) {
+    if (dm.uptime != null) {
+      const s = dm.uptime;
+      const dd = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600), mm = Math.floor((s % 3600) / 60);
+      const upStr = dd ? t('metrics.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
+        : (hh ? t('metrics.uptime.hours', '{h}h {m}m', { h: hh, m: mm })
+        : t('server.health.uptimeMins', '{m}m', { m: mm || 1 }));
+      bUp.textContent = t('server.health.up', 'Up {time}', { time: upStr });
+      bUp.title = t('server.health.uptimeTooltip', 'Process uptime');
+      bUp.hidden = false;
+    } else {
+      bUp.hidden = true;
+    }
+  }
 }
 
 async function loadUpdate() {

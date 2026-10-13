@@ -1179,18 +1179,6 @@
   "text": "Mínimo",
   "from": "Minimum"
  },
- "footer.up": {
-  "text": "Activa {time}",
-  "from": "Up {time}"
- },
- "footer.uptime.days": {
-  "text": "{d}d {h}h {m}m",
-  "from": "{d}d {h}h {m}m"
- },
- "footer.uptime.hours": {
-  "text": "{h}h {m}m",
-  "from": "{h}h {m}m"
- },
  "game.frameRate": {
   "text": "Fotogramas por segundo",
   "from": "Frame rate"
@@ -1502,6 +1490,26 @@
  "metrics.temperature": {
   "text": "Temperatura",
   "from": "Temperature"
+ },
+ "metrics.uptime": {
+  "text": "Tiempo de actividad de la TV",
+  "from": "TV uptime"
+ },
+ "metrics.uptime.days": {
+  "text": "{d}d {h}h {m}m",
+  "from": "{d}d {h}h {m}m"
+ },
+ "metrics.uptime.hours": {
+  "text": "{h}h {m}m",
+  "from": "{h}h {m}m"
+ },
+ "metrics.uptime.mins": {
+  "text": "{m}m",
+  "from": "{m}m"
+ },
+ "metrics.uptime.sinceBoot": {
+  "text": "Tiempo desde el encendido",
+  "from": "Time since boot"
  },
  "metrics.webos.desc": {
   "text": "versión del sistema operativo",
@@ -2350,6 +2358,34 @@
  "server.glasshouse": {
   "text": "Glasshouse",
   "from": "Glasshouse"
+ },
+ "server.health.desc": {
+  "text": "Uso de memoria y tiempo de actividad del proceso en segundo plano de Glasshouse en esta TV.",
+  "from": "Memory footprint and uptime of the Glasshouse background process on this TV."
+ },
+ "server.health.memBadge": {
+  "text": "{n} MB RAM",
+  "from": "{n} MB RAM"
+ },
+ "server.health.memTooltip": {
+  "text": "Memoria (RSS)",
+  "from": "Memory (RSS)"
+ },
+ "server.health.title": {
+  "text": "Salud del servidor",
+  "from": "Server health"
+ },
+ "server.health.up": {
+  "text": "Activo {time}",
+  "from": "Up {time}"
+ },
+ "server.health.uptimeMins": {
+  "text": "{m}m",
+  "from": "{m}m"
+ },
+ "server.health.uptimeTooltip": {
+  "text": "Tiempo de actividad del proceso",
+  "from": "Process uptime"
  },
  "server.install": {
   "text": "Instalar v{version}",
@@ -6130,6 +6166,14 @@
  "tv.update.rollingBackVersion": {
   "text": "Volviendo a la v{version}…",
   "from": "Rolling back to v{version}…"
+ },
+ "tv.update.serverHealth": {
+  "text": "Salud del servidor",
+  "from": "Server health"
+ },
+ "tv.update.serverHealth.hint": {
+  "text": "Uso de memoria y tiempo de actividad del proceso en segundo plano de Glasshouse en esta TV.",
+  "from": "Memory footprint and uptime of the Glasshouse background process on this TV."
  },
  "tv.update.slow": {
   "text": "El reinicio está tardando más de lo esperado",

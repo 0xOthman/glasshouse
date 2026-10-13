@@ -662,10 +662,14 @@ async function tick() {
       renderMoreOutputs(offered ? offered.filter(o => !SOUND_BUTTON[o.id]) : [], curSo);
     }
 
-    const up = d.uptime, dd = Math.floor(up / 86400), hh = Math.floor(up % 86400 / 3600), mm = Math.floor(up % 3600 / 60);
-    const upFor = dd ? t('footer.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
-      : t('footer.uptime.hours', '{h}h {m}m', { h: hh, m: mm });
-    q('uptime').textContent = t('footer.up', 'Up {time}', { time: upFor });
+    if (typeof d.uptime === 'number') {
+      const up = d.uptime, dd = Math.floor(up / 86400), hh = Math.floor(up % 86400 / 3600), mm = Math.floor(up % 3600 / 60);
+      const upFor = dd ? t('metrics.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
+        : (hh ? t('metrics.uptime.hours', '{h}h {m}m', { h: hh, m: mm })
+        : t('metrics.uptime.mins', '{m}m', { m: mm || 1 }));
+      const upEl = q('tv-uptime');
+      if (upEl) upEl.textContent = upFor;
+    }
     setVersion(d.tvwebVersion);
     // Several groups stay hidden until the first payload says the TV has them,
     // so the columns are only worth filling once that has happened.

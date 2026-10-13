@@ -827,7 +827,7 @@ function doControl(action, value, cb) {
       // two minutes, so switching between tabs does not reach GitHub each time.
       return updater.checkForUpdate(value === 'open' ? 120000 : true, function (e, summary) {
         if (e) return cb({ ok: false, error: e.message });
-        cb(summary);
+        cb(typeof updateSummaryFn === 'function' ? getUpdateSummary() : summary);
       });
 
     case 'update':
@@ -846,7 +846,10 @@ function doControl(action, value, cb) {
       });
 
     case 'updateAutoCheck':
-      return updater.setAutoCheck(value === true || value === 'on' || value === 'true', cb);
+      return updater.setAutoCheck(value === true || value === 'on' || value === 'true', function (r) {
+        if (r && !r.ok) return cb(r);
+        cb(typeof updateSummaryFn === 'function' ? getUpdateSummary() : r);
+      });
 
     case 'updateRollback':
       return updater.rollbackUpdate(function (r) {

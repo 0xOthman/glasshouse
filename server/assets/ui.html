@@ -152,6 +152,12 @@
       <div class="sub" id="hdmi-diag-row" hidden style="margin-top:12px;line-height:1.5"></div>
     </div>
 
+    <div class="grp-sec" id="uptimeblock" data-col="1">
+      <div class="grp" data-t="metrics.uptime">TV uptime</div>
+      <div class="lbl" data-t="metrics.uptime.sinceBoot">Time since boot</div>
+      <div class="uptime-val num" id="tv-uptime">&mdash;</div>
+    </div>
+
     <div class="grp-sec" id="advblock" data-col="1">
       <div class="grp" data-t="tab.advanced">Advanced</div>
       <details class="disc" id="disc-hwinfo" hidden style="border-top:0;margin-top:0">
@@ -1002,6 +1008,16 @@
         </div>
         <div class="prot-status"><span class="pill idle" id="upd-pill">&mdash;</span></div>
       </div>
+      <div class="prot-row" id="server-health-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.health.title">Server health</div>
+          <div class="prot-desc" data-t="server.health.desc">Memory footprint and uptime of the Glasshouse background process on this TV.</div>
+        </div>
+        <div class="prot-status" id="server-health-status">
+          <span class="app-badge" id="server-badge-mem" hidden></span>
+          <span class="app-badge" id="server-badge-uptime" hidden></span>
+        </div>
+      </div>
       <div class="prot-row">
         <div class="prot-main">
           <div class="prot-title" data-t="server.checkDaily">Check for updates daily</div>
@@ -1207,7 +1223,6 @@
 </main>
 
 <footer>
-  <span id="uptime">&mdash;</span>
   <span class="foot-end"><span id="activity-txrx" class="activity-txrx" aria-hidden="true"><span id="act-tx" class="txrx-pip"></span><span id="act-rx" class="txrx-pip"></span></span><a id="version" hidden target="_blank" rel="noopener noreferrer"></a><a id="version-new" hidden target="_blank" rel="noopener noreferrer"></a><button type="button" class="theme-toggle" id="theme-toggle">☾</button></span>
 </footer>
 
