@@ -389,8 +389,18 @@
       <div class="lbl" data-t="oled.hours">Total power on hours</div>
       <div class="n num" style="margin-top:10px"><span id="oc-hours">&mdash;</span><em data-t="oled.hoursUnit">hours</em></div>
       <div class="cols" style="margin-top:22px">
-        <div><div class="lbl" data-t="oled.compIn">Panel maintenance in</div><div class="v num" id="oc-comp">&mdash;</div><div class="sub" id="oc-comp-sub">&mdash;</div></div>
-        <div><div class="lbl" data-t="oled.refresherIn">Pixel refresher in</div><div class="v num" id="oc-refr">&mdash;</div><div class="sub" id="oc-refr-sub">&mdash;</div></div>
+        <div>
+          <div class="lbl" data-t="oled.compIn">Panel maintenance in</div>
+          <div class="v num" id="oc-comp">&mdash;</div>
+          <div class="track oc-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><b id="oc-comp-bar" style="width:0%"></b></div>
+          <div class="sub" id="oc-comp-sub">&mdash;</div>
+        </div>
+        <div>
+          <div class="lbl" data-t="oled.refresherIn">Pixel refresher in</div>
+          <div class="v num" id="oc-refr">&mdash;</div>
+          <div class="track oc-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><b id="oc-refr-bar" style="width:0%"></b></div>
+          <div class="sub" id="oc-refr-sub">&mdash;</div>
+        </div>
       </div>
       <div class="oc-counts" id="oc-counts" hidden>
         <div class="grp" data-t="oled.counts">Lifetime counts</div>

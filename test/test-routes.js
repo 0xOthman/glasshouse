@@ -1138,6 +1138,8 @@ function createMockRes(cb) {
   var oled = oledCare({ oled: { panel_hours: 4200, gsr_enabled: true, tpc_enabled: false, gsr_stress_count: 3 } });
   assert.strictEqual(oled.available, true);
   assert.strictEqual(oled.panelHours, 4200);
+  assert.strictEqual(oled.compInterval, 4);
+  assert.strictEqual(oled.refresherInterval, 2000);
   // The protections as the stats have them, with the precedence oled.js applies.
   assert.strictEqual(oled.gsr, true);
   assert.strictEqual(oled.tpc, false);

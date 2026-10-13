@@ -1152,7 +1152,9 @@ function handleRequest(req, res) {
         // that decide how hard it is worked.
         panelHours: (oledData.panel_hours === undefined) ? null : oledData.panel_hours,
         hoursUntilComp: (oledData.hours_until_comp === undefined) ? null : oledData.hours_until_comp,
+        compInterval: (oledData.comp_interval_hours === undefined) ? 4 : oledData.comp_interval_hours,
         hoursUntilRefresher: (oledData.hours_until_refresher === undefined) ? null : oledData.hours_until_refresher,
+        refresherInterval: (oledData.refresher_interval_hours === undefined) ? 2000 : oledData.refresher_interval_hours,
         compStatus: oledData.comp_status || null,
         refresherStatus: oledData.refresher_status || null,
         compCycles: (oledData.comp_cycles === undefined) ? null : oledData.comp_cycles,
