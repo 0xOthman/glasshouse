@@ -171,6 +171,7 @@ function luna(uri, payload, cb) { return lunaFn(uri, payload, cb); }
 function getMqttStatus() { return getMqttStatusFn(); }
 
 function setupPending() {
+  if (config && config.emulateSetup) return true;
   return existsQuiet(SETUP_PENDING);
 }
 
@@ -359,20 +360,44 @@ function ownIdentity() {
   return { id: 'lg_' + key, prefix: 'lgtv_' + key };
 }
 
-function setupState() {
+var simulatedSetupState = {};
+
+function resetSimulatedSetup() {
+  simulatedSetupState = { network: null, alwaysReady: null, homeAssistant: null };
+}
+
+function isSetupEmulated(query, body) {
+  if (config && config.emulateSetup) return true;
+  if (query && (query.demo === '1' || query.demo === 'true')) return true;
+  if (body && (body.demo === true || body.demo === '1')) return true;
+  return false;
+}
+
+function setupState(isDemo) {
   var m = config.mqtt || {};
   var mqttStat = getMqttStatus();
-  return {
+  var open = networkOpen();
+  if (isDemo && simulatedSetupState.network !== null && simulatedSetupState.network !== undefined) {
+    open = simulatedSetupState.network;
+  }
+  var st = {
     ok: true,
     needed: setupPending(),
     writable: config.allowControl,
-    network: networkOpen(),
+    network: open,
     token: !!config.token,
-    address: lanAddress() ? lanAddress() + ':' + config.port : null,
+    address: lanAddress() ? lanAddress() + ':' + config.port : (isDemo ? '192.168.1.131:' + (config.port || 8080) : null),
     hostname: telemetryModule ? telemetryModule.lanHostname(lanAddress()) : null,
-    homeAssistant: { configured: !!(m.enabled && m.host), state: mqttStat.state },
-    handoff: HANDOFF.server ? handoffUrl() : null
+    homeAssistant: (isDemo && simulatedSetupState.homeAssistant) ? simulatedSetupState.homeAssistant : { configured: !!(m.enabled && m.host), state: mqttStat.state },
+    handoff: HANDOFF.server ? handoffUrl() : (isDemo ? 'http://' + (lanAddress() || '192.168.1.131') + ':' + (config.port || 8080) + '/?c=demo' : null)
   };
+  if (isDemo) {
+    st.demo = true;
+    if (simulatedSetupState.alwaysReady !== null && simulatedSetupState.alwaysReady !== undefined) {
+      st.alwaysReady = simulatedSetupState.alwaysReady;
+    }
+  }
+  return st;
 }
 
 function startHandoff(cb) {
@@ -999,16 +1024,24 @@ function handleRequest(req, res) {
 
   // First-run setup and the TV's own settings. The TV only: see fromTV.
   if (pathname === '/api/setup') {
-    if (!fromTV(req)) return send(res, 403, JSON.stringify({ ok: false, error: 'only from the TV itself' }));
+    var isDemo = isSetupEmulated(u.query);
+    if (!fromTV(req) && !isDemo) return send(res, 403, JSON.stringify({ ok: false, error: 'only from the TV itself' }));
     if (req.method === 'GET') {
       /*
        * Setup offers Always-on only on a TV that has it (a C2 on webOS 9.2
        * does, a B8 on 4.4 does not). A B8 still answers for the alwaysOn value,
        * so whether the TV has the feature is telemetry's alwaysOnSupported.
        */
-      return telemetryModule.alwaysOnSupported(function (has) {
-        var st = setupState();
-        if (!has) return send(res, 200, JSON.stringify(st));
+      var checkAR = (telemetryModule && typeof telemetryModule.alwaysOnSupported === 'function')
+        ? telemetryModule.alwaysOnSupported
+        : function (cb) { cb(false); };
+      return checkAR(function (has) {
+        var st = setupState(isDemo);
+        if (!has && !isDemo) return send(res, 200, JSON.stringify(st));
+        if (isDemo) {
+          if (st.alwaysReady === undefined) st.alwaysReady = false;
+          return send(res, 200, JSON.stringify(st));
+        }
         luna('com.webos.service.settings/getSystemSettings',
              { category: 'general', keys: ['alwaysOn'] }, function (r) {
           var ar = r && r.returnValue !== false && r.settings && r.settings.alwaysOn;
@@ -1027,6 +1060,28 @@ function handleRequest(req, res) {
       var a = null;
       try { a = JSON.parse(stBody); } catch (e) {
         return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      var actionDemo = isDemo || isSetupEmulated(u.query, a);
+      if (actionDemo) {
+        if (a.action === 'network') {
+          simulatedSetupState.network = !!a.open;
+          return send(res, 200, JSON.stringify({ ok: true, restarting: false, demo: true }));
+        }
+        if (a.action === 'alwaysReady') {
+          simulatedSetupState.alwaysReady = !!a.on;
+          return send(res, 200, JSON.stringify({ ok: true, demo: true }));
+        }
+        if (a.action === 'handoff') {
+          var dummyUrl = (lanOrigin() || 'http://' + (lanAddress() || '192.168.1.131') + ':' + (config.port || 8080)) + '/?c=demo';
+          return send(res, 200, JSON.stringify({ ok: true, url: dummyUrl, demo: true }));
+        }
+        if (a.action === 'handoffStop') {
+          return send(res, 200, JSON.stringify({ ok: true, demo: true }));
+        }
+        if (a.action === 'done') {
+          return send(res, 200, JSON.stringify({ ok: true, demo: true }));
+        }
+        return send(res, 400, JSON.stringify({ ok: false, error: 'unknown action' }));
       }
       if (!config.allowControl && a.action !== 'done') {
         return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
@@ -1566,6 +1621,8 @@ module.exports = {
   lanOrigin: lanOrigin,
   setupPending: setupPending,
   setupState: setupState,
+  resetSimulatedSetup: resetSimulatedSetup,
+  isSetupEmulated: isSetupEmulated,
   startHandoff: startHandoff,
   stopHandoff: stopHandoff,
   loadUI: loadUI,

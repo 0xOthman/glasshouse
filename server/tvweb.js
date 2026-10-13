@@ -184,6 +184,9 @@ var CONFIG = {
   // `token`: it widens who can run code on the TV.
   allowNetworkDebugger: false,
 
+  // For testing the first-run setup wizard UI without touching TV settings or restarting.
+  emulateSetup: false,
+
   // PicCap is offered where it is installed; its Home Assistant entity is
   // switched off like any other.
   piccap: { pollIntervalMs: 30000 },
@@ -385,6 +388,9 @@ loadConfig();
     else if (a[i] === '--debug' || a[i] === '-d') {
       CONFIG.logging = CONFIG.logging || {};
       CONFIG.logging.level = 'debug';
+    }
+    else if (a[i] === '--emulate-setup' || a[i] === '--demo-setup') {
+      CONFIG.emulateSetup = true;
     }
   }
 })();
