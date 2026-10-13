@@ -43,83 +43,27 @@ function installIdle() {
 
 let catalogCategory = 'all';
 
-const APP_CATEGORIES = {
-  // Ambilight
-  'org.webosbrew.hyperhdr.loader': 'amblight',
-  'org.webosbrew.hyperion.ng.loader': 'amblight',
-  'org.webosbrew.piccap': 'amblight',
-  'ui30': 'amblight',
-  // Games
-  'com.github.k4zmu2a.space-cadet-pinball': 'game',
-  'com.halfbrick.fruitninja': 'game',
-  'com.leondrolio.x.openttd': 'game',
-  'com.limelight.webos': 'game',
-  'com.retroarch.webos': 'game',
-  'io.unom.punktfunk.client-webos': 'game',
-  'org.chocolate-doom.demo': 'game',
-  'org.mariotaku.ihsplay': 'game',
-  // Screensavers
-  'org.aabytt.webos.custom-screensaver-aerial': 'screensaver',
-  'org.oted.idlegif': 'screensaver',
-  'org.rchalaaa.webos.custom-screensaver': 'screensaver',
-  'org.webosbrew.custom-screensaver': 'screensaver',
-  // Utilities & System
-  'com.github.cfernande1470.wireguard': 'utility',
-  'com.pirate.refresh': 'utility',
-  'com.sk.app.lgtv-vpn': 'utility',
-  'eu.depau.webos.soundmodefix': 'utility',
-  'org.webosbrew.bridge-64to32': 'utility',
-  'org.webosbrew.hbchannel': 'utility',
-  'org.webosbrew.safeupdate': 'utility',
-  'com.github.gprot42.webosterminal': 'utility',
-  'com.open.hidden.menu': 'utility',
-  'org.webosbrew.appupdateblocker': 'utility',
-  'org.webosbrew.inputhook': 'utility',
-  'org.webosbrew.vncserver': 'utility',
-  'pl.krzywro.webos-bluetooth-disabler': 'utility',
-  'io.github.beatcracker.decoderbench': 'utility',
-  // Multimedia / Streaming
-  'com.amazoff.patcher': 'multimedia',
-  'com.beb.plxnative': 'multimedia',
-  'com.biliwebos.app': 'multimedia',
-  'com.breezyfin.app': 'multimedia',
-  'com.cheerchen.decotv': 'multimedia',
-  'com.crunchyroll.stream.app': 'multimedia',
-  'com.crunchyroll.webos': 'multimedia',
-  'com.immich.webos': 'multimedia',
-  'com.ocenfin.app': 'multimedia',
-  'com.qoder.iptv': 'multimedia',
-  'com.seeky91.immichtv': 'multimedia',
-  'com.sendspin.cinema': 'multimedia',
-  'com.subsonic.player': 'multimedia',
-  'com.tbsniller.smarttwitchwebostv': 'multimedia',
-  'com.willinux.tvh.app': 'multimedia',
-  'me.mariotaku.gallery3d': 'multimedia',
-  'org.jellyfin.webos': 'multimedia',
-  'org.litefin.app': 'multimedia',
-  'org.moonfin.webos': 'multimedia',
-  'org.webosbrew.cccbib': 'multimedia',
-  'org.webosbrew.streamkatze': 'multimedia',
-  'org.xbmc.kodi': 'multimedia',
-  'twitch.adamffdev.v1': 'multimedia',
-  'youtube.leanback.v4': 'multimedia'
-};
-
 function appCategory(a) {
+  // If the repository provides an explicit category, use it directly
   if (a.category) {
-    const c = String(a.category).toLowerCase();
+    const c = String(a.category).toLowerCase().trim();
     if (c === 'game' || c === 'games' || c === 'emulator' || c === 'emulators') return 'game';
     if (c === 'screensaver' || c === 'screensavers') return 'screensaver';
     if (c === 'amblight' || c === 'ambilight' || c === 'lighting') return 'amblight';
     if (c === 'multimedia' || c === 'media' || c === 'video' || c === 'audio' || c === 'music' || c === 'streaming' || c === 'internet') return 'multimedia';
     if (c === 'utility' || c === 'utilities' || c === 'system' || c === 'tools') return 'utility';
+    return c;
   }
-  if (APP_CATEGORIES[a.id]) return APP_CATEGORIES[a.id];
+  // Dynamic keyword and topic classification from package metadata (no hardcoded app IDs)
   const text = ((a.id || '') + ' ' + (a.title || '') + ' ' + (a.description || '')).toLowerCase();
-  if (text.includes('screensaver') || text.includes('screen saver')) return 'screensaver';
-  if (text.includes('game') || text.includes('pinball') || text.includes('doom') || text.includes('retroarch') || text.includes('emulator')) return 'game';
+  if (text.includes('screensaver') || text.includes('screen saver') || text.includes('idlegif')) return 'screensaver';
   if (text.includes('piccap') || text.includes('hyperion') || text.includes('hyperhdr') || text.includes('ambilight')) return 'amblight';
-  if (text.includes('player') || text.includes('jellyfin') || text.includes('plex') || text.includes('kodi') || text.includes('stream') || text.includes('media') || text.includes('video') || text.includes('music') || text.includes('audio') || text.includes('twitch') || text.includes('youtube')) return 'multimedia';
+  if (!text.includes('terminal') && (text.includes('game') || text.includes('gaming') || text.includes('pinball') || text.includes('doom') || text.includes('retroarch') || text.includes('emulator') || text.includes('arcade') || text.includes('openttd') || text.includes('steam link') || text.includes('gamestream') || text.includes('punktfunk'))) {
+    return 'game';
+  }
+  if (text.includes('player') || text.includes('jellyfin') || text.includes('plex') || text.includes('kodi') || text.includes('stream') || text.includes('media') || text.includes('video') || text.includes('music') || text.includes('audio') || text.includes('twitch') || text.includes('youtube') || text.includes('bilibili') || text.includes('crunchyroll') || text.includes('iptv') || text.includes('photo') || text.includes('gallery') || text.includes('immich') || text.includes('subsonic') || text.includes('cinema') || text.includes('decotv') || text.includes('tvheadend')) {
+    return 'multimedia';
+  }
   return 'utility';
 }
 
