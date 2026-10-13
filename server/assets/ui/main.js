@@ -35,9 +35,9 @@ async function waitForServer() {
   if (!want && p.get('privacy') === '1') want = 'privacy';
   if (!want && p.get('apps') === '1') want = 'apps';
   if (!want && p.get('controls') === '1') want = 'control';
-  // ?open= names a disclosure inside Metrics, so it has to pick that tab too -
+  // ?open= names a disclosure inside Metrics or Control, so it has to pick that tab too -
   // otherwise the link opens something on a panel that is not showing.
-  if (!want && p.get('open')) want = 'metrics';
+  if (!want && p.get('open')) want = p.get('open') === 'dpad' ? 'control' : 'metrics';
   if (!want) { try { want = localStorage.getItem('tab'); } catch (e) { /* private window */ } }
   showTab(want || 'control');
   if (p.get('expand') === '1') document.querySelectorAll('.pv-d').forEach(d => d.open = true);
@@ -47,6 +47,8 @@ const openSection = new URLSearchParams(location.search).get('open');
 if ((openSection === 'metrics' || openSection === 'system') && q('disc-hwinfo')) q('disc-hwinfo').open = true;
 
 if (openSection === 'processes' && q('disc-proc')) q('disc-proc').open = true;
+
+if (openSection === 'dpad' && q('disc-dpad')) q('disc-dpad').open = true;
 
 /*
  * Fill the column containers. Runs when the number of columns changes and once
@@ -130,6 +132,7 @@ function layoutHost(host, n, force) {
 
 function relayout(force) {
   const w = window.innerWidth;
+  if (typeof updateDpadMobileDefault === 'function') updateDpadMobileDefault();
   layoutHost(document.querySelector('.col-controls'), w >= 820 ? 2 : 1, force);
   layoutHost(document.querySelector('.col-telemetry'), w >= 1280 ? 3 : (w >= 820 ? 2 : 1), force);
 }
