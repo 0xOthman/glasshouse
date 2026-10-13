@@ -37,6 +37,7 @@ nav:
   - Getting started:
       - Installing: install.md
       - Tested TVs: tested-tvs.md
+      - Updating and uninstalling: managing.md
   - The dashboard:
       - dashboard/index.md
       - Control: dashboard/control.md
@@ -53,22 +54,20 @@ nav:
   - Glasshouse apps:
       - The TV app: apps/tv-app.md
       - Android app: apps/android.md
-  - Home Assistant:
-      - HOME-ASSISTANT.md
-      - Entities: HOME-ASSISTANT-ENTITIES.md
-      - Remote button events: HOME-ASSISTANT-REMOTE-BUTTONS.md
-  - Additional Features:
+  - Smart Home & Lighting:
+      - Home Assistant:
+          - Overview: HOME-ASSISTANT.md
+          - Entities: HOME-ASSISTANT-ENTITIES.md
+          - Remote button events: HOME-ASSISTANT-REMOTE-BUTTONS.md
       - Ambient light (PicCap): piccap.md
-      - Prometheus metrics: PROMETHEUS.md
-      - Network time (NTP): ntp.md
-      - Log forwarding (syslog): syslog.md
-      - Experimental features: experimental.md
-  - Running it:
-      - Updating and uninstalling: managing.md
+  - Advanced & Administration:
       - Security: SECURITY.md
       - What it changes on the TV: TV-CHANGES.md
-  - Reference:
       - What LG's ACR does: ACR.md
+      - Network time (NTP): ntp.md
+      - Prometheus metrics: PROMETHEUS.md
+      - Log forwarding (syslog): syslog.md
+      - Experimental features: experimental.md
   - Development:
       - Contributing: CONTRIBUTING.md
       - Internals: IMPLEMENTATION.md
