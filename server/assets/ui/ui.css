@@ -828,7 +828,7 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 }
 .cfg-side .pv-row{border-bottom:0;padding-top:0}
 /* One switch does not need the width of the column it sits in. */
-.cfg-side .cfg-toggles{max-width:320px}
+.cfg-side .cfg-toggles{max-width:380px}
 .pv-top .btns button{white-space:nowrap}
 .cfg-cols>*{min-width:0}
 .cfg-save{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:22px;max-width:840px}
@@ -846,6 +846,53 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .cfg-ent-chk.dis input[type="checkbox"]{cursor:default}
 .cfg-ent-chk .ent-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cfg-ent-chk .ent-type{font-size:12px;color:var(--w60);margin-left:5px;font-weight:400}
+/* ---- MQTT network flow diagram ---- */
+.mqtt-net{max-width:380px;margin-top:22px;border:1px solid var(--w06);
+  background:rgba(var(--fg),.02);border-radius:6px;padding:16px 16px 14px}
+.mqtt-net.off .mqtt-net-node{opacity:.6}
+.mqtt-net.off .mqtt-net-link{opacity:.4}
+.mqtt-net.off .mqtt-dot{background:var(--w20)!important;border-color:var(--edge)!important;box-shadow:none!important}
+.mqtt-net-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mqtt-net-title{font-family:'Manrope';font-size:12px;font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--w70)}
+.mqtt-net-flow{display:flex;flex-direction:column}
+.mqtt-net-node{display:flex;align-items:center;gap:13px;padding:11px 14px;
+  border-radius:6px;background:rgba(var(--fg),.03);border:1px solid var(--w06);min-width:0}
+.mqtt-net-ico{width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;color:var(--w70)}
+.mqtt-net-ico svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+.mqtt-net-body{flex:1;min-width:0;overflow:hidden}
+.mqtt-net-name{font-size:15px;font-weight:600;color:var(--w100);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.mqtt-net-sub{font-size:14px;color:var(--w70);line-height:1.35;display:flex;align-items:center;
+  gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mqtt-tls-tag{font-size:11px;font-family:'Manrope';font-weight:600;letter-spacing:.06em;
+  padding:1px 6px;border-radius:2px;border:1px solid var(--w20);color:var(--w80);line-height:1.2}
+.mqtt-net-state{flex-shrink:0;display:flex;align-items:center}
+.mqtt-dot{width:10px;height:10px;border-radius:50%;background:var(--w20);border:1px solid var(--edge);
+  transition:background .25s ease,border-color .25s ease,box-shadow .25s ease}
+.mqtt-dot.good{background:var(--green);border-color:var(--green);box-shadow:0 0 6px rgba(48,222,97,.4)}
+.mqtt-dot.warn{background:var(--cand);border-color:var(--cand);box-shadow:0 0 6px rgba(255,176,79,.4)}
+.mqtt-dot.bad{background:var(--red);border-color:var(--red);box-shadow:0 0 6px rgba(255,48,48,.4)}
+.mqtt-dot.idle{background:var(--w20);border-color:var(--edge)}
+.mqtt-net-link{display:flex;align-items:center;min-height:32px;padding:6px 0 6px 39px;position:relative}
+.mqtt-net-track{position:absolute;left:25px;top:0;bottom:0;width:2px;background:var(--w12);border-radius:1px}
+.mqtt-packet{position:absolute;left:-2px;top:0;width:6px;height:6px;border-radius:50%;
+  background:var(--green);opacity:0;pointer-events:none}
+.mqtt-packet.pulse{animation:mqttPacketTravel .85s cubic-bezier(.4,0,.2,1) forwards}
+.mqtt-packet.ping{background:var(--cool);animation:mqttPacketTravel .6s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes mqttPacketTravel{
+  0%{top:0%;opacity:0}
+  20%{opacity:1}
+  80%{opacity:1}
+  100%{top:calc(100% - 6px);opacity:0}
+}
+.mqtt-net-meta{font-size:14px;color:var(--w70);display:flex;align-items:center;
+  gap:6px;line-height:1.4;word-break:break-word;overflow-wrap:anywhere}
+.mqtt-net-metric{font-variant-numeric:tabular-nums;color:var(--w90);word-break:break-word;overflow-wrap:anywhere}
+.mqtt-net.error .mqtt-net-track{background:rgba(255,48,48,.45)}
+.mqtt-net.error .mqtt-net-metric{color:var(--red)}
 .proc{display:grid;grid-template-columns:1fr auto;gap:14px;padding:9px 0;
   border-bottom:1px solid var(--w06);font-size:14px}
 .proc .p-name{color:var(--w80);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

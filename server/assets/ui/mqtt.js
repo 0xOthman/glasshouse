@@ -9,7 +9,10 @@ function cfgToggle(id) {
   const b = q(id);
   b.classList.toggle('on');
   if (id === 'cfg-tls') cfgSyncTls();
-  if (id === 'cfg-enabled') cfgSyncEnabled();
+  if (id === 'cfg-enabled') {
+    cfgSyncEnabled();
+    renderCfgStatus(cfgLastStatus);
+  }
 }
 
 // The switch is part of the form, so it means nothing until the save restarts
@@ -43,26 +46,120 @@ function cfgAge(ms) {
   return t('mqtt.age.hours', '{n}h ago', { n: Math.round(s / 3600) });
 }
 
-function renderCfgStatus(st) {
-  const meta = CFG_STATE[st.state] || CFG_STATE.disabled;
-  const pill = q('cfg-status-pill');
-  pill.className = 'pill ' + meta.pill;
-  pill.textContent = meta.label;
+let cfgLastStatus = null;
+let cfgLastPublishMs = null;
+let cfgDevice = null;
 
-  const broker = st.tls ? t('mqtt.broker.tls', '{broker} over TLS', { broker: st.broker }) : st.broker;
-  // st.detail is the server's own words, in English.
-  const detail = st.detail ? st.detail.charAt(0).toUpperCase() + st.detail.slice(1) + '.' : '';
-  let text;
+function triggerMqttPacket(id) {
+  const el = q(id);
+  if (!el) return;
+  el.classList.remove('pulse');
+  void el.offsetWidth;
+  el.classList.add('pulse');
+  el.addEventListener('animationend', () => { el.classList.remove('pulse'); }, { once: true });
+}
+
+function formatMqttLinkMetric(st, isEnabled) {
+  if (!isEnabled) return { text: t('common.off', 'Off'), title: '' };
   if (st.state === 'connected') {
-    text = t('mqtt.status.connected', 'Publishing to {broker}. Last telemetry {age}.', { broker, age: cfgAge(st.lastPublishMs) });
-  } else if (st.state === 'connecting') {
-    text = (detail ? detail + ' ' : '') + t('mqtt.status.connecting', 'Reaching {broker}.', { broker });
-  } else if (st.state === 'error') {
-    text = t('mqtt.status.error', '{broker}: {detail}. Retrying every 5s.', { broker, detail: st.detail });
-  } else {
-    text = detail || t('mqtt.status.off', 'The bridge is off. Nothing is published.');
+    let metric = t('mqtt.net.reachable', 'Reachable');
+    if (st.latencyMs != null) metric += ' · ' + t('mqtt.net.latency', '{ms} ms', { ms: st.latencyMs });
+    if (st.lastPublishMs != null) metric += ' · ' + t('mqtt.net.pubAge', 'pub {age}', { age: cfgAge(st.lastPublishMs) });
+    return { text: metric, title: '' };
   }
-  q('cfg-status-detail').textContent = text;
+  if (st.state === 'connecting') {
+    return { text: t('mqtt.state.connecting', 'Connecting'), title: '' };
+  }
+  if (st.state === 'error') {
+    const detail = st.detail || t('mqtt.state.error', 'Error');
+    return { text: t('mqtt.net.unreachable', 'Unreachable') + ': ' + detail, title: detail };
+  }
+  return { text: t('common.off', 'Off'), title: '' };
+}
+
+function resolveBrokerAddress(st) {
+  if (st.broker) return st.broker;
+  const hostInput = q('cfg-host');
+  if (!hostInput || !hostInput.value) return '';
+  const port = q('cfg-port') && q('cfg-port').value;
+  const tls = q('cfg-tls') && q('cfg-tls').classList.contains('on');
+  return hostInput.value + ':' + (port || (tls ? '8883' : '1883'));
+}
+
+function updateMqttPublishPulse(st, isEnabled) {
+  if (!isEnabled || st.state !== 'connected' || st.lastPublishMs == null) return;
+  const isNewPub = cfgLastPublishMs === null || st.lastPublishMs < cfgLastPublishMs;
+  const isRecurrent = cfgLastPublishMs > 5000 && st.lastPublishMs <= 5000;
+  if (isNewPub || isRecurrent) triggerMqttPacket('mqtt-packet-pub');
+  cfgLastPublishMs = st.lastPublishMs;
+}
+
+function renderMqttTvNode(isEnabled) {
+  const nameEl = q('mqtt-node-tv-name');
+  if (nameEl) {
+    nameEl.textContent = (cfgDevice && cfgDevice.name) || (q('cfg-devname') && q('cfg-devname').value) || 'LG webOS TV';
+  }
+  const dotEl = q('mqtt-dot-tv');
+  if (dotEl) {
+    dotEl.className = 'mqtt-dot ' + (isEnabled ? 'good' : 'idle');
+  }
+}
+
+function renderMqttBrokerNode(st, isEnabled) {
+  const brokerText = resolveBrokerAddress(st);
+  const nameEl = q('mqtt-node-broker-name');
+  if (nameEl) nameEl.textContent = t('mqtt.net.server', 'MQTT server');
+  const subEl = q('mqtt-node-broker-sub');
+  if (subEl) {
+    subEl.textContent = brokerText || t('mqtt.net.noBroker', 'No broker configured');
+    subEl.title = brokerText;
+  }
+  const nodeEl = q('mqtt-node-broker');
+  if (nodeEl) {
+    nodeEl.title = (isEnabled && st.state === 'error' && st.detail) ? st.detail : '';
+  }
+  const tlsTag = q('mqtt-node-broker-tls');
+  if (tlsTag) {
+    const isTls = !!(st.tls || (q('cfg-tls') && q('cfg-tls').classList.contains('on')));
+    tlsTag.hidden = !isTls;
+  }
+  const dotEl = q('mqtt-dot-broker');
+  if (dotEl) {
+    const pill = CFG_STATE[st.state] ? CFG_STATE[st.state].pill : 'idle';
+    dotEl.className = 'mqtt-dot ' + (isEnabled ? pill : 'idle');
+  }
+}
+
+function renderMqttTopology(st) {
+  if (!st && !cfgLastStatus) return;
+  if (st) cfgLastStatus = st;
+  st = cfgLastStatus || { state: 'disabled' };
+
+  const isEnabled = q('cfg-enabled') ? q('cfg-enabled').classList.contains('on') : (st.state !== 'disabled');
+  const isErr = isEnabled && st.state === 'error';
+  const netEl = q('mqtt-net');
+  if (netEl) {
+    netEl.classList.toggle('off', !isEnabled);
+    netEl.classList.toggle('error', isErr);
+  }
+
+  renderMqttTvNode(isEnabled);
+
+  const metric = formatMqttLinkMetric(st, isEnabled);
+  const linkEl = q('mqtt-net-last-pub');
+  if (linkEl) {
+    linkEl.textContent = metric.text;
+    linkEl.title = metric.title;
+  }
+  updateMqttPublishPulse(st, isEnabled);
+
+  renderMqttBrokerNode(st, isEnabled);
+}
+
+function renderCfgStatus(st) {
+  if (!st && !cfgLastStatus) return;
+  if (st) cfgLastStatus = st;
+  renderMqttTopology(cfgLastStatus);
 }
 
 /*
@@ -155,6 +252,7 @@ function renderEntitiesUI() {
 
   const countEl = q('cfg-fine-count');
   if (countEl) countEl.textContent = t('mqtt.entities.active', '{n} of {total} active', { n: totalActive, total: totalEntities });
+  renderMqttTopology(cfgLastStatus);
 }
 
 function cfgToggleCat(catId) {
@@ -176,13 +274,14 @@ function cfgToggleEnt(cb) {
   renderEntitiesUI();
 }
 
-async function loadSettings() {
+async function loadSettings(keepMsg) {
   try {
     const r = await fetch(api('/api/settings'));
     const j = await r.json();
     if (!j.ok) { cfgMsg(j.error || t('mqtt.readFailed', 'Could not read settings'), 'bad'); return; }
     if (j.status) renderCfgStatus(j.status);
     const m = j.mqtt, d = j.device;
+    cfgDevice = d;
     q('cfg-host').value = m.host;
     q('cfg-port').value = m.port == null ? '' : m.port;
     q('cfg-user').value = m.username;
@@ -205,10 +304,35 @@ async function loadSettings() {
     if (m.categories) cfgCategories = m.categories;
     if (m.entityCatalogue) cfgCatalogue = m.entityCatalogue;
     renderEntitiesUI();
-    q('cfg-save-btn').disabled = !j.writable;
-    cfgMsg(j.writable
-      ? t('mqtt.save.note', 'Saving restarts the server. The dashboard reconnects on its own.')
-      : t('mqtt.controlsOff', 'Controls are disabled in config.json, so settings cannot be changed from here.'));
+    renderMqttTopology(j.status);
+
+    ['cfg-host', 'cfg-port', 'cfg-user', 'cfg-pass'].forEach(id => {
+      const input = q(id);
+      if (input && !input._mqttBound) {
+        input._mqttBound = true;
+        input.addEventListener('input', () => {
+          renderMqttTopology(cfgLastStatus);
+        });
+      }
+    });
+    if (q('cfg-devname') && !q('cfg-devname')._mqttBound) {
+      q('cfg-devname')._mqttBound = true;
+      q('cfg-devname').addEventListener('input', () => {
+        if (cfgDevice) cfgDevice.name = q('cfg-devname').value;
+        renderMqttTopology(cfgLastStatus);
+      });
+    }
+
+    const saveBtn = q('cfg-save-btn');
+    if (saveBtn) {
+      saveBtn.disabled = !j.writable;
+      saveBtn.classList.remove('busy');
+    }
+    if (!keepMsg) {
+      cfgMsg(j.writable
+        ? t('mqtt.save.note', 'Saving restarts the server. The dashboard reconnects on its own.')
+        : t('mqtt.controlsOff', 'Controls are disabled in config.json, so settings cannot be changed from here.'));
+    }
   } catch (e) { cfgMsg(e.message, 'bad'); }
 }
 
@@ -250,13 +374,15 @@ async function saveSettings() {
     const j = await r.json();
     if (!j.ok) {
       cfgMsg(j.error || t('mqtt.saveFailed', 'Save failed'), 'bad');
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('busy'); }
+      if (saveBtn) saveBtn.disabled = false;
       return;
     }
     cfgMsg(t('mqtt.restarting', 'Saved. Restarting...'));
     await waitForServer();
   } catch (e) {
     cfgMsg(e.message, 'bad');
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('busy'); }
+    if (saveBtn) saveBtn.disabled = false;
+  } finally {
+    if (saveBtn) saveBtn.classList.remove('busy');
   }
 }

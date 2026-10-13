@@ -921,6 +921,54 @@ function handleInstallRoute(req, res, u, pathname) {
   return send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
 }
 
+function getSettingsPayload() {
+  var mc = config.mqtt || {};
+  var mqttStat = getMqttStatus();
+  return {
+    ok: true,
+    writable: config.allowControl,
+    configFile: configFilePath,
+    mqtt: {
+      enabled: !!mc.enabled,
+      host: mc.host || '',
+      port: mc.port === undefined ? null : mc.port,
+      tls: !!mc.tls,
+      tlsRejectUnauthorized: mc.tlsRejectUnauthorized !== false,
+      username: mc.username || '',
+      // The password is deliberately not returned; only whether one is set.
+      passwordSet: !!mc.password,
+      topicPrefix: mc.topicPrefix || 'lgtv',
+      discoveryPrefix: mc.discoveryPrefix || 'homeassistant',
+      telemetryIntervalMs: mc.telemetryIntervalMs || 10000,
+      entities: {
+        controls: !mc.entities || mc.entities.controls !== false,
+        oled: !mc.entities || mc.entities.oled !== false,
+        video: !mc.entities || mc.entities.video !== false,
+        system: !mc.entities || mc.entities.system !== false,
+        diagnostics: !mc.entities || mc.entities.diagnostics !== false,
+        disabled: (mc.entities && Array.isArray(mc.entities.disabled)) ? mc.entities.disabled : []
+      },
+      categories: HA_CATEGORIES,
+      entityCatalogue: HA_ENTITIES
+    },
+    device: {
+      id: (config.device && config.device.id) || '',
+      name: (config.device && config.device.name) || ''
+    },
+    /* Ages rather than timestamps: the TV's clock is often minutes off the
+       browser's, and a negative "last publish" reads as a fault. */
+    status: {
+      state: mqttStat.state,
+      broker: mqttStat.broker,
+      tls: mqttStat.tls,
+      detail: mqttStat.detail,
+      forMs: Date.now() - (mqttStat.since || Date.now()),
+      lastPublishMs: mqttStat.lastPublish ? Date.now() - mqttStat.lastPublish : null,
+      latencyMs: mqttStat.latencyMs || null
+    }
+  };
+}
+
 function handleRequest(req, res) {
   var u = parseUrl(req.url);
   var pathname = u.pathname;
@@ -1442,50 +1490,7 @@ function handleRequest(req, res) {
 
   if (pathname === '/api/settings' && req.method === 'GET') {
     if (!authed(u.query, req)) return send(res, 401, JSON.stringify({ ok: false, error: 'unauthorized' }));
-    var mc = config.mqtt || {};
-    var mqttStat = getMqttStatus();
-    return send(res, 200, JSON.stringify({
-      ok: true,
-      writable: config.allowControl,
-      configFile: configFilePath,
-      mqtt: {
-        enabled: !!mc.enabled,
-        host: mc.host || '',
-        port: mc.port === undefined ? null : mc.port,
-        tls: !!mc.tls,
-        tlsRejectUnauthorized: mc.tlsRejectUnauthorized !== false,
-        username: mc.username || '',
-        // The password is deliberately not returned; only whether one is set.
-        passwordSet: !!mc.password,
-        topicPrefix: mc.topicPrefix || 'lgtv',
-        discoveryPrefix: mc.discoveryPrefix || 'homeassistant',
-        telemetryIntervalMs: mc.telemetryIntervalMs || 10000,
-        entities: {
-          controls: !mc.entities || mc.entities.controls !== false,
-          oled: !mc.entities || mc.entities.oled !== false,
-          video: !mc.entities || mc.entities.video !== false,
-          system: !mc.entities || mc.entities.system !== false,
-          diagnostics: !mc.entities || mc.entities.diagnostics !== false,
-          disabled: (mc.entities && Array.isArray(mc.entities.disabled)) ? mc.entities.disabled : []
-        },
-        categories: HA_CATEGORIES,
-        entityCatalogue: HA_ENTITIES
-      },
-      device: {
-        id: (config.device && config.device.id) || '',
-        name: (config.device && config.device.name) || ''
-      },
-      /* Ages rather than timestamps: the TV's clock is often minutes off the
-         browser's, and a negative "last publish" reads as a fault. */
-      status: {
-        state: mqttStat.state,
-        broker: mqttStat.broker,
-        tls: mqttStat.tls,
-        detail: mqttStat.detail,
-        forMs: Date.now() - (mqttStat.since || Date.now()),
-        lastPublishMs: mqttStat.lastPublish ? Date.now() - mqttStat.lastPublish : null
-      }
-    }));
+    return send(res, 200, JSON.stringify(getSettingsPayload()));
   }
 
   if (pathname === '/api/settings' && req.method === 'POST') {

@@ -437,20 +437,58 @@ function createMockRes(cb) {
   routes.handleRequest(reqUnauth, resUnauth);
 
   // The Authorization header alone authenticates /api/ requests
+  var mockMqttStatus = {
+    state: 'disabled',
+    broker: '',
+    tls: false,
+    detail: '',
+    since: Date.now(),
+    lastPublish: 0,
+    latencyMs: null
+  };
   routes.init({
     telemetry: { collectStats: function (cb) { cb({ ok: true }); } },
     piccapStatus: function (cb) { cb(null); },
-    getMqttStatus: function () { return {}; }
+    getMqttStatus: function () { return mockMqttStatus; }
   });
   var bearer = { authorization: 'Bearer test-token' };
   routes.handleRequest(
     createMockReq({ url: '/api/stats', remoteAddress: '192.168.1.50', headers: bearer }),
     createMockRes(function (res) { assert.strictEqual(res.statusCode, 200); }));
+  // GET /api/settings reports unconfigured/disabled state with null latency
   routes.handleRequest(
     createMockReq({ url: '/api/settings', remoteAddress: '192.168.1.50', headers: bearer }),
     createMockRes(function (res) {
       assert.strictEqual(res.statusCode, 200);
-      assert.strictEqual(JSON.parse(res.body).ok, true);
+      var b = JSON.parse(res.body);
+      assert.strictEqual(b.ok, true);
+      assert.strictEqual(b.mqtt.enabled, false);
+      assert.strictEqual(b.mqtt.host, '');
+      assert.strictEqual(b.status.state, 'disabled');
+      assert.strictEqual(b.status.broker, '');
+      assert.strictEqual(b.status.latencyMs, null);
+      assert.strictEqual(b.status.lastPublishMs, null);
+    }));
+  // GET /api/settings surfaces active connection details and latency
+  mockMqttStatus = {
+    state: 'connected',
+    broker: '10.0.0.1:1883',
+    tls: false,
+    detail: '',
+    since: Date.now() - 10000,
+    lastPublish: Date.now() - 1200,
+    latencyMs: 14
+  };
+  routes.handleRequest(
+    createMockReq({ url: '/api/settings', remoteAddress: '192.168.1.50', headers: bearer }),
+    createMockRes(function (res) {
+      assert.strictEqual(res.statusCode, 200);
+      var b = JSON.parse(res.body);
+      assert.strictEqual(b.ok, true);
+      assert.strictEqual(b.status.state, 'connected');
+      assert.strictEqual(b.status.broker, '10.0.0.1:1883');
+      assert.strictEqual(b.status.latencyMs, 14);
+      assert.strictEqual(typeof b.status.lastPublishMs, 'number');
     }));
   routes.handleRequest(
     createMockReq({ url: '/api/stats', remoteAddress: '192.168.1.50', headers: { authorization: 'Bearer wrong' } }),

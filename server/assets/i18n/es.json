@@ -1555,10 +1555,6 @@
   "text": "Dónde publica esta TV su telemetría. Home Assistant detecta las entidades automáticamente en cuanto el broker es accesible.",
   "from": "Where this TV publishes its telemetry. Home Assistant picks the entities up automatically once the broker is reachable."
  },
- "mqtt.broker.tls": {
-  "text": "{broker} sobre TLS",
-  "from": "{broker} over TLS"
- },
  "mqtt.cat.disabled": {
   "text": "Deshabilitado",
   "from": "Disabled"
@@ -1643,6 +1639,34 @@
   "text": "Milisegundos entre publicaciones.",
   "from": "Milliseconds between publishes."
  },
+ "mqtt.net.latency": {
+  "text": "{ms} ms",
+  "from": "{ms} ms"
+ },
+ "mqtt.net.noBroker": {
+  "text": "Sin intermediario configurado",
+  "from": "No broker configured"
+ },
+ "mqtt.net.pubAge": {
+  "text": "pub {age}",
+  "from": "pub {age}"
+ },
+ "mqtt.net.reachable": {
+  "text": "Accesible",
+  "from": "Reachable"
+ },
+ "mqtt.net.server": {
+  "text": "Servidor MQTT",
+  "from": "MQTT server"
+ },
+ "mqtt.net.title": {
+  "text": "Conexión",
+  "from": "Connection"
+ },
+ "mqtt.net.unreachable": {
+  "text": "Inaccesible",
+  "from": "Unreachable"
+ },
  "mqtt.notBack": {
   "text": "Guardado, pero el servidor no volvió. Revisa el registro en la TV.",
   "from": "Saved, but the server did not come back. Check the log on the TV."
@@ -1714,26 +1738,6 @@
  "mqtt.state.error": {
   "text": "Error",
   "from": "Error"
- },
- "mqtt.status": {
-  "text": "Estado del puente",
-  "from": "Bridge status"
- },
- "mqtt.status.connected": {
-  "text": "Publicando en {broker}. Última telemetría {age}.",
-  "from": "Publishing to {broker}. Last telemetry {age}."
- },
- "mqtt.status.connecting": {
-  "text": "Conectando con {broker}.",
-  "from": "Reaching {broker}."
- },
- "mqtt.status.error": {
-  "text": "{broker}: {detail}. Reintentando cada 5 s.",
-  "from": "{broker}: {detail}. Retrying every 5s."
- },
- "mqtt.status.off": {
-  "text": "El puente está desactivado. No se publica nada.",
-  "from": "The bridge is off. Nothing is published."
  },
  "mqtt.tls.note": {
   "text": "Sin TLS, el usuario y la contraseña cruzan la red en texto claro. El fichero de configuración es legible por cualquier cosa con root en esta TV, así que usa una cuenta de broker restringida a estos temas en lugar de una compartida.",
