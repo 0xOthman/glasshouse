@@ -2,11 +2,21 @@
 
 The dashboard can also run directly on the TV's home screen, driven by the remote, for when there is no phone or laptop to hand.
 
-It is drawn on true black for OLED panels in 1080p, with high-contrast text and a layout designed for remote control: Left and Right flip between sections, Up and Down move within rows, and OK acts on the selected item.
+It is drawn on true black for OLED panels in 1080p, with high-contrast text and a layout designed for remote control: Left and Right flip between sections, Up and Down move within rows, Channel Up and Channel Down page through long lists, and OK acts on the selected item.
 
 ![The Glasshouse TV app showing live hardware metrics, temperatures, and storage health on true black](../screenshots/tv-app.png)
 
 *The TV app's Metrics view, showing SoC temperature, CPU load, memory, swap, eMMC storage wear, and TV model.*
+
+### Remote navigation
+
+The TV app is operated entirely with the LG remote control:
+
+* **Left / Right**: Switch between dashboard tabs (Metrics, System, Display, Audio, Network, Apps, Settings, OLED Care).
+* **Up / Down**: Move selection row by row, automatically skipping section headings.
+* **Channel Up / Channel Down** (or **Page Up / Page Down**): Jump 6 selectable rows at a time to quickly page through long lists, such as the Homebrew Channel catalog, installed apps, or system options.
+* **OK / Enter**: Toggle switches, expand options, or confirm app installations and actions.
+* **Back**: Return to the previous view from sub-menus (such as app preview details) or exit the app.
 
 ### First-run setup wizard
 
