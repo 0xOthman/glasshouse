@@ -558,8 +558,10 @@ lines over each time it is written. Switched off, the table comes down unless
 the file underneath lacks some of them: on a C4 on webOS 10.3.1 that file is on
 the read-only squashfs rootfs, so the table goes back up blocking nothing, and
 stays until the next reboot. A line is the blocker's own if it is a comment, a
-localhost line or a sinkhole (`0.0.0.0` or `::`), which also covers the
-Homebrew Channel's update block, and anyone else's otherwise. At boot,
+localhost line, a sinkhole (`0.0.0.0` or `::`) or names a host the table
+decides on, and anyone else's otherwise. The last rule is for the Homebrew
+Channel's update block, which points LG's update servers at `127.0.0.1` and
+`::1` and must not outlive update blocking being switched off. At boot,
 `50-tvweb` takes them from that boot's `/etc/hosts` before mounting and drops
 the previous boot's, so a tool that is no longer started leaves nothing behind.
 The table is written in place rather than replaced, since app jails such as

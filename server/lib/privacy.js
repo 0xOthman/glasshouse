@@ -323,17 +323,22 @@ function sinkhole(lines, host) {
 /*
  * Lines other tools put in /etc/hosts, such as AmazOff's redirect of Amazon's
  * player to a local nginx. Rewriting the table, or mounting it, would
- * otherwise drop them. Everything this table writes is a comment, a localhost
- * line or a sinkhole, and so is the Homebrew Channel's update block, so the
- * rest is someone else's. 50-tvweb.sh carries them over at boot the same way.
+ * otherwise drop them. A line is this table's own if it is a comment, a
+ * localhost line, a sinkhole (0.0.0.0 or ::) or names a host the table decides
+ * on: the Homebrew Channel points the update servers at 127.0.0.1 and ::1
+ * (a C4 on webOS 10.3.1), and those must not outlive update blocking being
+ * switched off. 50-tvweb.sh carries the rest over at boot the same way.
  */
 function foreignHostsLines(text) {
+  var managed = adBlockAds().concat(ADBLOCK_PLATFORM, ADBLOCK_SDP, HBC_UPDATE_HOSTS);
   var kept = [];
   var lines = String(text || '').split('\n');
   for (var i = 0; i < lines.length; i++) {
     var line = lines[i].trim();
     if (!line || line.charAt(0) === '#') continue;
     if (/^(0\.0\.0\.0|::)\s/.test(line) || /localhost|ip6-/.test(line)) continue;
+    var names = line.split(/\s+/).slice(1);
+    if (names.some(function (n) { return managed.indexOf(n.toLowerCase()) !== -1; })) continue;
     if (kept.indexOf(line) === -1) kept.push(line);
   }
   return kept;

@@ -121,7 +121,8 @@ test("they are carried over when it is, so this table does not undo it", functio
 var AMAZOFF = ['127.0.0.1 cloudfront.xp-assets.aiv-cdn.net', '::1 cloudfront.xp-assets.aiv-cdn.net'];
 
 test("other tools' lines are told apart from the table's own and the Homebrew Channel's", function () {
-  var hosts = privacy.adBlockHostsTable('ads') + '\n# webosbrew startup script\n0.0.0.0 su.lge.com\n' +
+  var hosts = privacy.adBlockHostsTable('ads') + '\n# webosbrew startup script\n' +
+    '127.0.0.1 snu.lge.com su-dev.lge.com su.lge.com su-ssl.lge.com\n::1 snu.lge.com su-dev.lge.com su.lge.com su-ssl.lge.com\n' +
     AMAZOFF.join('\n') + '\n' + AMAZOFF[0] + '\n192.168.1.5\tnas\n';
   assert.deepEqual(privacy.foreignHostsLines(hosts), AMAZOFF.concat(['192.168.1.5\tnas']));
 });
