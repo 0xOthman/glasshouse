@@ -380,4 +380,40 @@ console.log('Running test-controls.js ...');
   console.log('  ✓ the time server is saved and the client restarted, a mistyped one refused, and the switch keeps it');
 })();
 
+// updateCheck and updateAutoCheck return unified updateSummary (including daemon health) (#712)
+(function testUpdateCheckSummary() {
+  var checkedAge = null;
+  var autoCheckVal = null;
+  controls.init({
+    config: { allowControl: true },
+    updater: {
+      checkForUpdate: function (minAge, cb) {
+        checkedAge = minAge;
+        cb(null, { ok: true, state: 'current' });
+      },
+      setAutoCheck: function (val, cb) {
+        autoCheckVal = val;
+        cb({ ok: true, autoCheck: val });
+      }
+    },
+    updateSummary: function () {
+      return { ok: true, state: 'current', daemon: { uptime: 100, rss: 123456 } };
+    }
+  });
+
+  controls.doControl('updateCheck', 'open', function (res) {
+    assert.strictEqual(res.ok, true);
+    assert.strictEqual(checkedAge, 120000);
+    assert.deepEqual(res.daemon, { uptime: 100, rss: 123456 });
+  });
+
+  controls.doControl('updateAutoCheck', true, function (res) {
+    assert.strictEqual(res.ok, true);
+    assert.strictEqual(autoCheckVal, true);
+    assert.deepEqual(res.daemon, { uptime: 100, rss: 123456 });
+  });
+
+  console.log('  ✓ updateCheck and updateAutoCheck return unified updateSummary including daemon');
+})();
+
 console.log('ALL test-controls.js assertions passed!\n');

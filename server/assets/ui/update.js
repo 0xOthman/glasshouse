@@ -56,7 +56,9 @@ function renderUpdate(d) {
     : t('server.available', 'v{version} is out. Installing it replaces the server and restarts it.', { version: d.latest });
   desc.hidden = !d.available;
   renderWhatsNew(d);
-  renderServerHealth(d.daemon);
+  if (d.daemon !== undefined) {
+    renderServerHealth(d.daemon);
+  }
 
   updateToggle('upd-auto', {
     cls: d.autoCheck ? 'good' : 'idle',
