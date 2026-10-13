@@ -59,6 +59,77 @@ function triggerMqttPacket(id) {
   el.addEventListener('animationend', () => { el.classList.remove('pulse'); }, { once: true });
 }
 
+function formatMqttLinkMetric(st, isEnabled) {
+  if (!isEnabled) return { text: t('common.off', 'Off'), title: '' };
+  if (st.state === 'connected') {
+    let metric = t('mqtt.net.reachable', 'Reachable');
+    if (st.latencyMs != null) metric += ' · ' + t('mqtt.net.latency', '{ms} ms', { ms: st.latencyMs });
+    if (st.lastPublishMs != null) metric += ' · ' + t('mqtt.net.pubAge', 'pub {age}', { age: cfgAge(st.lastPublishMs) });
+    return { text: metric, title: '' };
+  }
+  if (st.state === 'connecting') {
+    return { text: t('mqtt.state.connecting', 'Connecting'), title: '' };
+  }
+  if (st.state === 'error') {
+    const detail = st.detail || t('mqtt.state.error', 'Error');
+    return { text: t('mqtt.net.unreachable', 'Unreachable') + ': ' + detail, title: detail };
+  }
+  return { text: t('common.off', 'Off'), title: '' };
+}
+
+function resolveBrokerAddress(st) {
+  if (st.broker) return st.broker;
+  const hostInput = q('cfg-host');
+  if (!hostInput || !hostInput.value) return '';
+  const port = q('cfg-port') && q('cfg-port').value;
+  const tls = q('cfg-tls') && q('cfg-tls').classList.contains('on');
+  return hostInput.value + ':' + (port || (tls ? '8883' : '1883'));
+}
+
+function updateMqttPublishPulse(st, isEnabled) {
+  if (!isEnabled || st.state !== 'connected' || st.lastPublishMs == null) return;
+  const isNewPub = cfgLastPublishMs === null || st.lastPublishMs < cfgLastPublishMs;
+  const isRecurrent = cfgLastPublishMs > 5000 && st.lastPublishMs <= 5000;
+  if (isNewPub || isRecurrent) triggerMqttPacket('mqtt-packet-pub');
+  cfgLastPublishMs = st.lastPublishMs;
+}
+
+function renderMqttTvNode(isEnabled) {
+  const nameEl = q('mqtt-node-tv-name');
+  if (nameEl) {
+    nameEl.textContent = (cfgDevice && cfgDevice.name) || (q('cfg-devname') && q('cfg-devname').value) || 'LG webOS TV';
+  }
+  const dotEl = q('mqtt-dot-tv');
+  if (dotEl) {
+    dotEl.className = 'mqtt-dot ' + (isEnabled ? 'good' : 'idle');
+  }
+}
+
+function renderMqttBrokerNode(st, isEnabled) {
+  const brokerText = resolveBrokerAddress(st);
+  const nameEl = q('mqtt-node-broker-name');
+  if (nameEl) nameEl.textContent = t('mqtt.net.server', 'MQTT server');
+  const subEl = q('mqtt-node-broker-sub');
+  if (subEl) {
+    subEl.textContent = brokerText || t('mqtt.net.noBroker', 'No broker configured');
+    subEl.title = brokerText;
+  }
+  const nodeEl = q('mqtt-node-broker');
+  if (nodeEl) {
+    nodeEl.title = (isEnabled && st.state === 'error' && st.detail) ? st.detail : '';
+  }
+  const tlsTag = q('mqtt-node-broker-tls');
+  if (tlsTag) {
+    const isTls = !!(st.tls || (q('cfg-tls') && q('cfg-tls').classList.contains('on')));
+    tlsTag.hidden = !isTls;
+  }
+  const dotEl = q('mqtt-dot-broker');
+  if (dotEl) {
+    const pill = CFG_STATE[st.state] ? CFG_STATE[st.state].pill : 'idle';
+    dotEl.className = 'mqtt-dot ' + (isEnabled ? pill : 'idle');
+  }
+}
+
 function renderMqttTopology(st) {
   if (!st && !cfgLastStatus) return;
   if (st) cfgLastStatus = st;
@@ -72,57 +143,17 @@ function renderMqttTopology(st) {
     netEl.classList.toggle('error', isErr);
   }
 
-  // 1. TV Node
-  const tvName = (cfgDevice && cfgDevice.name) || (q('cfg-devname') && q('cfg-devname').value) || 'LG webOS TV';
-  if (q('mqtt-node-tv-name')) q('mqtt-node-tv-name').textContent = tvName;
-  if (q('mqtt-dot-tv')) q('mqtt-dot-tv').className = 'mqtt-dot ' + (isEnabled ? 'good' : 'idle');
+  renderMqttTvNode(isEnabled);
 
-  // 2. Link 1: TV -> Broker
-  if (q('mqtt-net-last-pub')) {
-    if (!isEnabled) {
-      q('mqtt-net-last-pub').textContent = t('common.off', 'Off');
-    } else if (st.state === 'connected') {
-      let metric = t('mqtt.net.reachable', 'Reachable');
-      if (st.latencyMs != null) {
-        metric += ' · ' + t('mqtt.net.latency', '{ms} ms', { ms: st.latencyMs });
-      }
-      if (st.lastPublishMs != null) {
-        metric += ' · ' + t('mqtt.net.pubAge', 'pub {age}', { age: cfgAge(st.lastPublishMs) });
-      }
-      q('mqtt-net-last-pub').textContent = metric;
-    } else if (st.state === 'connecting') {
-      q('mqtt-net-last-pub').textContent = t('mqtt.state.connecting', 'Connecting');
-    } else if (st.state === 'error') {
-      const errText = st.detail || t('mqtt.state.error', 'Error');
-      q('mqtt-net-last-pub').textContent = t('mqtt.net.unreachable', 'Unreachable') + ': ' + errText;
-      q('mqtt-net-last-pub').title = errText;
-    } else {
-      q('mqtt-net-last-pub').textContent = t('common.off', 'Off');
-      q('mqtt-net-last-pub').title = '';
-    }
+  const metric = formatMqttLinkMetric(st, isEnabled);
+  const linkEl = q('mqtt-net-last-pub');
+  if (linkEl) {
+    linkEl.textContent = metric.text;
+    linkEl.title = metric.title;
   }
-  if (isEnabled && st.state === 'connected' && st.lastPublishMs != null) {
-    if (cfgLastPublishMs === null || st.lastPublishMs < cfgLastPublishMs || (cfgLastPublishMs > 5000 && st.lastPublishMs <= 5000)) {
-      triggerMqttPacket('mqtt-packet-pub');
-    }
-    cfgLastPublishMs = st.lastPublishMs;
-  }
+  updateMqttPublishPulse(st, isEnabled);
 
-  // 3. Broker Node
-  const brokerText = st.broker || (q('cfg-host') && q('cfg-host').value ? (q('cfg-host').value + ':' + (q('cfg-port').value || (q('cfg-tls').classList.contains('on') ? '8883' : '1883'))) : '');
-  if (q('mqtt-node-broker-name')) q('mqtt-node-broker-name').textContent = t('mqtt.net.server', 'MQTT server');
-  if (q('mqtt-node-broker-sub')) {
-    q('mqtt-node-broker-sub').textContent = brokerText || t('mqtt.net.noBroker', 'No broker configured');
-    q('mqtt-node-broker-sub').title = brokerText || '';
-  }
-  if (q('mqtt-node-broker')) {
-    q('mqtt-node-broker').title = (isEnabled && st.state === 'error' && st.detail) ? st.detail : '';
-  }
-  const tlsTag = q('mqtt-node-broker-tls');
-  if (tlsTag) tlsTag.hidden = !st.tls && !(q('cfg-tls') && q('cfg-tls').classList.contains('on'));
-  if (q('mqtt-dot-broker')) {
-    q('mqtt-dot-broker').className = 'mqtt-dot ' + (isEnabled ? (CFG_STATE[st.state] ? CFG_STATE[st.state].pill : 'idle') : 'idle');
-  }
+  renderMqttBrokerNode(st, isEnabled);
 }
 
 function renderCfgStatus(st) {

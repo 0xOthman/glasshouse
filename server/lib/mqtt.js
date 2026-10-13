@@ -6,6 +6,14 @@ var net = require('net');
 var tls = require('tls');
 var toBuffer = require('./util').toBuffer;
 
+var CONNACK_ERRORS = {
+  1: 'unacceptable protocol version',
+  2: 'identifier rejected',
+  3: 'server unavailable',
+  4: 'bad username or password',
+  5: 'not authorized'
+};
+
 function encodeVarLength(len) {
   var bytes = [];
   do {
@@ -208,13 +216,6 @@ MiniMQTT.prototype._parse = function() {
         }
         this.emit('connect');
       } else {
-        var CONNACK_ERRORS = {
-          1: 'unacceptable protocol version',
-          2: 'identifier rejected',
-          3: 'server unavailable',
-          4: 'bad username or password',
-          5: 'not authorized'
-        };
         var errDesc = CONNACK_ERRORS[returnCode] || ('CONNACK rejected with code ' + returnCode);
         this.emit('error', new Error(errDesc));
         if (this.client) {
@@ -411,14 +412,7 @@ MiniMQTT.testConnection = function(opts, cb) {
         if (returnCode === 0) {
           return finish({ ok: true, latencyMs: latency, code: 0 });
         }
-        var errorMessages = {
-          1: 'unacceptable protocol version',
-          2: 'client identifier rejected',
-          3: 'broker unavailable',
-          4: 'bad username or password',
-          5: 'not authorized'
-        };
-        var reason = errorMessages[returnCode] || ('connection refused: code ' + returnCode);
+        var reason = CONNACK_ERRORS[returnCode] || ('connection refused: code ' + returnCode);
         return finish({ ok: false, latencyMs: latency, code: returnCode, error: reason });
       }
     }
