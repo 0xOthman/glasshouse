@@ -13,7 +13,7 @@ It is drawn on true black for OLED panels in 1080p, with high-contrast text and 
 The TV app is operated entirely with the LG remote control:
 
 * **Left / Right**: Switch between dashboard tabs (Metrics, System, Display, Audio, Network, Apps, Settings, OLED Care).
-* **Up / Down**: Move selection row by row, automatically skipping section headings.
+* **Up / Down**, or the Magic Remote's wheel: Move selection row by row, automatically skipping section headings.
 * **Channel Up / Channel Down** (or **Page Up / Page Down**): Jump 6 selectable rows at a time to quickly page through long lists, such as the Homebrew Channel catalog, installed apps, or system options.
 * **OK / Enter**: Toggle switches, expand options, or confirm app installations and actions.
 * **Back**: Return to the previous view from sub-menus (such as app preview details) or exit the app.
