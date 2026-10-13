@@ -7,6 +7,13 @@ var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
 var vm = require('vm');
+var urlModule = require('url');
+
+var URLSearchParamsClass = typeof URLSearchParams !== 'undefined'
+  ? URLSearchParams
+  : (urlModule.URLSearchParams || function () {
+      return { get: function () { return null; } };
+    });
 
 console.log('Running test-mqtt-save-ui.js ...');
 
@@ -83,7 +90,7 @@ function runTest(name, scenario, done) {
     cpuPanelOpen: function () { return false; },
     Date: Date,
     Promise: Promise,
-    URLSearchParams: URLSearchParams,
+    URLSearchParams: URLSearchParamsClass,
     location: { search: '' },
     window: { location: { search: '' }, innerWidth: 1024, addEventListener: function () {} },
     document: {
