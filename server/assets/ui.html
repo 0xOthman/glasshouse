@@ -74,6 +74,38 @@
   </nav>
   <div class="sidenav-foot">
     <div class="nav-rule" role="presentation"></div>
+    <details class="nav-pref" id="nav-pref">
+      <summary class="nav-pref-summary">
+        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span data-t="nav.pref">Preferences</span>
+        <svg class="nav-pref-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <div class="nav-pref-body">
+        <div class="nav-pref-grp">
+          <div class="nav-pref-lbl" data-t="server.theme.title">Theme</div>
+          <div class="theme-seg" role="group" aria-label="Theme" data-t-aria-label="theme">
+            <button type="button" data-theme-set="auto" data-t="theme.auto">Auto</button><button type="button"
+              data-theme-set="dark" data-t="theme.dark">Dark</button><button type="button" data-theme-set="light"
+              data-t="theme.light">Light</button>
+          </div>
+        </div>
+        <div class="nav-pref-grp nav-pref-sidebar">
+          <div class="nav-pref-lbl" data-t="server.sidebar.title">Sidebar</div>
+          <div class="theme-seg" role="group" aria-label="Sidebar" data-t-aria-label="server.sidebar.group">
+            <button type="button" data-sidebar-set="show" data-t="server.sidebar.show">Show</button><button type="button"
+              data-sidebar-set="hide" data-t="server.sidebar.hide">Hide</button>
+          </div>
+        </div>
+        <div class="nav-pref-grp">
+          <div class="nav-pref-lbl" data-t="server.language.title">Language</div>
+          <div class="theme-seg" role="group" aria-label="Language" data-t-aria-label="server.language.group">
+            <button type="button" data-lang-set="auto" data-t="theme.auto">Auto</button><button type="button"
+              data-lang-set="en" data-t="lang.en">English</button><button type="button" data-lang-set="es"
+              data-t="lang.es">Español</button>
+          </div>
+        </div>
+      </div>
+    </details>
     <a class="nav-help" id="nav-help" href="https://rorygallagher2024.github.io/glasshouse/dashboard/" target="_blank" rel="noopener">
       <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.6c0 1.7-2.5 2.2-2.5 3.8M12 17h.01"/></svg>
       <span data-t="nav.help">Help</span>
@@ -1035,60 +1067,19 @@
       </div>
     </div>
 
-    <div class="pv-sec adv-sec" data-t="server.tv">The TV</div>
-    <div class="prot-table">
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.tvUpdates.block">Block TV software updates</div>
-          <div class="prot-desc" data-t="server.tvUpdates.block.desc">Stops the TV installing LG's system
-            updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are
-            unaffected.</div>
-        </div>
-        <div class="prot-status"><button type="button" class="pill idle" id="upd-tvblock" onclick="toggleTvUpdates()">&mdash;</button></div>
-      </div>
-    </div>
-
-    <div class="pv-sec adv-sec" data-t="server.thisBrowser">This browser</div>
-    <div class="pv-sub" data-t="server.thisBrowser.desc">Kept in this browser only: other phones and computers keep their own.</div>
-    <div class="prot-table">
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.theme.title">Theme</div>
-          <div class="prot-desc" data-t="server.theme.short">Auto follows this device's light or dark setting. The button at the end of the footer changes it too.</div>
-        </div>
-        <div class="prot-status"><div class="theme-seg" role="group" aria-label="Theme" data-t-aria-label="theme">
-          <button type="button" data-theme-set="auto" data-t="theme.auto">Auto</button><button type="button"
-            data-theme-set="dark" data-t="theme.dark">Dark</button><button type="button" data-theme-set="light"
-            data-t="theme.light">Light</button>
-        </div></div>
-      </div>
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.sidebar.title">Sidebar</div>
-          <div class="prot-desc" data-t="server.sidebar.short">On a wide screen the tabs are listed down the left. Hidden, they are behind the menu button, as on a phone.</div>
-        </div>
-        <div class="prot-status"><div class="theme-seg" role="group" aria-label="Sidebar" data-t-aria-label="server.sidebar.group">
-          <button type="button" data-sidebar-set="show" data-t="server.sidebar.show">Show</button><button type="button"
-            data-sidebar-set="hide" data-t="server.sidebar.hide">Hide</button>
-        </div></div>
-      </div>
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.language.title">Language</div>
-          <div class="prot-desc" data-t="server.language.short">Auto follows this device's language, and shows English where there is no translation.</div>
-        </div>
-        <div class="prot-status"><div class="theme-seg" role="group" aria-label="Language" data-t-aria-label="server.language.group">
-          <button type="button" data-lang-set="auto" data-t="theme.auto">Auto</button><button type="button"
-            data-lang-set="en" data-t="lang.en">English</button><button type="button" data-lang-set="es"
-            data-t="lang.es">Español</button>
-        </div></div>
-      </div>
-    </div>
-
     <details class="pv-d srv-adv" id="srv-adv">
       <summary><span data-t="server.advanced">Advanced</span> <span class="cur" data-t="server.advanced.cur">For developers and home-lab setups</span></summary>
       <div class="pv-sub" data-t="server.advanced.desc">Nothing here needs changing for everyday use.</div>
       <div class="prot-table">
+        <div class="prot-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.tvUpdates.block">Block TV software updates</div>
+            <div class="prot-desc" data-t="server.tvUpdates.block.desc">Stops the TV installing LG's system
+              updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are
+              unaffected.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="upd-tvblock" onclick="toggleTvUpdates()">&mdash;</button></div>
+        </div>
         <div class="prot-row">
           <div class="prot-main">
             <div class="prot-title" data-t="server.ntp.title">Set the clock from a time server</div>

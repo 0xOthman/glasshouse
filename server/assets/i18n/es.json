@@ -1771,6 +1771,10 @@
   "text": "Abrir menú",
   "from": "Open menu"
  },
+ "nav.pref": {
+  "text": "Preferencias",
+  "from": "Preferences"
+ },
  "nav.sections": {
   "text": "Secciones",
   "from": "Sections"
@@ -2403,10 +2407,6 @@
   "text": "Idioma",
   "from": "Language"
  },
- "server.language.short": {
-  "text": "Automático sigue el idioma de este dispositivo y muestra inglés donde no hay traducción.",
-  "from": "Auto follows this device's language, and shows English where there is no translation."
- },
  "server.language.title": {
   "text": "Idioma",
   "from": "Language"
@@ -2491,10 +2491,6 @@
   "text": "Ocultar",
   "from": "Hide"
  },
- "server.sidebar.short": {
-  "text": "En una pantalla ancha las pestañas aparecen a la izquierda. Ocultas, están tras el botón de menú, como en un teléfono.",
-  "from": "On a wide screen the tabs are listed down the left. Hidden, they are behind the menu button, as on a phone."
- },
  "server.sidebar.show": {
   "text": "Mostrar",
   "from": "Show"
@@ -2563,25 +2559,9 @@
   "text": "Actualizado a v{version}",
   "from": "Updated to v{version}"
  },
- "server.theme.short": {
-  "text": "Automático sigue el modo claro u oscuro de este dispositivo. El botón al final del pie de página también lo cambia.",
-  "from": "Auto follows this device's light or dark setting. The button at the end of the footer changes it too."
- },
  "server.theme.title": {
   "text": "Tema",
   "from": "Theme"
- },
- "server.thisBrowser": {
-  "text": "Este navegador",
-  "from": "This browser"
- },
- "server.thisBrowser.desc": {
-  "text": "Se guarda solo en este navegador: otros teléfonos y ordenadores mantienen el suyo.",
-  "from": "Kept in this browser only: other phones and computers keep their own."
- },
- "server.tv": {
-  "text": "La TV",
-  "from": "The TV"
  },
  "server.tvApp.added": {
   "text": "Añadida",
