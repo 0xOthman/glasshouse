@@ -2140,8 +2140,8 @@
   "from": "Could not read the agreements file."
  },
  "pv.consent.note": {
-  "text": "Estos valores se escriben en la TV y sobreviven a un reinicio. Un marcador registra lo que la TV guardó; no es prueba de que LG lo respete. Las filas atenuadas son de solo lectura, cada una por la razón indicada junto a ella.",
-  "from": "These write to the TV and survive a reboot. A flag records what the TV stored — it is not proof LG honours it. Dimmed rows are read-only, each for the reason given beside it."
+  "text": "Estos valores se escriben en la TV y sobreviven a un reinicio. Un marcador registra lo que la TV guardó; no es prueba de que LG lo respete.",
+  "from": "These write to the TV and survive a reboot. A flag records what the TV stored — it is not proof LG honours it."
  },
  "pv.consent.path": {
   "text": "Ajustes → General → Acerca de esta TV → Acuerdos de usuario",
