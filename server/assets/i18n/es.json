@@ -1555,10 +1555,6 @@
   "text": "Dónde publica esta TV su telemetría. Home Assistant detecta las entidades automáticamente en cuanto el broker es accesible.",
   "from": "Where this TV publishes its telemetry. Home Assistant picks the entities up automatically once the broker is reachable."
  },
- "mqtt.broker.tls": {
-  "text": "{broker} sobre TLS",
-  "from": "{broker} over TLS"
- },
  "mqtt.cat.disabled": {
   "text": "Deshabilitado",
   "from": "Disabled"
@@ -1726,26 +1722,6 @@
  "mqtt.state.error": {
   "text": "Error",
   "from": "Error"
- },
- "mqtt.status": {
-  "text": "Estado del puente",
-  "from": "Bridge status"
- },
- "mqtt.status.connected": {
-  "text": "Publicando en {broker}. Última telemetría {age}.",
-  "from": "Publishing to {broker}. Last telemetry {age}."
- },
- "mqtt.status.connecting": {
-  "text": "Conectando con {broker}.",
-  "from": "Reaching {broker}."
- },
- "mqtt.status.error": {
-  "text": "{broker}: {detail}. Reintentando cada 5 s.",
-  "from": "{broker}: {detail}. Retrying every 5s."
- },
- "mqtt.status.off": {
-  "text": "El puente está desactivado. No se publica nada.",
-  "from": "The bridge is off. Nothing is published."
  },
  "mqtt.test.button": {
   "text": "Probar conexión",

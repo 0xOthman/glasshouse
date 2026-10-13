@@ -98,7 +98,9 @@ function renderMqttTopology(st) {
   const brokerText = st.broker || (q('cfg-host') && q('cfg-host').value ? (q('cfg-host').value + ':' + (q('cfg-port').value || (q('cfg-tls').classList.contains('on') ? '8883' : '1883'))) : '');
   if (q('mqtt-node-broker-name')) q('mqtt-node-broker-name').textContent = brokerText || t('mqtt.net.noBroker', 'No broker configured');
   if (q('mqtt-node-broker-sub')) {
-    q('mqtt-node-broker-sub').textContent = isEnabled ? (CFG_STATE[st.state] ? CFG_STATE[st.state].label : t('common.off', 'Off')) : t('common.off', 'Off');
+    let sub = isEnabled ? (CFG_STATE[st.state] ? CFG_STATE[st.state].label : t('common.off', 'Off')) : t('common.off', 'Off');
+    if (isEnabled && st.state === 'error' && st.detail) sub = st.detail;
+    q('mqtt-node-broker-sub').textContent = sub;
   }
   const tlsTag = q('mqtt-node-broker-tls');
   if (tlsTag) tlsTag.hidden = !st.tls && !(q('cfg-tls') && q('cfg-tls').classList.contains('on'));
@@ -110,33 +112,7 @@ function renderMqttTopology(st) {
 function renderCfgStatus(st) {
   if (!st && !cfgLastStatus) return;
   if (st) cfgLastStatus = st;
-  st = cfgLastStatus || { state: 'disabled' };
-
-  const isEnabled = q('cfg-enabled') ? q('cfg-enabled').classList.contains('on') : (st.state !== 'disabled');
-  const meta = isEnabled ? (CFG_STATE[st.state] || CFG_STATE.disabled) : CFG_STATE.disabled;
-  const pill = q('cfg-status-pill');
-  if (pill) {
-    pill.className = 'pill ' + meta.pill;
-    pill.textContent = meta.label;
-  }
-
-  const broker = st.tls ? t('mqtt.broker.tls', '{broker} over TLS', { broker: st.broker }) : st.broker;
-  // st.detail is the server's own words, in English.
-  const detail = st.detail ? st.detail.charAt(0).toUpperCase() + st.detail.slice(1) + '.' : '';
-  let text;
-  if (!isEnabled) {
-    text = t('mqtt.status.off', 'The bridge is off. Nothing is published.');
-  } else if (st.state === 'connected') {
-    text = t('mqtt.status.connected', 'Publishing to {broker}. Last telemetry {age}.', { broker, age: cfgAge(st.lastPublishMs) });
-  } else if (st.state === 'connecting') {
-    text = (detail ? detail + ' ' : '') + t('mqtt.status.connecting', 'Reaching {broker}.', { broker });
-  } else if (st.state === 'error') {
-    text = t('mqtt.status.error', '{broker}: {detail}. Retrying every 5s.', { broker, detail: st.detail });
-  } else {
-    text = detail || t('mqtt.status.off', 'The bridge is off. Nothing is published.');
-  }
-  if (q('cfg-status-detail')) q('cfg-status-detail').textContent = text;
-  renderMqttTopology(st);
+  renderMqttTopology(cfgLastStatus);
 }
 
 /*
