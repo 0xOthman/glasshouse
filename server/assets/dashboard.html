@@ -414,9 +414,8 @@ function optionRows(d) {
              press: on ? t('tv.press.turnOff', 'Press OK to turn off') : t('tv.press.turnOn', 'Press OK to turn on'), hint: hint };
   }
   var timers = d.powerTimers || {};
-  if (d.quickBoot !== undefined || d.wakeOnLan !== undefined || d.alwaysReady !== undefined || d.alwaysReadyScreen !== undefined ||
-      timers.on || timers.off) {
-    r.push(head(t('adv.power', 'Power')));
+  if (d.quickBoot !== undefined || d.wakeOnLan !== undefined || d.alwaysReady !== undefined || d.alwaysReadyScreen !== undefined) {
+    r.push(head(t('adv.powerStandby', 'Power & standby')));
     if (d.quickBoot !== undefined)
       r.push(toggle(t('adv.quickBoot', 'Quick Boot'), d.quickBoot, 'quickBoot',
         t('adv.quickBoot.desc', 'Switching off puts the TV into a light sleep rather than shutting it down, so it comes back on faster. LG calls this Quick Start+.')));
@@ -432,13 +431,16 @@ function optionRows(d) {
                cls: 'act', act: 'arOff', start: d.alwaysReadyOff.start,
                press: t('tv.options.nightlyPowerDown.press', 'Press OK to move it an hour later'),
                hint: t('tv.options.nightlyPowerDown.hint', 'For five hours every night, LG lets a switched-off TV sleep fully. It is offline then, so Glasshouse and Home Assistant cannot reach it. LG fixes the length; choose hours when the TV is not used.') });
+    if (d.wakeOnLan !== undefined)
+      r.push(toggle(t('adv.wol', 'Wake-on-LAN'), d.wakeOnLan, 'wakeOnLan',
+        t('tv.options.wol.hint', 'Lets Home Assistant, a phone or another device on the network switch the TV on from standby. Requires Quick Boot (Quick Start+) to keep the network connection responsive while off. LG calls this Mobile TV On.')));
+  }
+  if (timers.on || timers.off) {
+    r.push(head(t('adv.timers', 'Timers')));
     // The time and days are set from the browser dashboard; here they are
     // shown, and the timer switched on or off.
     if (timers.on) r.push(timerRow(timers.on, 'on', t('adv.onTimer', 'On Timer')));
     if (timers.off) r.push(timerRow(timers.off, 'off', t('adv.offTimer', 'Off Timer')));
-    if (d.wakeOnLan !== undefined)
-      r.push(toggle(t('adv.wol', 'Wake-on-LAN'), d.wakeOnLan, 'wakeOnLan',
-        t('tv.options.wol.hint', 'Lets Home Assistant, a phone or another device on the network switch the TV on from standby. LG calls this Mobile TV On.')));
   }
   // Sound and SIMPLINK, from lgsettings.js; each shows only where the TV has it.
   var ls = d.lgSettings || [];

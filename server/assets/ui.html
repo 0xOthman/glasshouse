@@ -443,7 +443,7 @@
 
 <section class="priv panel" id="advpane" role="tabpanel" hidden>
   <div class="lbl" data-t="tab.advanced">Advanced</div>
-  <div class="pv-sec" data-t="adv.power">Power</div>
+  <div class="pv-sec" data-t="adv.powerStandby">Power &amp; standby</div>
   <div class="prot-table">
     <div class="prot-row" id="row-quickboot" hidden>
       <div class="prot-main">
@@ -486,10 +486,14 @@
       <div class="prot-main">
         <div class="prot-title" data-t="adv.wol">Wake-on-LAN</div>
         <div class="prot-desc" data-t="adv.wol.desc">Lets Home Assistant, a phone or another device on the network switch the TV on
-          from standby. The Home Assistant guide shows how to set it up. LG calls this Mobile TV On.</div>
+          from standby. Requires Quick Boot (Quick Start+) to keep the network connection responsive while off. The Home Assistant guide shows how to set it up. LG calls this Mobile TV On.</div>
       </div>
       <div class="prot-status"><button type="button" class="pill idle" id="btn_wol" onclick="toggleWol()">&mdash;</button></div>
     </div>
+  </div>
+
+  <div class="pv-sec adv-sec" id="adv-timers" hidden data-t="adv.timers">Timers</div>
+  <div class="prot-table">
     <div class="prot-row" id="row-ontimer" hidden>
       <div class="prot-main">
         <div class="prot-title" data-t="adv.onTimer">On Timer</div>
@@ -563,7 +567,7 @@
     </div>
   </div>
 
-  <div class="pv-sec adv-sec" data-t="adv.frontLights">Front lights</div>
+  <div class="pv-sec adv-sec" id="adv-lights" hidden data-t="adv.frontLights">Front lights</div>
   <div class="prot-table">
     <div class="prot-row" id="row-standby" hidden>
       <div class="prot-main">

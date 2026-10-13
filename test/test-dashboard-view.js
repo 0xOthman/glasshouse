@@ -97,4 +97,21 @@ vm.runInNewContext(scriptMatch[1], sandbox);
   console.log('  ✓ the OLED Care tab is optional, with no rows on a TV without an OLED panel');
 })();
 
+// 3. optionRows groups Power & standby and Timers with separate headers
+(function testOptionRowsGrouping() {
+  var rows = sandbox.optionRows({
+    ok: true,
+    quickBoot: true,
+    wakeOnLan: true,
+    powerTimers: {
+      on: { enabled: true, time: '07:00', days: [1, 2, 3, 4, 5] },
+      off: { enabled: false, time: '23:00', days: [] }
+    }
+  });
+  var headers = rows.filter(function (r) { return r.head; }).map(function (r) { return r.label; });
+  assert.ok(headers.indexOf('Power & standby') !== -1, 'has Power & standby section');
+  assert.ok(headers.indexOf('Timers') !== -1, 'has separate Timers section');
+  console.log('  ✓ optionRows groups Power & standby and Timers with distinct headers');
+})();
+
 console.log('ALL test-dashboard-view.js assertions passed!\n');
