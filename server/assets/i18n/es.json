@@ -1007,6 +1007,14 @@
   "text": "¿Reiniciar la TV ahora? No estará disponible sobre un minuto.",
   "from": "Reboot the TV now? It will be unavailable for about a minute."
  },
+ "ctl.remoteTools": {
+  "text": "Herramientas remotas y utilidades",
+  "from": "Remote tools & utilities"
+ },
+ "ctl.remoteTools.sub": {
+  "text": "Notificación y página web",
+  "from": "Notification and web page"
+ },
  "ctl.rewind": {
   "text": "Rebobinar",
   "from": "Rewind"

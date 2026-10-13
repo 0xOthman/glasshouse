@@ -344,19 +344,23 @@
       </div>
     </details>
 
-    <div class="set"><div class="lbl"><span data-t="ctl.toast">Screen notification</span> <span class="sub" id="toast-count" translate="no" style="float:right;margin:0">0/120</span></div>
-      <form class="toast-form" onsubmit="event.preventDefault();sendToast();">
-        <input type="text" id="toast-input" placeholder="Message to display on TV screen..." data-t-placeholder="ctl.toast.placeholder" maxlength="120" autocomplete="off">
-        <button type="submit" id="btn-toast" data-t="ctl.toast.send">Send</button>
-      </form>
-    </div>
+    <details class="disc" id="disc-remote-tools">
+      <summary><span data-t="ctl.remoteTools">Remote tools &amp; utilities</span> <span class="cur" data-t="ctl.remoteTools.sub">Notification and web page</span></summary>
 
-    <div class="set"><div class="lbl" data-t="ctl.openUrl">Open a web page</div>
-      <form class="toast-form" onsubmit="event.preventDefault();openUrl();">
-        <input type="text" id="url-input" placeholder="https://example.com" translate="no" maxlength="2048" autocomplete="off" spellcheck="false">
-        <button type="submit" id="btn-url" data-t="ctl.openUrl.open">Open</button>
-      </form>
-    </div>
+      <div class="set"><div class="lbl"><span data-t="ctl.toast">Screen notification</span> <span class="sub" id="toast-count" translate="no" style="float:right;margin:0">0/120</span></div>
+        <form class="toast-form" onsubmit="event.preventDefault();sendToast();">
+          <input type="text" id="toast-input" placeholder="Message to display on TV screen..." data-t-placeholder="ctl.toast.placeholder" maxlength="120" autocomplete="off">
+          <button type="submit" id="btn-toast" data-t="ctl.toast.send">Send</button>
+        </form>
+      </div>
+
+      <div class="set"><div class="lbl" data-t="ctl.openUrl">Open a web page</div>
+        <form class="toast-form" onsubmit="event.preventDefault();openUrl();">
+          <input type="text" id="url-input" placeholder="https://example.com" translate="no" maxlength="2048" autocomplete="off" spellcheck="false">
+          <button type="submit" id="btn-url" data-t="ctl.openUrl.open">Open</button>
+        </form>
+      </div>
+    </details>
 
     <div class="set" id="pwset"><div class="lbl" data-t="adv.power">Power</div>
       <div class="btns">
