@@ -4503,6 +4503,10 @@
   "text": "Tema: {setting} (pulsa para {next})",
   "from": "Theme: {setting} (click for {next})"
  },
+ "tools.autoScroll": {
+  "text": "Auto-scroll",
+  "from": "Auto-scroll"
+ },
  "tools.clearFilter": {
   "text": "Borrar filtro",
   "from": "Clear filter"

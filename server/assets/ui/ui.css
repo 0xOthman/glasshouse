@@ -1022,8 +1022,6 @@ button.tools-switch.on:hover{border-color:var(--edge)}
   box-shadow:0 0 6px rgba(48,222,97,.6);animation:livePulse 2s infinite}
 .live-dot.paused{background:var(--w40);box-shadow:none;animation:none}
 @keyframes livePulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
-
-
 /* Terminal View */
 .tools-terminal{position:relative;background:var(--bg);border:1px solid var(--edge);border-radius:2px;overflow:hidden;
   font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;line-height:1.55}
@@ -1035,6 +1033,8 @@ button.tools-switch.on:hover{border-color:var(--edge)}
 .tools-jump{position:absolute;left:50%;transform:translateX(-50%);top:46px;z-index:1;height:28px;padding:0 14px;border-radius:14px;border:0;
   background:var(--w100);color:var(--btn-on-fg);font:600 11px 'Manrope';letter-spacing:.08em;text-transform:uppercase;
   cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+button.tools-jump:hover{color:var(--btn-on-fg);background:var(--w90)}
+button.tools-jump:active{background:var(--w80)}
 .tools-jump[hidden]{display:none}
 .tools-term-empty{padding:48px 20px;text-align:center;color:var(--w50);font-family:'Manrope';font-size:14px}
 
@@ -1097,7 +1097,7 @@ button.tools-switch.on:hover{border-color:var(--edge)}
   .tools-actions{width:100%;justify-content:space-between;margin-left:0}
   .tools-buttons{width:100%}
   .tools-check{flex:0 0 100%;margin:0 0 4px}
-  .tools-buttons .pill{flex:1 1 0}
+  .tools-buttons .pill{flex:1 1 0;min-width:0;padding:0 6px}
   .tools-toolbar-grp{flex-direction:column;align-items:flex-start;gap:6px}
 }
 /* Quick Access: the key's number before what it opens. */
