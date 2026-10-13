@@ -1513,6 +1513,10 @@ if (!CLI_MODE) {
   liveState.state.onChange(function (ev) {
     if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) ntpClient.sync();
   });
+  // A C5 (webOS 10.3) has every app's preloading enabled again at each switch-on.
+  liveState.state.onChange(function (ev) {
+    if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) preload.resend();
+  });
 
   telemetry.detectDeviceInfo(function() {
     syslogForwarder.setHostname(CONFIG.device && CONFIG.device.name);
