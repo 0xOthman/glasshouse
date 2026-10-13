@@ -18,7 +18,7 @@ Installs an `.ipk` package from outside the catalog. **From URL...** downloads o
 
 It is off until it is switched on in this section (after a warning) or a token is set, since a package from outside the catalog can run anything on the TV. A request from the TV itself is always allowed.
 
-### Uninstall applications
+### Manage applications
 
 Lists the apps downloaded from the LG store or installed by hand, with their version and vendor. Launch opens the application on the TV, while Uninstall deletes an app completely and frees its storage. LG's built-in apps can't be removed this way; they can be hidden instead.
 
