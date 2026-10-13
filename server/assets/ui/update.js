@@ -315,10 +315,15 @@ async function checkNow() {
   updArrival = '';
   q('upd-pill').className = 'pill idle';
   q('upd-pill').textContent = t('server.state.checking', 'checking');
-  q('upd-check').disabled = true;
-  const r = await updControl('updateCheck');
-  updBusy = false;
-  if (r && r.ok && r.state !== 'checking') renderUpdate(r); else loadUpdate();
+  const btn = q('upd-check');
+  if (btn) { btn.disabled = true; btn.classList.add('busy'); }
+  try {
+    const r = await updControl('updateCheck');
+    updBusy = false;
+    if (r && r.ok && r.state !== 'checking') renderUpdate(r); else loadUpdate();
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
+  }
 }
 
 async function installUpdate() {
@@ -435,12 +440,15 @@ async function toggleNtp() {
 async function saveNtpServer() {
   const input = q('ntp-server'), btn = q('ntp-save');
   if (!input.value.trim()) return input.focus();
-  btn.disabled = true;
-  const r = await sendCommand('setNtpServer', input.value.trim());
-  btn.disabled = false;
-  delete input.dataset.dirty;
-  // A refusal, such as a mistyped address, is shown by sendCommand.
-  if (r && r.ok) renderUpdate(r); else loadUpdate();
+  if (btn) { btn.disabled = true; btn.classList.add('busy'); }
+  try {
+    const r = await sendCommand('setNtpServer', input.value.trim());
+    delete input.dataset.dirty;
+    // A refusal, such as a mistyped address, is shown by sendCommand.
+    if (r && r.ok) renderUpdate(r); else loadUpdate();
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
+  }
 }
 
 // Advanced stays open in this browser once opened.

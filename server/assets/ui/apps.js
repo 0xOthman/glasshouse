@@ -80,7 +80,7 @@ async function addPage() {
   const url = q('page-add-url'), name = q('page-add-name'), btn = q('page-add-btn'), msg = q('page-add-msg');
   msg.textContent = '';
   if (!url.value.trim()) return url.focus();
-  btn.disabled = true;
+  if (btn) { btn.disabled = true; btn.classList.add('busy'); }
   try {
     const r = await fetch(api('/api/apps/add-page'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -95,7 +95,9 @@ async function addPage() {
       url.focus();
     } else { url.value = ''; name.value = ''; }
   } catch (e) { msg.textContent = e.message; }
-  btn.disabled = false;
+  finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
+  }
   loadApps();
 }
 
@@ -432,6 +434,7 @@ async function postHomeScreen(btnId, body) {
   const btn = q(btnId);
   if (btn) {
     btn.disabled = true;
+    btn.classList.add('busy');
     btn.textContent = t('apps.service.updating', 'Updating…');
   }
   let error = null;
@@ -445,6 +448,8 @@ async function postHomeScreen(btnId, body) {
     if (!r || !r.ok) error = (r && r.error) || t('common.unknownError', 'unknown error');
   } catch (e) {
     error = e.message;
+  } finally {
+    if (btn) btn.classList.remove('busy');
   }
   if (error) alert(t('apps.home.failed', 'Could not change the Home screen: {error}', { error }));
   loadApps();
@@ -497,6 +502,7 @@ async function togglePreload(appId, makeOff) {
   const btn = q('btn-preload-' + appId);
   if (btn) {
     btn.disabled = true;
+    btn.classList.add('busy');
     btn.textContent = t('apps.service.updating', 'Updating\u2026');
   }
   let error = null;
@@ -515,6 +521,8 @@ async function togglePreload(appId, makeOff) {
     }
   } catch (e) {
     error = e.message;
+  } finally {
+    if (btn) btn.classList.remove('busy');
   }
   if (appsData) renderPreload(appsData);
   if (error) alert(t('apps.preload.failed', 'Could not change it: {error}', { error }));
@@ -524,6 +532,7 @@ async function toggleService(serviceId, makeDisabled) {
   const btn = document.getElementById('btn-svc-' + serviceId);
   if (btn) {
     btn.disabled = true;
+    btn.classList.add('busy');
     btn.textContent = t('apps.service.updating', 'Updating\u2026');
   }
   try {
@@ -552,6 +561,8 @@ async function toggleService(serviceId, makeDisabled) {
       btn.textContent = makeDisabled ? t('apps.service.active', 'Active') : t('apps.service.disabled', 'Disabled');
     }
     alert(t('apps.service.failed', 'Could not update service: {error}', { error: e.message }));
+  } finally {
+    if (btn) btn.classList.remove('busy');
   }
 }
 
@@ -624,8 +635,10 @@ async function toggleTileVisibility(appId, makeHidden) {
 async function setTileHiding(enabled) {
   const btnOff = q('tile-hiding-off');
   const btnOn = q('tile-hiding-on');
+  const target = enabled ? btnOn : btnOff;
   if (btnOff) btnOff.disabled = true;
   if (btnOn) btnOn.disabled = true;
+  if (target) target.classList.add('busy');
   try {
     const res = await fetch(api('/api/apps/tile-hiding'), {
       method: 'POST',
@@ -647,6 +660,7 @@ async function setTileHiding(enabled) {
     alert(t('apps.tiles.failed', 'Could not update tile hiding: {error}', { error: e.message }));
     renderAppsPanel();
   } finally {
+    if (target) target.classList.remove('busy');
     if (btnOff) btnOff.disabled = false;
     if (btnOn) btnOn.disabled = false;
   }

@@ -286,6 +286,8 @@ async function toggleSideload(enable) {
   if (enable) {
     if (!confirm(t('apps.sideload.enable.confirm', 'Allow installing apps from a URL or an uploaded file?\n\nPackages from outside the catalog are unvetted and can run anything on the TV. Only install packages you trust.'))) return;
   }
+  const btn = q(enable ? 'btn-sideload-enable' : 'btn-sideload-disable');
+  if (btn) btn.classList.add('busy');
   try {
     const r = await fetch(api('/api/apps/install/sideload'), {
       method: 'POST',
@@ -299,6 +301,8 @@ async function toggleSideload(enable) {
     renderSideload();
   } catch (e) {
     showErr(e.message);
+  } finally {
+    if (btn) btn.classList.remove('busy');
   }
 }
 
@@ -429,8 +433,11 @@ function startInstall(appId) {
 function startUrlInstall() {
   const url = q('sl-url').value.trim();
   if (!url) return;
+  const btn = q('sl-url-btn');
+  if (btn) btn.classList.add('busy');
   prepareInstallTarget('url');
-  startJob('/api/apps/install/url', { url, sha256: q('sl-sha').value.trim() });
+  startJob('/api/apps/install/url', { url, sha256: q('sl-sha').value.trim() })
+    .finally(() => { if (btn) btn.classList.remove('busy'); });
 }
 
 async function startJob(path, body) {
@@ -459,11 +466,14 @@ function installFailed(text) {
 function uploadIpk() {
   const f = q('sl-file').files[0];
   if (!f || !installIdle() || uploading) return;
+  const btn = q('sl-file-btn');
+  if (btn) btn.classList.add('busy');
   prepareInstallTarget('file');
   q('catalog-msg').textContent = '';
   uploading = true;
   renderSideload();
   const fail = text => {
+    if (btn) btn.classList.remove('busy');
     uploading = false;
     renderSideload();
     setInstallStatus('');
@@ -478,6 +488,7 @@ function uploadIpk() {
   };
   xhr.onerror = () => fail(t('apps.install.uploadFailed', 'The upload did not finish'));
   xhr.onload = () => {
+    if (btn) btn.classList.remove('busy');
     let j = {};
     try { j = JSON.parse(xhr.responseText); } catch (e) {}
     if (xhr.status !== 200 || !j.ok) return fail(j.error || t('apps.install.failed', 'The install could not be started'));

@@ -169,6 +169,14 @@ function applyOptimistic(action, value) {
 }
 
 async function sendCommand(action, value) {
+  let triggerBtn = null;
+  if (typeof window !== 'undefined' && window.event && window.event.target && window.event.target.closest) {
+    triggerBtn = window.event.target.closest('button');
+  }
+  if (!triggerBtn && typeof document !== 'undefined' && document.activeElement && document.activeElement.tagName === 'BUTTON') {
+    triggerBtn = document.activeElement;
+  }
+  if (triggerBtn) triggerBtn.classList.add('busy');
   setBusy(true, 'tx');
   applyOptimistic(action, value);
   try {
@@ -192,6 +200,7 @@ async function sendCommand(action, value) {
     showErr(e.message);
     setTimeout(tick, 0);
   } finally {
+    if (triggerBtn) triggerBtn.classList.remove('busy');
     if (action === 'soundOutput') volSettleUntil = 0;
     setBusy(false);
   }
@@ -479,13 +488,14 @@ async function sendToast() {
   const msg = inp ? inp.value.trim() : '';
   if (!msg) return;
   const btn = q('btn-toast');
-  if (btn) btn.disabled = true;
+  if (btn) { btn.disabled = true; btn.classList.add('busy'); }
   try {
     await sendCommand('toast', msg);
     if (inp) inp.value = '';
     const tc = q('toast-count');
     if (tc) tc.textContent = '0/120';
     if (btn) {
+      btn.classList.remove('busy');
       const label = btn.textContent;
       btn.textContent = t('ctl.toast.sent', 'Sent');
       btn.classList.add('on');
@@ -496,7 +506,7 @@ async function sendToast() {
       }, 1400);
     }
   } catch (e) {
-    if (btn) btn.disabled = false;
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
   }
 }
 const toastInp = q('toast-input');
@@ -513,11 +523,12 @@ async function openUrl() {
   // "google.com" is what people type; the TV only takes a full address.
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(url)) url = 'https://' + url;
   const btn = q('btn-url');
-  if (btn) btn.disabled = true;
+  if (btn) { btn.disabled = true; btn.classList.add('busy'); }
   try {
     const r = await sendCommand('launch_url', url);
     if (r && r.ok && inp) inp.value = '';
     if (btn) {
+      btn.classList.remove('busy');
       const label = btn.textContent;
       // The browser takes a moment to come up, so say it went rather than
       // leaving a button that looks like it did nothing.
@@ -532,7 +543,7 @@ async function openUrl() {
       }, 1400);
     }
   } catch (e) {
-    if (btn) btn.disabled = false;
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
   }
 }
 // True while the TV is in Active Standby: switched off but still up, finishing
