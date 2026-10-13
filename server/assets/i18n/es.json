@@ -1643,14 +1643,6 @@
   "text": "Milisegundos entre publicaciones.",
   "from": "Milliseconds between publishes."
  },
- "mqtt.net.discovery": {
-  "text": "Detección",
-  "from": "Discovery"
- },
- "mqtt.net.discoveryActive": {
-  "text": "Detección automática",
-  "from": "Auto-discovery"
- },
  "mqtt.net.noBroker": {
   "text": "Sin intermediario configurado",
   "from": "No broker configured"

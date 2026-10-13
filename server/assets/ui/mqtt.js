@@ -105,37 +105,6 @@ function renderMqttTopology(st) {
   if (q('mqtt-dot-broker')) {
     q('mqtt-dot-broker').className = 'mqtt-dot ' + (isEnabled ? (CFG_STATE[st.state] ? CFG_STATE[st.state].pill : 'idle') : 'idle');
   }
-
-  // 4. Link 2: Broker -> Home Assistant
-  if (q('mqtt-net-ha-link')) {
-    if (!isEnabled) {
-      q('mqtt-net-ha-link').textContent = t('common.off', 'Off');
-    } else if (st.state === 'connected') {
-      q('mqtt-net-ha-link').textContent = t('mqtt.net.discoveryActive', 'Auto-discovery');
-    } else {
-      q('mqtt-net-ha-link').textContent = t('mqtt.net.discovery', 'Discovery');
-    }
-  }
-
-  // 5. Home Assistant Node
-  if (q('mqtt-node-ha-sub')) {
-    if (!isEnabled) {
-      q('mqtt-node-ha-sub').textContent = t('common.off', 'Off');
-    } else {
-      const disabledSet = new Set(cfgEntities.disabled || []);
-      let active = 0;
-      for (const cat of cfgCategories) {
-        if (cfgEntities[cat.id] === false) continue;
-        for (const e of cfgCatalogue.filter(item => item.cat === cat.id)) {
-          if (!disabledSet.has(e.id) && !disabledSet.has(e.type + '.' + e.id)) active++;
-        }
-      }
-      q('mqtt-node-ha-sub').textContent = t('mqtt.entities.active', '{n} of {total} active', { n: active, total: cfgCatalogue.length });
-    }
-  }
-  if (q('mqtt-dot-ha')) {
-    q('mqtt-dot-ha').className = 'mqtt-dot ' + (isEnabled ? (st.state === 'connected' ? 'good' : (st.state === 'connecting' ? 'warn' : (st.state === 'error' ? 'bad' : 'idle'))) : 'idle');
-  }
 }
 
 function renderCfgStatus(st) {
