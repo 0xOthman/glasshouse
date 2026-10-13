@@ -798,7 +798,6 @@ routes.init({
     }
     return MQTT_STATUS;
   },
-  testMqtt: MiniMQTT.testConnection,
   appsChanged: appsChanged,
   logs: logsModule,
   version: TVWEB_VERSION,

@@ -449,11 +449,7 @@ function createMockRes(cb) {
   routes.init({
     telemetry: { collectStats: function (cb) { cb({ ok: true }); } },
     piccapStatus: function (cb) { cb(null); },
-    getMqttStatus: function () { return mockMqttStatus; },
-    testMqtt: function (opts, cb) {
-      if (opts.host === 'fail.example') return cb(null, { ok: false, error: 'connection refused' });
-      cb(null, { ok: true, latencyMs: 14 });
-    }
+    getMqttStatus: function () { return mockMqttStatus; }
   });
   var bearer = { authorization: 'Bearer test-token' };
   routes.handleRequest(
@@ -549,38 +545,6 @@ function createMockRes(cb) {
   routes.handleRequest(reqBadCtrl, resBadCtrl);
   reqBadCtrl.emit('data', '{ not valid');
   reqBadCtrl.emit('end');
-
-  // POST /api/mqtt/test reaches testMqttFn and returns latency
-  var reqTestMqtt = createMockReq({
-    url: '/api/mqtt/test?k=test-token',
-    method: 'POST',
-    remoteAddress: '192.168.1.50',
-    headers: {
-      'content-type': 'application/json',
-      'host': '192.168.1.131:8080'
-    }
-  });
-  var resTestMqtt = createMockRes(function (res) {
-    assert.strictEqual(res.statusCode, 200);
-    var body = JSON.parse(res.body);
-    assert.strictEqual(body.ok, true);
-    assert.strictEqual(body.latencyMs, 14);
-  });
-  routes.handleRequest(reqTestMqtt, resTestMqtt);
-  reqTestMqtt.emit('data', JSON.stringify({ host: '192.168.1.125', port: 1883 }));
-  reqTestMqtt.emit('end');
-
-  // POST /api/mqtt/test without auth returns 401
-  var reqUnauthMqtt = createMockReq({
-    url: '/api/mqtt/test',
-    method: 'POST',
-    remoteAddress: '192.168.1.50',
-    headers: { 'content-type': 'application/json' }
-  });
-  var resUnauthMqtt = createMockRes(function (res) {
-    assert.strictEqual(res.statusCode, 401);
-  });
-  routes.handleRequest(reqUnauthMqtt, resUnauthMqtt);
 
   // Static assets: GET /assets/i18n.js returns 200 with ETag
   var assetEtag = null;
