@@ -166,6 +166,7 @@ function renderAppsPanel() {
             ${rowError[app.id] ? `<div class="prot-desc row-err">${esc(rowError[app.id])}</div>` : ''}
           </div>
           <div class="prot-status">
+            <button type="button" class="pill good" onclick="sendCommand('launchApp','${jsq(app.id)}')" ${!d.writable || uninstalling[app.id] ? 'disabled' : ''}>${esc(t('apps.launch.button', 'Launch'))}</button>
             <button type="button" class="pill ${uninstalling[app.id] ? 'busy' : 'bad'}" onclick="confirmUninstall('${jsq(app.id)}', '${jsq(app.title || app.id)}')" ${!d.writable || uninstalling[app.id] ? 'disabled' : ''}>${esc(uninstalling[app.id] ? t('apps.uninstall.working', 'Uninstalling\u2026') : t('apps.uninstall.button', 'Uninstall'))}</button>
           </div>
         </div>`;
