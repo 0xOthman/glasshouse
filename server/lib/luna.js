@@ -11,31 +11,44 @@ var children = require('./children');
 // Overridable so the start-up test can run the whole server against a stand-in.
 var LUNA_SEND = process.env.TVWEB_LUNA_SEND || '/usr/bin/luna-send';
 
-// Older webOS uses com.webos.settingsservice, newer uses com.webos.service.settings.
-// Try the newer name first; if it fails, remember and use the legacy name.
-var SETTINGS_SERVICE = 'com.webos.service.settings/';
-var SETTINGS_SERVICE_LEGACY = 'com.webos.settingsservice/';
-var _settingsPrefix = null; // null = not yet probed
+// Services renamed between webOS generations. The codebase uses the newer
+// name; on older TVs the first call that gets "Service does not exist"
+// switches to the legacy name and retries transparently.
+var SERVICE_MAP = [
+  { newer: 'com.webos.service.settings/',       legacy: 'com.webos.settingsservice/' },
+  { newer: 'com.webos.service.systemservice/',   legacy: 'com.palm.systemservice/' }
+];
+// Learned on first call: which service name the TV actually uses.
+var _serviceName = {};
+
+function findServiceMapping(uri) {
+  for (var i = 0; i < SERVICE_MAP.length; i++) {
+    if (uri.indexOf(SERVICE_MAP[i].newer) === 0) return SERVICE_MAP[i];
+  }
+  return null;
+}
 
 function resolveUri(uri) {
-  if (uri.indexOf(SETTINGS_SERVICE) !== 0) return uri;
-  if (_settingsPrefix === SETTINGS_SERVICE_LEGACY) {
-    return SETTINGS_SERVICE_LEGACY + uri.slice(SETTINGS_SERVICE.length);
+  var serviceMap = findServiceMapping(uri);
+  if (!serviceMap) return uri;
+  if (_serviceName[serviceMap.newer] === serviceMap.legacy) {
+    return serviceMap.legacy + uri.slice(serviceMap.newer.length);
   }
   return uri;
 }
 
-function handleSettingsResult(uri, parsed) {
-  if (uri.indexOf(SETTINGS_SERVICE) !== 0) return;
-  if (_settingsPrefix !== null) return;
+function handleServiceResult(uri, parsed) {
+  var serviceMap = findServiceMapping(uri);
+  if (!serviceMap || _serviceName[serviceMap.newer]) return;
   if (parsed && parsed.returnValue !== false) {
-    _settingsPrefix = SETTINGS_SERVICE;
+    _serviceName[serviceMap.newer] = serviceMap.newer;
   }
 }
 
-function isSettingsNotFound(uri, parsed) {
-  return uri.indexOf(SETTINGS_SERVICE) === 0 &&
-    _settingsPrefix === null &&
+function isServiceNotFound(uri, parsed) {
+  var serviceMap = findServiceMapping(uri);
+  return !!serviceMap &&
+    !_serviceName[serviceMap.newer] &&
     parsed && parsed.returnValue === false &&
     typeof parsed.errorText === 'string' &&
     parsed.errorText.indexOf('Service does not exist') !== -1;
@@ -102,18 +115,19 @@ function runNow(job) {
       try { parsed = JSON.parse(stdout); } catch (e) {}
     }
 
-    // Settings service fallback: the first call that gets "Service does
-    // not exist" switches to the old name and retries transparently.
+    // Service fallback: the first call that gets "Service does not exist"
+    // switches to the legacy name and retries transparently.
     var rawUri = job.args[job.args.length - 2].replace('luna://', '');
-    if (isSettingsNotFound(rawUri, parsed) && !job.settingsRetried) {
-      _settingsPrefix = SETTINGS_SERVICE_LEGACY;
-      var oldUri = SETTINGS_SERVICE_LEGACY + rawUri.slice(SETTINGS_SERVICE.length);
+    if (isServiceNotFound(rawUri, parsed) && !job.serviceRetried) {
+      var serviceMap = findServiceMapping(rawUri);
+      _serviceName[serviceMap.newer] = serviceMap.legacy;
+      var oldUri = serviceMap.legacy + rawUri.slice(serviceMap.newer.length);
       job.args[job.args.length - 2] = 'luna://' + oldUri;
-      job.settingsRetried = true;
+      job.serviceRetried = true;
       running++;
       return run(job);
     }
-    handleSettingsResult(rawUri, parsed);
+    handleServiceResult(rawUri, parsed);
 
     if (job.cb) job.cb(parsed, String(stdout || ''));
   });
