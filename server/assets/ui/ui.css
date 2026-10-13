@@ -1097,7 +1097,7 @@ button.tools-jump:active{background:var(--w80)}
   .tools-actions{width:100%;justify-content:space-between;margin-left:0}
   .tools-buttons{width:100%}
   .tools-check{flex:0 0 100%;margin:0 0 4px}
-  .tools-buttons .pill{flex:1 1 0}
+  .tools-buttons .pill{flex:1 1 0;min-width:0;padding:0 6px}
   .tools-toolbar-grp{flex-direction:column;align-items:flex-start;gap:6px}
 }
 /* Quick Access: the key's number before what it opens. */
