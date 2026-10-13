@@ -463,6 +463,10 @@
   "text": "No hay apps desinstalables en la TV.",
   "from": "No removable apps found on the TV."
  },
+ "apps.launch.button": {
+  "text": "Abrir",
+  "from": "Launch"
+ },
  "apps.loadingInstalled": {
   "text": "Cargando apps instaladas…",
   "from": "Loading installed apps…"
