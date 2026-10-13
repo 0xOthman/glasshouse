@@ -1499,10 +1499,6 @@
   "text": "{d}d {h}h {m}m",
   "from": "{d}d {h}h {m}m"
  },
- "metrics.uptime.desc": {
-  "text": "En funcionamiento continuo desde el último reinicio.",
-  "from": "Running continuously since last restart."
- },
  "metrics.uptime.hours": {
   "text": "{h}h {m}m",
   "from": "{h}h {m}m"
