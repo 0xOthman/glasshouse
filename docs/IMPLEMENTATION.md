@@ -941,6 +941,15 @@ setting from before the first change is kept in `/var/lib/tvweb/preload.json`
 for switching it back, and at start the apps switched off are put back off if
 the list has lost them, as after a firmware update.
 
+On an OLED48C5PUA (webOS 10.3) the stored list alone does not hold. Each time
+the TV is switched on from standby the preload manager reports every app as
+`isEnabled` true again, while configd still returns false for the apps switched
+off, and 4 seconds later it loaded YouTube. A `setPreloadPolicy` sent while the
+TV is on lasts through standby and is gone at the next switch-on. So the server
+sends `setPreloadPolicy` again for each app switched off, at its start and at
+every switch-on. Sent within a second of the TV reporting Active, it left
+YouTube unloaded.
+
 `/var/preferences/webos-preload-manager-conf.json` is not used: the preload
 manager writes an app back into it about 3 seconds after the app comes to the
 foreground, and preloads it regardless when the file is read-only.

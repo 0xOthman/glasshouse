@@ -16,7 +16,13 @@
  *   - the preload manager's setPreloadPolicy, which takes effect at once but is
  *     lost when the preload manager restarts.
  * Both are used, so a change takes now and lasts, without restarting the
- * preload manager. Switching an app off does not close it if it is already
+ * preload manager.
+ *
+ * On an OLED48C5PUA (webOS 10.3) the stored list is not enough: each time the
+ * TV is switched on the preload manager has every app enabled again, with
+ * configd still holding isEnabled false, and it loaded YouTube 4 s later. So
+ * setPreloadPolicy is sent again for the owner's apps at start and at every
+ * switch-on. Switching an app off does not close it if it is already
  * loaded (B8, webOS 4.4); it is not loaded again. Nothing here closes apps: on
  * a B8 an app closed from outside has left HDMI unable to open until a reboot.
  *
@@ -198,8 +204,20 @@ function setPreloadOff(id, off, cb) {
 }
 
 /*
+ * Tells the preload manager again that the owner's apps are off. Does nothing
+ * on a TV where nothing is switched off.
+ */
+function resend(cb) {
+  cb = cb || function () {};
+  if (!lunaFn) return cb();
+  var changes = readState().off.map(function (id) { return { id: id, enabled: false }; });
+  setLiveAll(changes, cb);
+}
+
+/*
  * At start: puts the owner's apps back off if the list lost them, as a
- * firmware update could. Does nothing on a TV where nothing is switched off.
+ * firmware update could, and tells the preload manager either way. Does
+ * nothing on a TV where nothing is switched off.
  */
 function reapply(cb) {
   cb = cb || function () {};
@@ -209,15 +227,15 @@ function reapply(cb) {
   readList(function (list) {
     if (!list) return cb();
     var want = listWithout(list, state.off);
-    var changes = [];
+    var lost = 0;
     state.off.forEach(function (id) {
-      list.forEach(function (e) { if (e && e.id === id && e.isEnabled !== false) changes.push({ id: id, enabled: false }); });
+      list.forEach(function (e) { if (e && e.id === id && e.isEnabled !== false) lost++; });
     });
-    if (sameList(want, list)) return cb();
+    if (sameList(want, list)) return resend(cb);
     writeList(want, function (ok) {
-      console.log('preload: ' + (ok ? 'switched ' + changes.length + ' app(s) off again' : 'could not switch apps off again'));
+      console.log('preload: ' + (ok ? 'switched ' + lost + ' app(s) off again' : 'could not switch apps off again'));
       if (!ok) return cb();
-      setLiveAll(changes, cb);
+      resend(cb);
     });
   });
 }
@@ -227,5 +245,6 @@ module.exports = {
   getPreload: getPreload,
   setPreloadOff: setPreloadOff,
   reapply: reapply,
+  resend: resend,
   KEY: KEY
 };
