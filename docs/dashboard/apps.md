@@ -14,7 +14,7 @@ Lists the apps downloaded from the LG store or installed by hand, with their ver
 
 ### Install homebrew apps
 
-Lists the Homebrew Channel catalog, with Install, Update or Uninstall for each app. Downloads are checked against the catalog before they are installed, and the dashboard asks first when something needs a decision, such as replacing a copy installed from the LG store.
+Lists the Homebrew Channel catalog, with category filters (All, Media, Games, Utilities, Ambilight, Screensavers) and keyword search, and Install, Update or Uninstall for each app. Downloads are checked against the catalog before they are installed, and the dashboard asks first when something needs a decision, such as replacing a copy installed from the LG store.
 
 ### Install app from a URL or file
 

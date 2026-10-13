@@ -971,12 +971,13 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
 .tools-cnt.has-err{color:var(--red)}
 .tools-cnt.has-warn{color:var(--cand)}
 .tools-seg button.on .tools-cnt{color:inherit}
-.tools-seg button{background:transparent;border:1px solid var(--edge);border-radius:2px;color:var(--w80);
+.tools-seg button, .catalog-seg button{background:transparent;border:1px solid var(--edge);border-radius:2px;color:var(--w80);
   font:500 11px 'Manrope';letter-spacing:.1em;text-transform:uppercase;padding:0 12px;height:28px;min-height:0;
   cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.16s ease}
-.tools-seg button:hover{color:var(--w100);border-color:var(--w70)}
-.tools-seg button.active,.tools-seg button.on{color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100);font-weight:500}
-.tools-seg button.active:hover,.tools-seg button.on:hover{color:var(--btn-on-fg);border-color:var(--w100)}
+.tools-seg button:hover, .catalog-seg button:hover{color:var(--w100);border-color:var(--w70)}
+.tools-seg button.active, .tools-seg button.on, .catalog-seg button.on{color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100);font-weight:500}
+.tools-seg button.active:hover, .tools-seg button.on:hover, .catalog-seg button.on:hover{color:var(--btn-on-fg);border-color:var(--w100)}
+.catalog-seg{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
 
 .src-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
 .src-dot.src-system{background:#3061FF}
