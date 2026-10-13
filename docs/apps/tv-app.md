@@ -17,6 +17,7 @@ The TV app is operated entirely with the LG remote control:
 * **Channel Up / Channel Down** (or **Page Up / Page Down**): Jump 6 selectable rows at a time to quickly page through long lists, such as the Homebrew Channel catalog, installed apps, or system options.
 * **OK / Enter**: Toggle switches, expand options, or confirm app installations and actions.
 * **Back**: Return to the previous view from sub-menus (such as app preview details) or exit the app.
+* **Magic Remote pointer**: Clicking a row selects it and clicking it again acts on it; clicking a tab opens it.
 
 ### First-run setup wizard
 
