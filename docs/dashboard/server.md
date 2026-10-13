@@ -12,7 +12,7 @@ Shows the installed version and whether a newer release is out. **Check now** lo
 
 **Check for updates daily** looks once a day on its own, and lets Home Assistant offer the update.
 
-**Daemon health** shows the background service's status, process uptime, memory footprint on the TV (RSS and heap), and listening port.
+**Server health** shows the background process uptime and memory footprint on the TV.
 
 **App on the TV's home screen** adds or removes [the dashboard's own app](../apps/tv-app.md), which opens it on the TV and is driven by the remote.
 

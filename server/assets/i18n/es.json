@@ -2303,46 +2303,6 @@
   "text": "Comprobar ahora",
   "from": "Check now"
  },
- "server.daemon.desc": {
-  "text": "Daemon de Glasshouse en segundo plano a la escucha en el puerto {port}. {memDetails}{pid}.",
-  "from": "Glasshouse background daemon listening on port {port}. {memDetails}{pid}."
- },
- "server.daemon.memBadge": {
-  "text": "{n} MB RAM",
-  "from": "{n} MB RAM"
- },
- "server.daemon.memTooltip": {
-  "text": "Memoria (RSS)",
-  "from": "Memory (RSS)"
- },
- "server.daemon.pid": {
-  "text": "PID {pid}",
-  "from": "PID {pid}"
- },
- "server.daemon.portBadge": {
-  "text": "Puerto {port}",
-  "from": "Port {port}"
- },
- "server.daemon.portTooltip": {
-  "text": "Puerto de escucha",
-  "from": "Listening port"
- },
- "server.daemon.running": {
-  "text": "En ejecución",
-  "from": "Running"
- },
- "server.daemon.title": {
-  "text": "Salud del daemon",
-  "from": "Daemon health"
- },
- "server.daemon.uptimeMins": {
-  "text": "{m}m",
-  "from": "{m}m"
- },
- "server.daemon.uptimeTooltip": {
-  "text": "Tiempo de actividad del proceso",
-  "from": "Process uptime"
- },
  "server.devtools.closed": {
   "text": "Cerrado a la red",
   "from": "Closed to the network"
@@ -2390,6 +2350,30 @@
  "server.glasshouse": {
   "text": "Glasshouse",
   "from": "Glasshouse"
+ },
+ "server.health.desc": {
+  "text": "Uso de memoria y tiempo de actividad del proceso en segundo plano de Glasshouse en esta TV.",
+  "from": "Memory footprint and uptime of the Glasshouse background process on this TV."
+ },
+ "server.health.memBadge": {
+  "text": "{n} MB RAM",
+  "from": "{n} MB RAM"
+ },
+ "server.health.memTooltip": {
+  "text": "Memoria (RSS)",
+  "from": "Memory (RSS)"
+ },
+ "server.health.title": {
+  "text": "Salud del servidor",
+  "from": "Server health"
+ },
+ "server.health.uptimeMins": {
+  "text": "{m}m",
+  "from": "{m}m"
+ },
+ "server.health.uptimeTooltip": {
+  "text": "Tiempo de actividad del proceso",
+  "from": "Process uptime"
  },
  "server.install": {
   "text": "Instalar v{version}",
@@ -6055,14 +6039,6 @@
   "text": "v{version} (Actualizada)",
   "from": "v{version} (Up to date)"
  },
- "tv.update.daemonHealth": {
-  "text": "Daemon en segundo plano",
-  "from": "Background daemon"
- },
- "tv.update.daemonHealth.hint": {
-  "text": "Estado del proceso en segundo plano de Glasshouse, puerto de escucha y uso de memoria.",
-  "from": "Glasshouse background process status, listening port, and memory footprint."
- },
  "tv.update.head.information": {
   "text": "Información",
   "from": "Information"
@@ -6178,6 +6154,14 @@
  "tv.update.rollingBackVersion": {
   "text": "Volviendo a la v{version}…",
   "from": "Rolling back to v{version}…"
+ },
+ "tv.update.serverHealth": {
+  "text": "Salud del servidor",
+  "from": "Server health"
+ },
+ "tv.update.serverHealth.hint": {
+  "text": "Uso de memoria y tiempo de actividad del proceso en segundo plano de Glasshouse en esta TV.",
+  "from": "Memory footprint and uptime of the Glasshouse background process on this TV."
  },
  "tv.update.slow": {
   "text": "El reinicio está tardando más de lo esperado",

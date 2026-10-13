@@ -166,8 +166,8 @@ vm.runInNewContext(scriptMatch[1] + '\n;' + testPagingSnippet, sandbox);
   console.log('  ✓ page() jumps 6 rows, skips headers, and respects list bounds');
 })();
 
-// 5. updateRows includes background daemon info when provided
-(function testUpdateRowsDaemonHealth() {
+// 5. updateRows includes server health info when provided
+(function testUpdateRowsServerHealth() {
   assert.strictEqual(typeof sandbox.updateRows, 'function', 'updateRows function exists');
   var rows = sandbox.updateRows({
     ok: true,
@@ -178,10 +178,10 @@ vm.runInNewContext(scriptMatch[1] + '\n;' + testPagingSnippet, sandbox);
       rss: 20971520
     }
   });
-  var daemonRow = rows.filter(function (r) { return r.label === 'Background daemon'; })[0];
-  assert.ok(daemonRow, 'has Background daemon row');
-  assert.strictEqual(daemonRow.value, ':8080 · 1h 0m · 20 MB', 'formats daemon health value correctly');
-  console.log('  ✓ updateRows includes Background daemon health row');
+  var healthRow = rows.filter(function (r) { return r.label === 'Server health'; })[0];
+  assert.ok(healthRow, 'has Server health row');
+  assert.strictEqual(healthRow.value, '1h 0m · 20 MB RAM', 'formats server health value correctly');
+  console.log('  ✓ updateRows includes Server health row');
 })();
 
 console.log('ALL test-dashboard-view.js assertions passed!\n');

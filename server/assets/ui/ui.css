@@ -936,9 +936,9 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
 .timer-days button{min-width:42px;height:28px;padding:0 8px;font:500 11px 'Manrope';letter-spacing:.06em;
   color:var(--w60);background:transparent;border:1px solid var(--edge);border-radius:2px;cursor:pointer}
 .timer-days button.on{color:var(--green);border-color:var(--green)}
-#apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row, #daemon-row{flex-wrap:wrap}
-#apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main, #daemon-row .prot-main{flex:1 1 160px}
-#apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status, #daemon-status{
+#apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row, #server-health-row{flex-wrap:wrap}
+#apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main, #server-health-row .prot-main{flex:1 1 160px}
+#apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status, #server-health-status{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%;
 }
 #apps-catalog-list .prot-status button{max-width:100%;white-space:normal}
