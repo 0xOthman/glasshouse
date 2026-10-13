@@ -581,3 +581,33 @@ async function powerAction(a) {
 fetch(api('/api/caps')).then(r => r.json()).then(cp => {
   if (!cp.allowPower) q('pwset').hidden = true;
 }).catch(() => {});
+
+// D-pad disclosure: uncollapse by default on mobile so the TV remote is immediately accessible.
+function updateDpadMobileDefault() {
+  const dpad = q('disc-dpad');
+  if (!dpad) return;
+  let stored = null;
+  try { stored = localStorage.getItem('dpadOpen'); } catch (e) {}
+  if (stored !== null) {
+    dpad.open = stored === '1';
+    return;
+  }
+  const isMobile = (window.matchMedia && (window.matchMedia('(max-width: 820px)').matches || window.matchMedia('(pointer: coarse) and (max-width: 1024px)').matches)) || window.innerWidth < 820;
+  dpad.open = isMobile;
+}
+
+(function initDpad() {
+  const dpad = q('disc-dpad');
+  if (!dpad) return;
+  updateDpadMobileDefault();
+  let userToggled = false;
+  const summary = dpad.querySelector('summary');
+  if (summary) {
+    summary.addEventListener('click', () => { userToggled = true; });
+  }
+  dpad.addEventListener('toggle', () => {
+    if (userToggled) {
+      try { localStorage.setItem('dpadOpen', dpad.open ? '1' : '0'); } catch (e) {}
+    }
+  });
+})();
