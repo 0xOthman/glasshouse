@@ -57,9 +57,27 @@ server.listen(0, '127.0.0.1', function () {
         waitFor('reconnect after silence', function () { return connects === 4 && client.connected; }, 8000, function () {
           console.log('  ✓ a broker silent past a ping is reconnected');
           client.disconnect();
-          server.close();
-          console.log('test-mqtt.js passed');
-          process.exit(0);
+
+          // 3. MiniMQTT.testConnection probes a responsive broker
+          MiniMQTT.testConnection({ host: '127.0.0.1', port: port }, function (err, res) {
+            assert.ifError(err);
+            assert.strictEqual(res.ok, true);
+            assert.strictEqual(res.code, 0);
+            assert.strictEqual(typeof res.latencyMs, 'number');
+            console.log('  ✓ testConnection reports reachability and latency for an answering broker');
+
+            // 4. MiniMQTT.testConnection reports failure on an unreachable port
+            MiniMQTT.testConnection({ host: '127.0.0.1', port: 1 }, function (err2, res2) {
+              assert.ifError(err2);
+              assert.strictEqual(res2.ok, false);
+              assert.strictEqual(typeof res2.error, 'string');
+              console.log('  ✓ testConnection reports clean error on an unreachable port');
+
+              server.close();
+              console.log('test-mqtt.js passed');
+              process.exit(0);
+            });
+          });
         });
       });
     });

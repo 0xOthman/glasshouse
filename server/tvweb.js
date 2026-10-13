@@ -791,6 +791,7 @@ routes.init({
   assetDirs: ASSET_DIRS,
   luna: luna,
   getMqttStatus: function () { return MQTT_STATUS; },
+  testMqtt: MiniMQTT.testConnection,
   appsChanged: appsChanged,
   logs: logsModule,
   version: TVWEB_VERSION,

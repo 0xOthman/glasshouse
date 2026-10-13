@@ -95,6 +95,7 @@ var assetPathFn = null;
 var assetDirsList = [];
 var lunaFn = null;
 var getMqttStatusFn = null;
+var testMqttFn = null;
 var piccapStatusFn = function (cb) { cb(null); };
 var appsChangedFn = function () {};
 var versionStr = '';
@@ -1528,6 +1529,62 @@ function handleRequest(req, res) {
     return;
   }
 
+  if (pathname === '/api/mqtt/test' && req.method === 'POST') {
+    if (!authed(u.query, req)) return send(res, 401, JSON.stringify({ ok: false, error: 'unauthorized' }));
+    var mctype = String(req.headers['content-type'] || '').toLowerCase();
+    if (mctype.indexOf('application/json') !== 0) {
+      return send(res, 415, JSON.stringify({ ok: false, error: 'Content-Type must be application/json' }));
+    }
+    var morigin = req.headers.origin;
+    if (morigin && String(morigin).replace(/^https?:\/\//, '') !== String(req.headers.host || '')) {
+      return send(res, 403, JSON.stringify({ ok: false, error: 'cross-origin request refused' }));
+    }
+    var mbody = '';
+    req.on('data', function (d) {
+      mbody += d;
+      if (mbody.length > 4096) req.destroy();
+    });
+    req.on('end', function () {
+      var j = {};
+      if (mbody.trim()) {
+        try { j = JSON.parse(mbody); } catch (e) {
+          return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+        }
+      }
+      var curMqtt = config.mqtt || {};
+      var targetHost = (j.host && typeof j.host === 'string') ? j.host.trim() : (curMqtt.host || '');
+      if (!targetHost) {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'no broker configured to test' }));
+      }
+      if (!config.allowControl && targetHost !== curMqtt.host) {
+        return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+      }
+      var targetPort = (j.port !== undefined && j.port !== null && j.port !== '') ? parseInt(j.port, 10) : curMqtt.port;
+      var targetTls = j.tls !== undefined ? !!j.tls : !!curMqtt.tls;
+      var targetRejectUnauth = j.tlsRejectUnauthorized !== undefined ? !!j.tlsRejectUnauthorized : (curMqtt.tlsRejectUnauthorized !== false);
+      var targetUser = j.username !== undefined ? String(j.username) : (curMqtt.username || '');
+      var targetPass = (j.password !== undefined && j.password !== '') ? String(j.password) : (curMqtt.password || '');
+
+      if (!testMqttFn) {
+        return send(res, 503, JSON.stringify({ ok: false, error: 'MQTT test not available' }));
+      }
+
+      testMqttFn({
+        host: targetHost,
+        port: targetPort,
+        tls: targetTls,
+        tlsRejectUnauthorized: targetRejectUnauth,
+        username: targetUser,
+        password: targetPass,
+        timeoutMs: 6000
+      }, function (err, result) {
+        if (err) return send(res, 500, JSON.stringify({ ok: false, error: err.message || String(err) }));
+        send(res, 200, JSON.stringify(result));
+      });
+    });
+    return;
+  }
+
   if (pathname === '/api/control' && req.method === 'POST') {
     var ctype = String(req.headers['content-type'] || '').toLowerCase();
     if (ctype.indexOf('application/json') !== 0) {
@@ -1596,6 +1653,7 @@ function init(opts) {
   if (opts.assetDirs) assetDirsList = opts.assetDirs;
   if (opts.luna) lunaFn = opts.luna;
   if (opts.getMqttStatus) getMqttStatusFn = opts.getMqttStatus;
+  if (opts.testMqtt) testMqttFn = opts.testMqtt;
   if (opts.appsChanged) appsChangedFn = opts.appsChanged;
   if (opts.version) versionStr = displayVersionStr = opts.version;
   if (opts.displayVersion) displayVersionStr = opts.displayVersion;

@@ -1643,6 +1643,26 @@
   "text": "Milisegundos entre publicaciones.",
   "from": "Milliseconds between publishes."
  },
+ "mqtt.net.discovery": {
+  "text": "Detección",
+  "from": "Discovery"
+ },
+ "mqtt.net.discoveryActive": {
+  "text": "Detección automática",
+  "from": "Auto-discovery"
+ },
+ "mqtt.net.noBroker": {
+  "text": "Sin intermediario configurado",
+  "from": "No broker configured"
+ },
+ "mqtt.net.telemetryAge": {
+  "text": "Telemetría: {age}",
+  "from": "Telemetry: {age}"
+ },
+ "mqtt.net.title": {
+  "text": "Topología del puente",
+  "from": "Bridge topology"
+ },
  "mqtt.notBack": {
   "text": "Guardado, pero el servidor no volvió. Revisa el registro en la TV.",
   "from": "Saved, but the server did not come back. Check the log on the TV."
@@ -1734,6 +1754,34 @@
  "mqtt.status.off": {
   "text": "El puente está desactivado. No se publica nada.",
   "from": "The bridge is off. Nothing is published."
+ },
+ "mqtt.test.button": {
+  "text": "Probar conexión",
+  "from": "Test connection"
+ },
+ "mqtt.test.failed": {
+  "text": "Error",
+  "from": "Failed"
+ },
+ "mqtt.test.latency": {
+  "text": "{ms} ms de latencia",
+  "from": "{ms} ms latency"
+ },
+ "mqtt.test.noBroker": {
+  "text": "No hay dirección de intermediario para probar",
+  "from": "No broker address configured to test"
+ },
+ "mqtt.test.reachable": {
+  "text": "Accesible",
+  "from": "Reachable"
+ },
+ "mqtt.test.testing": {
+  "text": "Probando...",
+  "from": "Testing..."
+ },
+ "mqtt.test.unreachable": {
+  "text": "Intermediario inaccesible",
+  "from": "Broker unreachable"
  },
  "mqtt.tls.note": {
   "text": "Sin TLS, el usuario y la contraseña cruzan la red en texto claro. El fichero de configuración es legible por cualquier cosa con root en esta TV, así que usa una cuenta de broker restringida a estos temas en lugar de una compartida.",
