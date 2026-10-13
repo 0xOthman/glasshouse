@@ -29,6 +29,15 @@ echo "$(date): starting"
 # cut it has not yet. The server puts them back once the time is valid.
 if [ -f /var/lib/tvweb/adblock_enabled ] && [ -f /var/lib/tvweb/adblock_hosts ]; then
   sed -i '/nextlgsdp\.com/d' /var/lib/tvweb/adblock_hosts 2>/dev/null || true
+  # Other tools' lines (AmazOff, whose boot hook runs before this one) are
+  # taken from this boot's /etc/hosts, and the last boot's are dropped. The
+  # table's own lines are comments, localhost and sinkholes: privacy.js
+  # foreignHostsLines tells them apart the same way.
+  OWN='^[[:space:]]*(#|$)|^[[:space:]]*(0\.0\.0\.0|::)[[:space:]]|localhost|ip6-'
+  { grep -E "$OWN" /var/lib/tvweb/adblock_hosts; grep -v -E "$OWN" /etc/hosts; } \
+    > /var/lib/tvweb/adblock_hosts.new 2>/dev/null \
+    && cat /var/lib/tvweb/adblock_hosts.new > /var/lib/tvweb/adblock_hosts
+  rm -f /var/lib/tvweb/adblock_hosts.new
   mount --bind /var/lib/tvweb/adblock_hosts /etc/hosts 2>/dev/null || true
 fi
 

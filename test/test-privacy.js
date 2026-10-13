@@ -118,6 +118,34 @@ test("they are carried over when it is, so this table does not undo it", functio
   }
 });
 
+var AMAZOFF = ['127.0.0.1 cloudfront.xp-assets.aiv-cdn.net', '::1 cloudfront.xp-assets.aiv-cdn.net'];
+
+test("other tools' lines are told apart from the table's own and the Homebrew Channel's", function () {
+  var hosts = privacy.adBlockHostsTable('ads') + '\n# webosbrew startup script\n0.0.0.0 su.lge.com\n' +
+    AMAZOFF.join('\n') + '\n' + AMAZOFF[0] + '\n192.168.1.5\tnas\n';
+  assert.deepEqual(privacy.foreignHostsLines(hosts), AMAZOFF.concat(['192.168.1.5\tnas']));
+});
+
+test("rewriting the mounted table keeps what other tools added to it", function () {
+  var TABLE = '/var/lib/tvweb/adblock_hosts';
+  var saved = mockEnv.files['/etc/hosts'];
+  mockEnv.files['/etc/hosts'] = privacy.adBlockHostsTable('ads') + AMAZOFF.join('\n') + '\n';
+  try {
+    var result;
+    privacy.setAdBlock('ads', function (r) { result = r; });
+    assert.ok(result && result.ok, 'applied without remounting');
+    AMAZOFF.forEach(function (line) {
+      assert.ok(mockEnv.files[TABLE].indexOf(line) !== -1, line + ' was dropped');
+    });
+    assert.ok(sinkholed(mockEnv.files[TABLE], 'ad.lgsmartad.com'));
+  } finally {
+    if (saved === undefined) delete mockEnv.files['/etc/hosts'];
+    else mockEnv.files['/etc/hosts'] = saved;
+    delete mockEnv.files['/var/lib/tvweb/adblock_enabled'];
+    delete mockEnv.files[TABLE];
+  }
+});
+
 test('Customer data host cdpsvc is blocked in both Ads & telemetry and Everything modes', function () {
   var adsList = privacy.adBlockList('ads');
   assert.ok(adsList.indexOf('cdpsvc.lgtvcommon.com') !== -1, 'cdpsvc base domain must be in ads mode');
