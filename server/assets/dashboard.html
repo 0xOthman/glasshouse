@@ -287,8 +287,12 @@ function refreshCaps() {
     .then(function (r) { return r.json(); })
     .then(function (d) {
       // A new install walks through setup first - but only in the TV app: a
-      // phone's browser cannot use those screens.
-      if (d && d.setupNeeded && window.PalmSystem) return location.replace('/assets/setup.html');
+      // phone's browser cannot use those screens. The ?setup=1 or ?emulate-setup=1
+      // query parameter allows testing the setup wizard from any browser.
+      var emulateParam = location.search.indexOf('setup=') !== -1 || location.search.indexOf('emulate-setup') !== -1;
+      if (d && ((d.setupNeeded && window.PalmSystem) || emulateParam)) {
+        return location.replace('/assets/setup.html' + (d.setupNeeded ? '' : '?demo=1'));
+      }
       lanOrigin = (d && d.origin) || null;
       lanKey = (d && d.key) || null;
       renderHint();

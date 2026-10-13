@@ -1155,4 +1155,70 @@ function createMockRes(cb) {
   console.log('  ✓ setup opens the dashboard on the default host and closes it to loopback');
 })();
 
+// Testing the setup wizard emulation (dry-run mode).
+(function testSetupEmulation() {
+  var cfg = { allowControl: true, port: 8080, host: '0.0.0.0', emulateSetup: true };
+  routes.init({
+    config: cfg,
+    telemetry: { alwaysOnSupported: function (cb) { cb(true); }, lanHostname: function () { return 'lg.lan'; } }
+  });
+  routes.resetSimulatedSetup();
+
+  assert.strictEqual(routes.setupPending(), true, 'setupPending is true when emulateSetup is set');
+
+  function call(method, url, body, cb, remoteIp) {
+    var req = createMockReq({ method: method, url: url, remoteAddress: remoteIp || '192.168.1.100', headers: { 'content-type': 'application/json' } });
+    var res = createMockRes(function (r) {
+      var parsed = null;
+      try { parsed = JSON.parse(r.body); } catch (e) {}
+      cb(r, parsed);
+    });
+    routes.handleRequest(req, res);
+    if (body) {
+      req.emit('data', JSON.stringify(body));
+      req.emit('end');
+    }
+  }
+
+  // GET /api/setup?demo=1 from non-TV remote address succeeds in demo mode
+  call('GET', '/api/setup?demo=1', null, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+    assert.strictEqual(b.needed, true);
+  });
+
+  // POST /api/setup with action network simulates without restart
+  call('POST', '/api/setup', { action: 'network', open: true, demo: true }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+    assert.strictEqual(b.restarting, false);
+  });
+
+  // POST /api/setup with action alwaysReady simulates
+  call('POST', '/api/setup', { action: 'alwaysReady', on: true, demo: true }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+  });
+
+  // POST /api/setup with action handoff simulates link
+  call('POST', '/api/setup', { action: 'handoff', demo: true }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+    assert.ok(b.url && b.url.indexOf('?c=demo') !== -1);
+  });
+
+  // POST /api/setup with action done simulates completion
+  call('POST', '/api/setup', { action: 'done', demo: true }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+  });
+
+  console.log('  ✓ setup emulation: safe dry-run responses without restart or persistent writes');
+})();
+
 console.log('ALL test-routes.js assertions passed!');
