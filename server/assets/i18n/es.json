@@ -2335,10 +2335,6 @@
   "text": "Funciones experimentales",
   "from": "Experimental features"
  },
- "server.experimental.desc": {
-  "text": "En algunas TV han dejado la imagen o el sonido apagados hasta desenchufar la TV.",
-  "from": "On some TVs these have left the picture or sound off until the TV was unplugged."
- },
  "server.experimental.screensaver": {
   "text": "Salvapantallas personalizados (webOS 10+)",
   "from": "Custom screen savers (webOS 10+)"
@@ -2354,6 +2350,10 @@
  "server.experimental.tileHiding.short": {
   "text": "Permite ocultar apps integradas de la pantalla de inicio, en la pestaña Apps.",
   "from": "Allows hiding built-in apps from the Home screen, on the Apps tab."
+ },
+ "server.experimental.tileHiding.warn": {
+  "text": "En algunas TV esto ha dejado la imagen o el sonido apagados hasta desenchufar la TV. En webOS 10 y posteriores, se han reportado múltiples problemas que incluyen pantalla negra y ajustes de imagen bloqueados.",
+  "from": "On some TVs this has left the picture or sound off until the TV was unplugged. On webOS 10 and later, multiple issues have been reported including black screen and stuck picture settings."
  },
  "server.glasshouse": {
   "text": "Glasshouse",
