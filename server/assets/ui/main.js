@@ -13,15 +13,22 @@ async function waitForServer() {
       const r = await fetch(api('/api/caps'), { cache: 'no-store' });
       if (r.ok) {
         cfgMsg(t('mqtt.applied', 'Applied.'), 'good');
-        q('cfg-save-btn').disabled = false;
-        loadSettings();
+        const saveBtn = q('cfg-save-btn');
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('busy'); }
+        if (typeof loadSettings === 'function') await loadSettings(true);
+        setTimeout(() => {
+          if (q('cfg-msg') && q('cfg-msg').textContent === t('mqtt.applied', 'Applied.')) {
+            cfgMsg(t('mqtt.save.note', 'Saving restarts the server. The dashboard reconnects on its own.'));
+          }
+        }, 4000);
         tick();
         return;
       }
     } catch (e) { /* still down */ }
   }
   cfgMsg(t('mqtt.notBack', 'Saved, but the server did not come back. Check the log on the TV.'), 'bad');
-  q('cfg-save-btn').disabled = false;
+  const saveBtn = q('cfg-save-btn');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('busy'); }
 }
 
 /*

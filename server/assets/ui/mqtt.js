@@ -274,7 +274,7 @@ function cfgToggleEnt(cb) {
   renderEntitiesUI();
 }
 
-async function loadSettings() {
+async function loadSettings(keepMsg) {
   try {
     const r = await fetch(api('/api/settings'));
     const j = await r.json();
@@ -323,10 +323,16 @@ async function loadSettings() {
       });
     }
 
-    q('cfg-save-btn').disabled = !j.writable;
-    cfgMsg(j.writable
-      ? t('mqtt.save.note', 'Saving restarts the server. The dashboard reconnects on its own.')
-      : t('mqtt.controlsOff', 'Controls are disabled in config.json, so settings cannot be changed from here.'));
+    const saveBtn = q('cfg-save-btn');
+    if (saveBtn) {
+      saveBtn.disabled = !j.writable;
+      saveBtn.classList.remove('busy');
+    }
+    if (!keepMsg) {
+      cfgMsg(j.writable
+        ? t('mqtt.save.note', 'Saving restarts the server. The dashboard reconnects on its own.')
+        : t('mqtt.controlsOff', 'Controls are disabled in config.json, so settings cannot be changed from here.'));
+    }
   } catch (e) { cfgMsg(e.message, 'bad'); }
 }
 
@@ -368,13 +374,15 @@ async function saveSettings() {
     const j = await r.json();
     if (!j.ok) {
       cfgMsg(j.error || t('mqtt.saveFailed', 'Save failed'), 'bad');
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('busy'); }
+      if (saveBtn) saveBtn.disabled = false;
       return;
     }
     cfgMsg(t('mqtt.restarting', 'Saved. Restarting...'));
     await waitForServer();
   } catch (e) {
     cfgMsg(e.message, 'bad');
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('busy'); }
+    if (saveBtn) saveBtn.disabled = false;
+  } finally {
+    if (saveBtn) saveBtn.classList.remove('busy');
   }
 }
