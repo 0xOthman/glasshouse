@@ -2360,6 +2360,17 @@ document.addEventListener('keydown', function (e) {
   else if (c === 13 || k === 'Enter')      { activate();    e.preventDefault(); }
   else if (c === 461 || k === 'GoBack' || k === 'BrowserBack') { if (sub) backOut(); else leaveApp(); e.preventDefault(); }
 });
+
+// The Magic Remote's wheel arrives as a wheel event, not a key, and the page
+// itself never scrolls (overflow:hidden), so it moves the selection a row per
+// notch as Up and Down do. Older engines only fire mousewheel, whose
+// wheelDelta has the opposite sign to deltaY.
+function onWheel(e) {
+  var d = e.deltaY !== undefined ? e.deltaY : -e.wheelDelta;
+  if (d) move(d > 0 ? 1 : -1);
+  e.preventDefault();
+}
+document.addEventListener('onwheel' in document ? 'wheel' : 'mousewheel', onWheel);
 window.addEventListener('resize', function () { if (rows.length) position(); });
 
 renderTabs();
