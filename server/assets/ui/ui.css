@@ -933,16 +933,18 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
 .timer-days button{min-width:42px;height:28px;padding:0 8px;font:500 11px 'Manrope';letter-spacing:.06em;
   color:var(--w60);background:transparent;border:1px solid var(--edge);border-radius:2px;cursor:pointer}
 .timer-days button.on{color:var(--green);border-color:var(--green)}
-/* The disabled "Updates through Homebrew Channel" button is wider than a phone's spare width. */
-#apps-catalog-list .prot-row, #apps-installed-list .prot-row{flex-wrap:wrap}
-#apps-catalog-list .prot-main, #apps-installed-list .prot-main{flex:1 1 160px}
-#apps-catalog-list .prot-status{max-width:100%}
+#apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row{flex-wrap:wrap}
+#apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main{flex:1 1 160px}
+#apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%;
+}
 #apps-catalog-list .prot-status button{max-width:100%;white-space:normal}
-#apps-installed-list .prot-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.app-storage-badge{
+.app-badge, .app-storage-badge{
+  display:inline-flex;align-items:center;
   font-family:'Manrope',sans-serif;font-size:11px;font-weight:600;letter-spacing:.04em;
   padding:3px 8px;border-radius:6px;background:var(--w06);color:var(--w80);
   border:1px solid var(--edge);white-space:nowrap;font-variant-numeric:tabular-nums;
+  line-height:normal;
 }
 /* Renaming a saved page happens in its own row: the name becomes the field. */
 .page-edit{display:flex;gap:8px;margin:0}

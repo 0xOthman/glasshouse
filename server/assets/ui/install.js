@@ -122,9 +122,9 @@ function renderCatalog() {
       ? `<img src="${esc(a.iconUri)}" width="38" height="38" loading="lazy" referrerpolicy="no-referrer" alt="" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">`
       : '<span style="width:38px;height:38px;flex-shrink:0"></span>';
     const meta = [a.version ? 'v' + a.version : '',
-      a.size ? fmtSize(a.size) : '',
       a.state === 'update' && a.installedVersion ? t('apps.install.have', 'installed: v{version}', { version: a.installedVersion }) : ''
     ].filter(Boolean).join(' · ');
+    const sizeBadge = (a.size && typeof fmtSize === 'function') ? fmtSize(a.size) : '';
     const root = a.rootRequired ? ` <span class="pill warn" style="padding:1px 8px">${esc(t('apps.install.rootBadge', 'root'))}</span>` : '';
     const clickFn = isInstalled
       ? `confirmUninstall('${jsq(a.id)}', '${jsq(a.title || a.id)}');`
@@ -132,11 +132,12 @@ function renderCatalog() {
     return `<div class="prot-row">
       ${icon}
       <div class="prot-main">
-        <div class="prot-title">${esc(a.title || a.id)}${root} <span class="prot-sub">&middot; ${esc(meta)}</span></div>
+        <div class="prot-title">${esc(a.title || a.id)}${root}${meta ? ` <span class="prot-sub">&middot; ${esc(meta)}</span>` : ''}</div>
         <div class="prot-desc">${esc(a.description || a.id)}</div>
         ${rowError[a.id] ? `<div class="prot-desc row-err">${esc(rowError[a.id])}</div>` : ''}
       </div>
       <div class="prot-status">
+        ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
         <button type="button" class="pill ${cls}" data-app="${esc(a.id)}" onclick="${clickFn}"${fill} ${off ? 'disabled' : ''}>${esc(label)}</button>
       </div>
     </div>`;
