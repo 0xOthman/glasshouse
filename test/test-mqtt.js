@@ -37,6 +37,14 @@ server.listen(0, '127.0.0.1', function () {
   client.connect();
 
   waitFor('first connect', function () { return client.connected; }, 3000, function () {
+    assert.strictEqual(typeof client.latencyMs, 'number');
+    assert.ok(client.latencyMs >= 0);
+    // Latency is updated on PINGRESP (packet 13)
+    client.pingStart = Date.now() - 40;
+    client.client.emit('data', toBuffer([0xd0, 0x00]));
+    assert.ok(client.latencyMs >= 40);
+    console.log('  ✓ CONNACK and PINGRESP record and update latency');
+
     // 1. A close the broker never acknowledges is forced, and the client connects again
     client.client.end = function () {};
     client.setWill('asleep');
@@ -73,9 +81,70 @@ server.listen(0, '127.0.0.1', function () {
               assert.strictEqual(typeof res2.error, 'string');
               console.log('  ✓ testConnection reports clean error on an unreachable port');
 
-              server.close();
-              console.log('test-mqtt.js passed');
-              process.exit(0);
+              // 5. MiniMQTT client and testConnection handle auth failure (CONNACK code 4)
+              var authServer = net.createServer(function (sock) {
+                sock.on('data', function (d) {
+                  if ((d[0] >> 4) === 1) {
+                    sock.write(toBuffer([0x20, 0x02, 0x00, 0x04])); // CONNACK code 4
+                    sock.end();
+                  }
+                });
+                sock.on('error', function () {});
+              });
+              authServer.listen(0, '127.0.0.1', function () {
+                var authPort = authServer.address().port;
+                var authClient = new MiniMQTT({ host: '127.0.0.1', port: authPort, clientId: 'badauth' });
+                var authErr = null;
+                authClient.on('error', function (e) { authErr = e; });
+                authClient.connect();
+                waitFor('auth error event', function () { return !!authErr; }, 3000, function () {
+                  assert.strictEqual(authErr.message, 'bad username or password');
+                  authClient.disconnect();
+                  MiniMQTT.testConnection({ host: '127.0.0.1', port: authPort }, function (err3, res3) {
+                    assert.ifError(err3);
+                    assert.strictEqual(res3.ok, false);
+                    assert.strictEqual(res3.code, 4);
+                    assert.strictEqual(res3.error, 'bad username or password');
+                    console.log('  ✓ bad username or password (CONNACK 4) surfaces descriptive error');
+
+                    // 6. MiniMQTT client and testConnection handle not authorized (CONNACK code 5)
+                    authServer.close(function () {
+                      var unauthServer = net.createServer(function (sock) {
+                        sock.on('data', function (d) {
+                          if ((d[0] >> 4) === 1) {
+                            sock.write(toBuffer([0x20, 0x02, 0x00, 0x05])); // CONNACK code 5
+                            sock.end();
+                          }
+                        });
+                        sock.on('error', function () {});
+                      });
+                      unauthServer.listen(0, '127.0.0.1', function () {
+                        var unauthPort = unauthServer.address().port;
+                        var unauthClient = new MiniMQTT({ host: '127.0.0.1', port: unauthPort, clientId: 'unauth' });
+                        var unauthErr = null;
+                        unauthClient.on('error', function (e) { unauthErr = e; });
+                        unauthClient.connect();
+                        waitFor('not authorized error event', function () { return !!unauthErr; }, 3000, function () {
+                          assert.strictEqual(unauthErr.message, 'not authorized');
+                          unauthClient.disconnect();
+                          MiniMQTT.testConnection({ host: '127.0.0.1', port: unauthPort }, function (err4, res4) {
+                            assert.ifError(err4);
+                            assert.strictEqual(res4.ok, false);
+                            assert.strictEqual(res4.code, 5);
+                            assert.strictEqual(res4.error, 'not authorized');
+                            console.log('  ✓ not authorized (CONNACK 5) surfaces descriptive error');
+
+                            unauthServer.close();
+                            server.close();
+                            console.log('test-mqtt.js passed');
+                            process.exit(0);
+                          });
+                        });
+                      });
+                    });
+                  });
+                });
+              });
             });
           });
         });

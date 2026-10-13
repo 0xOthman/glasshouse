@@ -95,8 +95,10 @@ function renderMqttTopology(st) {
     } else if (st.state === 'error') {
       const errText = st.detail || t('mqtt.state.error', 'Error');
       q('mqtt-net-last-pub').textContent = t('mqtt.net.unreachable', 'Unreachable') + ': ' + errText;
+      q('mqtt-net-last-pub').title = errText;
     } else {
       q('mqtt-net-last-pub').textContent = t('common.off', 'Off');
+      q('mqtt-net-last-pub').title = '';
     }
   }
   if (isEnabled && st.state === 'connected' && st.lastPublishMs != null) {
@@ -111,6 +113,7 @@ function renderMqttTopology(st) {
   if (q('mqtt-node-broker-name')) q('mqtt-node-broker-name').textContent = t('mqtt.net.server', 'MQTT server');
   if (q('mqtt-node-broker-sub')) {
     q('mqtt-node-broker-sub').textContent = brokerText || t('mqtt.net.noBroker', 'No broker configured');
+    q('mqtt-node-broker-sub').title = brokerText || '';
   }
   if (q('mqtt-node-broker')) {
     q('mqtt-node-broker').title = (isEnabled && st.state === 'error' && st.detail) ? st.detail : '';

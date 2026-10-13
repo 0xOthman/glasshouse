@@ -217,6 +217,9 @@ MiniMQTT.prototype._parse = function() {
         };
         var errDesc = CONNACK_ERRORS[returnCode] || ('CONNACK rejected with code ' + returnCode);
         this.emit('error', new Error(errDesc));
+        if (this.client) {
+          this.client.destroy();
+        }
       }
     } else if (packetType === 13) { // PINGRESP
       if (this.pingStart) {
