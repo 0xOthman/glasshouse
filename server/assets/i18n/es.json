@@ -1179,18 +1179,6 @@
   "text": "Mínimo",
   "from": "Minimum"
  },
- "footer.up": {
-  "text": "Activa {time}",
-  "from": "Up {time}"
- },
- "footer.uptime.days": {
-  "text": "{d}d {h}h {m}m",
-  "from": "{d}d {h}h {m}m"
- },
- "footer.uptime.hours": {
-  "text": "{h}h {m}m",
-  "from": "{h}h {m}m"
- },
  "game.frameRate": {
   "text": "Fotogramas por segundo",
   "from": "Frame rate"
@@ -1502,6 +1490,30 @@
  "metrics.temperature": {
   "text": "Temperatura",
   "from": "Temperature"
+ },
+ "metrics.uptime": {
+  "text": "Tiempo de actividad de la TV",
+  "from": "TV uptime"
+ },
+ "metrics.uptime.days": {
+  "text": "{d}d {h}h {m}m",
+  "from": "{d}d {h}h {m}m"
+ },
+ "metrics.uptime.desc": {
+  "text": "En funcionamiento continuo desde el último reinicio.",
+  "from": "Running continuously since last restart."
+ },
+ "metrics.uptime.hours": {
+  "text": "{h}h {m}m",
+  "from": "{h}h {m}m"
+ },
+ "metrics.uptime.mins": {
+  "text": "{m}m",
+  "from": "{m}m"
+ },
+ "metrics.uptime.sinceBoot": {
+  "text": "Tiempo desde el encendido",
+  "from": "Time since boot"
  },
  "metrics.webos.desc": {
   "text": "versión del sistema operativo",
@@ -2366,6 +2378,10 @@
  "server.health.title": {
   "text": "Salud del servidor",
   "from": "Server health"
+ },
+ "server.health.up": {
+  "text": "Activo {time}",
+  "from": "Up {time}"
  },
  "server.health.uptimeMins": {
   "text": "{m}m",

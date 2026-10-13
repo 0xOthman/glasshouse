@@ -152,6 +152,13 @@
       <div class="sub" id="hdmi-diag-row" hidden style="margin-top:12px;line-height:1.5"></div>
     </div>
 
+    <div class="grp-sec" id="uptimeblock" data-col="1">
+      <div class="grp" data-t="metrics.uptime">TV uptime</div>
+      <div class="lbl" data-t="metrics.uptime.sinceBoot">Time since boot</div>
+      <div class="uptime-val num" id="tv-uptime">&mdash;</div>
+      <div class="sub" data-t="metrics.uptime.desc">Running continuously since last restart.</div>
+    </div>
+
     <div class="grp-sec" id="advblock" data-col="1">
       <div class="grp" data-t="tab.advanced">Advanced</div>
       <details class="disc" id="disc-hwinfo" hidden style="border-top:0;margin-top:0">
@@ -1217,7 +1224,6 @@
 </main>
 
 <footer>
-  <span id="uptime">&mdash;</span>
   <span class="foot-end"><span id="activity-txrx" class="activity-txrx" aria-hidden="true"><span id="act-tx" class="txrx-pip"></span><span id="act-rx" class="txrx-pip"></span></span><a id="version" hidden target="_blank" rel="noopener noreferrer"></a><a id="version-new" hidden target="_blank" rel="noopener noreferrer"></a><button type="button" class="theme-toggle" id="theme-toggle">☾</button></span>
 </footer>
 

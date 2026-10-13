@@ -195,10 +195,10 @@ function renderServerHealth(dm) {
     if (dm.uptime != null) {
       const s = dm.uptime;
       const dd = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600), mm = Math.floor((s % 3600) / 60);
-      const upStr = dd ? t('footer.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
-        : (hh ? t('footer.uptime.hours', '{h}h {m}m', { h: hh, m: mm })
+      const upStr = dd ? t('metrics.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
+        : (hh ? t('metrics.uptime.hours', '{h}h {m}m', { h: hh, m: mm })
         : t('server.health.uptimeMins', '{m}m', { m: mm || 1 }));
-      bUp.textContent = t('footer.up', 'Up {time}', { time: upStr });
+      bUp.textContent = t('server.health.up', 'Up {time}', { time: upStr });
       bUp.title = t('server.health.uptimeTooltip', 'Process uptime');
       bUp.hidden = false;
     } else {
