@@ -45,19 +45,22 @@ Then, from the `server/` directory in a terminal:
 ./deploy.sh <tv-ip>
 ```
 
-For example, `./deploy.sh 192.168.1.50`. It takes about ten seconds and finishes by checking that the dashboard answers. When it says `done`, open **`http://<tv-ip>:8080/`** in a browser. If anything goes wrong, it stops and says why.
+For example:
 
-A first install also adds the dashboard to the TV's home screen as an app, so it can be opened on the TV itself with the remote — see [The TV app](apps/tv-app.md).
+```bash
+./deploy.sh 192.168.1.50
+```
 
-It can be removed again from the dashboard at any time. Updating an existing install leaves the home screen exactly as it is, so a removed app never comes back on its own.
+The script takes about ten seconds to copy the server files and verify that the service is running. Once complete:
 
-`--no-app` skips it on a first install, and `--app` adds it to an existing one.
+* **In your browser:** Open **`http://<tv-ip>:8080/`** on any phone, tablet, or computer on your home network.
+* **On the TV:** Open the new **Glasshouse** tile on your TV's home screen using your remote (see [The TV app](apps/tv-app.md)).
 
-The server starts again by itself whenever the TV restarts. To try it without that, add `--no-persist`, and it runs only until the TV next restarts. Setting the router to always give the TV the same address saves looking it up again.
+> [!TIP]
+> **Static IP recommendation:** Reserving a fixed DHCP IP address for the TV in your home router settings ensures the dashboard address never changes.
 
-No configuration is needed for this part. Without a config file the dashboard runs on port 8080, the controls are live, including power off and reboot, and MQTT is off.
-
-Nothing is sent anywhere: the server talks to the TV and to whoever opens the page, and reaches the internet only to look for a new release — when the dashboard's Server tab is opened, or daily if [checking automatically](managing.md#checking-automatically) is switched on.
+> [!NOTE]
+> **Private & local by default:** The server runs directly on the TV and talks only to your local network. No analytics or telemetry leave your home. The TV reaches the internet only when checking for new Glasshouse releases.
 
 ## Configuration options
 
