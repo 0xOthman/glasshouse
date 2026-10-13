@@ -8,6 +8,10 @@ The **Apps** tab, `/?tab=apps`, has three groups: **Apps**, for installing and r
 
 ## Apps
 
+### Manage applications
+
+Lists the apps downloaded from the LG store or installed by hand, with their version and vendor. Launch opens the application on the TV, while Uninstall deletes an app completely and frees its storage. LG's built-in apps can't be removed this way; they can be hidden instead.
+
 ### Install homebrew apps
 
 Lists the Homebrew Channel catalog, with Install, Update or Uninstall for each app. Downloads are checked against the catalog before they are installed, and the dashboard asks first when something needs a decision, such as replacing a copy installed from the LG store.
@@ -17,10 +21,6 @@ Lists the Homebrew Channel catalog, with Install, Update or Uninstall for each a
 Installs an `.ipk` package from outside the catalog. **From URL...** downloads one from an http or https address, with an optional sha256 to check it against, and **Upload .ipk** sends one from the browser. Both show the same preview as a catalog install.
 
 It is off until it is switched on in this section (after a warning) or a token is set, since a package from outside the catalog can run anything on the TV. A request from the TV itself is always allowed.
-
-### Manage applications
-
-Lists the apps downloaded from the LG store or installed by hand, with their version and vendor. Launch opens the application on the TV, while Uninstall deletes an app completely and frees its storage. LG's built-in apps can't be removed this way; they can be hidden instead.
 
 ### Saved web pages
 

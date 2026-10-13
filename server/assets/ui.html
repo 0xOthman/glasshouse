@@ -610,6 +610,14 @@
     <div class="apps-grp-h" data-t="apps.group.apps">Apps</div>
     <div class="pv-sub apps-grp-d" data-t="apps.group.apps.desc">The apps and web pages on the TV: adding them and removing them.</div>
 
+    <details class="pv-d" id="disc-installed-apps">
+      <summary><span data-t="apps.manage">Manage applications</span> <span class="cur" id="apps-installed-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.manage.desc">Store downloads and user-installed applications. Launch opens the application on the TV, or click Uninstall to permanently remove it and free up internal eMMC flash storage space.</div>
+      <div class="prot-table" id="apps-installed-list">
+        <div class="sub" style="padding:16px 0" data-t="apps.loadingInstalled">Loading installed apps&hellip;</div>
+      </div>
+    </details>
+
     <details class="pv-d" id="disc-install-apps">
       <summary><span data-t="apps.install">Install homebrew apps</span> <span class="cur" id="apps-catalog-summary"></span></summary>
       <div class="pv-sub" data-t="apps.install.desc">Apps from the Homebrew Channel catalog.</div>
@@ -676,14 +684,6 @@
           <button type="submit" id="sl-file-btn" data-t="apps.sideload.file.go">Upload and check</button>
         </form>
         <div style="margin-top:12px"><button type="button" class="pill idle" id="btn-sideload-disable" onclick="toggleSideload(false)" data-t="apps.sideload.disable">Turn off install from URL or file</button></div>
-      </div>
-    </details>
-
-    <details class="pv-d" id="disc-installed-apps">
-      <summary><span data-t="apps.manage">Manage applications</span> <span class="cur" id="apps-installed-summary"></span></summary>
-      <div class="pv-sub" data-t="apps.manage.desc">Store downloads and user-installed applications. Launch opens the application on the TV, or click Uninstall to permanently remove it and free up internal eMMC flash storage space.</div>
-      <div class="prot-table" id="apps-installed-list">
-        <div class="sub" style="padding:16px 0" data-t="apps.loadingInstalled">Loading installed apps&hellip;</div>
       </div>
     </details>
 
