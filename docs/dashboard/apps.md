@@ -10,7 +10,7 @@ The **Apps** tab, `/?tab=apps`, has three groups: **Apps**, for installing and r
 
 ### Manage applications
 
-Lists the apps downloaded from the LG store or installed by hand, with their version and vendor. Launch opens the application on the TV, while Uninstall deletes an app completely and frees its storage. LG's built-in apps can't be removed this way; they can be hidden instead.
+Lists the apps downloaded from the LG store or installed by hand, with their version, vendor, and storage badge showing disk footprint. Launch opens the application on the TV, while Uninstall deletes an app completely and frees its storage. LG's built-in apps can't be removed this way; they can be hidden instead.
 
 ### Install homebrew apps
 

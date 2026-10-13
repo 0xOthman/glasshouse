@@ -158,6 +158,7 @@ function renderAppsPanel() {
         const id = esc(app.id);
         const iconUrl = api('/api/apps/icon?id=' + encodeURIComponent(app.id));
         const meta = [app.version ? 'v' + app.version : '', app.vendor || ''].filter(Boolean).join(' · ');
+        const sizeBadge = (app.size && typeof fmtSize === 'function') ? fmtSize(app.size) : '';
         return `<div class="prot-row">
           <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
           <div class="prot-main">
@@ -166,6 +167,7 @@ function renderAppsPanel() {
             ${rowError[app.id] ? `<div class="prot-desc row-err">${esc(rowError[app.id])}</div>` : ''}
           </div>
           <div class="prot-status">
+            ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
             <button type="button" class="pill good" onclick="sendCommand('launchApp','${jsq(app.id)}')" ${!d.writable || uninstalling[app.id] ? 'disabled' : ''}>${esc(t('apps.launch.button', 'Launch'))}</button>
             <button type="button" class="pill ${uninstalling[app.id] ? 'busy' : 'bad'}" onclick="confirmUninstall('${jsq(app.id)}', '${jsq(app.title || app.id)}')" ${!d.writable || uninstalling[app.id] ? 'disabled' : ''}>${esc(uninstalling[app.id] ? t('apps.uninstall.working', 'Uninstalling\u2026') : t('apps.uninstall.button', 'Uninstall'))}</button>
           </div>
@@ -293,8 +295,8 @@ function renderAppsPanel() {
               <div class="prot-title">${title} <span class="prot-sub">&middot; ${unit}</span></div>
               <div class="prot-desc">${desc}</div>
             </div>
-            <div class="prot-status" style="display:flex;align-items:center;gap:10px">
-              ${badge ? `<span class="pv-badge" style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--w06);color:var(--t2)">${badge}</span>` : ''}
+            <div class="prot-status">
+              ${badge ? `<span class="app-badge">${badge}</span>` : ''}
               ${renderToggle({
                 id: 'btn-svc-' + id,
                 cls: isDisabled ? 'warn' : 'good',
