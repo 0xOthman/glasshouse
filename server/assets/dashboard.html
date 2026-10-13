@@ -1750,6 +1750,25 @@ function move(d) {
   render();
 }
 
+function page(d) {
+  if (!rows.length) return;
+  var target = sel;
+  for (var count = 0; count < 6; count++) {
+    var next = target;
+    do { next += d; } while (next >= 0 && next < rows.length && rows[next].head);
+    if (next < 0 || next >= rows.length) break;
+    target = next;
+  }
+  if (target === sel) {
+    if (d < 0) target = firstSel();
+    else if (d > 0) target = lastSel();
+  }
+  if (target !== sel && !rows[target].head) {
+    sel = target;
+    render();
+  }
+}
+
 function pickRow(i) {
   if (i < 0 || i >= rows.length || rows[i].head) return;
   if (sel === i && rows[i].act) activate();
@@ -2320,6 +2339,8 @@ document.addEventListener('keydown', function (e) {
   else if (c === 39 || k === 'ArrowRight') { if (!sub) switchTab(1); e.preventDefault(); }
   else if (c === 38 || k === 'ArrowUp')    { move(-1);      e.preventDefault(); }
   else if (c === 40 || k === 'ArrowDown')  { move(1);       e.preventDefault(); }
+  else if (c === 402 || c === 33 || k === 'ChannelUp' || k === 'PageUp' || k === 'VK_CHANNEL_UP')     { page(-1); e.preventDefault(); }
+  else if (c === 403 || c === 34 || k === 'ChannelDown' || k === 'PageDown' || k === 'VK_CHANNEL_DOWN') { page(1);  e.preventDefault(); }
   else if (c === 13 || k === 'Enter')      { activate();    e.preventDefault(); }
   else if (c === 461 || k === 'GoBack' || k === 'BrowserBack') { if (sub) backOut(); else leaveApp(); e.preventDefault(); }
 });
