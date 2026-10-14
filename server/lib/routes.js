@@ -190,7 +190,7 @@ function readConfigFile() {
       return JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
     }
   } catch (e) {
-    console.warn('warning: could not re-read ' + configFilePath + ': ' + e.message);
+    console.warn('config: could not re-read ' + configFilePath + ': ' + e.message);
   }
   return {};
 }
@@ -560,7 +560,6 @@ function loadUI() {
       return;
     }
     UI_HTML = page;
-    console.log('assets: serving ui.html from ' + f);
     /*
      * On this thread rather than zlib's worker pool. Node 0.12's process
      * spawning can deadlock (see lunaCached), and startup launches luna-send
@@ -570,8 +569,10 @@ function loadUI() {
      */
     try {
       UI_HTML_GZ = zlib.gzipSync(UI_HTML);
-      console.log('assets: pre-compressed ui.html (' + UI_HTML.length + ' -> ' + UI_HTML_GZ.length + ' bytes)');
-    } catch (ze) {}
+      console.log('assets: serving ui.html from ' + f + ' (' + Math.round(UI_HTML_GZ.length / 1024) + ' KB compressed)');
+    } catch (ze) {
+      console.log('assets: serving ui.html from ' + f);
+    }
   } catch (e) {
     console.error('assets: could not read ui.html: ' + e.message);
   }
@@ -910,7 +911,7 @@ function handleInstallRoute(req, res, u, pathname) {
       writeSettings({ apps: { sideload: enable } }, function (err) {
         if (err) return installError(res, err.message);
         if (enable) {
-          console.warn('warning: apps.sideload enabled from dashboard; arbitrary IPK installations allowed');
+          console.warn('security: apps.sideload enabled from dashboard; arbitrary IPK installations allowed');
         } else {
           console.log('apps: apps.sideload disabled');
         }
@@ -1525,7 +1526,7 @@ function handleRequest(req, res) {
         if (err) {
           return send(res, 500, JSON.stringify({ ok: false, error: 'could not write ' + configFilePath + ': ' + err.message }));
         }
-        console.log('settings: saved to ' + configFilePath + ', restarting to apply');
+        console.log('config: saved to ' + configFilePath + ', restarting to apply');
         send(res, 200, JSON.stringify({ ok: true, restarting: true }));
         restartSoon(250, 'settings');
       });
