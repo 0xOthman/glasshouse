@@ -174,7 +174,8 @@ function flush() {
   try { util.mkdirp(dir); } catch (e) {}
   for (var m in dirty) {
     try {
-      util.writeJsonAtomic(monthFile(m), months[m]);
+      // Compact: rewritten every 10 minutes, and read by nothing but this.
+      util.writeJsonAtomic(monthFile(m), months[m], undefined, true);
       delete dirty[m];
     } catch (e) {
       console.error('history: could not write ' + monthFile(m) + ': ' + e.message);

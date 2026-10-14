@@ -49,6 +49,10 @@ util.writeJsonAtomic(secret, { token: 'x' }, parseInt('600', 8));
 assert.strictEqual(fs.statSync(secret).mode & parseInt('777', 8), parseInt('600', 8));
 console.log('  ✓ writeJsonAtomic sets the mode when given one');
 
+util.writeJsonAtomic(file, { a: 1, b: [2] }, undefined, true);
+assert.strictEqual(fs.readFileSync(file, 'utf8'), '{"a":1,"b":[2]}');
+console.log('  ✓ writeJsonAtomic writes compact JSON when asked');
+
 assert.throws(function () { util.writeJsonAtomic(path.join(dir, 'missing', 'x.json'), {}); });
 console.log('  ✓ writeJsonAtomic throws when it cannot write');
 
