@@ -39,6 +39,7 @@ function setup(opts) {
     dir: root,
     liveState: liveState,
     luna: opts.luna,
+    appTitle: function (id) { return id === 'youtube.leanback.v4' ? 'YouTube' : null; },
     now: function () { return clock.wall; },
     mono: function () { return clock.mono; }
   });
@@ -49,6 +50,7 @@ function setup(opts) {
       state.update('power', 'systemOn', true);
       state.update('power', 'screenOn', true);
       if (title) state.update('application', 'display_title', title);
+      state.update('application', 'app_id', app);
       state.update('application', 'app', app);
     }
   };
@@ -75,6 +77,33 @@ var T = Date.UTC(2026, 9, 14, 18, 50, 0);
   assert.deepEqual(f.hours['2026-10-14T19'], { netflix: 600, hdmi2: 300 });
   assert.strictEqual(f.titles.hdmi2, 'PlayStation');
   console.log('  ✓ time is counted per app, split at the hour, and written when the TV goes off');
+  history.stop();
+})();
+
+// 1b. An app by its title, which the live state does not have
+(function () {
+  var tv = setup({ wall: T });
+  history.start();
+  tv.on('youtube.leanback.v4', 'youtube.leanback.v4');
+  tv.advance(60000);
+  assert.strictEqual(history.query(T - 3600000, T + 3600000).titles['youtube.leanback.v4'], 'YouTube');
+  history.stop();
+
+  // Telemetry has no titles yet at start, and has them later.
+  var known = false;
+  history.init({
+    config: { history: { enabled: true } }, dir: root, liveState: tv.state && {
+      state: tv.state, startGroup: function () {}, stopGroup: function () {}
+    },
+    appTitle: function (id) { return known && id === 'youtube.leanback.v4' ? 'YouTube' : null; },
+    now: function () { return tv.clock.wall; }, mono: function () { return tv.clock.mono; }
+  });
+  history.start();
+  assert.strictEqual(history.query(T - 3600000, T + 3600000).titles['youtube.leanback.v4'], null);
+  known = true;
+  assert.strictEqual(history.query(T - 3600000, T + 3600000).titles['youtube.leanback.v4'], 'YouTube',
+    'asked again when read');
+  console.log('  ✓ an app is named by its title from telemetry');
   history.stop();
 })();
 

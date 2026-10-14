@@ -33,6 +33,8 @@ var config = null;
 /** @type {function(string, Object, function(any): void): void} */
 var luna = null;
 var liveState = null;
+/** @type {?function(string): ?string} */
+var appTitle = null;
 var dir = DIR;
 var nowMs = function () { return Date.now(); };
 var monoMs = util.monotonicMs;
@@ -45,12 +47,24 @@ var current = null;
 // Closed while the clock was not yet set: { key, startMono, endMono }.
 var pending = [];
 var titles = {};
+// The full app id behind each key seen since start, for its title.
+var appIds = {};
 var flushTimer = null;
 var offsetTimer = null;
 // The TV's local time less UTC, in minutes, once read.
 var utcOffsetMin = null;
 var listening = false;
 var running = false;
+
+/*
+ * The live state names inputs only. An app's title comes from telemetry, which
+ * reads the installed apps some time after start, so it is asked each time.
+ */
+function titleOf(key) {
+  var title = appTitle ? appTitle(appIds[key] || key) : null;
+  if (title) titles[key] = title;
+  return titles[key] || null;
+}
 
 function enabled() {
   return !!(config && config.history && config.history.enabled === true);
@@ -189,7 +203,10 @@ function observe() {
   var snap = liveState.state.snapshot();
   var key = keyFor(snap);
   var app = snap.application || {};
-  if (key && key === app.app && app.display_title) titles[key] = app.display_title;
+  if (key && key === app.app) {
+    if (app.app_id) appIds[key] = app.app_id;
+    if (app.display_title && app.display_title !== key) titles[key] = app.display_title;
+  }
   if ((current ? current.key : null) === key) return;
   switchTo(key);
   if (!key || key === SCREEN_OFF) flush();
@@ -285,7 +302,7 @@ function query(fromMs, toMs) {
     }
   }
   var t = {};
-  for (var key in used) t[key] = titles[key] || null;
+  for (var key in used) t[key] = titleOf(key);
   return {
     enabled: enabled(), hours: hours, titles: t,
     current: running && current ? current.key : null,
@@ -346,7 +363,7 @@ function summary() {
   return {
     today_h: Math.round(watched(today) / 36) / 100,
     week_h: Math.round(watched(week) / 36) / 100,
-    top_today: top ? (titles[top] || top) : null
+    top_today: top ? (titleOf(top) || top) : null
   };
 }
 
@@ -359,6 +376,7 @@ function status() {
  * @param {any} opts.config the server's config
  * @param {function(string, Object, function(any): void): void} [opts.luna]
  * @param {any} [opts.liveState] state.init()'s result
+ * @param {function(string): ?string} [opts.appTitle] an app's title by its full id
  * @param {string} [opts.dir]
  * @param {function(): number} [opts.now] wall clock, for tests
  * @param {function(): number} [opts.mono] monotonic clock, for tests
@@ -371,6 +389,7 @@ function init(opts) {
   config = opts.config;
   luna = opts.luna || null;
   liveState = opts.liveState || null;
+  appTitle = opts.appTitle || null;
   if (opts.dir) dir = opts.dir;
   if (opts.now) nowMs = opts.now;
   if (opts.mono) monoMs = opts.mono;
@@ -379,6 +398,7 @@ function init(opts) {
   current = null;
   pending = [];
   titles = {};
+  appIds = {};
   utcOffsetMin = null;
 }
 

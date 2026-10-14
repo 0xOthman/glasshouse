@@ -1567,7 +1567,7 @@ if (!CLI_MODE) {
   ntpClient.init({ config: CONFIG, luna: luna });
   ntpClient.start();
 
-  history.init({ config: CONFIG, luna: luna, liveState: liveState });
+  history.init({ config: CONFIG, luna: luna, liveState: liveState, appTitle: telemetry.appTitle });
   history.start();
   /*
    * Registered before the MQTT bridge's handlers, which exit, so it runs
