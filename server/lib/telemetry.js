@@ -2116,7 +2116,9 @@ function alwaysOnSupported(cb) {
 function getCapabilities(extra) {
   extra = extra || {};
   return {
-    hasRemoteBattery: (remoteInfo() || {}).battery != null,
+    // With a remote paired, Home Assistant keeps its battery sensor, unknown until
+    // the remote is first read, rather than losing it at each start.
+    hasRemoteInfo: !!remoteInfo(),
     hasPnwash: fs.existsSync('/mnt/lg/cmn_data/pnwash/completedOffRsCount'),
     hasCell: !!(HARDWARE_INFO && HARDWARE_INFO.cell),
     hasHdmiProc: fs.existsSync('/proc/lg/hdmi20'),

@@ -1584,14 +1584,11 @@ if (!CLI_MODE) {
     if (process.listeners('SIGINT').length === 1) process.exit(0);
   });
 
-  var remoteBatterySeen = false;
   remoteBattery.init({
     luna: luna,
     onLevel: function (level) {
       console.log('remote: battery ' + level + '%');
       telemetry.expireStats();
-      // Home Assistant's sensor is withheld until there is a level to show.
-      if (!remoteBatterySeen) { remoteBatterySeen = true; republishDiscovery(); }
     }
   });
   remoteBattery.start(function () {

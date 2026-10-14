@@ -92,7 +92,7 @@ of Unknowns.
 ## Hardware, Remote & System Diagnostics
 | Domain | Entity ID | Name | Description |
 | :--- | :--- | :--- | :--- |
-| `sensor` | `sensor.lg_tv_remote_battery` | Magic Remote Battery | Battery percentage of the paired Magic Remote (`%`), read from the remote over Bluetooth when it is first used after the TV switches on, then at most hourly. Published once a level has been read |
+| `sensor` | `sensor.lg_tv_remote_battery` | Magic Remote Battery | Battery percentage of the paired Magic Remote (`%`), read from the remote over Bluetooth when it is first used after the TV switches on, then at most hourly. Unknown until the remote has been read since the server started |
 | `sensor` | `sensor.lg_tv_soc_architecture` | SoC Architecture | Processor platform (e.g. `Alpha 9 Gen 5 (O22)`) |
 | `sensor` | `sensor.lg_tv_oled_cell_type` | OLED Cell ID | Panel silicon cell identification (e.g. `08/00/1/03`) |
 | `sensor` | `sensor.lg_tv_tcon_firmware` | TCON Firmware | Timing Controller FPGA firmware version |

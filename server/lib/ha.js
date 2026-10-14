@@ -1479,7 +1479,7 @@ function filterWithholds(entities, opts) {
     return function (e) { return set[e.id] === 1; };
   }
 
-  if (!caps.hasRemoteBattery) withhold(byId('remote_battery'));
+  if (!caps.hasRemoteInfo) withhold(byId('remote_battery'));
 
   if (!caps.hasPnwash) {
     withhold(byId('oled_short_cycles', 'oled_refresher_cycles', 'oled_failure_alerts'));
