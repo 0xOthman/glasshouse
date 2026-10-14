@@ -12,6 +12,8 @@
  * See docs/development/TV-RESEARCH.md.
  */
 
+var path = require('path');
+var util = require('./util');
 var lunaTransport = require('./luna');
 
 var BT = 'com.webos.service.bluetooth2';
@@ -38,8 +40,9 @@ var isOnFn = function () { return true; };
 var busy = false;
 // When the next read is wanted; 0 is at the next chance.
 var dueAt = 0;
-// { level: 0-100, at: Unix ms } once read.
+// { level: 0-100, at: Unix ms, mac: string|null } once read.
 var last = null;
+var stateFile = null;
 
 function remoteAddress(devices) {
   for (var i = 0; i < (devices || []).length; i++) {
@@ -67,6 +70,7 @@ function read(done) {
   var clientId = null;
   // Whether the remote was connected to; until then nothing is put off.
   var tried = false;
+  var address = null;
 
   function finish(level) {
     function end() {
@@ -74,7 +78,12 @@ function read(done) {
       if (tried) dueAt = Date.now() + (level !== null ? HOUR_MS : RETRY_MS);
       if (level !== null) {
         var changed = !last || last.level !== level;
-        last = { level: level, at: Date.now() };
+        last = { level: level, at: Date.now(), mac: address };
+        if (stateFile) {
+          try {
+            util.writeJsonAtomic(stateFile, last);
+          } catch (e) {}
+        }
         if (changed && onLevel) onLevel(level);
       }
       done(level);
@@ -87,7 +96,7 @@ function read(done) {
   luna('com.webos.service.mrcu/getConnectionStatus', {}, function (st) {
     if (!st || !st.connected || !st.isBleRemocon) return finish(null);
     luna(BT + '/device/getStatus', {}, function (ds) {
-      var address = remoteAddress(ds && ds.devices);
+      address = remoteAddress(ds && ds.devices);
       if (!address) return finish(null);
       tried = true;
       luna(BT + '/gatt/connect', { address: address }, function (c) {
@@ -140,26 +149,38 @@ function stop() {
 }
 
 // The last level read, or null before one has been.
-function level() {
-  return last ? last.level : null;
+function level(mac) {
+  if (!last) return null;
+  if (mac && last.mac && mac.toLowerCase() !== last.mac.toLowerCase()) return null;
+  return last.level;
 }
 
 /**
- * @param {Object} opts
- * @param {function(string, Object, function(any): void): void} opts.luna
+ * @param {Object} [opts]
+ * @param {function(string, Object, function(any): void): void} [opts.luna]
  * @param {function(number): void} [opts.onLevel] called when the level changes
  * @param {number} [opts.discoverMs] the wait after discoverServices, for tests
  * @param {number} [opts.settleMs] the wait after the remote connects, for tests
+ * @param {string} [opts.stateDir] where to save the last known level
+ * @param {string} [opts.stateFile] override file path for tests
  */
 function init(opts) {
+  opts = opts || {};
   luna = opts.luna;
   discoverMs = opts.discoverMs !== undefined ? opts.discoverMs : DISCOVER_MS;
   settleMs = opts.settleMs !== undefined ? opts.settleMs : SETTLE_MS;
   onLevel = opts.onLevel || null;
-  last = null;
   busy = false;
   dueAt = 0;
   isOnFn = function () { return true; };
+  stateFile = opts.stateFile !== undefined ? opts.stateFile :
+    (opts.stateDir ? path.join(opts.stateDir, 'remote-battery.json') : null);
+  var saved = stateFile ? util.readJson(stateFile, null) : null;
+  if (saved && typeof saved.level === 'number' && saved.level >= 0 && saved.level <= 100) {
+    last = { level: saved.level, at: saved.at || Date.now(), mac: saved.mac || null };
+  } else {
+    last = null;
+  }
 }
 
 module.exports = {

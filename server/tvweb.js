@@ -1586,6 +1586,7 @@ if (!CLI_MODE) {
 
   remoteBattery.init({
     luna: luna,
+    stateDir: __dirname,
     onLevel: function (level) {
       console.log('remote: battery ' + level + '%');
       telemetry.expireStats();

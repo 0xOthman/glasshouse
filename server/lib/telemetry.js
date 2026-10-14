@@ -626,10 +626,11 @@ function parseRemoteInfo(raw) {
 // Bluetooth (remotebattery.js) ahead of any plain level in the file.
 function remoteInfo() {
   var file = readRemoteInfo();
-  var level = remoteBatteryModule ? remoteBatteryModule.level() : null;
+  if (!file) return null;
+  var level = remoteBatteryModule ? remoteBatteryModule.level(file.mac) : null;
   if (level === null) return file;
   var out = { battery: level, model: null, mac: null, firmware: null, paired: true };
-  if (file) for (var k in file) if (k !== 'battery') out[k] = file[k];
+  for (var k in file) if (k !== 'battery') out[k] = file[k];
   return out;
 }
 
