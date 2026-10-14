@@ -3,10 +3,13 @@
  */
 
 var assert = require('assert');
+var path = require('path');
+var util = require('../server/lib/util');
 var rb = require('../server/lib/remotebattery');
 
 console.log('Running test-remotebattery.js ...');
 
+var tmpFile = path.join(__dirname, 'tmp-battery.json');
 var REMOTE = { paired: true, typeOfDevice: 'ble', name: 'LGE MR24', address: '00:00:5e:00:53:02' };
 
 // A TV answering as a C4 (webOS 10.3.1) did, with what is asked recorded.
@@ -106,6 +109,31 @@ steps.push(function () {
       console.log('  ✓ a check that finds the remote asleep does not put off the next wake');
       pending--;
     }, 20);
+  });
+});
+steps.push(function () {
+  util.writeJsonAtomic(tmpFile, { level: 75, at: 1234567, mac: REMOTE.address });
+  rb.init({ stateFile: tmpFile });
+  assert.strictEqual(rb.level(), 75);
+  assert.strictEqual(rb.level(REMOTE.address), 75);
+  assert.strictEqual(rb.level('11:22:33:44:55:66'), null, 'refused on MAC mismatch');
+  util.unlinkQuiet(tmpFile);
+  console.log('  ✓ last known battery level is loaded from disk on start and keyed by MAC');
+});
+steps.push(function () {
+  pending++;
+  util.unlinkQuiet(tmpFile);
+  var luna = fakeLuna({ read: { returnValue: true, value: { value: { bytes: [88] } } } });
+  rb.init({ luna: luna, discoverMs: 0, settleMs: 0, stateFile: tmpFile });
+  rb.read(function (level) {
+    assert.strictEqual(level, 88);
+    var saved = util.readJson(tmpFile, null);
+    assert.ok(saved, 'stateFile was written');
+    assert.strictEqual(saved.level, 88);
+    assert.strictEqual(saved.mac, REMOTE.address);
+    util.unlinkQuiet(tmpFile);
+    console.log('  ✓ a successful read saves the level and MAC to disk');
+    pending--;
   });
 });
 
