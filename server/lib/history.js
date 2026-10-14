@@ -198,15 +198,23 @@ function keyFor(snap) {
   return app.app || null;
 }
 
+/*
+ * The live state sets app_id, app and display_title one at a time, so at the
+ * change of app the title is still the last app's. It is taken when it
+ * changes itself, after the app.
+ */
+function noteTitle() {
+  if (!running || !liveState) return;
+  var app = liveState.state.snapshot().application || {};
+  if (app.app && app.display_title && app.display_title !== app.app) titles[app.app] = app.display_title;
+}
+
 function observe() {
   if (!running || !liveState) return;
   var snap = liveState.state.snapshot();
   var key = keyFor(snap);
   var app = snap.application || {};
-  if (key && key === app.app) {
-    if (app.app_id) appIds[key] = app.app_id;
-    if (app.display_title && app.display_title !== key) titles[key] = app.display_title;
-  }
+  if (key && key === app.app && app.app_id) appIds[key] = app.app_id;
   if ((current ? current.key : null) === key) return;
   switchTo(key);
   if (!key || key === SCREEN_OFF) flush();
@@ -238,6 +246,7 @@ function start() {
       listening = true;
       liveState.state.onChange(function (ev) {
         if (ev.group === 'power' || (ev.group === 'application' && ev.key === 'app')) observe();
+        else if (ev.group === 'application' && ev.key === 'display_title') noteTitle();
       });
     }
     // The MQTT bridge starts it only with a broker.

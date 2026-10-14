@@ -49,9 +49,10 @@ function setup(opts) {
     on: function (app, title) {
       state.update('power', 'systemOn', true);
       state.update('power', 'screenOn', true);
-      if (title) state.update('application', 'display_title', title);
+      // In the TV's order: the title last, after the app has changed.
       state.update('application', 'app_id', app);
       state.update('application', 'app', app);
+      state.update('application', 'display_title', title || app);
     }
   };
 }
@@ -76,6 +77,7 @@ var T = Date.UTC(2026, 9, 14, 18, 50, 0);
   assert.deepEqual(f.hours['2026-10-14T18'], { netflix: 600 });
   assert.deepEqual(f.hours['2026-10-14T19'], { netflix: 600, hdmi2: 300 });
   assert.strictEqual(f.titles.hdmi2, 'PlayStation');
+  assert.strictEqual(f.titles.netflix, 'Netflix', 'not the next app\'s title');
   console.log('  ✓ time is counted per app, split at the hour, and written when the TV goes off');
   history.stop();
 })();
