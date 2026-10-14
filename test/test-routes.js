@@ -1283,4 +1283,29 @@ function createMockRes(cb) {
   console.log('  ✓ setup emulation: safe dry-run responses without restart or persistent writes');
 })();
 
+// The dashboard's icon route answers through the icon server's shared reply.
+(function testAppIconRoute() {
+  var iconFile = path.join(os.tmpdir(), 'routes-icon-' + process.pid + '.png');
+  fs.writeFileSync(iconFile, 'png bytes');
+  routes.init({
+    config: { allowControl: true, token: '', web: { enabled: false } },
+    apps: { getIconPath: function (id, cb) { cb(id === 'com.example.app' ? iconFile : null); } }
+  });
+  routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=com.example.app' }), createMockRes(function (r) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(r.body, 'png bytes');
+    var etag = r.headers.ETag;
+    assert.ok(etag);
+    routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=com.example.app', headers: { 'if-none-match': etag } }), createMockRes(function (r304) {
+      assert.strictEqual(r304.statusCode, 304);
+      routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=other' }), createMockRes(function (r404) {
+        assert.strictEqual(r404.statusCode, 404);
+        assert.strictEqual(JSON.parse(r404.body).error, 'icon not found');
+        try { fs.unlinkSync(iconFile); } catch (e) {}
+        console.log('  ✓ /api/apps/icon serves the icon with an ETag and a 304');
+      }));
+    }));
+  }));
+})();
+
 console.log('ALL test-routes.js assertions passed!');

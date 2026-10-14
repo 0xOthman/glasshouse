@@ -10,6 +10,7 @@ var http = require('http');
 var say = require('./say');
 var lanAddress = require('./util').lanAddress;
 var listenDualStack = require('./util').listenDualStack;
+var sendIconFile = require('./iconserver').sendIconFile;
 var writeJsonAtomic = require('./util').writeJsonAtomic;
 var unlinkQuiet = require('./util').unlinkQuiet;
 var existsQuiet = require('./util').existsQuiet;
@@ -181,7 +182,7 @@ function setupPending() {
 
 /*
  * Settings the dashboard is allowed to write. Security-sensitive settings in
- * config.json (port, host, allowControl, allowPower, token) stay file-only:
+ * config.json (port, host, allowControl, allowPower, token, iconServer) stay file-only:
  * those decide who may reach this server at all, and a UI that can widen its
  * own exposure defeats the point of setting them. The one exception is host,
  * from the TV itself during setup - see setNetworkAccess. Experimental feature
@@ -1323,28 +1324,8 @@ function handleRequest(req, res) {
     var iconAppId = u.query && u.query.id;
     return appsModule.getIconPath(iconAppId, function (iconPath) {
       if (!iconPath) return send(res, 404, JSON.stringify({ ok: false, error: 'icon not found' }));
-      fs.stat(iconPath, function (err, st) {
-        if (err || !st) return send(res, 404, JSON.stringify({ ok: false, error: 'icon read failed' }));
-        var etag = '"' + st.size.toString(16) + '-' + Number(st.mtime).toString(16) + '"';
-        var headers = {
-          'Content-Type': 'image/png',
-          'Content-Length': st.size,
-          'Cache-Control': 'public, max-age=86400',
-          'ETag': etag
-        };
-        if (req.headers && req.headers['if-none-match'] === etag) {
-          res.writeHead(304, { 'ETag': etag, 'Cache-Control': headers['Cache-Control'] });
-          return res.end();
-        }
-        if (req.method === 'HEAD') {
-          res.writeHead(200, headers);
-          return res.end();
-        }
-        fs.readFile(iconPath, function (readErr, buf) {
-          if (readErr || !buf) return send(res, 500, JSON.stringify({ ok: false, error: 'icon read failed' }));
-          res.writeHead(200, headers);
-          res.end(buf);
-        });
+      sendIconFile(req, res, iconPath, function (status, error) {
+        send(res, status, JSON.stringify({ ok: false, error: error }));
       });
     });
   }
