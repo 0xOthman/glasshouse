@@ -37,8 +37,14 @@ So the tests run on node 0.10 as well, and use none of what it lacks: no
 unless a fallback is in place. `test/test-syslog.js` and `test/test-logs.js`
 make temporary folders without `mkdtempSync`, and `test/test-installer.js`
 gzips without `zlib.gzipSync`. The suites that run the repository's own scripts
-through `execSync`, `test-module-calls.js` and `test-tvwebctl.js`, skip on node
-0.10.
+through `execSync`, `test-module-calls.js`, `test-tvwebctl.js` and
+`test-remote-worker.js`, skip on node 0.10.
+
+`test-remote-worker.js` runs the remote-button worker's Python tests
+(`test/test_remote_buttons.py`) under Python 3: a disconnected device and one at
+EOF are dropped rather than read in a busy loop, a device with nothing to read
+yet is kept, and a device that comes back is reopened and its buttons arrive.
+The worker itself stays Python 2.7 compatible for the TV.
 
 ## Home Assistant
 
