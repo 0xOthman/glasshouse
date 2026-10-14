@@ -243,9 +243,14 @@ async function tick() {
     pwStandby = ps.raw === 'Active Standby';
     if (q('poff')) q('poff').textContent = pwStandby ? t('ctl.powerOn', 'Power on') : t('ctl.powerOff', 'Power off');
     const isComp = (o.comp_status === 'Running');
+    const isStandby = !isComp && (ps.systemOn === false || ps.raw === 'Standby' || ps.raw === 'Active Standby');
+    const isScreenOff = !isComp && !isStandby && ps.screenOn === false;
+    const isOn = !isComp && !isStandby && !isScreenOff && ps.screenOn !== false && (ps.systemOn === true || ps.label === 'On');
     const stEl = q('state');
     stEl.classList.toggle('comp', isComp);
-    stEl.classList.toggle('off', !isComp && ps.screenOn === false);
+    stEl.classList.toggle('standby', isStandby);
+    stEl.classList.toggle('off', isScreenOff);
+    stEl.classList.toggle('on', isOn);
     if (isComp) {
       stEl.querySelector('span').textContent = t('state.activeStandby', 'Active Standby');
       q('source').textContent = t('state.compRunning', 'Completing Panel Maintenance (Short Cycle)');
