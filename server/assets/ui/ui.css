@@ -477,6 +477,27 @@ html.nav-hidden body.nav-open{overflow:hidden}
 #soundouts button:hover,#soundouts select.so-more:hover{color:var(--w100);border-color:var(--w70)}
 #soundouts button.on:hover{color:var(--btn-on-fg);border-color:var(--w100)}
 #soundouts .span-full{grid-column:1 / -1}
+#inputs button{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  gap:7px;padding:12px 8px;min-height:48px;line-height:1.25;box-sizing:border-box;
+  transition:border-color .16s ease,color .16s ease,background-color .16s ease;
+}
+#inputs button::before{
+  content:'';width:6px;height:6px;border-radius:50%;flex:none;
+  visibility:hidden;
+}
+#inputs button.on{
+  color:var(--w100);background:var(--w06);border-color:var(--w80);font-weight:600;
+}
+#inputs button.on:hover{color:var(--w100);border-color:var(--w100)}
+#inputs button.on::before{
+  visibility:visible;
+  background:var(--green);
+  box-shadow:0 0 6px rgba(48,222,97,.7);
+}
+[data-theme="light"] #inputs button.on::before{
+  box-shadow:0 0 4px rgba(21,127,55,.4);
+}
 /* Collapsed groups. Picture mode, sound output and the app list are
    set-and-forget: they were taking the majority of the column's height for
    the things you would least often reach for from a phone. */

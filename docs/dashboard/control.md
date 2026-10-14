@@ -7,7 +7,7 @@ The **Control** tab, `/?tab=control`, turns the TV into a locally controlled dev
 * **D-pad navigation:** Directional arrows (Up, Down, Left, Right), OK/Select, Back, and Home to navigate webOS menus and built-in interfaces.
 * **Media playback:** Dedicated transport controls (Play, Pause, Stop, Rewind, Fast Forward) for active media players.
 * **Volume and mute:** Volume slider, precision step buttons (`+` and `-`), and a one-click mute toggle.
-* **Source selection:** One-click switching across active TV inputs, including HDMI ports and Live TV.
+* **Source selection:** One-click switching across active TV inputs, including HDMI ports and Live TV, with an active indicator marking the current display source.
 
 ## Picture and sound
 
