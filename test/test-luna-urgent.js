@@ -1,5 +1,5 @@
 /**
- * test/test-luna-urgent.js - Urgent luna calls go ahead of the queue with one extra slot
+ * test/test-luna-urgent.js - Urgent luna calls go ahead of the queue with one extra slot, one at a time
  */
 
 var assert = require('assert');
@@ -43,17 +43,19 @@ settle(function () {
   console.log('  ✓ an urgent call takes one slot beyond the two, and no more');
 
   answer('n1');
-  answer('u1');
   settle(function () {
-    // Two urgent calls are queued; with three running neither normal one starts.
-    assert.deepEqual(started, ['n1', 'u1', 'n2', 'u2', 'u3']);
-    assert.deepEqual(running(), ['n2', 'u2', 'u3']);
-    console.log('  ✓ urgent calls go ahead of normal ones waiting, in the order made');
-
-    answer('u2');
+    // u2 waits for u1 rather than running beside it, and normal calls wait behind u2.
+    assert.deepEqual(running(), ['n2', 'u1'], 'one key press at a time');
+    answer('u1');
     settle(function () {
-      assert.deepEqual(running(), ['n2', 'u3'], 'a normal call waits for one of the two slots');
-      answer('n2');
+      assert.deepEqual(started, ['n1', 'u1', 'n2', 'u2']);
+      assert.deepEqual(running(), ['n2', 'u2']);
+      console.log('  ✓ urgent calls go ahead of normal ones waiting, one at a time, in the order made');
+
+      answer('u2');
+      settle(function () {
+        assert.deepEqual(running(), ['n2', 'u3'], 'a normal call waits for one of the two slots');
+        answer('n2');
       settle(function () {
         assert.deepEqual(running(), ['n3', 'u3']);
         answer('u3');
@@ -68,6 +70,7 @@ settle(function () {
           retryStaysUrgent();
         });
       });
+    });
     });
   });
 });

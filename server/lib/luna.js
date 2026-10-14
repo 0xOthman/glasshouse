@@ -70,9 +70,13 @@ var waiting = [];
 /*
  * An urgent call, a remote key press, goes ahead of every normal call waiting
  * and behind urgent ones already there, and may take one slot beyond PARALLEL
- * so two slow reads cannot hold it up. Urgent calls sit at the front of
- * waiting, so a normal call at the front means none is queued.
+ * so two slow reads cannot hold it up. Urgent calls run one at a time: two key
+ * presses running together could reach the TV in the wrong order. Urgent calls
+ * sit at the front of waiting, so a normal call at the front means none is
+ * queued.
  */
+var urgentRunning = 0;
+
 function firstNormal() {
   var i = 0;
   while (i < waiting.length && waiting[i].urgent) i++;
@@ -89,9 +93,12 @@ function requeue(job) {
 }
 
 function startWaiting() {
-  while (waiting.length && running < (waiting[0].urgent ? PARALLEL + 1 : PARALLEL)) {
+  while (waiting.length) {
+    var urgent = waiting[0].urgent;
+    if (urgent ? urgentRunning > 0 || running >= PARALLEL + 1 : running >= PARALLEL) break;
     var job = waiting.shift();
     running++;
+    if (urgent) urgentRunning++;
     run(job);
   }
 }
@@ -123,6 +130,7 @@ function runNow(job) {
   execFile(LUNA_SEND, job.args, { timeout: 3500, maxBuffer: MAX_REPLY }, function (err, stdout) {
     var endedAt = monotonicMs();
     running--;
+    if (job.urgent) urgentRunning--;
     if (diedEarly(err)) {
       var uri = job.args[job.args.length - 2];
       console.error('luna: ' + uri + ' died (' + err.signal + ') before answering' +
@@ -149,6 +157,7 @@ function runNow(job) {
       job.args[job.args.length - 2] = 'luna://' + oldUri;
       job.serviceRetried = true;
       running++;
+      if (job.urgent) urgentRunning++;
       return run(job);
     }
     handleServiceResult(rawUri, parsed);
