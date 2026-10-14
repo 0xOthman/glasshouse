@@ -1767,7 +1767,7 @@ function collectStats(cb) {
      */
     out.powerState = rawPower ? power.mapState(rawPower) : null;
     if (out.powerState) {
-      var on = powerModule ? powerModule.current() : { onReason: null, onTime: null };
+      var on = powerModule ? powerModule.current() : { onReason: null, onTime: null, sessionTime: null, standbyTime: null };
       out.powerState.onReason = on.onReason;
       out.powerState.onTime = on.onTime;
       out.powerState.sessionTime = on.sessionTime !== undefined ? on.sessionTime : null;
