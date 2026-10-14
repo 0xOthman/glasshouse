@@ -560,6 +560,19 @@
     </div>
   </div>
 
+  <div class="pv-sec adv-sec" id="adv-updates" data-t="adv.systemUpdates">System updates</div>
+  <div class="prot-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="server.tvUpdates.block">Block TV software updates</div>
+        <div class="prot-desc" data-t="server.tvUpdates.block.desc">Stops the TV installing LG's system
+          updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are
+          unaffected.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="upd-tvblock" onclick="toggleTvUpdates()">&mdash;</button></div>
+    </div>
+  </div>
+
   <div class="pv-sec adv-sec" id="adv-display" hidden data-t="adv.display">Display</div>
   <div class="prot-table">
     <div class="prot-row" id="row-lglogo" hidden>
@@ -620,19 +633,6 @@
         <div class="prot-desc" data-t="adv.logoLight.desc">The lit LG logo on the front of the TV, on models that have one.</div>
       </div>
       <div class="prot-status"><button type="button" class="pill idle" id="lt_logo" onclick="toggleLight('logoLight')">&mdash;</button></div>
-    </div>
-  </div>
-
-  <div class="pv-sec adv-sec" id="adv-updates" data-t="adv.systemUpdates">System updates</div>
-  <div class="prot-table">
-    <div class="prot-row">
-      <div class="prot-main">
-        <div class="prot-title" data-t="server.tvUpdates.block">Block TV software updates</div>
-        <div class="prot-desc" data-t="server.tvUpdates.block.desc">Stops the TV installing LG's system
-          updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are
-          unaffected.</div>
-      </div>
-      <div class="prot-status"><button type="button" class="pill idle" id="upd-tvblock" onclick="toggleTvUpdates()">&mdash;</button></div>
     </div>
   </div>
 </section>
