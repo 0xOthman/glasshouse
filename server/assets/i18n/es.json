@@ -531,6 +531,42 @@
   "text": "Descargas de la tienda y aplicaciones instaladas por el usuario. Abrir inicia la aplicación en la TV, o pulsa Desinstalar para eliminarla de forma permanente y liberar espacio en la memoria flash eMMC interna.",
   "from": "Store downloads and user-installed applications. Launch opens the application on the TV, or click Uninstall to permanently remove it and free up internal eMMC flash storage space."
  },
+ "apps.newBanner.badge": {
+  "text": "Nueva",
+  "from": "New"
+ },
+ "apps.newBanner.countNew": {
+  "text": "{n} nuevas",
+  "from": "{n} new"
+ },
+ "apps.newBanner.desc": {
+  "text": "Esta aplicación se ha añadido recientemente a la TV. Puedes conservarla o desinstalarla inmediatamente.",
+  "from": "The following application was newly added to the TV. You can keep it or uninstall it immediately."
+ },
+ "apps.newBanner.descPlural": {
+  "text": "Las siguientes aplicaciones se han añadido recientemente a la TV. Puedes conservarlas o desinstalarlas inmediatamente.",
+  "from": "The following applications were newly added to the TV. You can keep them or uninstall them immediately."
+ },
+ "apps.newBanner.keep": {
+  "text": "Conservar",
+  "from": "Keep"
+ },
+ "apps.newBanner.keepAll": {
+  "text": "Conservar todas",
+  "from": "Keep all"
+ },
+ "apps.newBanner.oneNew": {
+  "text": "1 nueva",
+  "from": "1 new"
+ },
+ "apps.newBanner.title": {
+  "text": "Nueva aplicación detectada",
+  "from": "New application detected"
+ },
+ "apps.newBanner.titlePlural": {
+  "text": "{n} nuevas aplicaciones detectadas",
+  "from": "{n} new applications detected"
+ },
  "apps.pages": {
   "text": "Páginas web guardadas",
   "from": "Saved web pages"

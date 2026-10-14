@@ -58,7 +58,7 @@ var dfPath = 'df';
 var tvMachine = null;
 var updaterBusy = function () { return false; };
 // Told when an install finishes, so the app list is read again at once.
-var onInstalled = function () {};
+var onInstalled = function (result) {};
 var previewMs = 10 * 60 * 1000;
 var installTimeoutMs = 120000;
 var elevateTimeoutMs = 60000;
@@ -1159,7 +1159,7 @@ function finishJob(j, elevation) {
     elevation: elevation
   };
   setState(j, 'installed');
-  onInstalled();
+  onInstalled(j.result);
 }
 
 /**

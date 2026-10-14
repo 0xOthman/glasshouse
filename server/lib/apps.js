@@ -16,6 +16,7 @@ var fs = require('fs');
 var mkdirp = require('./util').mkdirp;
 var readTrimmed = require('./util').readTrimmed;
 var readJson = require('./util').readJson;
+var writeJsonAtomic = require('./util').writeJsonAtomic;
 var unlinkQuiet = require('./util').unlinkQuiet;
 var path = require('path');
 var execFile = require('child_process').execFile;
@@ -24,6 +25,7 @@ var names = require('./names');
 
 var OVERRIDE_DIR = '/var/lib/tvweb/appinfo-overrides';
 var HIDDEN_APPS_FILE = '/var/lib/tvweb/hidden_apps';
+var KNOWN_APPS_FILE = '/var/lib/tvweb/known_apps.json';
 // A saved web page's title as the browser set it, kept on its first rename so
 // clearing the name can put it back.
 var PAGE_TITLES_FILE = '/var/lib/tvweb/saved_page_titles.json';
@@ -99,10 +101,72 @@ function releaseAirPlay() {
 var lunaFn = null;
 var configObj = null;
 
+function setKnownAppsFile(p) {
+  if (p) KNOWN_APPS_FILE = p;
+}
+
+function readKnownApps() {
+  try {
+    if (!fs.existsSync(KNOWN_APPS_FILE)) return null;
+    var data = readJson(KNOWN_APPS_FILE, null);
+    if (!data || typeof data !== 'object') return {};
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeKnownApps(map) {
+  try {
+    mkdirp(path.dirname(KNOWN_APPS_FILE));
+    writeJsonAtomic(KNOWN_APPS_FILE, map);
+    return true;
+  } catch (e) {
+    try {
+      fs.writeFileSync(KNOWN_APPS_FILE, JSON.stringify(map, null, 2), 'utf8');
+      return true;
+    } catch (e2) {
+      console.error('apps: could not write known apps file: ' + e2.message);
+      return false;
+    }
+  }
+}
+
+function removeKnownApp(appId) {
+  var known = readKnownApps();
+  if (known && known.hasOwnProperty(appId)) {
+    delete known[appId];
+    writeKnownApps(known);
+  }
+}
+
+function ackApp(appId, cb) {
+  cb = cb || function () {};
+  if (!appId) {
+    return getApps(function (d) {
+      var installed = (d && d.installed) || [];
+      var known = readKnownApps() || {};
+      for (var i = 0; i < installed.length; i++) {
+        known[installed[i].id] = true;
+      }
+      writeKnownApps(known);
+      cb({ ok: true });
+    });
+  }
+  if (typeof appId !== 'string' || !/^[a-zA-Z0-9_.-]+$/.test(appId)) {
+    return cb({ ok: false, error: 'Invalid app ID format' });
+  }
+  var known = readKnownApps() || {};
+  known[appId] = true;
+  writeKnownApps(known);
+  cb({ ok: true, id: appId });
+}
+
 function init(opts) {
   opts = opts || {};
   lunaFn = opts.luna;
   configObj = opts.config;
+  if (opts.knownAppsFile) KNOWN_APPS_FILE = opts.knownAppsFile;
   if (lunaFn) {
     releaseAirPlay();
     dedupeAirPlay();
@@ -623,6 +687,7 @@ function getApps(cb) {
       error: 'luna bus not available',
       installed: [],
       systemTiles: [],
+      newApps: [],
       hiddenCount: Object.keys(hiddenMap).length,
       writable: false
     });
@@ -739,7 +804,8 @@ function getApps(cb) {
             iconUrl: '/api/apps/icon?id=' + encodeURIComponent(item.id),
             removable: true,
             folderPath: item.folderPath,
-            size: size
+            size: size,
+            isNew: false
           });
         } else if ((lpMap[item.id] || hiddenMap[item.id]) && (item.systemApp || isBuiltIn)) {
           // System built-in tile on home screen ribbon (or currently hidden from it)
@@ -785,11 +851,58 @@ function getApps(cb) {
       installed.sort(function (x, y) { return String(x.title || '').localeCompare(String(y.title || '')); });
       systemTiles.sort(function (x, y) { return String(x.title || '').localeCompare(String(y.title || '')); });
 
+      var knownMap = readKnownApps();
+      var newApps = [];
+
+      if (knownMap === null) {
+        // Initial boot baseline: file does not exist yet.
+        // Record all currently installed removable apps so existing apps are never flagged as new.
+        knownMap = {};
+        for (i = 0; i < installed.length; i++) {
+          knownMap[installed[i].id] = true;
+        }
+        writeKnownApps(knownMap);
+      } else {
+        var installedIdMap = {};
+        for (i = 0; i < installed.length; i++) {
+          var inst = installed[i];
+          installedIdMap[inst.id] = true;
+          if (!knownMap[inst.id]) {
+            inst.isNew = true;
+            newApps.push({
+              id: inst.id,
+              title: inst.title,
+              version: inst.version,
+              vendor: inst.vendor,
+              iconUrl: inst.iconUrl,
+              removable: inst.removable,
+              size: inst.size
+            });
+          }
+        }
+
+        // Prune knownMap of apps that were removed from the TV
+        if (appsRes && appsRes.returnValue !== false) {
+          var knownKeys = Object.keys(knownMap);
+          var pruned = false;
+          for (i = 0; i < knownKeys.length; i++) {
+            if (!installedIdMap[knownKeys[i]]) {
+              delete knownMap[knownKeys[i]];
+              pruned = true;
+            }
+          }
+          if (pruned) {
+            writeKnownApps(knownMap);
+          }
+        }
+      }
+
       cb({
         ok: true,
         installed: installed,
         systemTiles: systemTiles,
         savedPages: savedPages,
+        newApps: newApps,
         hiddenCount: Object.keys(hiddenMap).length,
         tileHidingEnabled: isTileHidingEnabled(),
         writable: !!(configObj && configObj.allowControl)
@@ -1101,6 +1214,7 @@ function uninstallApp(appId, cb) {
           }
         }
         if (!stillThere || (Date.now() - start) >= 3000) {
+          removeKnownApp(appId);
           return refreshLauncher(function () {
             cb({ ok: true, id: appId });
           });
@@ -1154,5 +1268,10 @@ module.exports = {
   tileHidingAllowed: tileHidingAllowed,
   migrateConfig: migrateConfig,
   PROTECTED_APP_IDS: PROTECTED_APP_IDS,
-  dirSize: dirSize
+  dirSize: dirSize,
+  ackApp: ackApp,
+  readKnownApps: readKnownApps,
+  writeKnownApps: writeKnownApps,
+  removeKnownApp: removeKnownApp,
+  setKnownAppsFile: setKnownAppsFile
 };

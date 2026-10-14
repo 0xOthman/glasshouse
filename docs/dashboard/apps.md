@@ -12,6 +12,8 @@ The **Apps** tab, `/?tab=apps`, has three groups: **Apps**, for installing and r
 
 Lists the apps downloaded from the LG store or installed by hand, with their version, vendor, and storage badge showing disk footprint. Launch opens the application on the TV, while Uninstall deletes an app completely and frees its storage. LG's built-in apps can't be removed this way; they can be hidden instead.
 
+When an application appears on the TV that was not installed through Glasshouse (such as sponsored bloatware silently pushed down by LG), an alert banner appears at the top of the group highlighting the new application, with options to **Keep** or immediately **Uninstall** it. Acknowledged apps can be uninstalled at any time from the list.
+
 ### Install homebrew apps
 
 Lists the Homebrew Channel catalog, with category filters (All, Media, Games, Utilities, Ambilight, Screensavers) and keyword search, and Install, Update or Uninstall for each app. Downloads are checked against the catalog before they are installed, and the dashboard asks first when something needs a decision, such as replacing a copy installed from the LG store.

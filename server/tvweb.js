@@ -743,7 +743,14 @@ installer.init({
   apps: appsModule,
   fetch: fetchLib,
   updaterBusy: updater.isBusy,
-  onInstalled: function () {
+  onInstalled: function (result) {
+    if (result && result.apps && result.apps.length) {
+      for (var i = 0; i < result.apps.length; i++) {
+        appsModule.ackApp(result.apps[i]);
+      }
+    } else if (result && result.package) {
+      appsModule.ackApp(result.package);
+    }
     appsChanged();
     appsModule.refreshLauncher();
   }

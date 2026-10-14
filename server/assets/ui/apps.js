@@ -141,13 +141,63 @@ function renderAppsPanel() {
   if (!appsData) return;
   const d = appsData;
 
+  // Render New Apps Banner
+  const newBanner = q('apps-new-banner');
+  const newTitle = q('apps-new-banner-title');
+  const newDesc = q('apps-new-banner-desc');
+  const newList = q('apps-new-list');
+  const keepAllBtn = q('apps-new-keep-all');
+  const newApps = d.newApps || [];
+
+  if (newBanner && newList) {
+    if (newApps.length === 0) {
+      newBanner.hidden = true;
+      newList.innerHTML = '';
+    } else {
+      newBanner.hidden = false;
+      if (newApps.length === 1) {
+        if (newTitle) newTitle.textContent = t('apps.newBanner.title', 'New application detected');
+        if (newDesc) newDesc.textContent = t('apps.newBanner.desc', 'The following application was newly added to the TV. You can keep it or uninstall it immediately.');
+        if (keepAllBtn) keepAllBtn.hidden = true;
+      } else {
+        if (newTitle) newTitle.textContent = t('apps.newBanner.titlePlural', '{n} new applications detected', { n: newApps.length });
+        if (newDesc) newDesc.textContent = t('apps.newBanner.descPlural', 'The following applications were newly added to the TV. You can keep them or uninstall them immediately.');
+        if (keepAllBtn) keepAllBtn.hidden = false;
+      }
+
+      newList.innerHTML = newApps.map(app => {
+        const title = esc(app.title || app.id);
+        const iconUrl = api('/api/apps/icon?id=' + encodeURIComponent(app.id));
+        const meta = [app.version ? 'v' + app.version : '', app.vendor || ''].filter(Boolean).join(' · ');
+        return `<div class="prot-row">
+          <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
+          <div class="prot-main">
+            <div class="prot-title">${title} <span class="app-badge" style="color:var(--cand);border-color:var(--cand)">${esc(t('apps.newBanner.badge', 'New'))}</span></div>
+            <div class="prot-desc">${esc(meta || t('apps.installed.app', 'Installed app'))}</div>
+            ${rowError[app.id] ? `<div class="prot-desc row-err">${esc(rowError[app.id])}</div>` : ''}
+          </div>
+          <div class="prot-status">
+            <button type="button" class="pill idle" onclick="ackNewApp('${jsq(app.id)}')">${esc(t('apps.newBanner.keep', 'Keep'))}</button>
+            <button type="button" class="pill ${uninstalling[app.id] ? 'busy' : 'bad'}" onclick="confirmUninstall('${jsq(app.id)}', '${jsq(app.title || app.id)}')" ${!d.writable || uninstalling[app.id] ? 'disabled' : ''}>${esc(uninstalling[app.id] ? t('apps.uninstall.working', 'Uninstalling\u2026') : t('apps.uninstall.button', 'Uninstall'))}</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
   // Render Installed Apps
   const instList = q('apps-installed-list');
   const instSummary = q('apps-installed-summary');
   const installed = d.installed || [];
 
   const appCount = n => n === 1 ? t('apps.count.one', '1 app') : t('apps.count', '{n} apps', { n });
-  if (instSummary) instSummary.textContent = appCount(installed.length);
+  if (instSummary) {
+    let summaryText = appCount(installed.length);
+    if (newApps.length > 0) {
+      summaryText += ' · ' + (newApps.length === 1 ? t('apps.newBanner.oneNew', '1 new') : t('apps.newBanner.countNew', '{n} new', { n: newApps.length }));
+    }
+    instSummary.textContent = summaryText;
+  }
 
   if (instList) {
     if (installed.length === 0) {
@@ -159,10 +209,11 @@ function renderAppsPanel() {
         const iconUrl = api('/api/apps/icon?id=' + encodeURIComponent(app.id));
         const meta = [app.version ? 'v' + app.version : '', app.vendor || ''].filter(Boolean).join(' · ');
         const sizeBadge = (app.size && typeof fmtSize === 'function') ? fmtSize(app.size) : '';
+        const newBadge = app.isNew ? ` <span class="app-badge" style="color:var(--cand);border-color:var(--cand)">${esc(t('apps.newBanner.badge', 'New'))}</span>` : '';
         return `<div class="prot-row">
           <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
           <div class="prot-main">
-            <div class="prot-title">${title}</div>
+            <div class="prot-title">${title}${newBadge}</div>
             <div class="prot-desc">${esc(meta || t('apps.installed.app', 'Installed app'))}</div>
             ${rowError[app.id] ? `<div class="prot-desc row-err">${esc(rowError[app.id])}</div>` : ''}
           </div>
@@ -569,6 +620,51 @@ async function toggleService(serviceId, makeDisabled) {
   }
 }
 
+async function ackNewApp(appId) {
+  try {
+    const res = await fetch(api('/api/apps/ack-app'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: appId })
+    });
+    const d = await res.json();
+    if (d && d.ok) {
+      if (appsData && appsData.newApps) {
+        appsData.newApps = appsData.newApps.filter(a => a.id !== appId);
+        if (appsData.installed) {
+          const inst = appsData.installed.find(a => a.id === appId);
+          if (inst) delete inst.isNew;
+        }
+      }
+      renderAppsPanel();
+    }
+  } catch (e) {
+    console.error('ackNewApp failed:', e);
+  }
+}
+
+async function ackAllNewApps() {
+  try {
+    const res = await fetch(api('/api/apps/ack-app'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true })
+    });
+    const d = await res.json();
+    if (d && d.ok) {
+      if (appsData) {
+        appsData.newApps = [];
+        if (appsData.installed) {
+          appsData.installed.forEach(a => delete a.isNew);
+        }
+      }
+      renderAppsPanel();
+    }
+  } catch (e) {
+    console.error('ackAllNewApps failed:', e);
+  }
+}
+
 /*
  * From the catalog or the installed list, which can both show the app: both
  * say it is going while it does (about ten seconds with tiles hidden, as the
@@ -601,6 +697,7 @@ async function confirmUninstall(appId, appTitle) {
     showErr(t('apps.uninstall.failed', 'Could not uninstall {name}: {error}', { name: appTitle, error }));
   } else {
     if (appsData && appsData.installed) appsData.installed = appsData.installed.filter(a => a.id !== appId);
+    if (appsData && appsData.newApps) appsData.newApps = appsData.newApps.filter(a => a.id !== appId);
     setCatalogState(appId, null);
     flashRow(appId, t('apps.uninstall.removed', 'Removed'), 'idle flash');
   }

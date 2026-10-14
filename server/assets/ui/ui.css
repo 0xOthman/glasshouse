@@ -836,6 +836,18 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .apps-grp:not(:has(>details:not([hidden]))){display:none}
 .apps-grp-h{font-weight:500;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w80);margin:0 0 6px}
 .apps-grp-d{margin-bottom:6px}
+.apps-new-banner{
+  border:1px solid var(--cand);background:rgba(var(--fg),.03);border-radius:3px;
+  padding:14px 18px;margin:14px 0 18px
+}
+.apps-new-banner-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.apps-new-banner-title{
+  font-family:'Manrope',sans-serif;font-weight:600;font-size:15px;
+  letter-spacing:.02em;color:var(--cand)
+}
+.apps-new-banner-desc{margin:4px 0 10px}
+.apps-new-list{display:flex;flex-direction:column}
+.apps-new-list .prot-row:last-child{border-bottom:0;padding-bottom:0}
 /* The Advanced tab's settings, side by side in at most two columns where
    they fit, so a description sits beside its switch instead of running the
    full width away from it. Text at the Privacy tab's sizes (15px names, 13px
@@ -1073,9 +1085,9 @@ footer{margin-top:38px;font-size:13px;letter-spacing:.08em;text-transform:upperc
 .timer-days button{min-width:44px;height:32px;padding:0 8px;font:500 12px 'Manrope';letter-spacing:.06em;
   color:var(--w60);background:transparent;border:1px solid var(--edge);border-radius:2px;cursor:pointer}
 .timer-days button.on{color:var(--green);border-color:var(--green)}
-#apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row, #server-health-row{flex-wrap:wrap}
-#apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main, #server-health-row .prot-main{flex:1 1 160px}
-#apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status, #server-health-status{
+#apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-new-list .prot-row, #apps-services-list .prot-row, #server-health-row{flex-wrap:wrap}
+#apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-new-list .prot-main, #apps-services-list .prot-main, #server-health-row .prot-main{flex:1 1 160px}
+#apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-new-list .prot-status, #apps-services-list .prot-status, #server-health-status{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%;
 }
 #apps-catalog-list .prot-status button{max-width:100%;white-space:normal}

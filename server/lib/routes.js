@@ -1368,6 +1368,16 @@ function handleRequest(req, res) {
     });
   }
 
+  if (pathname === '/api/apps/ack-app' && req.method === 'POST') {
+    return readJsonBody(req, res, function (body) {
+      var id = body && body.id;
+      var all = !!(body && (body.all || body.ackAll));
+      appsModule.ackApp(all ? null : id, function (r) {
+        send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
+      });
+    });
+  }
+
   if ((pathname === '/api/apps/hide' || pathname === '/api/apps/unhide') && fromHomebrewChannel()) {
     return send(res, 400, JSON.stringify({ ok: false, error: tileHidingOffMsg }));
   }

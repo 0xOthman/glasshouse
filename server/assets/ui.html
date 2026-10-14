@@ -676,6 +676,15 @@
     <div class="apps-grp-h" data-t="apps.group.apps">Apps</div>
     <div class="pv-sub apps-grp-d" data-t="apps.group.apps.desc">The apps and web pages on the TV: adding them and removing them.</div>
 
+    <div class="apps-new-banner" id="apps-new-banner" hidden>
+      <div class="apps-new-banner-head">
+        <span class="apps-new-banner-title" id="apps-new-banner-title" data-t="apps.newBanner.title">New application detected</span>
+        <button type="button" class="pill idle apps-new-keep-all" id="apps-new-keep-all" onclick="ackAllNewApps()" hidden data-t="apps.newBanner.keepAll">Keep all</button>
+      </div>
+      <div class="pv-sub apps-new-banner-desc" id="apps-new-banner-desc" data-t="apps.newBanner.desc">The following application was newly added to the TV. You can keep it or uninstall it immediately.</div>
+      <div class="prot-table apps-new-list" id="apps-new-list"></div>
+    </div>
+
     <details class="pv-d" id="disc-installed-apps">
       <summary><span data-t="apps.manage">Manage applications</span> <span class="cur" id="apps-installed-summary"></span></summary>
       <div class="pv-sub" data-t="apps.manage.desc">Store downloads and user-installed applications. Launch opens the application on the TV, or click Uninstall to permanently remove it and free up internal eMMC flash storage space.</div>
