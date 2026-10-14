@@ -320,18 +320,15 @@ async function tick() {
     }
 
     const rem = d.remote;
-    if (rem && (rem.model || (rem.battery !== null && rem.battery !== undefined))) {
+    const hasBattery = !!(rem && typeof rem.battery === 'number');
+    if (hasBattery) {
       q('remoteblock').hidden = false;
-      const hasBattery = rem.battery !== null && rem.battery !== undefined;
-      q('remote-battery').hidden = !hasBattery;
-      if (hasBattery) {
-        q('remote-pct').textContent = rem.battery;
-        const gFill = q('remote-gauge-fill');
-        gFill.style.width = Math.max(5, Math.min(100, rem.battery)) + '%';
-        gFill.style.background = rem.battery <= 15 ? 'var(--red)' : rem.battery <= 30 ? 'var(--cand)' : 'var(--green)';
-      }
+      q('remote-pct').textContent = rem.battery;
+      const gFill = q('remote-gauge-fill');
+      gFill.style.width = Math.max(5, Math.min(100, rem.battery)) + '%';
+      gFill.style.background = rem.battery <= 15 ? 'var(--red)' : rem.battery <= 30 ? 'var(--cand)' : 'var(--green)';
       q('remote-model').textContent = rem.model ? rem.model.replace(/^LGE\s*/i, '') : t('metrics.remote.name', 'Magic Remote');
-      q('remote-model-sub').textContent = rem.firmware ? t('metrics.remote.firmware', 'Firmware: {version}', { version: rem.firmware }) : '';
+      q('remote-model-sub').textContent = rem.firmware ? ' · ' + t('metrics.remote.firmware', 'Firmware: {version}', { version: rem.firmware }) : '';
       q('remoteblock').title = [rem.model || t('metrics.remote.name', 'Magic Remote'),
         rem.firmware ? t('metrics.remote.firmware', 'Firmware: {version}', { version: rem.firmware }) : '',
         rem.mac ? t('metrics.remote.bluetooth', 'Bluetooth: {address}', { address: rem.mac }) : ''].filter(Boolean).join(' · ');

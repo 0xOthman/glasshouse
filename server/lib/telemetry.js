@@ -636,7 +636,9 @@ function remoteInfo() {
 function readRemoteInfo() {
   var now = Date.now();
   if (cachedRemote && (now - lastRemoteCheck < 30000)) return cachedRemote;
-  var parsed = parseRemoteInfo(readTrimmed('/mnt/lg/cmn_data/mrcu/mrcu1.info'));
+  var raw = readTrimmed('/mnt/lg/cmn_data/mrcu/mrcu1.info') ||
+            readTrimmed('/mnt/lg/cmn_data/btsvc/mrcu1.info');
+  var parsed = parseRemoteInfo(raw);
   if (!parsed) return cachedRemote || null;
   cachedRemote = parsed;
   lastRemoteCheck = Date.now();
