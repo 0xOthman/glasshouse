@@ -534,6 +534,63 @@ async function clearWatchTime() {
   if (r && r.ok) renderUpdate(r); else loadUpdate();
 }
 
+// ---- settings backup ----
+function backupMessage(text) {
+  const m = q('backup-msg');
+  m.textContent = text;
+  m.hidden = !text;
+}
+
+async function saveBackup() {
+  try {
+    const r = await fetch(api('/api/backup'), { cache: 'no-store' });
+    const b = await r.json();
+    if (!r.ok || b.format !== 'glasshouse-backup') throw new Error(b.error || r.status);
+    const model = String((b.from && b.from.model) || 'tv').replace(/[^A-Za-z0-9_-]+/g, '-');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: 'application/json' }));
+    a.download = `glasshouse-backup-${model}-${b.created.slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    backupMessage(t('server.backup.saved', 'Saved {count} LG settings and Glasshouse’s own.', { count: Object.keys(b.lg || {}).length }));
+  } catch (e) {
+    backupMessage(t('server.backup.saveFailed', 'Could not make a backup — {error}', { error: e.message }));
+  }
+}
+
+async function restoreBackup(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  let b;
+  try { b = JSON.parse(await file.text()); } catch (e) { b = null; }
+  if (!b || b.format !== 'glasshouse-backup') {
+    return backupMessage(t('server.backup.notBackup', 'That file is not a Glasshouse backup'));
+  }
+  const from = (b.from && b.from.model) || t('server.backup.unknownTv', 'an unknown TV');
+  const when = b.created ? new Date(b.created).toLocaleString() : '?';
+  if (!confirm(t('server.backup.confirm', 'Restore the settings saved from {tv} on {date}? This changes LG’s settings on this TV.', { tv: from, date: when }))) return;
+  backupMessage(t('server.backup.restoring', 'Restoring…'));
+  try {
+    const r = await fetch(api('/api/backup'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b)
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    const lg = d.lg || {};
+    let text = t('server.backup.restored', 'Changed {changed} LG settings, {same} were already so, {skipped} skipped as this TV does not have them or they are not available now.', {
+      changed: (lg.applied || []).length, same: lg.unchanged || 0, skipped: (lg.skipped || []).length
+    });
+    if ((lg.failed || []).length) text += ' ' + t('server.backup.failedSome', '{count} could not be set.', { count: lg.failed.length });
+    if (d.restart) text += ' ' + t('server.backup.restarting', 'Glasshouse restarts to apply its own settings.');
+    backupMessage(text);
+  } catch (e) {
+    backupMessage(t('server.backup.restoreFailed', 'Could not restore — {error}', { error: e.message }));
+  }
+}
+
 async function toggleExpScreensaver() {
   const b = q('exp-screensaver');
   b.disabled = true;

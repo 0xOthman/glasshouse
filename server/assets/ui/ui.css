@@ -720,6 +720,7 @@ button.pill.busy:not([style*="--p"]){
 .upd-new-r p{margin:0 0 4px;white-space:pre-line}
 .upd-new-v{font-weight:600;color:var(--w100);margin-right:8px}
 .upd-new a{color:var(--w60);text-decoration:underline;text-underline-offset:2px;font-size:13px}
+.backup-btns{max-width:420px}
 .link-btn{background:none;border:0;padding:0;min-height:0;margin-top:10px;cursor:pointer;
   font:400 13px 'Manrope';letter-spacing:.02em;text-transform:none;color:var(--w60);
   text-decoration:underline;text-underline-offset:2px}

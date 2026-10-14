@@ -91,6 +91,8 @@ var syslogModule = null;
 var ntpModule = null;
 /** @type {typeof import('./history')} */
 var historyModule = null;
+/** @type {typeof import('./backup')} */
+var backupModule = null;
 var fromHbcFn = null;
 var tileHidingOffMsg = '';
 var assetPathFn = null;
@@ -1508,6 +1510,45 @@ function handleRequest(req, res) {
     return send(res, 200, JSON.stringify(getSettingsPayload()));
   }
 
+  // A backup of the TV's settings, saved by the browser as a file.
+  if (pathname === '/api/backup' && req.method === 'GET' && backupModule) {
+    return backupModule.create(function (b) { send(res, 200, JSON.stringify(b)); });
+  }
+
+  /*
+   * Restoring one changes LG's settings, so it is held to what saving the
+   * dashboard's settings is: controls on, JSON, and from this origin.
+   */
+  if (pathname === '/api/backup' && req.method === 'POST' && backupModule) {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (String(req.headers['content-type'] || '').toLowerCase().indexOf('application/json') !== 0) {
+      return send(res, 415, JSON.stringify({ ok: false, error: 'Content-Type must be application/json' }));
+    }
+    var borigin = req.headers.origin;
+    if (borigin && String(borigin).replace(/^https?:\/\//, '') !== String(req.headers.host || '')) {
+      return send(res, 403, JSON.stringify({ ok: false, error: 'cross-origin request refused' }));
+    }
+    var bbody = '';
+    req.on('data', function (d) {
+      bbody += d;
+      if (bbody.length > 65536) req.destroy();
+    });
+    req.on('end', function () {
+      var b = null;
+      try { b = JSON.parse(bbody); } catch (e) {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      if (installBusyRefusal(res)) return;
+      backupModule.restore(b, function (r) {
+        send(res, r.ok ? 200 : 400, JSON.stringify(r));
+        if (r.restart) restartSoon(250, 'backup');
+      });
+    });
+    return;
+  }
+
   if (pathname === '/api/settings' && req.method === 'POST') {
     if (!authed(u.query, req)) return send(res, 401, JSON.stringify({ ok: false, error: 'unauthorized' }));
     if (!config.allowControl) {
@@ -1611,6 +1652,7 @@ function init(opts) {
   if (opts.syslog) syslogModule = opts.syslog;
   if (opts.ntp) ntpModule = opts.ntp;
   if (opts.history) historyModule = opts.history;
+  if (opts.backup) backupModule = opts.backup;
   if (opts.fromHomebrewChannel) fromHbcFn = opts.fromHomebrewChannel;
   if (opts.tileHidingOff) tileHidingOffMsg = opts.tileHidingOff;
   if (opts.assetPath) assetPathFn = opts.assetPath;
