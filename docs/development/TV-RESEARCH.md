@@ -153,6 +153,15 @@ screen savers make sam reread apps without restarting it (#366). On webOS 9.2.2
 `/usr/sbin/sam` names `profile.blockedAppList`; whether webOS 10's does is not
 yet known.
 
+## The TV's time zone (C5, webOS 10.3.1)
+
+`com.webos.service.systemservice/time/getSystemTime` gives the time zone with
+the time: `localtime` as year, month, day, hour, minute and second, `utc` in
+Unix seconds, `offset` in minutes (120 in Ljubljana in October), `timezone`
+(`Europe/Ljubljana`), `TZ` (`CEST`), `isDST` and `timeValid`. `localtime` less
+`utc` matched `offset`. Watch time works its offset out from `localtime` and
+`utc`. Which of these fields older webOS versions give is not yet known.
+
 ## Boot and app state (webOS 9.2.2, C2)
 
 - The kernel command line has `snapshot resume=/dev/mmcblk0p51 criu_enabled`.
