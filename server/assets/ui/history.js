@@ -55,12 +55,14 @@ function watchName(key, titles) {
   return titles[key] || key;
 }
 
+// Shown only while counting is on; the switch is on the Server tab.
 function renderWatchTime(d) {
-  const on = !!d.enabled;
-  q('watch-off').hidden = on;
-  q('watch-on').hidden = !on;
-  updateToggle('watch-toggle', { cls: 'idle', label: t('common.off', 'Off'), on: false, disabled: false });
-  if (!on) return;
+  const block = q('watchblock');
+  if (block.hidden === !!d.enabled) {
+    block.hidden = !d.enabled;
+    relayout(true);   // which group heads its column can change
+  }
+  if (!d.enabled) return;
 
   const days = watchByDay(d.hours || {});
   const titles = d.titles || {};
@@ -115,15 +117,19 @@ async function loadWatchTime() {
   }
 }
 
-async function toggleWatchTime() {
-  const on = q('watch-on').hidden;
-  q('watch-toggle').disabled = true;
-  const r = await sendCommand('setHistoryEnabled', on);
-  if (r && r.ok) loadWatchTime(); else q('watch-toggle').disabled = false;
+/*
+ * The numbers move while the tab is watched, as the other readings do: the
+ * server counts the time in front up to the moment it is asked.
+ */
+const WATCH_REFRESH_MS = 30000;
+let watchTimer = null;
+
+function watchPolling(on) {
+  clearInterval(watchTimer);
+  watchTimer = null;
+  if (!on || document.hidden) return;
+  loadWatchTime();
+  watchTimer = setInterval(loadWatchTime, WATCH_REFRESH_MS);
 }
 
-async function clearWatchTime() {
-  if (!confirm(t('metrics.watch.clearConfirm', 'Delete all watch time kept on the TV?'))) return;
-  const r = await sendCommand('clearHistory');
-  if (r && r.ok) loadWatchTime();
-}
+document.addEventListener('visibilitychange', () => watchPolling(activeTab === 'metrics'));

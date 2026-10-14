@@ -185,31 +185,16 @@
       <div class="sub" id="hdmi-diag-row" hidden style="margin-top:12px;line-height:1.5"></div>
     </div>
 
-    <div class="grp-sec" id="watchblock" data-col="1">
+    <div class="grp-sec" id="watchblock" data-col="1" hidden>
       <div class="grp" data-t="metrics.watch">Watch time</div>
-      <div class="prot-table" id="watch-off">
-        <div class="prot-row">
-          <div class="prot-main">
-            <div class="prot-title" data-t="metrics.watch.count">Count watch time</div>
-            <div class="prot-desc" data-t="metrics.watch.desc">How long the screen is on, per app and input, kept on the TV for 13 months. It records what the household watches, so it stays off until turned on here.</div>
-          </div>
-          <div class="prot-status"><button type="button" class="pill idle" id="watch-toggle" onclick="toggleWatchTime()">&mdash;</button></div>
-        </div>
+      <div class="watch-totals">
+        <div><div class="lbl" data-t="metrics.watch.today">Today</div><div class="uptime-val num" id="watch-today">&mdash;</div></div>
+        <div><div class="lbl" data-t="metrics.watch.week">7 days</div><div class="uptime-val num" id="watch-week">&mdash;</div></div>
+        <div><div class="lbl" data-t="metrics.watch.month">30 days</div><div class="uptime-val num" id="watch-month">&mdash;</div></div>
       </div>
-      <div id="watch-on" hidden>
-        <div class="watch-totals">
-          <div><div class="lbl" data-t="metrics.watch.today">Today</div><div class="uptime-val num" id="watch-today">&mdash;</div></div>
-          <div><div class="lbl" data-t="metrics.watch.week">7 days</div><div class="uptime-val num" id="watch-week">&mdash;</div></div>
-          <div><div class="lbl" data-t="metrics.watch.month">30 days</div><div class="uptime-val num" id="watch-month">&mdash;</div></div>
-        </div>
-        <div class="watch-bars" id="watch-bars" role="img" aria-label="Hours watched each day for the last 14 days" data-t-aria-label="metrics.watch.bars"></div>
-        <div id="watch-list"></div>
-        <div class="sub" id="watch-note" hidden></div>
-        <div class="btns watch-btns">
-          <button type="button" id="watch-clear" onclick="clearWatchTime()" data-t="metrics.watch.clear">Clear history</button>
-          <button type="button" id="watch-stop" onclick="toggleWatchTime()" data-t="metrics.watch.stop">Stop counting</button>
-        </div>
-      </div>
+      <div class="watch-bars" id="watch-bars" role="img" aria-label="Hours watched each day for the last 14 days" data-t-aria-label="metrics.watch.bars"></div>
+      <div id="watch-list"></div>
+      <div class="sub" id="watch-note" hidden></div>
     </div>
 
     <div class="grp-sec" id="uptimeblock" data-col="1">
@@ -1167,6 +1152,14 @@
             <div class="prot-desc" data-t="server.prometheus.short">Lets a Prometheus server on the network collect the TV's readings, at /api/prometheus/metrics. While off, the address does not exist.</div>
           </div>
           <div class="prot-status"><button type="button" class="pill idle" id="srv-prometheus" onclick="togglePrometheus()">&mdash;</button></div>
+        </div>
+        <div class="prot-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.watch.title">Watch time</div>
+            <div class="prot-desc" data-t="server.watch.desc">Counts how long the screen is on, per app and input, for the Metrics tab and Home Assistant. Kept on the TV for 13 months. It records what the household watches, so it stays off until turned on here.</div>
+            <button type="button" class="link-btn" id="srv-watch-clear" hidden onclick="clearWatchTime()" data-t="server.watch.clear">Clear history</button>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="srv-watch" onclick="toggleWatchTime()">&mdash;</button></div>
         </div>
         <div class="prot-row">
           <div class="prot-main">

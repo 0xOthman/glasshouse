@@ -109,6 +109,17 @@ function renderUpdate(d) {
       disabled: !d.writable
     });
   }
+  if (d.watchHistory) {
+    updateToggle('srv-watch', {
+      cls: d.watchHistory.enabled ? 'good' : 'idle',
+      label: d.watchHistory.enabled ? t('common.on', 'On') : t('common.off', 'Off'),
+      on: d.watchHistory.enabled,
+      disabled: !d.writable
+    });
+    const clear = q('srv-watch-clear');
+    clear.hidden = !d.watchHistory.kept;
+    clear.disabled = !d.writable;
+  }
   if (d.ntpSettings) {
     renderNtp(d.ntp, d.ntpSettings, d.writable);
   }
@@ -506,6 +517,20 @@ async function togglePrometheus() {
   const b = q('srv-prometheus');
   b.disabled = true;
   const r = await sendCommand('setPrometheusEnabled', !b.dataset.on);
+  if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+async function toggleWatchTime() {
+  const b = q('srv-watch');
+  b.disabled = true;
+  const r = await sendCommand('setHistoryEnabled', !b.dataset.on);
+  if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+// Stopping keeps what is there; this deletes it.
+async function clearWatchTime() {
+  if (!confirm(t('server.watch.clearConfirm', 'Delete all watch time kept on the TV?'))) return;
+  const r = await sendCommand('clearHistory');
   if (r && r.ok) renderUpdate(r); else loadUpdate();
 }
 

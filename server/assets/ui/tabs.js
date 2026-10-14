@@ -63,7 +63,8 @@ function showTab(name) {
   try { localStorage.setItem('tab', name); } catch (e) { /* private window */ }
   relayout(false);   // the panel just became measurable
   cfgPollStatus(name === 'mqtt');
-  if (name === 'metrics') { loadHdmiOnce(); loadWatchTime(); }
+  if (name === 'metrics') loadHdmiOnce();
+  watchPolling(name === 'metrics');
   if (name === 'apps') { loadApps(); loadCatalog(false); pollInstall(); }
   if (name === 'server') checkOnOpen();
   if (name === 'server') loadTvApp();

@@ -1531,29 +1531,13 @@
   "text": "Horas vistas cada día en los últimos 14 días",
   "from": "Hours watched each day for the last 14 days"
  },
- "metrics.watch.clear": {
-  "text": "Borrar historial",
-  "from": "Clear history"
- },
- "metrics.watch.clearConfirm": {
-  "text": "¿Borrar todo el tiempo de visionado guardado en la TV?",
-  "from": "Delete all watch time kept on the TV?"
- },
  "metrics.watch.clockUnset": {
   "text": "El reloj de la TV aún no está en hora, así que el tiempo desde que arrancó se añade cuando lo esté.",
   "from": "The TV’s clock is not set yet, so the time since it started is added once it is."
  },
- "metrics.watch.count": {
-  "text": "Contar el tiempo de visionado",
-  "from": "Count watch time"
- },
  "metrics.watch.dayTip": {
   "text": "{day}: {time}",
   "from": "{day}: {time}"
- },
- "metrics.watch.desc": {
-  "text": "Cuánto tiempo está encendida la pantalla, por app y entrada, guardado en la TV durante 13 meses. Registra lo que se ve en casa, así que está apagado hasta que se active aquí.",
-  "from": "How long the screen is on, per app and input, kept on the TV for 13 months. It records what the household watches, so it stays off until turned on here."
  },
  "metrics.watch.empty": {
   "text": "Aún no hay nada contado. El tiempo se cuenta mientras la pantalla está encendida.",
@@ -1578,10 +1562,6 @@
  "metrics.watch.screenOff": {
   "text": "Pantalla apagada",
   "from": "Screen off"
- },
- "metrics.watch.stop": {
-  "text": "Dejar de contar",
-  "from": "Stop counting"
  },
  "metrics.watch.today": {
   "text": "Hoy",
@@ -6250,6 +6230,22 @@
  "server.fullNotes": {
   "text": "Notas completas de la versión",
   "from": "Full release notes"
+ },
+ "server.watch.clear": {
+  "text": "Borrar historial",
+  "from": "Clear history"
+ },
+ "server.watch.clearConfirm": {
+  "text": "¿Borrar todo el tiempo de visionado guardado en la TV?",
+  "from": "Delete all watch time kept on the TV?"
+ },
+ "server.watch.desc": {
+  "text": "Cuenta cuánto tiempo está encendida la pantalla, por app y entrada, para la pestaña Métricas y Home Assistant. Se guarda en la TV durante 13 meses. Registra lo que se ve en casa, así que está apagado hasta que se active aquí.",
+  "from": "Counts how long the screen is on, per app and input, for the Metrics tab and Home Assistant. Kept on the TV for 13 months. It records what the household watches, so it stays off until turned on here."
+ },
+ "server.watch.title": {
+  "text": "Tiempo de visionado",
+  "from": "Watch time"
  },
  "server.whatsNew": {
   "text": "Novedades",

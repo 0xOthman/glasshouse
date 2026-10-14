@@ -592,6 +592,7 @@ function updateSummary() {
   s.allowOnWebos10 = !!(screensaversModule && screensaversModule.allowedAnyway && screensaversModule.allowedAnyway());
   s.isWebos10 = !!(screensaversModule && screensaversModule.slowSwitch && screensaversModule.slowSwitch());
   s.prometheusEnabled = prometheusEnabled();
+  s.watchHistory = historyModule ? historyModule.status() : null;
   s.ntp = ntpModule ? ntpModule.getStatus() : null;
   // What is saved, on or off, so the switch can show a server kept while off.
   var ntpConf = (config && config.ntp) || {};

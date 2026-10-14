@@ -383,8 +383,12 @@ function summary() {
   };
 }
 
+// kept: whether there is any history on the TV to clear, on or off.
 function status() {
-  return { enabled: enabled(), running: running };
+  var files = [];
+  try { files = fs.readdirSync(dir); } catch (e) {}
+  var kept = files.some(function (f) { return /^\d{4}-\d{2}\.json$/.test(f); });
+  return { enabled: enabled(), running: running, kept: kept || Object.keys(dirty).length > 0 };
 }
 
 /**

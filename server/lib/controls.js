@@ -927,13 +927,13 @@ function doControl(action, value, cb) {
         if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
         historyModule.setEnabled(historyOn);
         if (republishDiscoveryFn) republishDiscoveryFn();
-        cb({ ok: true, enabled: historyOn });
+        cb(getUpdateSummary());
       });
 
     case 'clearHistory':
       if (!historyModule) return cb({ ok: false, error: 'no history configured' });
       historyModule.clear();
-      return cb({ ok: true });
+      return cb(getUpdateSummary());
 
     case 'setNetworkDebuggerAllowed':
       var allowDbg = (value === true || value === 'on' || value === 'true');

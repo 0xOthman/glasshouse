@@ -266,5 +266,57 @@ var T = Date.UTC(2026, 9, 14, 18, 50, 0);
   history.stop();
 })();
 
+// 7. The Server tab's switch and Clear, which answer with the tab's summary
+(function () {
+  var routes = require('../server/lib/routes');
+  var controls = require('../server/lib/controls');
+  var cfgPath = path.join(os.tmpdir(), 'tvweb-history-' + process.pid + '.json');
+  fs.writeFileSync(cfgPath, JSON.stringify({ port: 8080 }), 'utf8');
+
+  var tv = setup({ wall: T, enabled: false });
+  // controls.js, routes.js and history.js are handed the same object, as in tvweb.js.
+  var config = tv.config;
+  config.allowControl = true;
+  config.web = { enabled: false };
+  routes.init({
+    config: config,
+    configFile: cfgPath,
+    history: history,
+    updater: { updateSummary: function () { return { ok: true, writable: true }; } },
+    privacy: { tvUpdatesBlocked: function () { return false; } }
+  });
+  controls.init({ config: config, history: history, writeSettings: routes.writeSettings, updateSummary: routes.updateSummary });
+  history.start();
+
+  assert.deepEqual(routes.updateSummary().watchHistory, { enabled: false, running: false, kept: false });
+  var checks = 0;
+  controls.doControl('setHistoryEnabled', true, function (r) {
+    checks++;
+    assert.strictEqual(r.ok, true);
+    assert.strictEqual(r.watchHistory.enabled, true);
+    assert.strictEqual(JSON.parse(fs.readFileSync(cfgPath, 'utf8')).history.enabled, true);
+  });
+  tv.on('netflix');
+  tv.advance(60000);
+  controls.doControl('setHistoryEnabled', false, function (r) {
+    checks++;
+    assert.deepEqual(r.watchHistory, { enabled: false, running: false, kept: true }, 'stopping keeps the history');
+  });
+  controls.doControl('clearHistory', null, function (r) {
+    checks++;
+    assert.strictEqual(r.watchHistory.kept, false);
+  });
+
+  config.allowControl = false;
+  controls.doControl('setHistoryEnabled', true, function (r) {
+    checks++;
+    assert.strictEqual(r.ok, false, 'refused with controls off');
+  });
+
+  try { fs.unlinkSync(cfgPath); } catch (e) {}
+  assert.strictEqual(checks, 4, 'every callback ran');
+  console.log('  ✓ the Server tab switch saves the setting, stopping keeps the history, and Clear deletes it');
+})();
+
 rmrf(root);
 console.log('test-history.js passed');
