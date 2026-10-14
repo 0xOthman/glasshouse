@@ -43,6 +43,10 @@ var dueAt = 0;
 // { level: 0-100, at: Unix ms, mac: string|null } once read.
 var last = null;
 var stateFile = null;
+var connected = false;
+var isBle = false;
+var lowStrength = null;
+var firmware = null;
 
 function remoteAddress(devices) {
   for (var i = 0; i < (devices || []).length; i++) {
@@ -55,6 +59,11 @@ function remoteAddress(devices) {
 function levelFrom(r) {
   var bytes = r && r.returnValue && r.value && r.value.value && r.value.value.bytes;
   var n = bytes && bytes.length ? bytes[0] : null;
+  return typeof n === 'number' && n >= 0 && n <= 100 ? n : null;
+}
+
+function deviceLevelFrom(info) {
+  var n = info && info.returnValue ? info.batteryLevel : null;
   return typeof n === 'number' && n >= 0 && n <= 100 ? n : null;
 }
 
@@ -81,7 +90,12 @@ function read(done) {
         last = { level: level, at: Date.now(), mac: address };
         if (stateFile) {
           try {
-            util.writeJsonAtomic(stateFile, last);
+            util.writeJsonAtomic(stateFile, {
+              level: last.level,
+              at: last.at,
+              mac: last.mac,
+              lowStrength: lowStrength
+            });
           } catch (e) {}
         }
         if (changed && onLevel) onLevel(level);
@@ -93,7 +107,30 @@ function read(done) {
     else end();
   }
 
+  function fallbackDeviceInfo(onFallback) {
+    luna('com.webos.service.mrcu/getDeviceInfo', { subscribe: false, deviceName: 'MagicRemote_1' }, function (info) {
+      if (info && typeof info.lowStrength === 'boolean') {
+        lowStrength = info.lowStrength;
+      }
+      if (info && typeof info.fwVer === 'string' && info.fwVer.length > 0 && info.fwVer !== '00.00.00.00.00.00.00.00.00.00.00') {
+        firmware = info.fwVer;
+      }
+      var dl = deviceLevelFrom(info);
+      if (dl !== null) {
+        if (!address && info && typeof info.bdAddress === 'string' && info.bdAddress !== '00:00:00:00:00:00') {
+          address = info.bdAddress;
+        }
+        return onFallback(dl);
+      }
+      onFallback(null);
+    });
+  }
+
   luna('com.webos.service.mrcu/getConnectionStatus', {}, function (st) {
+    if (st) {
+      if (typeof st.connected === 'boolean') connected = st.connected;
+      if (typeof st.isBleRemocon === 'boolean') isBle = st.isBleRemocon;
+    }
     if (!st || !st.connected || !st.isBleRemocon) return finish(null);
     luna(BT + '/device/getStatus', {}, function (ds) {
       address = remoteAddress(ds && ds.devices);
@@ -102,7 +139,10 @@ function read(done) {
       luna(BT + '/gatt/connect', { address: address }, function (c) {
         clientId = c && c.returnValue && c.clientId ? String(c.clientId) : null;
         if (!clientId) return finish(null);
-        luna(BT + '/gatt/discoverServices', { address: address }, function () {
+        luna(BT + '/gatt/discoverServices', { address: address }, function (disc) {
+          if (disc && disc.returnValue === false) {
+            return fallbackDeviceInfo(function (dl) { finish(dl); });
+          }
           setTimeout(function () {
             luna(BT + '/gatt/readCharacteristicValue', {
               clientId: clientId, service: BATTERY_SERVICE, characteristic: BATTERY_LEVEL
@@ -120,6 +160,10 @@ function due() {
 
 // lginput2's connection status: a remote waking is the chance to read.
 function connectionChanged(st) {
+  if (st) {
+    if (typeof st.connected === 'boolean') connected = st.connected;
+    if (typeof st.isBleRemocon === 'boolean') isBle = st.isBleRemocon;
+  }
   if (st && st.connected && st.isBleRemocon && due()) setTimeout(function () { if (due()) read(); }, settleMs);
 }
 
@@ -137,10 +181,40 @@ function start(isOn) {
   stop();
   isOnFn = isOn;
   dueAt = 0;
+  connected = false;
+  isBle = false;
   subscription = new lunaTransport.Subscription('com.webos.service.mrcu/getConnectionStatus',
     { subscribe: true }, null, { message: connectionChanged });
   subscription.start();
   timer = setInterval(function () { if (due()) read(); }, CHECK_MS);
+  if (luna) {
+    luna('com.webos.service.mrcu/getDeviceInfo', { subscribe: false, deviceName: 'MagicRemote_1' }, function (info) {
+      if (info && typeof info.lowStrength === 'boolean') {
+        lowStrength = info.lowStrength;
+      }
+      if (info && typeof info.fwVer === 'string' && info.fwVer.length > 0 && info.fwVer !== '00.00.00.00.00.00.00.00.00.00.00') {
+        firmware = info.fwVer;
+      }
+      if (!last) {
+        var dl = deviceLevelFrom(info);
+        if (dl !== null) {
+          var mac = (info && typeof info.bdAddress === 'string' && info.bdAddress !== '00:00:00:00:00:00') ? info.bdAddress : null;
+          last = { level: dl, at: Date.now(), mac: mac };
+          if (stateFile) {
+            try {
+              util.writeJsonAtomic(stateFile, {
+                level: last.level,
+                at: last.at,
+                mac: last.mac,
+                lowStrength: lowStrength
+              });
+            } catch (e) {}
+          }
+          if (onLevel) onLevel(dl);
+        }
+      }
+    });
+  }
 }
 
 function stop() {
@@ -172,12 +246,17 @@ function init(opts) {
   onLevel = opts.onLevel || null;
   busy = false;
   dueAt = 0;
+  connected = false;
+  isBle = false;
+  lowStrength = null;
+  firmware = null;
   isOnFn = function () { return true; };
   stateFile = opts.stateFile !== undefined ? opts.stateFile :
     (opts.stateDir ? path.join(opts.stateDir, 'remote-battery.json') : null);
   var saved = stateFile ? util.readJson(stateFile, null) : null;
   if (saved && typeof saved.level === 'number' && saved.level >= 0 && saved.level <= 100) {
     last = { level: saved.level, at: saved.at || Date.now(), mac: saved.mac || null };
+    if (typeof saved.lowStrength === 'boolean') lowStrength = saved.lowStrength;
   } else {
     last = null;
   }
@@ -191,6 +270,16 @@ module.exports = {
   poweredOn: poweredOn,
   connectionChanged: connectionChanged,
   level: level,
+  connected: function () { return connected; },
+  isBle: function () { return isBle; },
+  signal: function () {
+    if (lowStrength === null) return null;
+    return lowStrength ? 'weak' : 'good';
+  },
+  lowStrength: function () { return lowStrength; },
+  firmware: function () { return firmware; },
   remoteAddress: remoteAddress,
-  levelFrom: levelFrom
+  levelFrom: levelFrom,
+  deviceLevelFrom: deviceLevelFrom
 };
+

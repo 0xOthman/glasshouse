@@ -414,6 +414,12 @@ html.nav-hidden body.nav-open{overflow:hidden}
 .grp-sec{margin-top:clamp(30px,5vw,46px);padding-top:clamp(20px,3vw,28px);
   border-top:1px solid var(--w12)}
 .grp-sec.first, #tempblock[hidden] + .grp-sec{margin-top:0;padding-top:0;border-top:0}
+#remoteblock .grp{display:flex;align-items:center;justify-content:space-between}
+#remote-pill.idle::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--w40);flex:none}
+.remote-meta{margin-top:14px;font-size:12.5px;line-height:1.6;color:var(--w60)}
+.remote-meta-row{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:baseline}
+.remote-meta-lbl{color:var(--w50);font-weight:400;flex-shrink:0}
+.remote-meta-val{color:var(--w80);font-weight:400;word-break:break-word}
 .col-sec-hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   padding-bottom:12px;border-bottom:1px solid var(--w25);margin-bottom:22px}
 .col-sec-hdr .col-sec{padding-bottom:0;border-bottom:0;margin-bottom:0}

@@ -628,10 +628,24 @@ function remoteInfo() {
   var file = readRemoteInfo();
   if (!file) return null;
   var level = remoteBatteryModule ? remoteBatteryModule.level(file.mac) : null;
-  if (level === null) return file;
-  var out = { battery: level, model: null, mac: null, firmware: null, paired: true };
-  for (var k in file) if (k !== 'battery') out[k] = file[k];
-  return out;
+  var isConn = remoteBatteryModule ? remoteBatteryModule.connected() : false;
+  var isBleRem = remoteBatteryModule ? remoteBatteryModule.isBle() : true;
+  var sig = remoteBatteryModule && typeof remoteBatteryModule.signal === 'function'
+    ? remoteBatteryModule.signal()
+    : null;
+  var fw = file.firmware || (remoteBatteryModule && typeof remoteBatteryModule.firmware === 'function'
+    ? remoteBatteryModule.firmware()
+    : null);
+  return {
+    battery: level !== null ? level : file.battery,
+    model: file.model,
+    mac: file.mac,
+    firmware: fw,
+    paired: file.paired,
+    connected: isConn,
+    bluetooth: !!(file.mac || isBleRem),
+    signal: sig
+  };
 }
 
 function readRemoteInfo() {
