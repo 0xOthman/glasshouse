@@ -83,6 +83,8 @@ var updater = null;
 var devtoolsModule = null;
 /** @type {typeof import('./ntp')} */
 var ntpModule = null;
+/** @type {typeof import('./history')} */
+var historyModule = null;
 var republishDiscoveryFn = null;
 var tvAppFn = null;
 var restartSelfFn = null;
@@ -917,6 +919,22 @@ function doControl(action, value, cb) {
       if (!writeSettingsFn || !ntpModule) return cb({ ok: false, error: 'no NTP client configured' });
       return saveNtp({ enabled: value === true || value === 'on' || value === 'true' }, cb);
 
+    // Watch time. Home Assistant's watch-time entities come and go with it.
+    case 'setHistoryEnabled':
+      if (!writeSettingsFn || !historyModule) return cb({ ok: false, error: 'no history configured' });
+      var historyOn = (value === true || value === 'on' || value === 'true');
+      return writeSettingsFn({ history: { enabled: historyOn } }, function (err) {
+        if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
+        historyModule.setEnabled(historyOn);
+        if (republishDiscoveryFn) republishDiscoveryFn();
+        cb({ ok: true, enabled: historyOn });
+      });
+
+    case 'clearHistory':
+      if (!historyModule) return cb({ ok: false, error: 'no history configured' });
+      historyModule.clear();
+      return cb({ ok: true });
+
     case 'setNetworkDebuggerAllowed':
       var allowDbg = (value === true || value === 'on' || value === 'true');
       if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });
@@ -956,6 +974,7 @@ function init(opts) {
   if (opts.updater) updater = opts.updater;
   if (opts.devtools) devtoolsModule = opts.devtools;
   if (opts.ntp) ntpModule = opts.ntp;
+  if (opts.history) historyModule = opts.history;
   if (opts.republishDiscovery) republishDiscoveryFn = opts.republishDiscovery;
   if (opts.tvApp) tvAppFn = opts.tvApp;
   if (opts.restartSelf) restartSelfFn = opts.restartSelf;

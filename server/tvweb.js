@@ -72,6 +72,7 @@ var remotebuttons = require('./lib/remotebuttons');
 var logsModule = require('./lib/logs');
 var syslogForwarder = require('./lib/syslog');
 var ntpClient = require('./lib/ntp');
+var history = require('./lib/history');
 var power = require('./lib/power');
 var names = require('./lib/names');
 var msg = say.msg;
@@ -242,6 +243,15 @@ var CONFIG = {
   ntp: {
     server: '',
     port: 123
+  },
+
+  /*
+   * Watch time: how long the screen is on, per app and input, kept in
+   * /var/lib/tvweb/history for 13 months. Off by default, as it records what
+   * the household watches.
+   */
+  history: {
+    enabled: false
   },
 
   device: {
@@ -545,6 +555,7 @@ controls.init({
   updater: updater,
   devtools: devtools,
   ntp: ntpClient,
+  history: history,
   republishDiscovery: function () { republishDiscovery(); },
   tvApp: tvApp,
   restartSelf: restartSelf,
@@ -769,6 +780,7 @@ routes.init({
   prometheus: prometheus,
   syslog: syslogForwarder,
   ntp: ntpClient,
+  history: history,
   configFile: CONFIG_FILE,
   controls: controls,
   telemetry: telemetry,
@@ -1026,6 +1038,7 @@ function setupHomeAssistant() {
         updateCheck: !!(CONFIG.update && CONFIG.update.check),
         isOled: oled.getIsOled(),
         hasRemoteButtons: remotebuttons.isSupported(),
+        watchHistory: history.status().running,
         userEntities: (CONFIG.mqtt && CONFIG.mqtt.entities) || {}
       })
     });
@@ -1203,6 +1216,7 @@ function setupHomeAssistant() {
       }
       liveState.reconcile(s);
       s.tvOff = tvOff;
+      s.watch = history.summary();
       /*
        * Switched off, the TV has no foreground app, which left Input Source
        * and Launch App reading unknown. They keep the last input and app
@@ -1552,6 +1566,22 @@ if (!CLI_MODE) {
 
   ntpClient.init({ config: CONFIG, luna: luna });
   ntpClient.start();
+
+  history.init({ config: CONFIG, luna: luna, liveState: liveState });
+  history.start();
+  /*
+   * Registered before the MQTT bridge's handlers, which exit, so it runs
+   * first. With no bridge it is the only handler, and exits itself.
+   */
+  process.on('SIGTERM', function () {
+    history.flush();
+    if (process.listeners('SIGTERM').length === 1) process.exit(0);
+  });
+  process.on('SIGINT', function () {
+    history.flush();
+    if (process.listeners('SIGINT').length === 1) process.exit(0);
+  });
+
   // Always, as a server set from the dashboard later starts the client then.
   // sync() does nothing while no server is set.
   liveState.state.onChange(function (ev) {

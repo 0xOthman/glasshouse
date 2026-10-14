@@ -185,6 +185,33 @@
       <div class="sub" id="hdmi-diag-row" hidden style="margin-top:12px;line-height:1.5"></div>
     </div>
 
+    <div class="grp-sec" id="watchblock" data-col="1">
+      <div class="grp" data-t="metrics.watch">Watch time</div>
+      <div class="prot-table" id="watch-off">
+        <div class="prot-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="metrics.watch.count">Count watch time</div>
+            <div class="prot-desc" data-t="metrics.watch.desc">How long the screen is on, per app and input, kept on the TV for 13 months. It records what the household watches, so it stays off until turned on here.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="watch-toggle" onclick="toggleWatchTime()">&mdash;</button></div>
+        </div>
+      </div>
+      <div id="watch-on" hidden>
+        <div class="watch-totals">
+          <div><div class="lbl" data-t="metrics.watch.today">Today</div><div class="uptime-val num" id="watch-today">&mdash;</div></div>
+          <div><div class="lbl" data-t="metrics.watch.week">7 days</div><div class="uptime-val num" id="watch-week">&mdash;</div></div>
+          <div><div class="lbl" data-t="metrics.watch.month">30 days</div><div class="uptime-val num" id="watch-month">&mdash;</div></div>
+        </div>
+        <div class="watch-bars" id="watch-bars" role="img" aria-label="Hours watched each day for the last 14 days" data-t-aria-label="metrics.watch.bars"></div>
+        <div id="watch-list"></div>
+        <div class="sub" id="watch-note" hidden></div>
+        <div class="btns watch-btns">
+          <button type="button" id="watch-clear" onclick="clearWatchTime()" data-t="metrics.watch.clear">Clear history</button>
+          <button type="button" id="watch-stop" onclick="toggleWatchTime()" data-t="metrics.watch.stop">Stop counting</button>
+        </div>
+      </div>
+    </div>
+
     <div class="grp-sec" id="uptimeblock" data-col="1">
       <div class="grp" data-t="metrics.uptime">TV uptime</div>
       <div class="lbl" data-t="metrics.uptime.sinceBoot">Time since boot</div>
@@ -1269,6 +1296,7 @@
 <script src="/assets/ui/lgsettings.js"></script>
 <script src="/assets/ui/game.js"></script>
 <script src="/assets/ui/system.js"></script>
+<script src="/assets/ui/history.js"></script>
 <script src="/assets/ui/apps.js"></script>
 <script src="/assets/ui/install.js"></script>
 <script src="/assets/ui/tabs.js"></script>

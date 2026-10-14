@@ -796,6 +796,29 @@ change of error state.
 
 ---
 
+## Counting watch time
+
+`server/lib/history.js` counts, while it is switched on, how long the screen
+is on with each app or input in front. It follows the live `power` and
+`application` subscriptions, and starts the `application` one itself, which the
+MQTT bridge otherwise starts only with a broker. Off, or on with the panel off,
+is counted as nothing and as `screen_off`.
+
+Each change closes a segment measured on the monotonic clock. The wall clock
+places it: it is often wrong for a while after boot, until the broadcast time
+or NTP sets it, so a segment that closes before the clock passes 2026 waits in
+memory and is placed back from the monotonic time once it does.
+
+Segments are kept as seconds per UTC hour, a file per UTC month in
+`/var/lib/tvweb/history`, so storing them needs no time zone. Files are written
+every 10 minutes while counting, at once when the screen or the TV goes off, and
+on SIGTERM. Those more than 13 months old are deleted.
+
+The dashboard groups the hours into the browser's days. Home Assistant's
+"today" uses the TV's offset from UTC, worked out from the `localtime` and
+`utc` that `com.webos.service.systemservice/time/getSystemTime` reports
+together, read hourly. With no reading it is UTC.
+
 ## The checks
 
 `scripts/` holds five static checks. Four need nothing but the repository and

@@ -89,6 +89,8 @@ var prometheusModule = null;
 var syslogModule = null;
 /** @type {typeof import('./ntp')} */
 var ntpModule = null;
+/** @type {typeof import('./history')} */
+var historyModule = null;
 var fromHbcFn = null;
 var tileHidingOffMsg = '';
 var assetPathFn = null;
@@ -1227,6 +1229,16 @@ function handleRequest(req, res) {
     });
   }
 
+  // Watch time, by UTC hour, for the last days (35 unless asked, at most 400).
+  if (pathname === '/api/history' && historyModule) {
+    var historyDays = parseInt(u.query.days, 10);
+    if (!(historyDays >= 1 && historyDays <= 400)) historyDays = 35;
+    var historyNow = Date.now();
+    var historyReply = historyModule.query(historyNow - historyDays * 86400000, historyNow);
+    historyReply.ok = true;
+    return send(res, 200, JSON.stringify(historyReply));
+  }
+
   if (pathname === '/api/cpu') {
     return telemetryModule.collectCpuProcesses(function (r) { send(res, 200, JSON.stringify(r)); });
   }
@@ -1459,7 +1471,8 @@ function handleRequest(req, res) {
     return telemetryModule.collectStats(function (s) {
       var forwarded = syslogModule ? syslogModule.getCounters() : null;
       var clock = ntpModule ? ntpModule.getStatus() : null;
-      send(res, 200, prometheusModule.render(s, versionStr, forwarded, clock), 'text/plain; version=0.0.4; charset=utf-8');
+      var watched = historyModule && historyModule.status().running ? historyModule.totals() : null;
+      send(res, 200, prometheusModule.render(s, versionStr, forwarded, clock, watched), 'text/plain; version=0.0.4; charset=utf-8');
     });
   }
 
@@ -1596,6 +1609,7 @@ function init(opts) {
   if (opts.prometheus) prometheusModule = opts.prometheus;
   if (opts.syslog) syslogModule = opts.syslog;
   if (opts.ntp) ntpModule = opts.ntp;
+  if (opts.history) historyModule = opts.history;
   if (opts.fromHomebrewChannel) fromHbcFn = opts.fromHomebrewChannel;
   if (opts.tileHidingOff) tileHidingOffMsg = opts.tileHidingOff;
   if (opts.assetPath) assetPathFn = opts.assetPath;

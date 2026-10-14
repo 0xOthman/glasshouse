@@ -2107,6 +2107,7 @@ function getCapabilities(extra) {
     hasGpuClock: gpuClockMhz() !== null,
     isOled: !!extra.isOled,
     hasRemoteButtons: !!extra.hasRemoteButtons,
+    watchHistory: !!extra.watchHistory,
     hasSoundFormat: soundFormatSupported === true,
     userEntities: extra.userEntities || {}
   };
