@@ -105,7 +105,8 @@ function sampleLines(text) {
     'glasshouse_ntp_offset_seconds',
     'glasshouse_ntp_round_trip_seconds',
     'glasshouse_ntp_stratum',
-    'glasshouse_ntp_last_answer_timestamp_seconds'
+    'glasshouse_ntp_last_answer_timestamp_seconds',
+    'glasshouse_watch_seconds_total'
   ]);
 
   var C4_NTP = { at: 1791576408500, offsetMs: -606.25, roundTripMs: 1.5, stratum: 4 };
@@ -117,7 +118,7 @@ function sampleLines(text) {
     b8: prometheus.render(require('./fixtures/stats-b8-webos4.json'), '0.80.1'),
     g4: prometheus.render(require('./fixtures/stats-g4-webos9.json'), '0.80.1'),
     c4: prometheus.render(require('./fixtures/stats-c4-webos9.json'), '0.80.1', { messages: { system: 12 }, errors: 0 },
-      { sets: 1, errors: 0, last: C4_NTP }),
+      { sets: 1, errors: 0, last: C4_NTP }, { netflix: 5400, hdmi2: 1800.5 }),
     c4hdr: prometheus.render(require('./fixtures/stats-c4-webos9-hdr.json'), '0.80.1'),
     c4playing: prometheus.render(c4Playing, '0.80.1'),
     c4standby: prometheus.render(require('./fixtures/stats-c4-webos9-standby.json'), '0.80.1'),
@@ -190,6 +191,18 @@ function sampleLines(text) {
   assert.deepEqual(unanswered.slice(1), ['glasshouse_ntp_clock_sets_total 0', 'glasshouse_ntp_errors_total 3']);
   assert.strictEqual(sampleLines(prometheus.render({}, '0.80.1', null, null)).length, 1);
   console.log('  ✓ the NTP families are sampled only while the client is on');
+})();
+
+// 1d. Watch time has samples only while it is on
+(function testWatch() {
+  var on = sampleLines(prometheus.render({}, '0.80.1', null, null, { netflix: 5400, screen_off: 60, hdmi2: 1800.5 }));
+  assert.deepEqual(on.slice(1), [
+    'glasshouse_watch_seconds_total{app="hdmi2"} 1800.5',
+    'glasshouse_watch_seconds_total{app="netflix"} 5400',
+    'glasshouse_watch_seconds_total{app="screen_off"} 60'
+  ]);
+  assert.strictEqual(sampleLines(prometheus.render({}, '0.80.1', null, null, null)).length, 1);
+  console.log('  ✓ watch time is sampled per app only while it is on');
 })();
 
 // 2. Values are in base units: bytes, hertz, seconds and ratios

@@ -15,3 +15,23 @@ This is useful both for monitoring and for troubleshooting. It shows whether a h
 ![Metrics tab: processor, memory, swap and network readouts](../screenshots/metrics-system.png)
 
 *Metrics including processor, memory, swap and network.*
+
+## Watch time
+
+Shown while **Watch time** is on in the [Server tab](server.md#advanced). It
+is off until then, as it records what the household watches. While on, the
+server counts how long the screen is on with each app or input in front, and
+the time the TV is on with its panel off, such as music, apart as **Screen
+off**. The card shows today, the last 7 days and the last 30 days, a bar for
+each of the last 14 days with the five most watched apps and inputs over 30
+days, and the time for each of them. It updates every 30 seconds while the tab
+is open.
+
+The days are the viewing browser's own. The history stays on the TV, in
+`/var/lib/tvweb/history`, for 13 months. Switching watch time off keeps what is
+there and counts no more. With it on, Home Assistant gets [three watch-time sensors](../HOME-ASSISTANT-ENTITIES.md#hardware-remote-system-diagnostics)
+and Prometheus `glasshouse_watch_seconds_total`.
+
+Time is counted while the server runs, so a TV switched off at the wall or
+before the server has started is not counted, and a power cut loses up to the
+last 10 minutes.

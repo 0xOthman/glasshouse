@@ -2107,9 +2107,15 @@ function getCapabilities(extra) {
     hasGpuClock: gpuClockMhz() !== null,
     isOled: !!extra.isOled,
     hasRemoteButtons: !!extra.hasRemoteButtons,
+    watchHistory: !!extra.watchHistory,
     hasSoundFormat: soundFormatSupported === true,
     userEntities: extra.userEntities || {}
   };
+}
+
+// An app's title, by its full id, once the installed apps have been read.
+function appTitle(appId) {
+  return appTitles[appId] || null;
 }
 
 function getInstalledApps() {
@@ -2186,6 +2192,7 @@ module.exports = {
   refreshInputNames: refreshInputNames,
   refreshInstalledApps: refreshInstalledApps,
   getInstalledApps: getInstalledApps,
+  appTitle: appTitle,
   getPictureModes: getPictureModes,
   getCapabilitySignature: getCapabilitySignature,
   loadHdmiSeen: loadHdmiSeen,

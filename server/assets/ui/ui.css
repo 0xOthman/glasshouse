@@ -947,6 +947,20 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .proc .p-name{color:var(--w80);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .proc .p-mb{color:var(--w100);font-variant-numeric:tabular-nums}
 .proc .p-pid{color:var(--w50);margin-left:6px;font-size:13px;font-variant-numeric:tabular-nums}
+/* ---- Watch time ----
+   Shades of the foreground rather than colours: the five most watched over
+   30 days, then Other. Each day's bar stacks them from the bottom. */
+.watch-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.watch-totals .uptime-val{font-size:clamp(22px,2.4vw,30px);white-space:nowrap}
+.watch-bars{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;height:96px;margin:22px 0 8px}
+.wb{display:flex;flex-direction:column;min-width:0}
+.wb-stack{flex:1;display:flex;flex-direction:column-reverse;background:var(--w06);border-radius:2px;overflow:hidden}
+.wb-day{font-size:12px;color:var(--w50);text-align:center;margin-top:5px}
+.ws0{background:var(--w90)} .ws1{background:var(--w70)} .ws2{background:var(--w50)}
+.ws3{background:var(--w35)} .ws4{background:var(--w25)} .ws5{background:var(--w12)}
+.wb-stack b{display:block;flex:none}
+.w-sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:9px;vertical-align:0}
+.w-sw.ws-off{border:1px solid var(--w40)}
 /* ---- HDMI port grid ----
    Four tiles representing the TV's physical HDMI port bay. State is
    carried by line weight, opacity, and port jack silhouette on true black. */

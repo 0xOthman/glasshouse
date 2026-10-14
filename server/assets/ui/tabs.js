@@ -64,6 +64,7 @@ function showTab(name) {
   relayout(false);   // the panel just became measurable
   cfgPollStatus(name === 'mqtt');
   if (name === 'metrics') loadHdmiOnce();
+  watchPolling(name === 'metrics');
   if (name === 'apps') { loadApps(); loadCatalog(false); pollInstall(); }
   if (name === 'server') checkOnOpen();
   if (name === 'server') loadTvApp();

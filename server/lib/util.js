@@ -77,10 +77,10 @@ function readJson(filePath, dflt) {
 }
 
 // Written beside the file and renamed over it, so a reader never sees half of
-// it. Throws on failure.
-function writeJsonAtomic(filePath, obj, mode) {
+// it. Indented, for a file someone may edit, unless compact. Throws on failure.
+function writeJsonAtomic(filePath, obj, mode, compact) {
   var tmp = filePath + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(obj, null, 2), 'utf8');
+  fs.writeFileSync(tmp, compact ? JSON.stringify(obj) : JSON.stringify(obj, null, 2), 'utf8');
   if (mode !== undefined) fs.chmodSync(tmp, mode);
   fs.renameSync(tmp, filePath);
 }

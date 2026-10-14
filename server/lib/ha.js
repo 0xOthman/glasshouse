@@ -122,6 +122,9 @@ var HA_ENTITIES = [
   { id: 'app_storage_free', type: 'sensor', name: 'App Storage Available', cat: 'system' },
   { id: 'mac_address', type: 'sensor', name: 'MAC Address', cat: 'system' },
   { id: 'uptime', type: 'sensor', name: 'Uptime', cat: 'system' },
+  { id: 'watch_time_today', type: 'sensor', name: 'Watch Time Today', cat: 'system' },
+  { id: 'watch_time_week', type: 'sensor', name: 'Watch Time, Last 7 Days', cat: 'system' },
+  { id: 'watch_top_app_today', type: 'sensor', name: 'Most Watched Today', cat: 'system' },
 
   // Diagnostics & Settings
   { id: 'audio_output', type: 'sensor', name: 'Audio Output', cat: 'diagnostics' },
@@ -644,6 +647,44 @@ function buildEntities(opts) {
           device_class: 'timestamp',
           entity_category: 'diagnostic',
           icon: 'mdi:clock-start'
+        }
+      },
+      /*
+       * Watch time, from the history the dashboard turns on: today's resets
+       * at the TV's local midnight, which total_increasing takes as a new
+       * cycle. Screen-off time is not in either.
+       */
+      {
+        type: 'sensor', id: 'watch_time_today',
+        payload: {
+          name: 'Watch Time Today',
+          state_topic: topic.telemetry,
+          value_template: '{{ value_json.watch.today_h if value_json.watch else none }}',
+          unit_of_measurement: 'h',
+          device_class: 'duration',
+          state_class: 'total_increasing',
+          icon: 'mdi:television-classic'
+        }
+      },
+      {
+        type: 'sensor', id: 'watch_time_week',
+        payload: {
+          name: 'Watch Time, Last 7 Days',
+          state_topic: topic.telemetry,
+          value_template: '{{ value_json.watch.week_h if value_json.watch else none }}',
+          unit_of_measurement: 'h',
+          device_class: 'duration',
+          state_class: 'measurement',
+          icon: 'mdi:calendar-week'
+        }
+      },
+      {
+        type: 'sensor', id: 'watch_top_app_today',
+        payload: {
+          name: 'Most Watched Today',
+          state_topic: topic.telemetry,
+          value_template: '{{ value_json.watch.top_today if value_json.watch and value_json.watch.top_today else none }}',
+          icon: 'mdi:trophy-outline'
         }
       },
       {
@@ -1479,6 +1520,8 @@ function filterWithholds(entities, opts) {
   });
 
   if (!caps.hasGpuClock) withhold(byId('gpu_clock'));
+
+  if (!caps.watchHistory) withhold(byId('watch_time_today', 'watch_time_week', 'watch_top_app_today'));
 
   if (caps.isOled === true) withhold(byId('panel_dimming'));
 
