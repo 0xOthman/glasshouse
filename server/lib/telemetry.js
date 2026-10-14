@@ -595,23 +595,36 @@ function getVideoSignal(targetPort) {
   return formatSignal(readVideoTiming(targetPort));
 }
 
-function readRemoteInfo() {
-  var now = Date.now();
-  if (cachedRemote && (now - lastRemoteCheck < 30000)) return cachedRemote;
-  var raw = readTrimmed('/mnt/lg/cmn_data/mrcu/mrcu1.info');
-  if (!raw) return cachedRemote || null;
-  var bMatch = raw.match(/Battery\s*=\s*(\d+)/i);
+/*
+ * The paired Magic Remote, from the file LG writes when it pairs. Its
+ * "Battery = 52(M) 35(L)" (webOS 9 and 10) is not the charge: lginput2 logs the
+ * same two numbers as the remote model's Mid and Low battery thresholds, and
+ * every MR24 reads 52 and 35. Only a plain "Battery = N" is taken as a level,
+ * in case an older TV writes one.
+ */
+function parseRemoteInfo(raw) {
+  if (!raw) return null;
+  // The threshold pair has its "(M)" straight after the first number.
+  var bMatch = raw.match(/Battery\s*=\s*(\d+)\s*(\()?/i);
   var nMatch = raw.match(/Name\s*=\s*([^\r\n]+)/i);
   var macMatch = raw.match(/BDAddr\s*=\s*([^\r\n]+)/i);
   var fwMatch = raw.match(/fwVer\s*=\s*([^\r\n]+)/i);
-  if (!bMatch && !nMatch) return cachedRemote || null;
-  cachedRemote = {
-    battery: bMatch ? parseInt(bMatch[1], 10) : null,
+  if (!bMatch && !nMatch) return null;
+  return {
+    battery: bMatch && !bMatch[2] ? parseInt(bMatch[1], 10) : null,
     model: nMatch ? nMatch[1].trim() : null,
     mac: macMatch ? macMatch[1].trim() : null,
     firmware: fwMatch ? fwMatch[1].trim() : null,
     paired: true
   };
+}
+
+function readRemoteInfo() {
+  var now = Date.now();
+  if (cachedRemote && (now - lastRemoteCheck < 30000)) return cachedRemote;
+  var parsed = parseRemoteInfo(readTrimmed('/mnt/lg/cmn_data/mrcu/mrcu1.info'));
+  if (!parsed) return cachedRemote || null;
+  cachedRemote = parsed;
   lastRemoteCheck = Date.now();
   return cachedRemote;
 }
@@ -2089,7 +2102,7 @@ function alwaysOnSupported(cb) {
 function getCapabilities(extra) {
   extra = extra || {};
   return {
-    hasRemoteInfo: !!readRemoteInfo(),
+    hasRemoteBattery: (readRemoteInfo() || {}).battery != null,
     hasPnwash: fs.existsSync('/mnt/lg/cmn_data/pnwash/completedOffRsCount'),
     hasCell: !!(HARDWARE_INFO && HARDWARE_INFO.cell),
     hasHdmiProc: fs.existsSync('/proc/lg/hdmi20'),
@@ -2171,6 +2184,7 @@ module.exports = {
   netBytes: netBytes,
   getVideoSignal: getVideoSignal,
   readRemoteInfo: readRemoteInfo,
+  parseRemoteInfo: parseRemoteInfo,
   getActiveHdmiDiagnostics: getActiveHdmiDiagnostics,
   getHdmiSignal: getHdmiSignal,
   hdmiReceiverMap: hdmiReceiverMap,

@@ -162,6 +162,23 @@ Unix seconds, `offset` in minutes (120 in Ljubljana in October), `timezone`
 `utc` matched `offset`. Watch time works its offset out from `localtime` and
 `utc`. Which of these fields older webOS versions give is not yet known.
 
+## The Magic Remote's battery (C4, webOS 10.3.1)
+
+`/mnt/lg/cmn_data/mrcu/mrcu1.info` is written when the remote pairs and not
+after: on a C4 its time and `Paired Time` were the same, a day old. Its
+`Battery = 52(M) 35(L)` is not the charge. `/usr/sbin/lginput2`, which writes
+it, logs the same pair as `Battery threshold : Mid %d, Low %d`, and an MR24 on
+a C4, the remote on a C5 and the remotes in the test fixtures all read 52.
+`mrcu1.scd` has `BA 35`, the Low threshold.
+
+No live level was found. `/sys/class/power_supply` is empty and the system log
+has no battery lines. `com.webos.service.mrcu/getConnectionStatus` reported the
+remote disconnected while idle. `getDeviceInfo` answers "Invalid Parameter" to
+`{}`, `deviceId` 0 and 1, and `deviceType` `mrcu`, `MRCU` and 0. lginput2 has a
+`batteryLevel` field near `deviceInfo` and logs an IR blaster's battery level,
+so a level may exist for other devices. Its strings are otherwise about the
+low-battery warning.
+
 ## Boot and app state (webOS 9.2.2, C2)
 
 - The kernel command line has `snapshot resume=/dev/mmcblk0p51 criu_enabled`.
