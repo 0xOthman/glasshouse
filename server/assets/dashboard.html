@@ -574,7 +574,7 @@ function oledRows(d) {
       hint: t('tv.oled.pixelRefresherCycles.hint', 'How many long calibrations the panel has run. These are the ones that matter for wear.') });
   if (d.gsrStressCount !== null && d.gsrStressCount !== undefined)
     r.push({ label: t('oled.cycles.gsr', 'GSR stress events'), value: num(d.gsrStressCount),
-      hint: t('tv.oled.gsrStressEvents.hint', 'How often sticky reduction has had to step in. A rising count means static content is being shown for long stretches.') });
+      hint: t('tv.oled.gsrStressEvents.hint', 'How often the panel has detected static image stress conditions. A rising count means static content is being shown for long stretches, even if GSR dimming is switched off.') });
 
   r.push(head(t('oled.protections', 'Protections')));
   if (d.gsr !== null && d.gsr !== undefined)

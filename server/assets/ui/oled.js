@@ -130,7 +130,7 @@ async function loadOledCare() {
     { n: d.failureAlerts, name: t('oled.cycles.failures', 'Refresher failure alerts'),
       desc: t('oled.cycles.failures.desc', 'Maintenance passes the TV recorded as not finishing. Normally zero.') },
     { n: d.gsrStressCount, name: t('oled.cycles.gsr', 'GSR stress events'),
-      desc: t('oled.cycles.gsr.desc', 'How often Global Stress Reduction has dimmed the screen for something static. A count that climbs quickly means the same image is held on screen for long stretches.') }
+      desc: t('oled.cycles.gsr.desc', 'How often the panel has detected static image stress conditions. A rising count means static content is being shown for long stretches, even if GSR dimming is switched off.') }
   ].filter(c => c.n !== null && c.n !== undefined);
   q('oc-cycles').innerHTML = counts.map(c => `<div class="oc-count">
       <div class="oc-count-top"><span>${esc(c.name)}</span><b class="num">${Number(c.n).toLocaleString()}</b></div>

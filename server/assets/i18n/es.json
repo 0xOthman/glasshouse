@@ -1832,8 +1832,8 @@
   "from": "GSR stress events"
  },
  "oled.cycles.gsr.desc": {
-  "text": "Cuántas veces Global Stress Reduction ha atenuado la pantalla por algo estático. Si el recuento sube deprisa, la misma imagen se mantiene en pantalla durante mucho tiempo.",
-  "from": "How often Global Stress Reduction has dimmed the screen for something static. A count that climbs quickly means the same image is held on screen for long stretches."
+  "text": "Cuántas veces el panel ha detectado condiciones de estrés por imagen estática. Un recuento creciente significa que se muestra contenido estático durante largos periodos, incluso si la atenuación GSR está desactivada.",
+  "from": "How often the panel has detected static image stress conditions. A rising count means static content is being shown for long stretches, even if GSR dimming is switched off."
  },
  "oled.cycles.refresher": {
   "text": "Ciclos de refrescado de píxeles",
@@ -5296,8 +5296,8 @@
   "from": "Dims static content - channel logos, scoreboards, menu bars - so it does not burn in. Switching it off makes permanent image retention more likely."
  },
  "tv.oled.gsrStressEvents.hint": {
-  "text": "Con qué frecuencia ha tenido que actuar la reducción de imagen persistente. Un recuento creciente significa que se está mostrando contenido estático durante largos periodos.",
-  "from": "How often sticky reduction has had to step in. A rising count means static content is being shown for long stretches."
+  "text": "Cuántas veces el panel ha detectado condiciones de estrés por imagen estática. Un recuento creciente significa que se muestra contenido estático durante largos periodos, incluso si la atenuación GSR está desactivada.",
+  "from": "How often the panel has detected static image stress conditions. A rising count means static content is being shown for long stretches, even if GSR dimming is switched off."
  },
  "tv.oled.head.runNow": {
   "text": "Ejecutar ahora",
