@@ -598,3 +598,61 @@ window.addEventListener('keydown', e => {
     if (modal && !modal.hidden) cancelInstall();
   }
 });
+
+// ---- apps from a restored backup ----
+/* The apps a restore found missing here and the catalog has. Each is
+   installed as one picked from the catalog: its preview stops for a choice
+   such as root, and otherwise goes straight on. */
+let restoredApps = [];
+let restoringApps = false;
+
+function renderRestoredApps() {
+  const box = q('restore-apps');
+  box.hidden = !restoredApps.length;
+  if (!restoredApps.length) return;
+  q('restore-apps-text').textContent = t('apps.restore.text', 'From a restored backup, not installed here: {names}.', { names: restoredApps.map(a => a.title).join(', ') });
+  q('restore-apps-install').disabled = restoringApps;
+  q('restore-apps-dismiss').disabled = restoringApps;
+}
+
+async function loadRestoredApps() {
+  try {
+    const r = await fetch(api('/api/backup/apps'), { cache: 'no-store' });
+    const d = await r.json();
+    restoredApps = (d.ok && d.apps) || [];
+  } catch (e) {
+    restoredApps = [];
+  }
+  renderRestoredApps();
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Until the install that was started has finished, one way or another.
+async function installSettled() {
+  await sleep(1500);
+  while (!installIdle() || installOwn) await sleep(1000);
+}
+
+async function installRestoredApps() {
+  if (restoringApps || !installIdle()) return;
+  restoringApps = true;
+  renderRestoredApps();
+  try {
+    for (const a of restoredApps.slice()) {
+      startInstall(a.id);
+      await installSettled();
+    }
+  } finally {
+    restoringApps = false;
+    await loadRestoredApps();
+  }
+}
+
+async function dismissRestoredApps() {
+  try {
+    await fetch(api('/api/backup/apps/clear'), { method: 'POST' });
+  } catch (e) {}
+  restoredApps = [];
+  renderRestoredApps();
+}

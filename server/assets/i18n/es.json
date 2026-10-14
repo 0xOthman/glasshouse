@@ -691,6 +691,18 @@
   "text": "Ninguna",
   "from": "None"
  },
+ "apps.restore.dismiss": {
+  "text": "Descartar",
+  "from": "Dismiss"
+ },
+ "apps.restore.installAll": {
+  "text": "Instalar todas",
+  "from": "Install all"
+ },
+ "apps.restore.text": {
+  "text": "De una copia de seguridad restaurada, sin instalar aquí: {names}.",
+  "from": "From a restored backup, not installed here: {names}."
+ },
  "apps.service.active": {
   "text": "Activo",
   "from": "Active"
@@ -2362,6 +2374,14 @@
  "server.available.hbc": {
   "text": "Ya está disponible v{version}. Actualiza Glasshouse en el Homebrew Channel o instala el último .ipk desde GitHub releases.",
   "from": "v{version} is out. Update Glasshouse in the Homebrew Channel, or sideload the latest .ipk from GitHub releases."
+ },
+ "server.backup.appsManual": {
+  "text": "No están en el catálogo de Homebrew Channel, hay que instalarlas a mano: {names}.",
+  "from": "Not in the Homebrew Channel catalog, to install by hand: {names}."
+ },
+ "server.backup.appsToInstall": {
+  "text": "{count} apps de la copia se pueden instalar desde la pestaña Apps.",
+  "from": "{count} apps from the backup can be installed from the Apps tab."
  },
  "server.backup.confirm": {
   "text": "¿Restaurar los ajustes guardados de {tv} el {date}? Esto cambia los ajustes de LG en esta TV.",

@@ -824,7 +824,13 @@ backup.init({
   lgSettings: lgSettings,
   config: CONFIG,
   writeSettings: routes.writeSettings,
-  about: function () { return { model: CONFIG.device && CONFIG.device.model, version: TVWEB_DISPLAY_VERSION }; }
+  about: function () { return { model: CONFIG.device && CONFIG.device.model, version: TVWEB_DISPLAY_VERSION }; },
+  luna: luna,
+  repo: repo,
+  // The Homebrew Channel and Glasshouse's own apps are on any TV restoring one.
+  keepApp: function (id) {
+    return installer.SELF_UPDATING.indexOf(id) === -1 && !appsModule.PROTECTED_APP_IDS[id];
+  }
 });
 
 if (WEB_ENABLED && !CLI_MODE) routes.loadUI();   // otherwise nothing will serve it

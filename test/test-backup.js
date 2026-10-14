@@ -44,9 +44,12 @@ var CONFIG = {
   update: { check: false, intervalHours: 24 }
 };
 
+// The list of apps to install is kept here, not in /var/lib/tvweb.
+var PENDING = require('path').join(require('os').tmpdir(), 'gh-restore-apps-early-' + process.pid + '.json');
+
 // 1. What a backup holds
 (function () {
-  backup.init({ lgSettings: fakeLg(C4_ROWS), config: CONFIG, about: function () { return { model: 'OLED65C43LA', version: '0.95.0' }; } });
+  backup.init({ lgSettings: fakeLg(C4_ROWS), config: CONFIG, pendingFile: PENDING, about: function () { return { model: 'OLED65C43LA', version: '0.95.0' }; } });
   backup.create(function (b) {
     assert.strictEqual(b.format, 'glasshouse-backup');
     assert.strictEqual(b.version, 1);
@@ -124,4 +127,66 @@ var CONFIG = {
   console.log('  ✓ anything that is not a backup, or is from a newer Glasshouse, is refused and changes nothing');
 })();
 
-console.log('test-backup.js passed');
+// 4. The developer apps: listed in a backup, offered to install on restore
+(function () {
+  var os = require('os'), path = require('path'), fs = require('fs');
+  var pending = path.join(os.tmpdir(), 'gh-restore-apps-' + process.pid + '.json');
+  var dev = '/media/developer/apps/usr/palm/applications/';
+  function app(id, title, version, folder) { return { id: id, title: title, version: version, folderPath: folder || dev + id }; }
+  var installed = [
+    app('org.webosbrew.hbchannel', 'Homebrew Channel', '0.7.3'),
+    app('com.tvweb.dashboard', 'Glasshouse', '1.0.0'),
+    app('youtube.leanback.v4', 'YouTube AdFree', '0.5.3'),
+    app('org.xbmc.kodi', 'Kodi', '21.90.901'),
+    app('netflix', 'Netflix', '1.0', '/usr/palm/applications/netflix')
+  ];
+  function luna(uri, payload, cb) {
+    assert.strictEqual(uri, 'com.webos.applicationManager/listApps');
+    cb({ returnValue: true, apps: installed });
+  }
+  var catalog = { getCatalog: function (force, cb) {
+    cb({ ok: true, apps: [{ id: 'youtube.leanback.v4' }, { id: 'org.xbmc.kodi' }, { id: 'com.example.piccap' }] });
+  } };
+  var keepApp = function (id) { return id !== 'org.webosbrew.hbchannel' && id !== 'com.tvweb.dashboard'; };
+  backup.init({ lgSettings: fakeLg(C4_ROWS), config: CONFIG, luna: luna, repo: catalog, keepApp: keepApp, pendingFile: pending });
+
+  backup.create(function (b) {
+    assert.deepEqual(b.apps, [
+      { id: 'org.xbmc.kodi', title: 'Kodi', version: '21.90.901' },
+      { id: 'youtube.leanback.v4', title: 'YouTube AdFree', version: '0.5.3' }
+    ], 'developer apps only, without the Homebrew Channel and Glasshouse');
+  });
+
+  // Onto a TV that has Kodi but neither YouTube AdFree nor the sideloaded tool.
+  installed = installed.filter(function (a) { return a.id !== 'youtube.leanback.v4'; });
+  backup.restore({
+    format: 'glasshouse-backup', version: 1, lg: {},
+    apps: [
+      { id: 'org.xbmc.kodi', title: 'Kodi' },
+      { id: 'youtube.leanback.v4', title: 'YouTube AdFree' },
+      { id: 'my.sideloaded.tool', title: 'My tool' },
+      { id: 'org.webosbrew.hbchannel', title: 'Homebrew Channel' },
+      { id: '../../etc', title: 'bad id' }
+    ]
+  }, function (r) {
+    assert.deepEqual(r.apps, {
+      toInstall: [{ id: 'youtube.leanback.v4', title: 'YouTube AdFree' }],
+      manual: [{ id: 'my.sideloaded.tool', title: 'My tool' }],
+      present: 1,
+      catalogError: null
+    });
+    assert.deepEqual(JSON.parse(fs.readFileSync(pending, 'utf8')).apps, [{ id: 'youtube.leanback.v4', title: 'YouTube AdFree' }],
+      'kept for the Apps tab, across a restart');
+    backup.pendingApps(function (list) {
+      assert.deepEqual(list.map(function (a) { return a.id; }), ['youtube.leanback.v4']);
+      installed.push(app('youtube.leanback.v4', 'YouTube AdFree', '0.5.3'));
+      backup.pendingApps(function (after) {
+        assert.deepEqual(after, [], 'an app installed since is no longer offered');
+        backup.clearPendingApps();
+        assert.ok(!fs.existsSync(pending));
+        console.log('  ✓ a backup lists the developer apps, and a restore offers those missing from the catalog and names the rest');
+        console.log('test-backup.js passed');
+      });
+    });
+  });
+})();

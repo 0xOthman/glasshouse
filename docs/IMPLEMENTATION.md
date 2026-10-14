@@ -848,6 +848,14 @@ not grey out now. The Glasshouse part goes through the same allowlist and
 dashboard does. `POST /api/backup` is held to the same checks as
 `POST /api/settings`: controls allowed, JSON, and from the dashboard's own origin.
 
+A backup lists the developer apps, those whose `folderPath` in `listApps` is
+under `/media/developer/apps/`, less the Homebrew Channel and Glasshouse's own.
+A restore installs none: those the TV lacks and the catalog has go to
+`/var/lib/tvweb/restore-apps.json`, which survives the restart a restore may
+make, and the Apps tab installs them one at a time as catalog installs with
+`auto`, so a preview with a choice in it waits for the person. A file anyone
+could edit decides nothing installed or given root on its own.
+
 ## The checks
 
 `scripts/` holds five static checks. Four need nothing but the repository and

@@ -1510,6 +1510,18 @@ function handleRequest(req, res) {
     return send(res, 200, JSON.stringify(getSettingsPayload()));
   }
 
+  // The apps a restored backup listed that this TV still lacks, for the Apps tab.
+  if (pathname === '/api/backup/apps' && req.method === 'GET' && backupModule) {
+    return backupModule.pendingApps(function (apps) { send(res, 200, JSON.stringify({ ok: true, apps: apps })); });
+  }
+  if (pathname === '/api/backup/apps/clear' && req.method === 'POST' && backupModule) {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    backupModule.clearPendingApps();
+    return send(res, 200, JSON.stringify({ ok: true, apps: [] }));
+  }
+
   // A backup of the TV's settings, saved by the browser as a file.
   if (pathname === '/api/backup' && req.method === 'GET' && backupModule) {
     return backupModule.create(function (b) { send(res, 200, JSON.stringify(b)); });

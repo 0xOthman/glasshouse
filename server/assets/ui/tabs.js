@@ -65,7 +65,7 @@ function showTab(name) {
   cfgPollStatus(name === 'mqtt');
   if (name === 'metrics') loadHdmiOnce();
   watchPolling(name === 'metrics');
-  if (name === 'apps') { loadApps(); loadCatalog(false); pollInstall(); }
+  if (name === 'apps') { loadApps(); loadCatalog(false); pollInstall(); loadRestoredApps(); }
   if (name === 'server') checkOnOpen();
   if (name === 'server') loadTvApp();
   if (name === 'oledcare') loadOledCare();

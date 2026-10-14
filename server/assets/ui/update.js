@@ -584,6 +584,9 @@ async function restoreBackup(input) {
       changed: (lg.applied || []).length, same: lg.unchanged || 0, skipped: (lg.skipped || []).length
     });
     if ((lg.failed || []).length) text += ' ' + t('server.backup.failedSome', '{count} could not be set.', { count: lg.failed.length });
+    const apps = d.apps || {};
+    if ((apps.toInstall || []).length) text += ' ' + t('server.backup.appsToInstall', '{count} apps from the backup can be installed from the Apps tab.', { count: apps.toInstall.length });
+    if ((apps.manual || []).length) text += ' ' + t('server.backup.appsManual', 'Not in the Homebrew Channel catalog, to install by hand: {names}.', { names: apps.manual.map(a => a.title).join(', ') });
     if (d.restart) text += ' ' + t('server.backup.restarting', 'Glasshouse restarts to apply its own settings.');
     backupMessage(text);
   } catch (e) {
