@@ -18,7 +18,7 @@ This is useful both for monitoring and for troubleshooting. It shows whether a h
 
 ## Watch time
 
-Shown while **Watch time** is on in the [Server tab](server.md#advanced). It
+Shown while **Watch time** is on in the [Server tab](server.md#glasshouse). It
 is off until then, as it records what the household watches. While on, the
 server counts how long the screen is on with each app or input in front, and
 the time the TV is on with its panel off, such as music, apart as **Screen
