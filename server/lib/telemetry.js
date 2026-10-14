@@ -630,14 +630,21 @@ function remoteInfo() {
   var level = remoteBatteryModule ? remoteBatteryModule.level(file.mac) : null;
   var isConn = remoteBatteryModule ? remoteBatteryModule.connected() : false;
   var isBleRem = remoteBatteryModule ? remoteBatteryModule.isBle() : true;
+  var sig = remoteBatteryModule && typeof remoteBatteryModule.signal === 'function'
+    ? remoteBatteryModule.signal()
+    : 'good';
+  var fw = file.firmware || (remoteBatteryModule && typeof remoteBatteryModule.firmware === 'function'
+    ? remoteBatteryModule.firmware()
+    : null);
   return {
     battery: level !== null ? level : file.battery,
     model: file.model,
     mac: file.mac,
-    firmware: file.firmware,
+    firmware: fw,
     paired: file.paired,
     connected: isConn,
-    bluetooth: !!(file.mac || isBleRem)
+    bluetooth: !!(file.mac || isBleRem),
+    signal: sig
   };
 }
 

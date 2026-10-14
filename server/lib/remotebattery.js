@@ -45,6 +45,8 @@ var last = null;
 var stateFile = null;
 var connected = false;
 var isBle = false;
+var lowStrength = false;
+var firmware = null;
 
 function remoteAddress(devices) {
   for (var i = 0; i < (devices || []).length; i++) {
@@ -88,7 +90,12 @@ function read(done) {
         last = { level: level, at: Date.now(), mac: address };
         if (stateFile) {
           try {
-            util.writeJsonAtomic(stateFile, last);
+            util.writeJsonAtomic(stateFile, {
+              level: last.level,
+              at: last.at,
+              mac: last.mac,
+              lowStrength: lowStrength
+            });
           } catch (e) {}
         }
         if (changed && onLevel) onLevel(level);
@@ -102,6 +109,12 @@ function read(done) {
 
   function fallbackDeviceInfo(onFallback) {
     luna('com.webos.service.mrcu/getDeviceInfo', { subscribe: false, deviceName: 'MagicRemote_1' }, function (info) {
+      if (info && typeof info.lowStrength === 'boolean') {
+        lowStrength = info.lowStrength;
+      }
+      if (info && typeof info.fwVer === 'string' && info.fwVer.length > 0 && info.fwVer !== '00.00.00.00.00.00.00.00.00.00.00') {
+        firmware = info.fwVer;
+      }
       var dl = deviceLevelFrom(info);
       if (dl !== null) {
         if (!address && info && typeof info.bdAddress === 'string' && info.bdAddress !== '00:00:00:00:00:00') {
@@ -174,16 +187,31 @@ function start(isOn) {
     { subscribe: true }, null, { message: connectionChanged });
   subscription.start();
   timer = setInterval(function () { if (due()) read(); }, CHECK_MS);
-  if (!last && luna) {
+  if (luna) {
     luna('com.webos.service.mrcu/getDeviceInfo', { subscribe: false, deviceName: 'MagicRemote_1' }, function (info) {
-      var dl = deviceLevelFrom(info);
-      if (dl !== null) {
-        var mac = (info && typeof info.bdAddress === 'string' && info.bdAddress !== '00:00:00:00:00:00') ? info.bdAddress : null;
-        last = { level: dl, at: Date.now(), mac: mac };
-        if (stateFile) {
-          try { util.writeJsonAtomic(stateFile, last); } catch (e) {}
+      if (info && typeof info.lowStrength === 'boolean') {
+        lowStrength = info.lowStrength;
+      }
+      if (info && typeof info.fwVer === 'string' && info.fwVer.length > 0 && info.fwVer !== '00.00.00.00.00.00.00.00.00.00.00') {
+        firmware = info.fwVer;
+      }
+      if (!last) {
+        var dl = deviceLevelFrom(info);
+        if (dl !== null) {
+          var mac = (info && typeof info.bdAddress === 'string' && info.bdAddress !== '00:00:00:00:00:00') ? info.bdAddress : null;
+          last = { level: dl, at: Date.now(), mac: mac };
+          if (stateFile) {
+            try {
+              util.writeJsonAtomic(stateFile, {
+                level: last.level,
+                at: last.at,
+                mac: last.mac,
+                lowStrength: lowStrength
+              });
+            } catch (e) {}
+          }
+          if (onLevel) onLevel(dl);
         }
-        if (onLevel) onLevel(dl);
       }
     });
   }
@@ -220,12 +248,15 @@ function init(opts) {
   dueAt = 0;
   connected = false;
   isBle = false;
+  lowStrength = false;
+  firmware = null;
   isOnFn = function () { return true; };
   stateFile = opts.stateFile !== undefined ? opts.stateFile :
     (opts.stateDir ? path.join(opts.stateDir, 'remote-battery.json') : null);
   var saved = stateFile ? util.readJson(stateFile, null) : null;
   if (saved && typeof saved.level === 'number' && saved.level >= 0 && saved.level <= 100) {
     last = { level: saved.level, at: saved.at || Date.now(), mac: saved.mac || null };
+    if (typeof saved.lowStrength === 'boolean') lowStrength = saved.lowStrength;
   } else {
     last = null;
   }
@@ -241,6 +272,9 @@ module.exports = {
   level: level,
   connected: function () { return connected; },
   isBle: function () { return isBle; },
+  signal: function () { return lowStrength ? 'weak' : 'good'; },
+  lowStrength: function () { return lowStrength; },
+  firmware: function () { return firmware; },
   remoteAddress: remoteAddress,
   levelFrom: levelFrom,
   deviceLevelFrom: deviceLevelFrom

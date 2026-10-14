@@ -1451,9 +1451,29 @@
   "text": "Firmware: {version}",
   "from": "Firmware: {version}"
  },
+ "metrics.remote.firmwareLabel": {
+  "text": "Firmware:",
+  "from": "Firmware:"
+ },
+ "metrics.remote.modelLabel": {
+  "text": "Modelo:",
+  "from": "Model:"
+ },
  "metrics.remote.name": {
   "text": "Mando Magic",
   "from": "Magic Remote"
+ },
+ "metrics.remote.signalGood": {
+  "text": "Buena",
+  "from": "Good"
+ },
+ "metrics.remote.signalLabel": {
+  "text": "Intensidad de señal:",
+  "from": "Signal Strength:"
+ },
+ "metrics.remote.signalWeak": {
+  "text": "Débil",
+  "from": "Weak"
  },
  "metrics.remote.standby": {
   "text": "En espera",

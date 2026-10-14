@@ -161,6 +161,17 @@ steps.push(function () {
   assert.strictEqual(rb.isBle(), false);
   console.log('  ✓ tracks live Bluetooth connection and remote type state');
 });
+steps.push(function () {
+  rb.init();
+  assert.strictEqual(rb.signal(), 'good');
+  assert.strictEqual(rb.lowStrength(), false);
+  util.writeJsonAtomic(tmpFile, { level: 50, at: 1234, mac: REMOTE.address, lowStrength: true });
+  rb.init({ stateFile: tmpFile });
+  assert.strictEqual(rb.signal(), 'weak');
+  assert.strictEqual(rb.lowStrength(), true);
+  util.unlinkQuiet(tmpFile);
+  console.log('  ✓ tracks remote signal strength and state persistence');
+});
 
 (function next(i) {
   if (i === steps.length) {

@@ -327,8 +327,12 @@ async function tick() {
       const gFill = q('remote-gauge-fill');
       gFill.style.width = Math.max(5, Math.min(100, rem.battery)) + '%';
       gFill.style.background = rem.battery <= 15 ? 'var(--red)' : rem.battery <= 30 ? 'var(--cand)' : 'var(--green)';
-      q('remote-model').textContent = rem.model ? rem.model.replace(/^LGE\s*/i, '') : t('metrics.remote.name', 'Magic Remote');
-      q('remote-model-sub').textContent = rem.firmware ? ' · ' + t('metrics.remote.firmware', 'Firmware: {version}', { version: rem.firmware }) : '';
+      q('remote-model-val').textContent = rem.model ? rem.model.replace(/^LGE\s*/i, '') : t('metrics.remote.name', 'Magic Remote');
+      q('remote-fw-val').textContent = rem.firmware || '—';
+      if (q('remote-fw-row')) q('remote-fw-row').hidden = !rem.firmware;
+      const isWeak = rem.signal === 'weak';
+      q('remote-signal-val').textContent = isWeak ? t('metrics.remote.signalWeak', 'Weak') : t('metrics.remote.signalGood', 'Good');
+      q('remote-signal-val').style.color = isWeak ? 'var(--cand)' : '';
       const rPill = q('remote-pill');
       if (rPill) {
         const isConn = !!rem.connected;
