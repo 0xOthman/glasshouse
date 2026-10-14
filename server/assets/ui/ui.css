@@ -712,8 +712,9 @@ button.pill.busy:not([style*="--p"]){
 .pv-sub a:hover{color:var(--w100)}
 .pv-row{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;
         padding:13px 0;border-bottom:1px solid var(--w06)}
-.pv-row .n{font-size:15px;color:var(--w100)}
-.pv-row .d{font-size:14px;color:var(--w60);margin-top:3px;max-width:58ch}
+.pv-row .n{font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;
+        letter-spacing:.02em;color:var(--w90)}
+.pv-row .d{font-size:14px;color:var(--w60);margin-top:3px;line-height:1.45;max-width:58ch}
 .pill, .pill-toggle{font-family:'Manrope';font-weight:500;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
       display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
       min-width:116px;height:32px;padding:0 12px;line-height:1;
@@ -755,7 +756,7 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 /* Read-only: a dashed edge says it cannot be pressed. It was 45% opacity,
    which took an amber pill to 2.9:1 on black and 1.8:1 on the light theme. */
 .pill.fixed, .pill-toggle.fixed{border-style:dashed}
-.pv-g{font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w60);
+.pv-g{font-family:'Manrope',sans-serif;font-weight:500;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w60);
       margin:22px 0 2px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .pv-g:first-child{margin-top:4px}
 .pv-g .c{letter-spacing:0;text-transform:none;color:var(--w60);font-size:13px;white-space:nowrap}
