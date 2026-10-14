@@ -606,7 +606,8 @@ button.pill.busy:not([style*="--p"]){
 .oc-counts .grp{margin-bottom:4px}
 .oc-count{padding:14px 0;border-bottom:1px solid var(--w12)}
 .oc-count:last-child{border-bottom:0}
-.oc-count-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:15px}
+.oc-count-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;letter-spacing:.02em;color:var(--w90)}
 .oc-count-top b{font-family:'Outfit';font-weight:300;font-size:22px;color:var(--w100);white-space:nowrap}
 .oc-count-desc{font-size:14px;color:var(--w60);margin-top:5px;line-height:1.5;max-width:46ch}
 .oled-none{font-size:13px;letter-spacing:.06em;color:var(--w60);white-space:nowrap}
