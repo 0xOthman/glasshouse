@@ -16,7 +16,7 @@ Every entity the TV publishes, by category. Which categories are published is se
 | `switch` | `switch.lg_tv_logo_light` | Logo Light | Toggle front illuminated TV logo |
 | `number` | `number.lg_tv_volume` | Volume | Volume slider (0–100). Unavailable when the level is set on an external sound device |
 | `select` | `select.lg_tv_input_source` | Input Source | HDMI 1–4, Live TV |
-| `select` | `select.lg_tv_app` | Launch App | Installed apps (YouTube, Netflix, Prime Video, Spotify, etc.) |
+| `select` | `select.lg_tv_app` | Launch App | Installed apps and LG Settings; `app_ids` attribute maps option labels to stable app IDs |
 | `select` | `select.lg_tv_picture_mode` | Picture Mode | Switch profiles (ISF Dark/Bright, Cinema, Game, Standard) |
 | `select` | `select.lg_tv_energy_saving` | Energy Saving Step | Auto, Off, Minimum, Medium, Maximum, Screen off |
 | `select` | `select.lg_tv_sound_output` | Sound Output | Switch outputs (TV Speaker, HDMI ARC, Optical, Headphone) |
@@ -80,7 +80,7 @@ Playback reaches an HDMI source over CEC, where the TV has only one key for both
 | `number` | `number.lg_tv_oled_light` | OLED Light | Sets the current picture mode's OLED Light (`0–100`); **Backlight** on an LCD. Follows the remote and mode changes as they happen |
 | `sensor` | `sensor.lg_tv_panel_dimming` | Panel Dimming | Dynamic backlight/panel dimming state |
 | `sensor` | `sensor.lg_tv_audio_output` | Audio Output | Output the audio service is driving (e.g. *HDMI ARC*, *Headphone / AUX*) |
-| `sensor` | `sensor.lg_tv_active_app` | Active App | Current foreground app or friendly CEC device |
+| `sensor` | `sensor.lg_tv_active_app` | Active App | Current foreground app or friendly CEC device; `app_id` attribute identifies the app |
 | `sensor` | `sensor.lg_tv_sound_format` | Sound Format | Format of the sound the app or input on screen is sending, as the dashboard's Sound panel shows it (e.g. *Opus*, *PCM*, *Dolby Digital Plus · Dolby Atmos*), or *None* while nothing plays. Attributes `codec` and `immersive` give the TV's own names (`eac3`, `atmos`). Published once the TV has answered with a format, which webOS 4 does not |
 | `sensor` | `sensor.lg_tv_play_state` | Player State | State of the TV's own media pipeline (`playing`, `paused`, `stopped`), or `idle` with nothing playing. Published once the TV has reported playback, and kept from then on |
 

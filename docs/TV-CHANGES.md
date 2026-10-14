@@ -22,6 +22,9 @@ starting at boot straight away, and within a few minutes the server removes the
 rest, including its Home Assistant entities. Installed with `deploy.sh`, see
 [Uninstalling](managing.md#uninstalling).
 
+Home Assistant discovery includes stable app IDs on Active App and Launch App.
+Launch App also offers LG Settings, so it can be opened through the select entity.
+
 ## Features that change how the TV runs
 
 These last until a reboot and are put back by the boot hook, so they end with
