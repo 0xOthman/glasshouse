@@ -537,9 +537,12 @@ async function tick() {
     q('mute').classList.toggle('on', muted);
 
     if (d.inputs && !q('inputs').dataset.built) {
-      q('inputs').innerHTML = Object.keys(d.inputs).map(k =>
-        `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')"><span>${esc(d.inputs[k])}</span></button>`).join('') +
-        `<button id="in_livetv" onclick="sendCommand('input','livetv')"><span>${esc(t('ctl.liveTv', 'Live TV'))}</span></button>`;
+      const inKeys = Object.keys(d.inputs);
+      const totalInputs = inKeys.length + 1;
+      const liveTvClass = (totalInputs % 2 !== 0) ? ' class="span-full"' : '';
+      q('inputs').innerHTML = inKeys.map(k =>
+        `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')"><span class="lbl" title="${esc(d.inputs[k])}">${esc(d.inputs[k])}</span></button>`).join('') +
+        `<button id="in_livetv"${liveTvClass} onclick="sendCommand('input','livetv')"><span class="lbl" title="${esc(t('ctl.liveTv', 'Live TV'))}">${esc(t('ctl.liveTv', 'Live TV'))}</span></button>`;
       q('inputs').dataset.built = '1';
     }
 
