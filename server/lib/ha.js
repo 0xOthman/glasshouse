@@ -491,6 +491,10 @@ function buildEntities(opts) {
           name: 'Active App',
           state_topic: topic.telemetry,
           value_template: '{{ value_json.display_title or value_json.app_name or value_json.app }}',
+          // The title changes when an app is renamed; the id does not. A
+          // remote that only acts in certain apps checks the id.
+          json_attributes_topic: topic.telemetry,
+          json_attributes_template: '{{ {"app_id": value_json.app_id or ""} | tojson }}',
           icon: 'mdi:television-play'
         }
       },

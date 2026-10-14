@@ -349,6 +349,9 @@ console.log('Running test-ha.js ...');
   // Hyphens, uppercase, and spaces are sanitized to underscores
   assert.strictEqual(ha.defaultEntityId('switch', 'LG-C9', 'on_timer'), 'switch.lg_c9_on_timer');
   assert.strictEqual(ha.defaultEntityId('sensor', 'Living Room TV', 'active_app'), 'sensor.living_room_tv_active_app');
+  var activeApp = ha.buildEntities({ pfx: 'test/tv' }).filter(function (e) { return e.id === 'active_app'; })[0];
+  assert.strictEqual(activeApp.payload.json_attributes_topic, activeApp.payload.state_topic, 'the app id comes with the title');
+  assert.ok(/"app_id": value_json\.app_id/.test(activeApp.payload.json_attributes_template), 'the active app carries its app id');
   assert.strictEqual(ha.defaultEntityId('button', '__LG_TV__', 'restart'), 'button.lg_tv_restart');
   // Empty or missing device id produces domain.item_id
   assert.strictEqual(ha.defaultEntityId('number', '', 'volume'), 'number.volume');
