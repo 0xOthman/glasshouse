@@ -357,6 +357,8 @@ console.log('Running test-ha.js ...');
   var ids = JSON.parse(launch.payload.json_attributes_template.replace(/^\{\{ | \| tojson \}\}$/g, '')).app_ids;
   assert.strictEqual(ids.Afterglow, 'net.botworth.vizman', 'each launchable title carries its app id');
   assert.strictEqual(ids.House, 'com.house.homeassistant.c1');
+  assert.strictEqual(ids.Settings, 'com.palm.app.settings', 'LG Settings is launchable from the select');
+  assert.ok(launch.payload.options.indexOf('Settings') >= 0);
   assert.strictEqual(ha.defaultEntityId('button', '__LG_TV__', 'restart'), 'button.lg_tv_restart');
   // Empty or missing device id produces domain.item_id
   assert.strictEqual(ha.defaultEntityId('number', '', 'volume'), 'number.volume');

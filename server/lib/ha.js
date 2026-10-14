@@ -239,6 +239,7 @@ function entityCategory(e) {
  * stand in so the select is not empty. A name two apps share gets the id of
  * the second, since the select needs every option to be distinct.
  */
+var SETTINGS_APP_ID = 'com.palm.app.settings';
 var DEFAULT_APPS = {
   'com.webos.app.livetv': 'Live TV',
   'youtube.leanback.v4': 'YouTube',
@@ -262,6 +263,9 @@ function appNames(installed) {
   } else {
     for (var i = 0; i < installed.length; i++) add(installed[i].id, installed[i].title);
   }
+  // LG's Settings is a system app the installed list leaves out, but it
+  // launches like any other: offered so a non-admin client can open it.
+  add(SETTINGS_APP_ID, 'Settings');
   return byId;
 }
 
