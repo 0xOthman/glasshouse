@@ -44,6 +44,7 @@
     });
     const mc = document.querySelector('meta[name="theme-color"]');
     if (mc) mc.content = mode === 'light' ? '#f5f5f5' : '#000000';
+    html.style.colorScheme = mode;
   }
 
   function nextSetting() {
