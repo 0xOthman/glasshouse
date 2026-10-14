@@ -482,6 +482,7 @@ html.nav-hidden body.nav-open{overflow:hidden}
 #soundouts button:hover,#soundouts select.so-more:hover{color:var(--w100);border-color:var(--w70)}
 #soundouts button.on:hover{color:var(--btn-on-fg);border-color:var(--w100)}
 #soundouts .span-full{grid-column:1 / -1}
+#soundouts .span-center{grid-column:1 / -1;justify-self:center;width:calc(50% - 4px)}
 #inputs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:11px}
 #inputs button{
   position:relative;display:inline-flex;align-items:center;justify-content:center;

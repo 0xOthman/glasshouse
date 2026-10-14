@@ -170,12 +170,18 @@ function updateSoundoutsLayout() {
   if (!soBox) return;
   const visibleBtns = Array.from(soBox.querySelectorAll('button')).filter(b => !b.hidden);
   if (sel && !sel.hidden) {
-    visibleBtns.forEach(b => b.classList.remove('span-full'));
-    sel.classList.toggle('span-full', visibleBtns.length % 2 === 0);
+    visibleBtns.forEach(b => { b.classList.remove('span-full'); b.classList.remove('span-center'); });
+    sel.classList.remove('span-full');
+    sel.classList.toggle('span-center', visibleBtns.length % 2 === 0);
   } else if (visibleBtns.length % 2 !== 0) {
-    visibleBtns.forEach((b, i) => b.classList.toggle('span-full', i === visibleBtns.length - 1));
+    if (sel) { sel.classList.remove('span-full'); sel.classList.remove('span-center'); }
+    visibleBtns.forEach((b, i) => {
+      b.classList.remove('span-full');
+      b.classList.toggle('span-center', i === visibleBtns.length - 1);
+    });
   } else {
-    visibleBtns.forEach(b => b.classList.remove('span-full'));
+    visibleBtns.forEach(b => { b.classList.remove('span-full'); b.classList.remove('span-center'); });
+    if (sel) { sel.classList.remove('span-full'); sel.classList.remove('span-center'); }
   }
 }
 
