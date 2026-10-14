@@ -119,7 +119,15 @@ var T = Date.UTC(2026, 9, 14, 18, 50, 0);
   tv.advance(120000);
   tv.state.update('power', 'systemOn', false);
   assert.deepEqual(file('2026-10').hours['2026-10-14T18'], { spotify: 60, screen_off: 120 });
-  console.log('  ✓ time with the panel off is kept apart as screen_off');
+
+  // The screen goes off 20 ms before the TV does: nothing is kept for it.
+  tv.on('spotify');
+  tv.advance(1000);
+  tv.state.update('power', 'screenOn', false);
+  tv.advance(20);
+  tv.state.update('power', 'systemOn', false);
+  assert.deepEqual(file('2026-10').hours['2026-10-14T18'], { spotify: 61, screen_off: 120 });
+  console.log('  ✓ time with the panel off is kept apart as screen_off, and a moment of it not at all');
   history.stop();
 })();
 

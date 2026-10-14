@@ -128,13 +128,16 @@ function addTime(key, startWall, endWall) {
     var m = monthKey(t);
     var month = monthOf(m);
     var h = hourKey(t);
-    var bucket = month.hours[h] || (month.hours[h] = {});
-    bucket[key] = Math.round(((bucket[key] || 0) + (end - t) / 1000) * 10) / 10;
+    var seconds = Math.round((((month.hours[h] || {})[key] || 0) + (end - t) / 1000) * 10) / 10;
+    t = end;
+    // Under a twentieth of a second, such as the screen going off just
+    // before the TV does, which would be kept as 0.
+    if (!seconds) continue;
+    (month.hours[h] || (month.hours[h] = {}))[key] = seconds;
     if (titles[key]) month.titles[key] = titles[key];
     // So the title can be asked for by the full id after a restart.
     if (appIds[key]) month.ids[key] = appIds[key];
     dirty[m] = true;
-    t = end;
   }
 }
 
