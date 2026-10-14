@@ -164,6 +164,21 @@ const SOUND_BUTTON = {
 
 let moreOutputs = [];
 
+function updateSoundoutsLayout() {
+  const sel = q('so_more');
+  const soBox = q('soundouts');
+  if (!soBox) return;
+  const visibleBtns = Array.from(soBox.querySelectorAll('button')).filter(b => !b.hidden);
+  if (sel && !sel.hidden) {
+    visibleBtns.forEach(b => b.classList.remove('span-full'));
+    sel.classList.toggle('span-full', visibleBtns.length % 2 === 0);
+  } else if (visibleBtns.length % 2 !== 0) {
+    visibleBtns.forEach((b, i) => b.classList.toggle('span-full', i === visibleBtns.length - 1));
+  } else {
+    visibleBtns.forEach(b => b.classList.remove('span-full'));
+  }
+}
+
 // The TV's other outputs go in More. One of them in use shows as a button of
 // its own before the list, so More always reads as the way to the rest.
 function renderMoreOutputs(outputs, current) {
@@ -184,6 +199,7 @@ function renderMoreOutputs(outputs, current) {
     extra.hidden = !inUse;
     extra.textContent = inUse ? inUse.name : '';
   }
+  updateSoundoutsLayout();
 }
 
 function hdmiKey(d) {
