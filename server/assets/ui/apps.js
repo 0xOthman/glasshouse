@@ -162,7 +162,7 @@ function renderAppsPanel() {
         return `<div class="prot-row">
           <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
           <div class="prot-main">
-            <div class="prot-title">${title} <span class="prot-sub">&middot; ${id}</span></div>
+            <div class="prot-title">${title}</div>
             <div class="prot-desc">${esc(meta || t('apps.installed.app', 'Installed app'))}</div>
             ${rowError[app.id] ? `<div class="prot-desc row-err">${esc(rowError[app.id])}</div>` : ''}
           </div>
@@ -242,7 +242,7 @@ function renderAppsPanel() {
         return `<div class="prot-row">
           <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
           <div class="prot-main">
-            <div class="prot-title">${title} <span class="prot-sub">&middot; ${id}</span></div>
+            <div class="prot-title">${title}</div>
             <div class="prot-desc">${esc(isHidden ? t('apps.tile.hidden.desc', 'Hidden from home launcher ribbon') : t('apps.tile.visible.desc', 'Visible on home launcher ribbon'))}</div>
           </div>
           <div class="prot-status">
