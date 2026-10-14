@@ -210,6 +210,32 @@ var T = Date.UTC(2026, 9, 14, 18, 50, 0);
   history.stop();
 })();
 
+// 5b. A title by the app's full id after a restart, over a wrong one saved
+(function () {
+  var tv = setup({ wall: T });
+  history.start();
+  tv.state.update('power', 'systemOn', true);
+  tv.state.update('power', 'screenOn', true);
+  tv.state.update('application', 'app_id', 'com.webos.app.home');
+  tv.state.update('application', 'app', 'home');
+  tv.advance(60000);
+  history.stop();
+  var saved = file('2026-10');
+  assert.strictEqual(saved.ids.home, 'com.webos.app.home');
+  // As written before ids were kept, with the last app's title.
+  saved.titles.home = 'youtube.leanback.v4';
+  fs.writeFileSync(path.join(root, '2026-10.json'), JSON.stringify(saved));
+
+  history.init({
+    config: tv.config, dir: root, now: function () { return tv.clock.wall; }, mono: function () { return tv.clock.mono; },
+    appTitle: function (id) { return id === 'com.webos.app.home' ? 'Home' : null; }
+  });
+  history.start();
+  assert.strictEqual(history.query(T - 3600000, T + 3600000).titles.home, 'Home');
+  console.log('  ✓ after a restart an app is named by its full id, over a title saved wrong');
+  history.stop();
+})();
+
 // 6. Clear and prune
 (function () {
   var tv = setup({ wall: T });

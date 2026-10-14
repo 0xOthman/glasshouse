@@ -39,7 +39,7 @@ var dir = DIR;
 var nowMs = function () { return Date.now(); };
 var monoMs = util.monotonicMs;
 
-// UTC month ('2026-10') to { v, hours: { '2026-10-14T19': { key: seconds } }, titles }.
+// UTC month ('2026-10') to { v, hours: { '2026-10-14T19': { key: seconds } }, titles, ids }.
 var months = {};
 var dirty = {};
 // The segment being counted: { key, startMono }, or null while nothing is.
@@ -78,7 +78,7 @@ function monthOf(m) {
   if (!months[m]) {
     var j = util.readJson(monthFile(m), null);
     months[m] = j && j.hours && typeof j.hours === 'object' ?
-      { v: 1, hours: j.hours, titles: j.titles || {} } : { v: 1, hours: {}, titles: {} };
+      { v: 1, hours: j.hours, titles: j.titles || {}, ids: j.ids || {} } : { v: 1, hours: {}, titles: {}, ids: {} };
   }
   return months[m];
 }
@@ -91,6 +91,7 @@ function loadAll() {
     if (m) {
       var month = monthOf(m[1]);
       for (var k in month.titles) if (!titles[k]) titles[k] = month.titles[k];
+      for (var i in month.ids) if (!appIds[i]) appIds[i] = month.ids[i];
     }
   });
 }
@@ -130,6 +131,8 @@ function addTime(key, startWall, endWall) {
     var bucket = month.hours[h] || (month.hours[h] = {});
     bucket[key] = Math.round(((bucket[key] || 0) + (end - t) / 1000) * 10) / 10;
     if (titles[key]) month.titles[key] = titles[key];
+    // So the title can be asked for by the full id after a restart.
+    if (appIds[key]) month.ids[key] = appIds[key];
     dirty[m] = true;
     t = end;
   }
