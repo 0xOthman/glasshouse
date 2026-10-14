@@ -83,7 +83,7 @@ function displayVersion(version, dir) {
   var build = readJson(file, null);
   if (!build || !/^[0-9a-f]{4,40}$/.test(build.commit)) return version;
   if (build.version !== version) {
-    console.log('build.json is for v' + build.version + ', not v' + version + '; ignoring it');
+    console.log('update: ignoring stale build metadata from v' + build.version + ' (running v' + version + ')');
     return version;
   }
   return version + '+' + build.commit + (build.dirty ? '.dirty' : '');

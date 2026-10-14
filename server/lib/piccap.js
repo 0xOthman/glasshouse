@@ -144,18 +144,20 @@ function handleMqttCommand(action, value, cb) {
   if (action !== 'piccap/power') return false;
   var power = String(value === undefined || value === null ? '' : value).toUpperCase();
   if (power !== 'ON' && power !== 'OFF') {
-    console.log('mqtt: invalid PicCap power command: expected ON or OFF, got ' + power);
+    console.log('piccap: invalid power command: expected ON or OFF, got ' + power);
     return true;
   }
   if (!allowControl) {
     var disabled = { ok: false, error: msg('srv.controlsOff', 'controls disabled in config') };
-    console.log('mqtt: PicCap command failed: ' + JSON.stringify(disabled));
+    console.warn('piccap: power command refused: controls disabled in config');
     if (cb) cb(disabled);
     return true;
   }
   setPower(power === 'ON', function (result) {
     publishState(result);
-    if (!result || !result.ok) console.log('mqtt: PicCap command failed: ' + JSON.stringify(result));
+    if (!result || !result.ok) {
+      console.error('piccap: power command failed: ' + ((result && (result.error || result.errorText)) || 'unknown error'));
+    }
     if (cb) cb(result);
   });
   return true;

@@ -58,7 +58,7 @@ function blockFromNetwork(cb) {
     if (i >= tools.length) {
       state = held.length ? 'closed' : 'open';
       if (!held.length) console.error('devtools: could not close port 9998 to the network');
-      else console.log('devtools: port 9998 answers on the TV only');
+      else console.log('devtools: port 9998 bound to TV only');
       return cb(held);
     }
     blockWith(tools[i], function (ok) {

@@ -136,6 +136,28 @@ test('parseGlasshouseLogs parses explicit level tags [INFO], [WARN], [ERR]', fun
   assert.strictEqual(parsed[2].msg, 'luna bus transport failed');
 });
 
+test('parseGlasshouseLogs parses standardized subsystem tags into proc', function () {
+  var bootTime = 1760000000000;
+  var raw = [
+    '2026-10-07T15:59:30.123Z [13641.123] [INFO] server: listening on 0.0.0.0:8080 (control: on)',
+    '2026-10-07T15:59:30.200Z [13641.200] [INFO] config: loaded /var/lib/tvweb/config.json',
+    '2026-10-07T15:59:30.300Z [13641.300] [WARN] security: apps.sideload is on and no token is set',
+    '2026-10-07T15:59:30.400Z [13641.400] [INFO] tvapp: old tile removed; Homebrew Channel replaces it',
+    '2026-10-07T15:59:30.500Z [13641.500] [INFO] device: detected LG C2 OLED',
+    '2026-10-07T15:59:30.600Z [13641.600] [INFO] watchdog: resumed after 120s suspended - skipping one check'
+  ].join('\n');
+
+  var parsed = logs.parseGlasshouseLogs(raw, bootTime, 13640.0);
+  assert.strictEqual(parsed.length, 6);
+  assert.strictEqual(parsed[0].proc, 'server');
+  assert.strictEqual(parsed[1].proc, 'config');
+  assert.strictEqual(parsed[2].proc, 'security');
+  assert.strictEqual(parsed[2].level, 'warning');
+  assert.strictEqual(parsed[3].proc, 'tvapp');
+  assert.strictEqual(parsed[4].proc, 'device');
+  assert.strictEqual(parsed[5].proc, 'watchdog');
+});
+
 test('parseKernelLogs parses dmesg monotonic timestamps and process tags', function () {
   var bootTime = 1760000000000;
   var raw = [

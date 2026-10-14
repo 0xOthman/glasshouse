@@ -1472,7 +1472,7 @@ function detectDeviceInfo(cb, triesLeft) {
           if (res.firmwareVersion) {
             configObj.device.sw_version = res.firmwareVersion;
           }
-          console.log('device detected: ' + (configObj.device.name || 'LG TV') + ' (model: ' + configObj.device.model + ') fw: ' + (res.firmwareVersion || '?'));
+          console.log('device: detected ' + (configObj.device.name || 'LG TV') + ' (model: ' + configObj.device.model + ') fw: ' + (res.firmwareVersion || '?'));
         }
         if (!configObj.device.name) configObj.device.name = 'LG webOS TV';
         if (!configObj.device.model) configObj.device.model = 'webOS TV';
@@ -1565,7 +1565,7 @@ function collectStats(cb) {
   // later ones stay well within.
   var safetyTimeout = setTimeout(function () {
     if (isCollecting) {
-      console.warn('warning: stats collection safety timeout reached');
+      console.warn('telemetry: stats collection safety timeout reached');
       flushStats(lastStats || { ok: false, error: 'timeout' }, true);
     }
   }, statsCollected ? 4500 : 20000);
