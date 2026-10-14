@@ -170,12 +170,18 @@ function updateSoundoutsLayout() {
   if (!soBox) return;
   const visibleBtns = Array.from(soBox.querySelectorAll('button')).filter(b => !b.hidden);
   if (sel && !sel.hidden) {
-    visibleBtns.forEach(b => b.classList.remove('span-full'));
-    sel.classList.toggle('span-full', visibleBtns.length % 2 === 0);
+    visibleBtns.forEach(b => { b.classList.remove('span-full'); b.classList.remove('span-center'); });
+    sel.classList.remove('span-full');
+    sel.classList.toggle('span-center', visibleBtns.length % 2 === 0);
   } else if (visibleBtns.length % 2 !== 0) {
-    visibleBtns.forEach((b, i) => b.classList.toggle('span-full', i === visibleBtns.length - 1));
+    if (sel) { sel.classList.remove('span-full'); sel.classList.remove('span-center'); }
+    visibleBtns.forEach((b, i) => {
+      b.classList.remove('span-full');
+      b.classList.toggle('span-center', i === visibleBtns.length - 1);
+    });
   } else {
-    visibleBtns.forEach(b => b.classList.remove('span-full'));
+    visibleBtns.forEach(b => { b.classList.remove('span-full'); b.classList.remove('span-center'); });
+    if (sel) { sel.classList.remove('span-full'); sel.classList.remove('span-center'); }
   }
 }
 
@@ -243,9 +249,14 @@ async function tick() {
     pwStandby = ps.raw === 'Active Standby';
     if (q('poff')) q('poff').textContent = pwStandby ? t('ctl.powerOn', 'Power on') : t('ctl.powerOff', 'Power off');
     const isComp = (o.comp_status === 'Running');
+    const isStandby = !isComp && (ps.systemOn === false || ps.raw === 'Standby' || ps.raw === 'Active Standby');
+    const isScreenOff = !isComp && !isStandby && ps.screenOn === false;
+    const isOn = !isComp && !isStandby && !isScreenOff && ps.screenOn !== false && (ps.systemOn === true || ps.label === 'On');
     const stEl = q('state');
     stEl.classList.toggle('comp', isComp);
-    stEl.classList.toggle('off', !isComp && ps.screenOn === false);
+    stEl.classList.toggle('standby', isStandby);
+    stEl.classList.toggle('off', isScreenOff);
+    stEl.classList.toggle('on', isOn);
     if (isComp) {
       stEl.querySelector('span').textContent = t('state.activeStandby', 'Active Standby');
       q('source').textContent = t('state.compRunning', 'Completing Panel Maintenance (Short Cycle)');
@@ -532,9 +543,12 @@ async function tick() {
     q('mute').classList.toggle('on', muted);
 
     if (d.inputs && !q('inputs').dataset.built) {
-      q('inputs').innerHTML = Object.keys(d.inputs).map(k =>
-        `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')">${esc(d.inputs[k])}</button>`).join('') +
-        `<button id="in_livetv" onclick="sendCommand('input','livetv')">${esc(t('ctl.liveTv', 'Live TV'))}</button>`;
+      const inKeys = Object.keys(d.inputs);
+      const totalInputs = inKeys.length + 1;
+      const liveTvClass = (totalInputs % 2 !== 0) ? ' class="span-center"' : '';
+      q('inputs').innerHTML = inKeys.map(k =>
+        `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')"><span class="lbl" title="${esc(d.inputs[k])}">${esc(d.inputs[k])}</span></button>`).join('') +
+        `<button id="in_livetv"${liveTvClass} onclick="sendCommand('input','livetv')"><span class="lbl" title="${esc(t('ctl.liveTv', 'Live TV'))}">${esc(t('ctl.liveTv', 'Live TV'))}</span></button>`;
       q('inputs').dataset.built = '1';
     }
 
