@@ -163,6 +163,10 @@ steps.push(function () {
 });
 steps.push(function () {
   rb.init();
+  assert.strictEqual(rb.signal(), null);
+  assert.strictEqual(rb.lowStrength(), null);
+  util.writeJsonAtomic(tmpFile, { level: 50, at: 1234, mac: REMOTE.address, lowStrength: false });
+  rb.init({ stateFile: tmpFile });
   assert.strictEqual(rb.signal(), 'good');
   assert.strictEqual(rb.lowStrength(), false);
   util.writeJsonAtomic(tmpFile, { level: 50, at: 1234, mac: REMOTE.address, lowStrength: true });

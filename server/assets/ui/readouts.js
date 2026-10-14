@@ -330,9 +330,14 @@ async function tick() {
       q('remote-model-val').textContent = rem.model ? rem.model.replace(/^LGE\s*/i, '') : t('metrics.remote.name', 'Magic Remote');
       q('remote-fw-val').textContent = rem.firmware || '—';
       if (q('remote-fw-row')) q('remote-fw-row').hidden = !rem.firmware;
-      const isWeak = rem.signal === 'weak';
-      q('remote-signal-val').textContent = isWeak ? t('metrics.remote.signalWeak', 'Weak') : t('metrics.remote.signalGood', 'Good');
-      q('remote-signal-val').style.color = isWeak ? 'var(--cand)' : '';
+      if (q('remote-signal-row')) {
+        q('remote-signal-row').hidden = !rem.signal;
+        if (rem.signal) {
+          const isWeak = rem.signal === 'weak';
+          q('remote-signal-val').textContent = isWeak ? t('metrics.remote.signalWeak', 'Weak') : t('metrics.remote.signalGood', 'Good');
+          q('remote-signal-val').style.color = isWeak ? 'var(--cand)' : '';
+        }
+      }
       const rPill = q('remote-pill');
       if (rPill) {
         const isConn = !!rem.connected;

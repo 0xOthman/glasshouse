@@ -45,7 +45,7 @@ var last = null;
 var stateFile = null;
 var connected = false;
 var isBle = false;
-var lowStrength = false;
+var lowStrength = null;
 var firmware = null;
 
 function remoteAddress(devices) {
@@ -248,7 +248,7 @@ function init(opts) {
   dueAt = 0;
   connected = false;
   isBle = false;
-  lowStrength = false;
+  lowStrength = null;
   firmware = null;
   isOnFn = function () { return true; };
   stateFile = opts.stateFile !== undefined ? opts.stateFile :
@@ -272,7 +272,10 @@ module.exports = {
   level: level,
   connected: function () { return connected; },
   isBle: function () { return isBle; },
-  signal: function () { return lowStrength ? 'weak' : 'good'; },
+  signal: function () {
+    if (lowStrength === null) return null;
+    return lowStrength ? 'weak' : 'good';
+  },
   lowStrength: function () { return lowStrength; },
   firmware: function () { return firmware; },
   remoteAddress: remoteAddress,

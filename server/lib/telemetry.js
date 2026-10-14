@@ -632,7 +632,7 @@ function remoteInfo() {
   var isBleRem = remoteBatteryModule ? remoteBatteryModule.isBle() : true;
   var sig = remoteBatteryModule && typeof remoteBatteryModule.signal === 'function'
     ? remoteBatteryModule.signal()
-    : 'good';
+    : null;
   var fw = file.firmware || (remoteBatteryModule && typeof remoteBatteryModule.firmware === 'function'
     ? remoteBatteryModule.firmware()
     : null);
