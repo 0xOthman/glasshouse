@@ -938,13 +938,12 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .port{border:1px solid var(--w06);border-radius:4px;padding:12px 14px 13px;
   display:flex;flex-direction:column;min-height:120px;background:transparent;
   transition:border-color .16s ease}
-.port .ptop{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.port .pnum-wrap{display:flex;align-items:baseline;gap:6px}
+.port .ptop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .port .pn{font-family:'Outfit';font-weight:200;font-size:36px;line-height:1;
   color:var(--w50);font-variant-numeric:tabular-nums}
-.port .port-cap{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.08em;
-  padding:2px 5px;border-radius:2px;border:1px solid var(--w12);background:transparent;color:var(--w70);vertical-align:middle}
-.port .pstatus-wrap{display:flex;align-items:center;gap:6px}
+.port .pstatus-wrap{display:flex;align-items:center;gap:6px;padding-top:4px}
+.port .port-cap{display:inline-flex;align-items:center;font-size:9px;font-weight:700;letter-spacing:.08em;
+  padding:2px 5px;border-radius:2px;border:1px solid var(--w12);background:transparent;color:var(--w70);line-height:1}
 .port .port-jack{flex:none;color:var(--w40);transition:color .16s ease}
 .port .pst{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--w60);
   white-space:nowrap}

@@ -22,8 +22,8 @@ function renderHdmiPort(i, diag, colSpace) {
     const unconnected = t('metrics.hdmi.unconnected', 'Unconnected');
     return `<div class="port empty">` +
            `<div class="ptop">` +
-             `<div class="pnum-wrap"><span class="pn num">${i.port}</span>${earcBadge}</div>` +
-             `<div class="pstatus-wrap">${jackSvg}<span class="pst">${emptyState}</span></div>` +
+             `<span class="pn num">${i.port}</span>` +
+             `<div class="pstatus-wrap">${earcBadge}${jackSvg}<span class="pst">${emptyState}</span></div>` +
            `</div>` +
            `<div class="pl empty">${unconnected}</div>` +
            `</div>`;
@@ -63,8 +63,8 @@ function renderHdmiPort(i, diag, colSpace) {
 
   return `<div class="${cls}">` +
          `<div class="ptop">` +
-           `<div class="pnum-wrap"><span class="pn num">${i.port}</span>${earcBadge}</div>` +
-           `<div class="pstatus-wrap">${jackSvg}<span class="pst">${state}</span></div>` +
+           `<span class="pn num">${i.port}</span>` +
+           `<div class="pstatus-wrap">${earcBadge}${jackSvg}<span class="pst">${state}</span></div>` +
          `</div>` +
          `<div class="pl">${esc(i.label)}</div>` +
          detailsHtml +
