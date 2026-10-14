@@ -329,6 +329,13 @@ async function tick() {
       gFill.style.background = rem.battery <= 15 ? 'var(--red)' : rem.battery <= 30 ? 'var(--cand)' : 'var(--green)';
       q('remote-model').textContent = rem.model ? rem.model.replace(/^LGE\s*/i, '') : t('metrics.remote.name', 'Magic Remote');
       q('remote-model-sub').textContent = rem.firmware ? ' · ' + t('metrics.remote.firmware', 'Firmware: {version}', { version: rem.firmware }) : '';
+      const rPill = q('remote-pill');
+      if (rPill) {
+        const isConn = !!rem.connected;
+        rPill.className = 'pill ' + (isConn ? 'good' : 'idle');
+        rPill.textContent = isConn ? t('metrics.remote.connected', 'Connected') : t('metrics.remote.standby', 'Standby');
+        rPill.title = rem.mac ? t('metrics.remote.bluetooth', 'Bluetooth: {address}', { address: rem.mac }) + ' · ' + (isConn ? t('metrics.remote.connected', 'Connected') : t('metrics.remote.standby', 'Standby')) : '';
+      }
       q('remoteblock').title = [rem.model || t('metrics.remote.name', 'Magic Remote'),
         rem.firmware ? t('metrics.remote.firmware', 'Firmware: {version}', { version: rem.firmware }) : '',
         rem.mac ? t('metrics.remote.bluetooth', 'Bluetooth: {address}', { address: rem.mac }) : ''].filter(Boolean).join(' · ');

@@ -1443,6 +1443,10 @@
   "text": "Bluetooth: {address}",
   "from": "Bluetooth: {address}"
  },
+ "metrics.remote.connected": {
+  "text": "Conectado",
+  "from": "Connected"
+ },
  "metrics.remote.firmware": {
   "text": "Firmware: {version}",
   "from": "Firmware: {version}"
@@ -1450,6 +1454,10 @@
  "metrics.remote.name": {
   "text": "Mando Magic",
   "from": "Magic Remote"
+ },
+ "metrics.remote.standby": {
+  "text": "En espera",
+  "from": "Standby"
  },
  "metrics.roomLight": {
   "text": "Luz ambiental",

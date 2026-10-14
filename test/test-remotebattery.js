@@ -22,13 +22,14 @@ function fakeLuna(opts) {
     if (m === 'mrcu/getConnectionStatus') return cb(opts.status || { returnValue: true, connected: true, isBleRemocon: true });
     if (m === 'bluetooth2/device/getStatus') return cb({ returnValue: true, devices: opts.devices || [REMOTE] });
     if (m === 'bluetooth2/gatt/connect') return cb(opts.connect === undefined ? { returnValue: true, clientId: '004' } : opts.connect);
-    if (m === 'bluetooth2/gatt/discoverServices') return cb({ returnValue: true });
+    if (m === 'bluetooth2/gatt/discoverServices') return cb(opts.discover === undefined ? { returnValue: true } : opts.discover);
     if (m === 'bluetooth2/gatt/readCharacteristicValue') {
       assert.deepEqual(payload, { clientId: '004', service: '0000180f-0000-1000-8000-00805f9b34fb',
         characteristic: '00002a19-0000-1000-8000-00805f9b34fb' }, 'by clientId, with no address');
       return cb(opts.read || { returnValue: true, value: { value: { bytes: [61] } } });
     }
     if (m === 'bluetooth2/gatt/disconnect') { assert.strictEqual(payload.clientId, '004'); return cb({ returnValue: true }); }
+    if (m === 'mrcu/getDeviceInfo') return cb(opts.deviceInfo || { returnValue: true, batteryLevel: 49, bdAddress: REMOTE.address });
     throw new Error('unexpected ' + uri);
   };
   fn.calls = calls;
@@ -135,6 +136,30 @@ steps.push(function () {
     console.log('  ✓ a successful read saves the level and MAC to disk');
     pending--;
   });
+});
+steps.push(function () {
+  pending++;
+  var luna = fakeLuna({ discover: { returnValue: false, errorCode: 168 } });
+  rb.init({ luna: luna, discoverMs: 0, settleMs: 0 });
+  rb.read(function (level) {
+    assert.strictEqual(level, 49, 'read from getDeviceInfo');
+    assert.ok(luna.calls.indexOf('mrcu/getDeviceInfo') !== -1, 'getDeviceInfo was called on discover failure');
+    assert.ok(luna.calls.indexOf('bluetooth2/gatt/disconnect') !== -1, 'disconnected after fallback');
+    console.log('  ✓ falls back to getDeviceInfo when GATT service discovery fails (webOS 4)');
+    pending--;
+  });
+});
+steps.push(function () {
+  rb.init();
+  assert.strictEqual(rb.connected(), false);
+  assert.strictEqual(rb.isBle(), false);
+  rb.connectionChanged({ returnValue: true, connected: true, isBleRemocon: true });
+  assert.strictEqual(rb.connected(), true);
+  assert.strictEqual(rb.isBle(), true);
+  rb.connectionChanged({ returnValue: true, connected: false, isBleRemocon: false });
+  assert.strictEqual(rb.connected(), false);
+  assert.strictEqual(rb.isBle(), false);
+  console.log('  ✓ tracks live Bluetooth connection and remote type state');
 });
 
 (function next(i) {
