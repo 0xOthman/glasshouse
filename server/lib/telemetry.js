@@ -40,6 +40,8 @@ var screensaversModule = null;
 var gameModule = null;
 /** @type {typeof import('./power')} */
 var powerModule = null;
+/** @type {typeof import('./remotebattery')} */
+var remoteBatteryModule = null;
 var alwaysReadyScreenOn = false;
 var tvwebVersionStr = '0.0.0';
 
@@ -162,6 +164,7 @@ function init(opts) {
   screensaversModule = opts.screensavers;
   gameModule = opts.game;
   powerModule = opts.power || null;
+  remoteBatteryModule = opts.remoteBattery || null;
   tvwebVersionStr = opts.tvwebVersion || '0.0.0';
   loadHdmiSeen();
   hasMediaState = readTrimmed(MEDIA_SEEN_FILE) !== null;
@@ -617,6 +620,17 @@ function parseRemoteInfo(raw) {
     firmware: fwMatch ? fwMatch[1].trim() : null,
     paired: true
   };
+}
+
+// The pairing file's facts, with the level the remote itself last gave over
+// Bluetooth (remotebattery.js) ahead of any plain level in the file.
+function remoteInfo() {
+  var file = readRemoteInfo();
+  var level = remoteBatteryModule ? remoteBatteryModule.level() : null;
+  if (level === null) return file;
+  var out = { battery: level, model: null, mac: null, firmware: null, paired: true };
+  if (file) for (var k in file) if (k !== 'battery') out[k] = file[k];
+  return out;
 }
 
 function readRemoteInfo() {
@@ -1658,7 +1672,7 @@ function collectStats(cb) {
       tcon_firmware: HARDWARE_INFO.tconFirmware,
       tcon_module: HARDWARE_INFO.tconModule
     } : null,
-    remote: readRemoteInfo(),
+    remote: remoteInfo(),
     temp: socTemp(),
     tempMillidegrees: socTempMillidegrees(),
     temps: null,
@@ -2102,7 +2116,7 @@ function alwaysOnSupported(cb) {
 function getCapabilities(extra) {
   extra = extra || {};
   return {
-    hasRemoteBattery: (readRemoteInfo() || {}).battery != null,
+    hasRemoteBattery: (remoteInfo() || {}).battery != null,
     hasPnwash: fs.existsSync('/mnt/lg/cmn_data/pnwash/completedOffRsCount'),
     hasCell: !!(HARDWARE_INFO && HARDWARE_INFO.cell),
     hasHdmiProc: fs.existsSync('/proc/lg/hdmi20'),

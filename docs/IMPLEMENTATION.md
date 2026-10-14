@@ -100,7 +100,7 @@ instead:
 | `/proc/lg/pm/status` | per-core load, governor, AVS currents |
 | `/sys/block/mmcblk0/device/life_time` | eMMC wear (`0x01` = 0–10% used) |
 | `/sys/block/mmcblk0/device/pre_eol_info` | `01` Normal / `02` Warning / `03` Urgent |
-| `/mnt/lg/cmn_data/mrcu/mrcu1.info` | Magic Remote model, BDAddr, and firmware, as at pairing. Its `Battery = 52(M) 35(L)` is the remote's battery thresholds, not its charge (see TV-RESEARCH.md); only a plain `Battery = N` is read as a level |
+| `/mnt/lg/cmn_data/mrcu/mrcu1.info` | Magic Remote model, BDAddr, and firmware, as at pairing. Its `Battery = 52(M) 35(L)` is the remote's battery thresholds, not its charge, so the level comes from the remote (see [Reading the Magic Remote's battery](#reading-the-magic-remotes-battery)) |
 | `/proc/lg/hdmi20/port[0-3]/status` | Real-time HDMI receiver PHY mode (FRL 48 Gbps vs TMDS), chroma (RGB 4:4:4), HDCP, cable error counter, ALLM, VRR |
 | `/proc/lg/pe/hdr_status` | Picture engine live video format, colorimetry standard (`BT.709`, `BT.2020`), and peak nit levels |
 | `/var/luna/preferences/environmentCondition` | Hardware configuration (SoC generation `_O22_`, DDR RAM, refresh rate, eye sensor) |
@@ -818,6 +818,23 @@ The dashboard groups the hours into the browser's days. Home Assistant's
 "today" uses the TV's offset from UTC, worked out from the `localtime` and
 `utc` that `com.webos.service.systemservice/time/getSystemTime` reports
 together, read hourly. With no reading it is UTC.
+
+## Reading the Magic Remote's battery
+
+LG's pairing file has only the remote model's battery thresholds, so
+`server/lib/remotebattery.js` reads the level from the remote's Bluetooth
+Battery Service. The remote sleeps soon after it is put down, and one asleep
+is not woken for this, so the read waits for it to wake, from
+`com.webos.service.mrcu/getConnectionStatus` subscribed: the first wake after
+the TV switches on, then one at least an hour after the last read, or five
+minutes after a failed one. A check every 10 minutes covers a remote kept
+awake. lginput2 holds the remote's own connection, and the Bluetooth service reads the
+service only over a GATT connection of its own, so each read is
+`gatt/connect`, `gatt/discoverServices`, `gatt/readCharacteristicValue` by the
+`clientId` that connect returned, then `gatt/disconnect`, which is made
+whatever failed after connecting. A plain level in the pairing file, should
+an older TV write one, is used until the remote has given one.
+TV-RESEARCH.md has how this was found.
 
 ## The checks
 

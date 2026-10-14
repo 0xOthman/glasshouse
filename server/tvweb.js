@@ -73,6 +73,7 @@ var logsModule = require('./lib/logs');
 var syslogForwarder = require('./lib/syslog');
 var ntpClient = require('./lib/ntp');
 var history = require('./lib/history');
+var remoteBattery = require('./lib/remotebattery');
 var power = require('./lib/power');
 var names = require('./lib/names');
 var msg = say.msg;
@@ -480,6 +481,7 @@ telemetry.init({
   screensavers: screensavers,
   game: game,
   power: power,
+  remoteBattery: remoteBattery,
   tvwebVersion: TVWEB_DISPLAY_VERSION
 });
 
@@ -1582,6 +1584,23 @@ if (!CLI_MODE) {
     if (process.listeners('SIGINT').length === 1) process.exit(0);
   });
 
+  var remoteBatterySeen = false;
+  remoteBattery.init({
+    luna: luna,
+    onLevel: function (level) {
+      console.log('remote: battery ' + level + '%');
+      telemetry.expireStats();
+      // Home Assistant's sensor is withheld until there is a level to show.
+      if (!remoteBatterySeen) { remoteBatterySeen = true; republishDiscovery(); }
+    }
+  });
+  remoteBattery.start(function () {
+    var p = liveState.state.snapshot().power;
+    return !!(p && p.systemOn);
+  });
+  liveState.state.onChange(function (ev) {
+    if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) remoteBattery.poweredOn();
+  });
   // Always, as a server set from the dashboard later starts the client then.
   // sync() does nothing while no server is set.
   liveState.state.onChange(function (ev) {
