@@ -33,8 +33,38 @@ function init(opts) {
     }
   }
 
+  /*
+   * Active App's attributes: the foreground app's id, and the window the
+   * remote's keys reach, from the focused window where the TV reports one and
+   * the windows on screen otherwise. A TV without SurfaceManager's window
+   * reports leaves control_app_id out; an empty one is a screen with nothing
+   * focused, or the TV off, and must not be read as the last app.
+   */
+  function publishRemote() {
+    if (!manager) return;
+    var snap = manager.snapshot();
+    var payload = { app_id: (snap.application && snap.application.app_id) || '' };
+    var windowGroups = [snap.surface, snap.focus];
+    for (var i = 0; i < windowGroups.length; i++) {
+      if (windowGroups[i] && typeof windowGroups[i].control_app_id === 'string') {
+        payload.control_app_id = windowGroups[i].control_app_id;
+      }
+    }
+    if (payload.control_app_id !== undefined && snap.power && snap.power.systemOn === false) {
+      payload.control_app_id = '';
+    }
+    client.publish(topic.state('application/remote'), JSON.stringify(payload), true);
+  }
+
+  function changesRemote(event) {
+    return (event.group === 'application' && event.key === 'app_id') ||
+           event.group === 'surface' || event.group === 'focus' ||
+           (event.group === 'power' && event.key === 'systemOn');
+  }
+
   function onChange(event) {
     publishValue(event.group, event.key, event.value);
+    if (changesRemote(event)) publishRemote();
   }
 
   function attach(stateManager) {
@@ -49,6 +79,7 @@ function init(opts) {
     for (group in values) {
       for (key in values[group]) publishValue(group, key, values[group][key]);
     }
+    publishRemote();
   }
 
   return {

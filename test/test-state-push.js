@@ -49,6 +49,80 @@ assert.strictEqual(parsedWindows.length, 2, 'fragmented multiline and compact re
 assert.strictEqual(parsedWindows[0].foregroundAppInfo[0].displayId, 0);
 console.log('  \u2713 a reply over several lines and chunks is read whole');
 
+// Remote routing follows visible primary-display surfaces without a telemetry read.
+var remoteMessages = [];
+var bridge = mqttState.init({ prefix: 'test/tv', client: { publish: function (topic, body) {
+  if (topic === 'test/tv/state/application/remote') remoteMessages.push(JSON.parse(body));
+} } });
+var routing = stateModule.init({});
+bridge.attach(routing.state);
+routing.groups.application.subscription.handlers.message({ returnValue: true, appId: 'com.webos.app.hdmi3' });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].app_id, 'com.webos.app.hdmi3');
+var surface = routing.groups.surface.subscription.handlers.message;
+surface({ returnValue: true, foregroundAppInfo: [
+  { appId: 'com.webos.app.hdmi3', displayId: 0, windowType: '_WEBOS_WINDOW_TYPE_CARD' },
+  { appId: 'com.palm.app.settings', displayId: 0, windowType: '_WEBOS_WINDOW_TYPE_OVERLAY' }
+] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.palm.app.settings');
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].app_id, 'com.webos.app.hdmi3');
+surface({ returnValue: true, foregroundAppInfo: [
+  { appId: 'com.webos.app.hdmi3', displayId: 0, windowType: '_WEBOS_WINDOW_TYPE_CARD' },
+  { appId: 'com.palm.app.settings', displayId: 1, windowType: '_WEBOS_WINDOW_TYPE_OVERLAY' }
+] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.hdmi3');
+surface({ returnValue: true, foregroundAppInfo: [
+  { appId: 'com.webos.app.hdmi3', displayId: 0, windowType: '_WEBOS_WINDOW_TYPE_CARD' },
+  { appId: 'com.webos.app.tvuserguide', displayId: 0, windowType: '_WEBOS_WINDOW_TYPE_OVERLAY' }
+] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.tvuserguide');
+surface({ returnValue: true, foregroundAppInfo: [
+  { appId: 'com.webos.app.hdmi3', displayId: 0, windowType: '_WEBOS_WINDOW_TYPE_CARD' },
+  { appId: 'com.webos.app.home', displayId: 0, windowType: '_WEBOS_WINDOW_TYPE_HOME' }
+] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.home');
+surface({ returnValue: true, foregroundAppInfo: [
+  { appId: 'com.webos.app.hdmi3', displayId: 0, windowType: '_WEBOS_WINDOW_TYPE_CARD' }
+] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.hdmi3');
+surface({ returnValue: true, foregroundAppInfo: [] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, '');
+surface({ returnValue: true, foregroundAppInfo: [{ appId: 'netflix', windowType: '_WEBOS_WINDOW_TYPE_CARD' }] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'netflix');
+var focus = routing.groups.focus.subscription.handlers.message;
+focus({ returnValue: true, focusedWindowInfo: [{ appId: 'com.webos.app.quicksettings' }] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.quicksettings');
+surface({ returnValue: true, foregroundAppInfo: [{ appId: 'com.webos.app.hdmi3', windowType: '_WEBOS_WINDOW_TYPE_CARD' }] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.quicksettings', 'background surface cannot steal focus');
+focus({ returnValue: true, focusedWindowInfo: [{ appId: 'com.webos.app.home' }] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.home');
+focus({ returnValue: true, focusedWindowInfo: [] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, '', 'no focus releases remote');
+focus({ returnValue: true, focusedWindowInfo: [{ appId: 'com.webos.app.hdmi3' }] });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.hdmi3');
+routing.groups.power.subscription.handlers.message({ returnValue: true, state: 'Suspend' });
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, '');
+console.log('  ✓ immediate app routing, Settings overlay, dismissal, secondary display and standby');
+
+// A TV without SurfaceManager's window reports: no control_app_id, on or off,
+// and the refused subscriptions stop rather than retrying for good.
+var olderMessages = [];
+var olderBridge = mqttState.init({ prefix: 'test/tv', client: { publish: function (topic, body) {
+  if (topic === 'test/tv/state/application/remote') olderMessages.push(JSON.parse(body));
+} } });
+var older = stateModule.init({});
+olderBridge.attach(older.state);
+older.groups.application.subscription.handlers.message({ returnValue: true, appId: 'netflix' });
+assert.deepEqual(olderMessages[olderMessages.length - 1], { app_id: 'netflix' });
+older.groups.power.subscription.handlers.message({ returnValue: true, state: 'Suspend' });
+assert.deepEqual(olderMessages[olderMessages.length - 1], { app_id: 'netflix' }, 'off, still no window to report');
+var stops = [];
+older.groups.focus.subscription.stop = function () { stops.push('focus'); };
+older.groups.surface.subscription.stop = function () { stops.push('surface'); };
+older.groups.surface.subscription.handlers.message({ returnValue: false, errorText: 'Service is busy' });
+older.groups.focus.subscription.handlers.message({ returnValue: false, errorText: 'Unknown method "getFocusedWindowInfo" for category "/"' });
+assert.deepEqual(stops, ['focus'], 'only a method the TV does not have stops its subscription');
+console.log('  \u2713 a TV without window reports leaves control_app_id out and stops asking');
+
 // 2. The timing, with short intervals
 var publishes = [];
 var p = mqttState.changePublisher({ settleMs: 30, gapMs: 200, publish: function () { publishes.push(Date.now()); } });

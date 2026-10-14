@@ -56,7 +56,7 @@ Measured with `scripts/footprint.sh` on 2026-10-03, over a minute each, with MQT
 | OLED65B8SLC (webOS 4) | 1.4–1.7% | 29–42 MB | 5, 6 MB | 432–445 of 1976 MB |
 | OLED42C24LA (webOS 9.2) | 1.2–1.3% | 35–38 MB | 5, 10 MB | 525–535 of 1996 MB |
 
-The children are the five subscriptions held open for live state. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
+The children are the five subscriptions held open for live state, to which a TV whose SurfaceManager reports its windows now adds two. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
 
 ---
 
