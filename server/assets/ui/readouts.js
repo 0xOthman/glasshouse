@@ -539,7 +539,7 @@ async function tick() {
     if (d.inputs && !q('inputs').dataset.built) {
       const inKeys = Object.keys(d.inputs);
       const totalInputs = inKeys.length + 1;
-      const liveTvClass = (totalInputs % 2 !== 0) ? ' class="span-full"' : '';
+      const liveTvClass = (totalInputs % 2 !== 0) ? ' class="span-center"' : '';
       q('inputs').innerHTML = inKeys.map(k =>
         `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')"><span class="lbl" title="${esc(d.inputs[k])}">${esc(d.inputs[k])}</span></button>`).join('') +
         `<button id="in_livetv"${liveTvClass} onclick="sendCommand('input','livetv')"><span class="lbl" title="${esc(t('ctl.liveTv', 'Live TV'))}">${esc(t('ctl.liveTv', 'Live TV'))}</span></button>`;

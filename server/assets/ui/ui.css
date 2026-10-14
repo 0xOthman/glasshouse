@@ -506,6 +506,7 @@ html.nav-hidden body.nav-open{overflow:hidden}
   box-shadow:0 0 4px rgba(21,127,55,.4);
 }
 #inputs .span-full{grid-column:1 / -1}
+#inputs .span-center{grid-column:1 / -1;justify-self:center;width:calc(50% - 4px)}
 /* Collapsed groups. Picture mode, sound output and the app list are
    set-and-forget: they were taking the majority of the column's height for
    the things you would least often reach for from a phone. */
