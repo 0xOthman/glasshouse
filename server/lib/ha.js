@@ -234,12 +234,13 @@ function entityCategory(e) {
   return ENTITY_CATEGORIES[e.type + '.' + e.id] || ENTITY_CATEGORIES[e.id] || 'diagnostics';
 }
 
+var SETTINGS_APP_ID = 'com.palm.app.settings';
+
 /*
  * Launch App options by name. Before the app list has loaded, the common apps
  * stand in so the select is not empty. A name two apps share gets the id of
  * the second, since the select needs every option to be distinct.
  */
-var SETTINGS_APP_ID = 'com.palm.app.settings';
 var DEFAULT_APPS = {
   'com.webos.app.livetv': 'Live TV',
   'youtube.leanback.v4': 'YouTube',
