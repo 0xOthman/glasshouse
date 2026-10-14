@@ -1035,6 +1035,10 @@ function buildEntities(opts) {
             command_template: '{{ ' + JSON.stringify(toId) + '.get(value, value) }}',
             state_topic: topic.telemetry,
             value_template: '{{ ' + JSON.stringify(byId) + '.get(value_json.app_id, "None") }}',
+            // Each option's app id, for a client that keeps a chosen app by id:
+            // a title can change while the id stays.
+            json_attributes_topic: topic.telemetry,
+            json_attributes_template: '{{ ' + JSON.stringify({ app_ids: toId }) + ' | tojson }}',
             options: Object.keys(toId),
             icon: 'mdi:apps'
           };

@@ -352,6 +352,11 @@ console.log('Running test-ha.js ...');
   var activeApp = ha.buildEntities({ pfx: 'test/tv' }).filter(function (e) { return e.id === 'active_app'; })[0];
   assert.strictEqual(activeApp.payload.json_attributes_topic, activeApp.payload.state_topic, 'the app id comes with the title');
   assert.ok(/"app_id": value_json\.app_id/.test(activeApp.payload.json_attributes_template), 'the active app carries its app id');
+  var launch = ha.buildEntities({ pfx: 'test/tv', installedApps: [{ id: 'com.house.homeassistant.c1', title: 'House' }, { id: 'net.botworth.vizman', title: 'Afterglow' }] })
+    .filter(function (e) { return e.id === 'app'; })[0];
+  var ids = JSON.parse(launch.payload.json_attributes_template.replace(/^\{\{ | \| tojson \}\}$/g, '')).app_ids;
+  assert.strictEqual(ids.Afterglow, 'net.botworth.vizman', 'each launchable title carries its app id');
+  assert.strictEqual(ids.House, 'com.house.homeassistant.c1');
   assert.strictEqual(ha.defaultEntityId('button', '__LG_TV__', 'restart'), 'button.lg_tv_restart');
   // Empty or missing device id produces domain.item_id
   assert.strictEqual(ha.defaultEntityId('number', '', 'volume'), 'number.volume');
