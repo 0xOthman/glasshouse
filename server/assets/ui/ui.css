@@ -557,7 +557,7 @@ button.pill.busy:not([style*="--p"]){
           padding:18px 0;border-bottom:1px solid var(--w12)}
 .oled-row:last-child{border-bottom:0}
 .oled-main{max-width:56ch}
-.oled-name{font-size:15px}
+.oled-name{font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;letter-spacing:.02em;color:var(--w90)}
 .oled-sub{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--w60);
           margin-left:8px}
 .oled-desc{font-size:14px;color:var(--w60);margin-top:7px;line-height:1.5}
@@ -644,9 +644,9 @@ button.pill.busy:not([style*="--p"]){
    so it should read as the strongest thing on the panel. */
 .ss-card.on,.ss-card.on:hover{background:transparent;color:inherit;font-weight:400;
          border-color:var(--green);cursor:default;opacity:1}
-.ss-name{font-size:15px;letter-spacing:.02em;display:flex;align-items:center;
-         justify-content:space-between;gap:12px}
-.ss-desc{font-size:13px;color:var(--w60);margin-top:7px;max-width:46ch}
+.ss-name{font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;letter-spacing:.02em;
+         display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ss-desc{font-size:14px;color:var(--w60);margin-top:7px;line-height:1.45;max-width:46ch}
 .ss-card.on .ss-name{color:var(--green)}
 .ss-tag{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--green)}
 .ss-level-row{margin-top:22px;max-width:760px}
@@ -831,7 +831,7 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 /* The Server tab keeps one column, so every control lines up down the right. */
 #serverpane .prot-table{display:grid;grid-template-columns:1fr}
 #advpane .prot-row,#serverpane .prot-row{align-items:flex-start;padding:16px 0}
-#advpane .prot-title,#serverpane .prot-title{font-size:15px;font-weight:500;letter-spacing:0;color:var(--w100)}
+#advpane .prot-title,#serverpane .prot-title{font-size:14px;font-weight:600;letter-spacing:.02em;color:var(--w90)}
 #advpane .prot-desc,#serverpane .prot-desc{font-size:14px;line-height:1.5;margin-top:4px;max-width:none}
 #advpane .prot-status,#serverpane .prot-status{padding-top:2px}
 #pv-adv{margin-top:clamp(36px,5vw,56px)}
