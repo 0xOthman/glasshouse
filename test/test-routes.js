@@ -1159,6 +1159,36 @@ function createMockRes(cb) {
   }
 })();
 
+// /api/adblock/custom takes a body larger than /api/control's, under the
+// same rules: controls on, JSON, same origin
+(function testAdblockCustomRoute() {
+  var seen = [];
+  function post(conf, body, headers) {
+    var out = null;
+    routes.init({
+      config: conf,
+      privacy: { setCustomHosts: function (o, cb) { seen.push(o); cb({ ok: true }); } }
+    });
+    var h = { 'content-type': 'application/json', host: '127.0.0.1:8080' };
+    for (var k in headers || {}) h[k] = headers[k];
+    var req = createMockReq({ url: '/api/adblock/custom', method: 'POST', remoteAddress: '127.0.0.1', headers: h });
+    routes.handleRequest(req, createMockRes(function (r) { out = r; }));
+    req.emit('data', typeof body === 'string' ? body : JSON.stringify(body));
+    req.emit('end');
+    return out;
+  }
+  var on = { web: { enabled: false }, allowControl: true, token: '' };
+  var big = new Array(20001).join('0.0.0.0 h.example.com\n');
+  assert.ok(big.length > 4096 * 50, 'well past /api/control\'s limit');
+  assert.strictEqual(post(on, { mode: 'add', text: big }).statusCode, 200);
+  assert.strictEqual(seen[0].text.length, big.length, 'the whole file reaches privacy.js');
+  assert.strictEqual(post({ web: { enabled: false }, allowControl: false, token: '' }, { clear: true }).statusCode, 403);
+  assert.strictEqual(post(on, { clear: true }, { 'content-type': 'text/plain' }).statusCode, 415);
+  assert.strictEqual(post(on, { clear: true }, { origin: 'http://evil.example' }).statusCode, 403);
+  assert.strictEqual(post(on, 'not json').statusCode, 400);
+  assert.strictEqual(seen.length, 1, 'refused requests reach nothing');
+})();
+
 // /api/oledcare says whether the TV has an OLED panel, so the TV app drops its
 // OLED Care tab on an LCD TV as the web dashboard does
 (function testOledCareAvailable() {

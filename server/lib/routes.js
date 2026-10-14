@@ -1288,6 +1288,36 @@ function handleRequest(req, res) {
     });
   }
 
+  /*
+   * The owner's own hosts list for the ad blocker: { mode, text } uploads one,
+   * { mode } changes how it is used, { clear: true } removes it. Larger than
+   * /api/control takes, so a route of its own, held to the same rules.
+   */
+  if (pathname === '/api/adblock/custom' && req.method === 'POST') {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (!postGuard(req, res, 'application/json', false)) return;
+    var cbody = '';
+    var ctoo = false;
+    req.on('data', function (d) {
+      cbody += d;
+      if (cbody.length > 1048576) { ctoo = true; req.destroy(); }
+    });
+    req.on('end', function () {
+      if (ctoo) return;
+      var cj = null;
+      try { cj = JSON.parse(cbody); } catch (e) {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      if (!cj || typeof cj !== 'object') {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      privacyModule.setCustomHosts(cj, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
+    });
+    return;
+  }
+
   if (pathname === '/api/privacy') {
     return privacyModule.collectPrivacy(function (pv) { send(res, 200, JSON.stringify(pv)); });
   }

@@ -119,6 +119,22 @@ var sdpCapTimer = null;
 var HBC_BLOCK_UPDATES_FLAG = '/var/luna/preferences/webosbrew_block_updates';
 var HBC_UPDATE_HOSTS = ['snu.lge.com', 'su-dev.lge.com', 'su.lge.com', 'su-ssl.lge.com'];
 
+/*
+ * The owner's own list, uploaded from the dashboard. Only its names are kept,
+ * apart from the lists above, and the table is built from both each time it
+ * is written, so an update that adds or drops names in this version's lists
+ * takes effect at the next start without the list being sent again. "add"
+ * blocks the names with the tier's, "replace" blocks them instead of the
+ * tier's; either way only while the blocker is on.
+ */
+var ADBLOCK_CUSTOM_FILE = '/var/lib/tvweb/adblock_custom.json';
+var CUSTOM_MAX_NAMES = 10000;
+var CUSTOM_SINK_ADDRS = { '0.0.0.0': 1, '127.0.0.1': 1, '::': 1, '::1': 1 };
+var CUSTOM_NOT_NAMES = { 'localhost': 1, 'localhost.localdomain': 1, 'local': 1, 'broadcasthost': 1,
+                         'ip6-localhost': 1, 'ip6-loopback': 1, 'ip6-localnet': 1, 'ip6-mcastprefix': 1,
+                         'ip6-allnodes': 1, 'ip6-allrouters': 1, 'ip6-allhosts': 1, '0.0.0.0': 1 };
+var customCache;   // undefined until read; null when there is no list
+
 var CONSENT_LABELS = {
   acrAllowed:              [msg('srv.consent.acrAllowed', 'Screen content recognition'), msg('srv.consent.acrAllowed.detail', 'Lets LG identify what is on your screen to profile your viewing')],
   acrGdprAllowed:          [msg('srv.consent.acrGdprAllowed', 'Screen recognition (GDPR consent)'), msg('srv.consent.acrGdprAllowed.detail', 'The EU consent record for screen content recognition')],
@@ -275,9 +291,153 @@ function adBlockPlatform() {
   return list;
 }
 
-function adBlockList(mode) {
+// This version's own names for a tier, without the owner's list.
+function ownBlockList(mode) {
   if (mode === 'off') return [];
   return mode === 'full' ? adBlockAds().concat(adBlockPlatform()) : adBlockAds();
+}
+
+function isSdpName(name) {
+  return /(^|\.)nextlgsdp\.com$/.test(name);
+}
+
+// What the table blocks for a tier, the owner's list included.
+function adBlockList(mode) {
+  var own = ownBlockList(mode);
+  var c = customHosts();
+  if (mode === 'off' || !c) return own;
+  // The TV's clock comes from nextlgsdp.com: see scheduleSdpBlock.
+  var names = isSdpGracePeriodActive() ? c.names.filter(function (n) { return !isSdpName(n); }) : c.names;
+  if (c.mode === 'replace') return names.slice();
+  var seen = {};
+  own.forEach(function (n) { seen[n] = 1; });
+  return own.concat(names.filter(function (n) { return !seen[n]; }));
+}
+
+/*
+ * The names in a hosts file or a plain list of names. A line that points a
+ * name at an address other than a blackhole one is a redirect, not a block,
+ * and is counted rather than taken.
+ */
+function parseCustomHosts(text) {
+  var names = [];
+  var seen = {};
+  var skipped = 0;
+  String(text || '').split(/\r?\n/).forEach(function (raw) {
+    var line = raw.replace(/#.*/, '').trim();
+    if (!line) return;
+    var parts = line.split(/\s+/);
+    if (/^[0-9.]+$/.test(parts[0]) || parts[0].indexOf(':') !== -1) {
+      if (!CUSTOM_SINK_ADDRS[parts[0]]) { skipped++; return; }
+      parts = parts.slice(1);
+    }
+    parts.forEach(function (n) {
+      n = n.toLowerCase().replace(/\.$/, '');
+      if (CUSTOM_NOT_NAMES[n] || seen[n]) return;
+      if (!/^[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?(\.[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?)*$/.test(n) || n.length > 253) {
+        skipped++;
+        return;
+      }
+      seen[n] = 1;
+      names.push(n);
+    });
+  });
+  return { names: names, skipped: skipped };
+}
+
+function customHosts() {
+  if (customCache !== undefined) return customCache;
+  customCache = null;
+  try {
+    var j = JSON.parse(fs.readFileSync(ADBLOCK_CUSTOM_FILE, 'utf8'));
+    if (j && Array.isArray(j.names) && j.names.length && (j.mode === 'add' || j.mode === 'replace')) {
+      customCache = { mode: j.mode, names: j.names, updated: j.updated || null };
+    }
+  } catch (e) {}
+  return customCache;
+}
+
+// How the owner's list stands against this version's list for the tier in use.
+function customSummary() {
+  var c = customHosts();
+  if (!c) return null;
+  var mode = flagMode();
+  var own = ownBlockList(mode === 'off' ? 'ads' : mode);
+  var inList = {};
+  c.names.forEach(function (n) { inList[n] = 1; });
+  var shared = own.filter(function (n) { return inList[n]; }).length;
+  return {
+    mode: c.mode,
+    count: c.names.length,
+    updated: c.updated,
+    shared: shared,
+    ownCount: own.length,
+    blocked: mode === 'off' ? 0 : adBlockList(mode).length
+  };
+}
+
+/*
+ * opts: { mode: 'add' | 'replace', text } to upload a list, { mode } alone to
+ * change how the kept one is used, { clear: true } to remove it. The table is
+ * rewritten at once if the blocker is on.
+ */
+function setCustomHosts(opts, cb) {
+  opts = opts || {};
+  var fail = function (error) { cb({ ok: false, error: error }); };
+  if (opts.clear) {
+    try {
+      if (fs.existsSync(ADBLOCK_CUSTOM_FILE)) fs.unlinkSync(ADBLOCK_CUSTOM_FILE);
+    } catch (e) {
+      return fail(msg('srv.adblock.custom.saveFailed', 'could not save your hosts list: {error}', { error: e.message }));
+    }
+    customCache = undefined;
+    return applyCustom(cb, { skipped: 0 });
+  }
+  if (opts.mode !== 'add' && opts.mode !== 'replace') {
+    return fail(msg('srv.adblock.custom.badMode', 'mode must be add or replace'));
+  }
+  var names;
+  var skipped = 0;
+  if (typeof opts.text === 'string') {
+    var parsed = parseCustomHosts(opts.text);
+    names = parsed.names;
+    skipped = parsed.skipped;
+    if (!names.length) return fail(msg('srv.adblock.custom.empty', 'no host names found in the file'));
+    if (names.length > CUSTOM_MAX_NAMES) {
+      return fail(msg('srv.adblock.custom.tooMany', 'the file has {n} names; the most the TV takes is {max}',
+                      { n: names.length, max: CUSTOM_MAX_NAMES }));
+    }
+  } else {
+    var c = customHosts();
+    if (!c) return fail(msg('srv.adblock.custom.none', 'no hosts list has been uploaded'));
+    names = c.names;
+  }
+  try {
+    fs.writeFileSync(ADBLOCK_CUSTOM_FILE, JSON.stringify({
+      mode: opts.mode, names: names,
+      updated: typeof opts.text === 'string' ? new Date().toISOString() : (customHosts() || {}).updated
+    }), 'utf8');
+  } catch (e) {
+    return fail(msg('srv.adblock.custom.saveFailed', 'could not save your hosts list: {error}', { error: e.message }));
+  }
+  customCache = undefined;
+  applyCustom(cb, { skipped: skipped });
+}
+
+function applyCustom(cb, extra) {
+  var reply = function (err) {
+    clearCache();
+    cb({ ok: !err, error: err || undefined, custom: customSummary(), skipped: extra.skipped });
+  };
+  if (flagMode() === 'off' || !isTableMounted()) return reply(null);
+  applyHostsTable(reply);
+}
+
+// Whether the clock wait applies: the Everything tier, or the owner's list naming the time servers.
+function waitsForSdp(mode) {
+  if (mode === 'full') return true;
+  var c = customHosts();
+  return mode !== 'off' && !!c && c.names.some(isSdpName);
 }
 
 // Whether this server's table is over /etc/hosts, for ads, updates or both.
@@ -399,9 +559,9 @@ function finalizeSdpBlock(logMsg) {
   if (!sdpGraceActive) return;
   sdpGraceActive = false;
   if (logMsg) console.log(logMsg);
-  if (flagMode() === 'full' && isTableMounted()) {
+  if (waitsForSdp(flagMode()) && isTableMounted()) {
     try {
-      writeHostsTable('full');
+      writeHostsTable(flagMode());
       clearCache();
     } catch (e) {}
   }
@@ -510,7 +670,7 @@ function applyHostsTable(cb) {
     } catch (e) {
       return cb('could not write the hosts table: ' + e.message);
     }
-    if (mode === 'full') scheduleSdpBlock();
+    if (waitsForSdp(mode)) scheduleSdpBlock();
     else clearSdpTimer();
     if (mounted) return done();
     return execFile('/bin/mount', ['--bind', ADBLOCK_HOSTS_FILE, '/etc/hosts'], { timeout: 3000 },
@@ -552,7 +712,7 @@ function setAdBlock(mode, cb) {
       clearSdpTimer();
     } else {
       fs.writeFileSync(ADBLOCK_FLAG_FILE, mode, 'utf8');
-      if (mode !== 'full') clearSdpTimer();
+      if (!waitsForSdp(mode)) clearSdpTimer();
     }
   } catch (e) {
     if (cb) cb({ ok: false, error: msg('srv.adblock.saveFailed', 'could not save the ad block setting: {error}', { error: e.message }) });
@@ -590,7 +750,7 @@ function checkBootAdBlock(cliMode) {
         if (!err) console.log('adblock: restored /etc/hosts bind-mount from previous boot');
       });
     }
-    if (mode === 'full') scheduleSdpBlock();
+    if (waitsForSdp(mode)) scheduleSdpBlock();
   } catch (e) {}
 }
 
@@ -871,9 +1031,10 @@ function collectPrivacy(cb) {
             out.adblock = {
               enabled: isAdBlockActive(),
               mode: adBlockMode(),
-              count: adBlockList('full').length,
+              count: ownBlockList('full').length,
               adCount: adBlockAds().length,
-              platform: adBlockPlatform()
+              platform: adBlockPlatform(),
+              custom: customSummary()
             };
             lgSettingsModule.collect('promotions', function (ls) {
               out.lgSettings = ls.rows;
@@ -1083,6 +1244,10 @@ module.exports = {
   adBlockMode: adBlockMode,
   adBlockPlatform: adBlockPlatform,
   adBlockList: adBlockList,
+  ownBlockList: ownBlockList,
+  parseCustomHosts: parseCustomHosts,
+  setCustomHosts: setCustomHosts,
+  customSummary: customSummary,
   setAdBlock: setAdBlock,
   tvUpdatesBlocked: tvUpdatesBlocked,
   setTvUpdatesBlocked: setTvUpdatesBlocked,

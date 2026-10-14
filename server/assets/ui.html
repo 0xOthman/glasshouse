@@ -903,6 +903,19 @@
         the LG ThinQ app can no longer control the TV, and the app store, software updates and LG
         Channels may stop working.</b> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
         updates in the Advanced tab.</span></div>
+      <div class="pv-h" style="margin-top:18px" data-t="pv.adblock.custom">Your own hosts list</div>
+      <div class="pv-sub" data-t="pv.adblock.custom.desc">A hosts file or a list of names from this computer, blocked
+        while the blocker is on. The TV keeps it, so it is not sent again after a Glasshouse update.</div>
+      <div class="btns" style="max-width:520px">
+        <button id="abc-add" onclick="setCustomHostsMode('add')" data-t="pv.adblock.custom.add">With Glasshouse's list</button>
+        <button id="abc-replace" onclick="setCustomHostsMode('replace')" data-t="pv.adblock.custom.replace">Instead of Glasshouse's list</button>
+      </div>
+      <input type="file" id="abc-file" accept=".txt,.hosts,text/plain" hidden onchange="uploadCustomHosts(this)">
+      <div class="btns" style="margin-top:8px;max-width:520px">
+        <button id="abc-upload" onclick="q('abc-file').click()" data-t="pv.adblock.custom.upload">Upload a file</button>
+        <button id="abc-clear" onclick="clearCustomHosts()" hidden data-t="pv.adblock.custom.remove">Remove the list</button>
+      </div>
+      <div class="sub" id="abc-detail" style="margin-top:12px"></div>
     </div>
 
     <div>

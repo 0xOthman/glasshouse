@@ -264,6 +264,140 @@ test('SDP grace period correctly handles webOS 4 where timeValid is omitted from
   privacy._clearSdpTimer();
 });
 
+// The owner's hosts list. With the blocker flag off, setCustomHosts saves
+// and answers at once, without touching /etc/hosts.
+var CUSTOM_FILE = '/var/lib/tvweb/adblock_custom.json';
+var FLAG_FILE = '/var/lib/tvweb/adblock_enabled';
+
+function setCustom(opts) {
+  var out = null;
+  privacy.setCustomHosts(opts, function (r) { out = r; });
+  assert.ok(out, 'answered at once');
+  return out;
+}
+
+function withCustom(opts, fn) {
+  mockEnv.files[FLAG_FILE] = null;
+  try {
+    var r = setCustom(opts);
+    assert.ok(r.ok, r.error);
+    fn(r);
+  } finally {
+    setCustom({ clear: true });
+    delete mockEnv.files[CUSTOM_FILE];
+    delete mockEnv.files[FLAG_FILE];
+  }
+}
+
+test('a hosts file gives its blackholed names; redirects and junk are counted, not taken', function () {
+  var p = privacy.parseCustomHosts('# comment\n0.0.0.0 a.example.com b.example.com # trailing\r\n' +
+    '127.0.0.1 localhost\n::1 ip6-localhost\n192.168.1.5 nas.example.com\nPlain.Example.org.\n' +
+    ':: v6.example.com\nbad!name.example.com\na.example.com\n');
+  assert.deepEqual(p.names, ['a.example.com', 'b.example.com', 'plain.example.org', 'v6.example.com']);
+  assert.strictEqual(p.skipped, 2, 'the redirect and the name with a "!"');
+});
+
+test('"add" blocks the owner\'s names with the tier\'s, once each', function () {
+  var own = privacy.ownBlockList('ads');
+  withCustom({ mode: 'add', text: '0.0.0.0 mine.example.com\n0.0.0.0 ' + own[0] + '\n' }, function (r) {
+    var list = privacy.adBlockList('ads');
+    assert.strictEqual(list.length, own.length + 1);
+    assert.ok(list.indexOf('mine.example.com') !== -1);
+    assert.ok(sinkholed(privacy.adBlockHostsTable('ads'), 'mine.example.com'));
+    assert.strictEqual(r.custom.shared, 1);
+    assert.deepEqual(privacy.adBlockList('off'), [], 'nothing while the blocker is off');
+  });
+});
+
+test('"replace" blocks only the owner\'s names, on either tier', function () {
+  withCustom({ mode: 'replace', text: 'mine.example.com\nother.example.com\n' }, function () {
+    ['ads', 'full'].forEach(function (mode) {
+      assert.deepEqual(privacy.adBlockList(mode), ['mine.example.com', 'other.example.com'], mode);
+      assert.ok(!sinkholed(privacy.adBlockHostsTable(mode), 'ad.lgsmartad.com'), mode);
+    });
+  });
+});
+
+test('only the owner\'s names are stored, so an update\'s own list changes take effect', function () {
+  withCustom({ mode: 'add', text: 'mine.example.com\n' }, function () {
+    assert.deepEqual(JSON.parse(mockEnv.files[CUSTOM_FILE]).names, ['mine.example.com']);
+    // An update that adds a name to the built-in list and drops another.
+    var dropped = privacy.ADBLOCK_ADS[0];
+    privacy.ADBLOCK_ADS.push('new-in-update.example.com');
+    privacy.ADBLOCK_ADS.splice(0, 1);
+    try {
+      var list = privacy.adBlockList('ads');
+      assert.ok(list.indexOf('new-in-update.example.com') !== -1, 'a name the update added');
+      assert.strictEqual(list.indexOf(dropped), -1, 'a name the update dropped');
+      assert.ok(list.indexOf('mine.example.com') !== -1, 'the owner\'s, not sent again');
+    } finally {
+      privacy.ADBLOCK_ADS.splice(0, 0, dropped);
+      privacy.ADBLOCK_ADS.pop();
+    }
+  });
+});
+
+test('a name the owner lists stays blocked when an update drops it from the built-in list', function () {
+  var name = privacy.ADBLOCK_ADS[0];
+  withCustom({ mode: 'add', text: name + '\n' }, function () {
+    privacy.ADBLOCK_ADS.splice(0, 1);
+    try {
+      assert.ok(privacy.adBlockList('ads').indexOf(name) !== -1);
+    } finally {
+      privacy.ADBLOCK_ADS.splice(0, 0, name);
+    }
+  });
+});
+
+test('the mode changes without the list being sent again', function () {
+  withCustom({ mode: 'add', text: 'mine.example.com\n' }, function () {
+    var r = setCustom({ mode: 'replace' });
+    assert.ok(r.ok, r.error);
+    assert.strictEqual(r.custom.mode, 'replace');
+    assert.deepEqual(privacy.adBlockList('full'), ['mine.example.com']);
+  });
+});
+
+test('the owner\'s time-server names wait for the clock like the Everything tier\'s', function () {
+  withCustom({ mode: 'replace', text: 'nextlgsdp.com\nus.nextlgsdp.com\nmine.example.com\n' }, function () {
+    privacy._setSdpGraceActive(true);
+    try {
+      assert.deepEqual(privacy.adBlockList('ads'), ['mine.example.com']);
+    } finally {
+      privacy._setSdpGraceActive(false);
+    }
+    assert.strictEqual(privacy.adBlockList('ads').length, 3);
+  });
+});
+
+test('an upload with no names, too many names or no mode is refused and nothing is kept', function () {
+  mockEnv.files[FLAG_FILE] = null;
+  try {
+    assert.strictEqual(setCustom({ mode: 'add', text: '# only a comment\n' }).ok, false);
+    var many = [];
+    for (var i = 0; i < 10001; i++) many.push('h' + i + '.example.com');
+    assert.strictEqual(setCustom({ mode: 'add', text: many.join('\n') }).ok, false);
+    assert.strictEqual(setCustom({ mode: 'both', text: 'mine.example.com' }).ok, false);
+    assert.strictEqual(setCustom({ mode: 'add' }).ok, false, 'a mode change with no list kept');
+    assert.strictEqual(privacy.customSummary(), null);
+  } finally {
+    delete mockEnv.files[FLAG_FILE];
+  }
+});
+
+test('removing the list puts the tier\'s own back', function () {
+  mockEnv.files[FLAG_FILE] = null;
+  try {
+    setCustom({ mode: 'replace', text: 'mine.example.com\n' });
+    assert.strictEqual(setCustom({ clear: true }).ok, true);
+    assert.deepEqual(privacy.adBlockList('ads'), privacy.ownBlockList('ads'));
+    assert.strictEqual(privacy.customSummary(), null);
+  } finally {
+    delete mockEnv.files[CUSTOM_FILE];
+    delete mockEnv.files[FLAG_FILE];
+  }
+});
+
 var failures = 0;
 tests.forEach(function (t) {
   try {
