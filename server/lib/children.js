@@ -29,6 +29,8 @@ var STARTUP_MS = 30000;
 var monotonicMs = require('./util').monotonicMs;
 var bornAt = monotonicMs();
 var launches = [];
+// Urgent starts, a remote key press, wait at the front of launches, in turn.
+var urgentCount = 0;
 var launchTimer = null;
 var nextLaunchAt = 0;
 
@@ -42,16 +44,20 @@ function drainLaunches() {
     return;
   }
   nextLaunchAt = now + gap;
+  if (urgentCount) urgentCount--;
   launches.shift()();
   drainLaunches();
 }
 
 /**
- * Calls fn once it is this start's turn.
+ * Calls fn once it is this start's turn. An urgent start goes ahead of the
+ * others waiting, behind earlier urgent ones; the gap still applies.
  * @param {function(): void} fn starts the child
+ * @param {boolean} [urgent]
  */
-function launch(fn) {
-  launches.push(fn);
+function launch(fn, urgent) {
+  if (urgent) launches.splice(urgentCount++, 0, fn);
+  else launches.push(fn);
   drainLaunches();
 }
 

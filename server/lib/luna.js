@@ -7,6 +7,7 @@ var childProcess = require('child_process');
 var execFile = childProcess.execFile;
 var spawn = childProcess.spawn;
 var children = require('./children');
+var monotonicMs = require('./util').monotonicMs;
 
 // Overridable so the start-up test can run the whole server against a stand-in.
 var LUNA_SEND = process.env.TVWEB_LUNA_SEND || '/usr/bin/luna-send';
@@ -66,8 +67,29 @@ var PARALLEL = 2;
 var running = 0;
 var waiting = [];
 
+/*
+ * An urgent call, a remote key press, goes ahead of every normal call waiting
+ * and behind urgent ones already there, and may take one slot beyond PARALLEL
+ * so two slow reads cannot hold it up. Urgent calls sit at the front of
+ * waiting, so a normal call at the front means none is queued.
+ */
+function firstNormal() {
+  var i = 0;
+  while (i < waiting.length && waiting[i].urgent) i++;
+  return i;
+}
+
+function enqueue(job) {
+  waiting.splice(job.urgent ? firstNormal() : waiting.length, 0, job);
+}
+
+// A call run again goes first among its kind: it was started before the rest.
+function requeue(job) {
+  waiting.splice(job.urgent ? 0 : firstNormal(), 0, job);
+}
+
 function startWaiting() {
-  while (running < PARALLEL && waiting.length) {
+  while (waiting.length && running < (waiting[0].urgent ? PARALLEL + 1 : PARALLEL)) {
     var job = waiting.shift();
     running++;
     run(job);
@@ -93,11 +115,13 @@ function diedEarly(err) {
 var MAX_REPLY = 4 * 1024 * 1024;
 
 function run(job) {
-  children.launch(function () { runNow(job); });
+  children.launch(function () { runNow(job); }, job.urgent);
 }
 
 function runNow(job) {
+  var startedAt = monotonicMs();
   execFile(LUNA_SEND, job.args, { timeout: 3500, maxBuffer: MAX_REPLY }, function (err, stdout) {
+    var endedAt = monotonicMs();
     running--;
     if (diedEarly(err)) {
       var uri = job.args[job.args.length - 2];
@@ -105,7 +129,7 @@ function runNow(job) {
                     (job.retried ? ', giving up' : ', trying once more'));
       if (!job.retried) {
         job.retried = true;
-        waiting.unshift(job);
+        requeue(job);
         return startWaiting();
       }
     }
@@ -129,16 +153,26 @@ function runNow(job) {
     }
     handleServiceResult(rawUri, parsed);
 
-    if (job.cb) job.cb(parsed, String(stdout || ''));
+    // When the child that answered started and ended, on the monotonic clock.
+    if (job.cb) job.cb(parsed, String(stdout || ''), { startedAt: startedAt, endedAt: endedAt });
   });
 }
 
-function call(uri, payload, cb, appId) {
+function queueCall(uri, payload, cb, appId, urgent) {
   uri = resolveUri(uri);
   var args = appId ? ['-a', appId] : [];
   args = args.concat(['-n', '1', '-w', '2000', '-f', 'luna://' + uri, JSON.stringify(payload || {})]);
-  waiting.push({ args: args, cb: cb });
+  enqueue({ args: args, cb: cb, urgent: urgent });
   startWaiting();
+}
+
+function call(uri, payload, cb, appId) {
+  queueCall(uri, payload, cb, appId, false);
+}
+
+// The same, ahead of the queue: for a remote key press, which someone is waiting on.
+function callUrgent(uri, payload, cb, appId) {
+  queueCall(uri, payload, cb, appId, true);
 }
 
 function Subscription(uri, payload, appId, handlers) {
@@ -276,6 +310,7 @@ function createCache(callFn) {
 
 module.exports = {
   call: call,
+  callUrgent: callUrgent,
   Subscription: Subscription,
   createCache: createCache
 };

@@ -24,6 +24,13 @@ rest, including its Home Assistant entities. Installed with `deploy.sh`, see
 
 ## Features that change how the TV runs
 
+Remote key presses forwarded over MQTT, the arrows, OK, Back and Home, jump
+the queue of luna-send calls. Telemetry makes about a dozen calls per
+collection, and a key press arriving during one used to wait behind them; now
+it goes ahead of every call waiting, may run beside the usual two, and keeps
+the gap between child starts. Each key's wait and run time is logged at debug
+level.
+
 These last until a reboot and are put back by the boot hook, so they end with
 the first reboot after uninstalling.
 

@@ -545,6 +545,7 @@ remotebuttons.init({
 
 controls.init({
   luna: luna,
+  lunaUrgent: lunaTransport.callUrgent,
   piccap: piccap,
   clearLunaCache: clearLunaCache,
   config: CONFIG,
