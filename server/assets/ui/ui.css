@@ -487,17 +487,18 @@ html.nav-hidden body.nav-open{overflow:hidden}
   text-align:center;padding:12px 10px;min-height:48px;line-height:1.25;box-sizing:border-box;
   transition:border-color .16s ease,color .16s ease,background-color .16s ease;
 }
+#inputs button span{position:relative;display:inline-block}
 #inputs button.on{
   color:var(--w100);background:var(--w06);border-color:var(--w80);font-weight:600;
 }
 #inputs button.on:hover{color:var(--w100);border-color:var(--w100)}
-#inputs button.on::before{
-  content:'';position:absolute;left:14px;top:50%;transform:translateY(-50%);
+#inputs button.on span::before{
+  content:'';position:absolute;right:calc(100% + 8px);top:50%;transform:translateY(-50%);
   width:6px;height:6px;border-radius:50%;
   background:var(--green);
   box-shadow:0 0 6px rgba(48,222,97,.7);
 }
-[data-theme="light"] #inputs button.on::before{
+[data-theme="light"] #inputs button.on span::before{
   box-shadow:0 0 4px rgba(21,127,55,.4);
 }
 /* Collapsed groups. Picture mode, sound output and the app list are

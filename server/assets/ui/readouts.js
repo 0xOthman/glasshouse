@@ -538,8 +538,8 @@ async function tick() {
 
     if (d.inputs && !q('inputs').dataset.built) {
       q('inputs').innerHTML = Object.keys(d.inputs).map(k =>
-        `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')">${esc(d.inputs[k])}</button>`).join('') +
-        `<button id="in_livetv" onclick="sendCommand('input','livetv')">${esc(t('ctl.liveTv', 'Live TV'))}</button>`;
+        `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')"><span>${esc(d.inputs[k])}</span></button>`).join('') +
+        `<button id="in_livetv" onclick="sendCommand('input','livetv')"><span>${esc(t('ctl.liveTv', 'Live TV'))}</span></button>`;
       q('inputs').dataset.built = '1';
     }
 
