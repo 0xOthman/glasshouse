@@ -698,6 +698,13 @@
       </div>
     </details>
 
+    <div class="pv-note restore-apps" id="restore-apps" hidden>
+      <div class="pv-sub" id="restore-apps-text"></div>
+      <div class="btns backup-btns">
+        <button type="button" id="restore-apps-install" onclick="installRestoredApps()" data-t="apps.restore.installAll">Install all</button>
+        <button type="button" id="restore-apps-dismiss" onclick="dismissRestoredApps()" data-t="apps.restore.dismiss">Dismiss</button>
+      </div>
+    </div>
     <details class="pv-d" id="disc-install-apps">
       <summary><span data-t="apps.install">Install homebrew apps</span> <span class="cur" id="apps-catalog-summary"></span></summary>
       <div class="pv-sub" data-t="apps.install.desc">Apps from the Homebrew Channel catalog.</div>
@@ -1127,6 +1134,18 @@
           <button type="button" class="link-btn" id="srv-watch-clear" hidden onclick="clearWatchTime()" data-t="server.watch.clear">Clear history</button>
         </div>
         <div class="prot-status"><button type="button" class="pill idle" id="srv-watch" onclick="toggleWatchTime()">&mdash;</button></div>
+      </div>
+      <div class="prot-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.backup.title">Settings backup</div>
+          <div class="prot-desc" data-t="server.backup.desc">Saves LG's sound, device, HDMI and ad settings, and Glasshouse's own, to a file. Restoring it, on this TV or another, sets those the TV has. Network access, MQTT and game settings are not included.</div>
+          <div class="btns backup-btns">
+            <button type="button" id="backup-save" onclick="saveBackup()" data-t="server.backup.save">Download backup</button>
+            <button type="button" id="backup-restore" onclick="q('backup-file').click()" data-t="server.backup.restore">Restore from file</button>
+          </div>
+          <input type="file" id="backup-file" accept=".json,application/json" hidden onchange="restoreBackup(this)">
+          <div class="sub" id="backup-msg" hidden></div>
+        </div>
       </div>
       <!-- Hidden where the TV will not take the app; renderTvApp shows it. -->
       <div class="prot-row" id="tvapp-row" hidden>

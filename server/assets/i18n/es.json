@@ -691,6 +691,18 @@
   "text": "Ninguna",
   "from": "None"
  },
+ "apps.restore.dismiss": {
+  "text": "Descartar",
+  "from": "Dismiss"
+ },
+ "apps.restore.installAll": {
+  "text": "Instalar todas",
+  "from": "Install all"
+ },
+ "apps.restore.text": {
+  "text": "De una copia de seguridad restaurada, sin instalar aquí: {names}.",
+  "from": "From a restored backup, not installed here: {names}."
+ },
  "apps.service.active": {
   "text": "Activo",
   "from": "Active"
@@ -2363,6 +2375,70 @@
   "text": "Ya está disponible v{version}. Actualiza Glasshouse en el Homebrew Channel o instala el último .ipk desde GitHub releases.",
   "from": "v{version} is out. Update Glasshouse in the Homebrew Channel, or sideload the latest .ipk from GitHub releases."
  },
+ "server.backup.appsManual": {
+  "text": "No están en el catálogo de Homebrew Channel, hay que instalarlas a mano: {names}.",
+  "from": "Not in the Homebrew Channel catalog, to install by hand: {names}."
+ },
+ "server.backup.appsToInstall": {
+  "text": "{count} apps de la copia se pueden instalar desde la pestaña Apps.",
+  "from": "{count} apps from the backup can be installed from the Apps tab."
+ },
+ "server.backup.confirm": {
+  "text": "¿Restaurar los ajustes guardados de {tv} el {date}? Esto cambia los ajustes de LG en esta TV.",
+  "from": "Restore the settings saved from {tv} on {date}? This changes LG’s settings on this TV."
+ },
+ "server.backup.desc": {
+  "text": "Guarda en un archivo los ajustes de sonido, dispositivos, HDMI y anuncios de LG, y los de Glasshouse. Al restaurarlo, en esta TV u otra, se aplican los que la TV tenga. No incluye el acceso por red, MQTT ni los ajustes de juego.",
+  "from": "Saves LG's sound, device, HDMI and ad settings, and Glasshouse's own, to a file. Restoring it, on this TV or another, sets those the TV has. Network access, MQTT and game settings are not included."
+ },
+ "server.backup.failedSome": {
+  "text": "{count} no se pudieron aplicar.",
+  "from": "{count} could not be set."
+ },
+ "server.backup.notBackup": {
+  "text": "Ese archivo no es una copia de seguridad de Glasshouse",
+  "from": "That file is not a Glasshouse backup"
+ },
+ "server.backup.restarting": {
+  "text": "Glasshouse se reinicia para aplicar sus propios ajustes.",
+  "from": "Glasshouse restarts to apply its own settings."
+ },
+ "server.backup.restore": {
+  "text": "Restaurar desde archivo",
+  "from": "Restore from file"
+ },
+ "server.backup.restoreFailed": {
+  "text": "No se pudo restaurar — {error}",
+  "from": "Could not restore — {error}"
+ },
+ "server.backup.restored": {
+  "text": "Se cambiaron {changed} ajustes de LG, {same} ya estaban así y {skipped} se omitieron porque esta TV no los tiene o no están disponibles ahora.",
+  "from": "Changed {changed} LG settings, {same} were already so, {skipped} skipped as this TV does not have them or they are not available now."
+ },
+ "server.backup.restoring": {
+  "text": "Restaurando…",
+  "from": "Restoring…"
+ },
+ "server.backup.save": {
+  "text": "Descargar copia",
+  "from": "Download backup"
+ },
+ "server.backup.saveFailed": {
+  "text": "No se pudo hacer la copia — {error}",
+  "from": "Could not make a backup — {error}"
+ },
+ "server.backup.saved": {
+  "text": "Se guardaron {count} ajustes de LG y los de Glasshouse.",
+  "from": "Saved {count} LG settings and Glasshouse’s own."
+ },
+ "server.backup.title": {
+  "text": "Copia de seguridad de ajustes",
+  "from": "Settings backup"
+ },
+ "server.backup.unknownTv": {
+  "text": "una TV desconocida",
+  "from": "an unknown TV"
+ },
  "server.checkDaily": {
   "text": "Buscar actualizaciones a diario",
   "from": "Check for updates daily"
@@ -2938,6 +3014,18 @@
  "srv.arOff.badHour": {
   "text": "el inicio debe ser una hora de 0 a 23",
   "from": "the start must be an hour from 0 to 23"
+ },
+ "srv.backup.newer": {
+  "text": "Esa copia es de un Glasshouse más reciente: actualiza primero esta TV",
+  "from": "That backup is from a newer Glasshouse: update this TV first"
+ },
+ "srv.backup.notBackup": {
+  "text": "Ese archivo no es una copia de seguridad de Glasshouse",
+  "from": "That file is not a Glasshouse backup"
+ },
+ "srv.backup.saveFailed": {
+  "text": "No se pudieron guardar los ajustes de Glasshouse: {error}",
+  "from": "Could not save Glasshouse’s own settings: {error}"
  },
  "srv.consent.acceptedUnder": {
   "text": "Aceptado con {agreements}.",

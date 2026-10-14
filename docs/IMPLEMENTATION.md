@@ -836,6 +836,26 @@ whatever failed after connecting. A plain level in the pairing file, should
 an older TV write one, is used until the remote has given one.
 TV-RESEARCH.md has how this was found.
 
+## Settings backups
+
+`server/lib/backup.js` makes a JSON file of the LG settings `lgsettings.js`
+has rows for, in its promotions, sound, devices and hdmi sections, and of an
+allowlist of Glasshouse's own settings. A restore reads the TV's rows first and
+sets, through `lgsettings.set`, only those this TV has, that differ, whose
+value it offers (its choices and ranges are narrowed per TV) and that LG does
+not grey out now. The Glasshouse part goes through the same allowlist and
+`writeSettings`, and a change restarts the server, as saving settings from the
+dashboard does. `POST /api/backup` is held to the same checks as
+`POST /api/settings`: controls allowed, JSON, and from the dashboard's own origin.
+
+A backup lists the developer apps, those whose `folderPath` in `listApps` is
+under `/media/developer/apps/`, less the Homebrew Channel and Glasshouse's own.
+A restore installs none: those the TV lacks and the catalog has go to
+`/var/lib/tvweb/restore-apps.json`, which survives the restart a restore may
+make, and the Apps tab installs them one at a time as catalog installs with
+`auto`, so a preview with a choice in it waits for the person. A file anyone
+could edit decides nothing installed or given root on its own.
+
 ## The checks
 
 `scripts/` holds five static checks. Four need nothing but the repository and
