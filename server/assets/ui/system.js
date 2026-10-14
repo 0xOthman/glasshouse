@@ -11,6 +11,12 @@ function renderHdmiJackSvg() {
   `</svg>`;
 }
 
+function formatColorDepth(cd) {
+  if (!cd) return '';
+  const m = String(cd).match(/^(\d+)\s*-?\s*(?:bit)?$/i);
+  return m ? m[1] + '-bit' : String(cd);
+}
+
 function renderHdmiPort(i, diag, colSpace) {
   const s = i.signal;
   const isPort2 = i.port === 2;
@@ -41,19 +47,20 @@ function renderHdmiPort(i, diag, colSpace) {
                     s.interlaced ? t('metrics.hdmi.interlaced', 'interlaced') : null].filter(Boolean).join(' · ');
       badges.push(`<span class="hdmi-badge res num">${esc(mode)}</span>`);
     }
+    const colorDepth = formatColorDepth(s.colorDepth);
     if (isMatchDiag && diag) {
       if (diag.phy_mode) badges.push(`<span class="hdmi-badge">${esc(diag.phy_mode)}</span>`);
       if (diag.chroma) badges.push(`<span class="hdmi-badge">${esc(diag.chroma)}</span>`);
+      if (colorDepth) badges.push(`<span class="hdmi-badge">${esc(colorDepth)}</span>`);
       if (diag.hdcp && diag.hdcp !== 'None') badges.push(`<span class="hdmi-badge">HDCP ${esc(diag.hdcp.replace(/^HDCP\s*/i, ''))}</span>`);
       if (colSpace) badges.push(`<span class="hdmi-badge">${esc(colSpace)}</span>`);
+      if (s.pixelClockMhz) badges.push(`<span class="hdmi-badge num">${s.pixelClockMhz} MHz</span>`);
       if (diag.allm) badges.push(`<span class="hdmi-badge feat" translate="no">ALLM</span>`);
       if (diag.vrr) badges.push(`<span class="hdmi-badge feat green" translate="no">VRR</span>`);
       if (diag.qms) badges.push(`<span class="hdmi-badge feat" translate="no">QMS</span>`);
-    } else if (s.colorDepth) {
-      badges.push(`<span class="hdmi-badge">${esc(s.colorDepth)}</span>`);
-    }
-    if (s.pixelClockMhz) {
-      badges.push(`<span class="hdmi-badge num">${s.pixelClockMhz} MHz</span>`);
+    } else {
+      if (colorDepth) badges.push(`<span class="hdmi-badge">${esc(colorDepth)}</span>`);
+      if (s.pixelClockMhz) badges.push(`<span class="hdmi-badge num">${s.pixelClockMhz} MHz</span>`);
     }
   }
 
