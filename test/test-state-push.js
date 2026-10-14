@@ -37,6 +37,18 @@ live.reconcile({ app_id: 'netflix', time: Date.now() + 1000 });
 assert.deepEqual(seen, [], 'nor a value telemetry filled in');
 console.log('  ✓ only a change the TV reports itself counts');
 
+// SurfaceManager emits formatted JSON even when luna-send was not given -f.
+var parsedWindows = [];
+var reader = new (require('../server/lib/luna').Subscription)('test', {}, null, {
+  message: function (message) { parsedWindows.push(message); }
+});
+var formatted = JSON.stringify({ foregroundAppInfo: [{ appId: 'test}\\"app', displayId: 0 }], returnValue: true }, null, 4);
+reader._consume(formatted.slice(0, 31));
+reader._consume(formatted.slice(31) + '\n{"returnValue":true}\n');
+assert.strictEqual(parsedWindows.length, 2, 'fragmented multiline and compact replies both delivered');
+assert.strictEqual(parsedWindows[0].foregroundAppInfo[0].displayId, 0);
+console.log('  \u2713 a reply over several lines and chunks is read whole');
+
 // 2. The timing, with short intervals
 var publishes = [];
 var p = mqttState.changePublisher({ settleMs: 30, gapMs: 200, publish: function () { publishes.push(Date.now()); } });
