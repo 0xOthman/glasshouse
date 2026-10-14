@@ -102,7 +102,7 @@ The NTP families have samples only while [setting the clock from NTP](IMPLEMENTA
 | `glasshouse_emmc_life_used_ratio`                 | gauge   | `type`                                  | eMMC estimated life used, in steps of 0.1                   |
 | `glasshouse_app_storage_size_bytes`               | gauge   |                                         | Size of the app storage filesystem                          |
 | `glasshouse_app_storage_available_bytes`          | gauge   |                                         | Space available there for new apps                          |
-| `glasshouse_remote_battery_ratio`                 | gauge   |                                         | Magic Remote battery                                        |
+| `glasshouse_remote_battery_ratio`                 | gauge   |                                         | Magic Remote battery, read from the remote over Bluetooth   |
 | `glasshouse_adblock_enabled`                      | gauge   |                                         | 1 when ad blocking is in place                              |
 | `glasshouse_oled_panel_usage_seconds_total`       | counter |                                         | Time the panel has been in use                              |
 | `glasshouse_oled_last_compensation_usage_seconds` | gauge   |                                         | Panel usage at the last short compensation cycle            |

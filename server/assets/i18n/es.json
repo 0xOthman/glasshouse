@@ -1447,6 +1447,10 @@
   "text": "Firmware: {version}",
   "from": "Firmware: {version}"
  },
+ "metrics.remote.model": {
+  "text": "Modelo",
+  "from": "Model"
+ },
  "metrics.remote.name": {
   "text": "Mando Magic",
   "from": "Magic Remote"

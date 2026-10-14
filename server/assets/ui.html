@@ -173,9 +173,13 @@
 
     <div class="grp-sec" id="remoteblock" data-col="2" hidden>
       <div class="grp" data-t="metrics.remote">Magic remote</div>
-      <div class="lbl" data-t="metrics.battery">Battery</div>
-      <div class="n num" style="margin-top:10px"><span id="remote-pct">&mdash;</span><em>%</em></div>
-      <div class="track" style="margin-top:16px;max-width:220px"><b id="remote-gauge-fill" style="width:0%"></b></div>
+      <div id="remote-battery" hidden>
+        <div class="lbl" data-t="metrics.battery">Battery</div>
+        <div class="n num" style="margin-top:10px"><span id="remote-pct">&mdash;</span><em>%</em></div>
+        <div class="track" style="margin-top:16px;margin-bottom:18px;max-width:220px"><b id="remote-gauge-fill" style="width:0%"></b></div>
+      </div>
+      <div class="lbl" data-t="metrics.remote.model">Model</div>
+      <div class="uptime-val" id="remote-model">&mdash;</div>
       <div class="sub" id="remote-model-sub"></div>
     </div>
 
