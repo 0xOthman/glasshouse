@@ -7,7 +7,7 @@ This is useful both for monitoring and for troubleshooting. It shows whether a h
 * SoC temperature, CPU and per-core load, GPU clock, memory and swap, Wi-Fi RSSI and network throughput.
 * The TV's IPv4 address on the home network, with its DNS name under it where the network's DNS has a reverse entry for it.
 * eMMC flash wear with JEDEC health translation, free space on the app partition, and TV uptime since last boot.
-* HDMI link state per port, refresh rate, colour depth, pixel clock, and HDMI 2.1 diagnostics where supported (link rate, chroma format, HDCP version, ALLM, VRR, QMS and colorimetry).
+* Visual HDMI port bay showing physical connection state, eARC designation, connected device name, active resolution and refresh rate, link speed (such as FRL 48 Gbps or TMDS), chroma format, HDCP version, and gaming flags (VRR, ALLM, QMS).
 * The source's HDR format (SDR, HDR10, HLG, Dolby Vision, or player-led Dolby Vision as "Dolby Vision (low latency)"), picture mode, OLED light level, the raw HDMI signal (`3840x2160 @ 120Hz`), audio output routing, and the running app with friendly input names (`Apple TV (HDMI2)`).
 * Magic Remote battery and model; webOS and firmware version, SoC architecture, OLED cell ID and TCON firmware where the platform exposes them.
 * On demand: what is resident in memory, and which processes are using the processor right now. Each process is listed with its pid, the number the TV's logs name it by.

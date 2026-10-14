@@ -932,35 +932,57 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .proc .p-mb{color:var(--w100);font-variant-numeric:tabular-nums}
 .proc .p-pid{color:var(--w50);margin-left:6px;font-size:12px;font-variant-numeric:tabular-nums}
 /* ---- HDMI port grid ----
-   Four tiles, always all four: a port that vanished when nothing was plugged
-   into it would read as a missing port rather than an empty one. State is
-   carried by fill and weight, the same way the selected controls are - the
-   live port is the bright one. */
-.ports{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:9px;margin-top:14px}
-.port{border:1px solid var(--w06);border-radius:4px;padding:13px 14px 14px;
-  display:flex;flex-direction:column;min-height:112px}
-.port .ptop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.port .pn{font-family:'Outfit';font-weight:200;font-size:38px;line-height:.9;
+   Four tiles representing the TV's physical HDMI port bay. State is
+   carried by fill, weight, and port jack silhouette. */
+.ports{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:14px}
+.port{border:1px solid var(--w06);border-radius:4px;padding:12px 14px 13px;
+  display:flex;flex-direction:column;min-height:120px;background:var(--w06);
+  transition:border-color .16s ease,background .16s ease}
+.port .ptop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.port .pnum-wrap{display:flex;align-items:baseline;gap:6px}
+.port .pn{font-family:'Outfit';font-weight:200;font-size:36px;line-height:1;
   color:var(--w50);font-variant-numeric:tabular-nums}
-.port .pst{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--w60);
-  padding-top:4px;white-space:nowrap}
-.port .pl{font-size:14px;color:var(--w50);margin-top:auto;
+.port .port-cap{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.08em;
+  padding:2px 5px;border-radius:2px;background:var(--w12);color:var(--w80);vertical-align:middle}
+.port .pstatus-wrap{display:flex;align-items:center;gap:6px}
+.port .port-jack{flex:none;color:var(--w40);transition:color .16s ease}
+.port .pst{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--w60);
+  white-space:nowrap}
+.port .pl{font-size:14px;color:var(--w70);font-weight:500;margin-top:10px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.port .pd{font-size:12px;color:var(--w60);margin-top:2px;
+.port .pd{font-size:12px;color:var(--w50);margin-top:4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Nothing plugged in: the number alone. The dashed edge carries "empty", so
-   the numeral keeps its normal weight - it is the only thing in the tile, and
-   dimming it further would make the one piece of information unreadable. */
-.port.empty{border-color:var(--w06);border-style:dashed}
+
+.pbadges{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.hdmi-badge{display:inline-flex;align-items:center;font-size:10.5px;letter-spacing:.03em;
+  padding:2px 6px;border-radius:2px;background:var(--w10);color:var(--w90);white-space:nowrap}
+.hdmi-badge.res{font-weight:600;background:var(--w12);color:var(--w100)}
+.hdmi-badge.feat{font-weight:600;letter-spacing:.08em}
+.hdmi-badge.feat.green{color:var(--green);background:rgba(48,222,97,.12)}
+
+/* Empty port state */
+.port.empty{border-color:var(--w06);border-style:dashed;background:transparent}
+.port.empty .pn{color:var(--w25)}
+.port.empty .port-jack{color:var(--w25);stroke-dasharray:2 1.5}
+.port.empty .port-cap{color:var(--w40);background:transparent;border:1px dashed var(--w12)}
+.port.empty .pst{color:var(--w35)}
+.port.empty .pl{color:var(--w35);font-weight:400}
+
+/* Seen / Idle state */
 .port.seen{border-color:var(--w10)}
 .port.seen .pn{color:var(--w80)}
-.port.seen .pl{color:var(--w80)}
-.port.live{border-color:var(--w25);background:var(--w06)}
+.port.seen .port-jack{color:var(--w70)}
+.port.seen .pl{color:var(--w90)}
+
+/* Live / Active state */
+.port.live{border-color:var(--w25);background:var(--w10)}
 .port.live .pn{color:var(--w100)}
-.port.live .pst{color:var(--w80)}
-.port.live .pl{color:var(--w100)}
-.port.live .pd{color:var(--w60)}
-@media (max-width:420px){.ports{grid-template-columns:1fr}}
+.port.live .port-cap{color:var(--w100);background:var(--w25)}
+.port.live .port-jack{color:var(--w100)}
+.port.live .pst{color:var(--w100);font-weight:600}
+.port.live .pl{color:var(--w100);font-weight:600}
+
+@media (max-width:480px){.ports{grid-template-columns:1fr}}
 @media (max-width:620px){.src{text-align:left}.hero{gap:22px}}
 footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:uppercase;color:var(--w60);display:flex;justify-content:flex-end;gap:16px;flex-wrap:wrap}
 /* The separator rides on the link so both appear only once a version is known. */

@@ -1,64 +1,98 @@
 // HDMI diagnostics, processes and CPU use.
 
+let currentHdmiInputs = null;
+let currentHdmiDiag = null;
+let currentColSpace = null;
+
+function renderHdmiJackSvg() {
+  return `<svg class="port-jack" viewBox="0 0 26 15" width="22" height="13" aria-hidden="true">` +
+    `<path d="M 3,2 H 23 V 8 L 20,13 H 6 L 3,8 Z" fill="none" stroke="currentColor" stroke-width="1.3"/>` +
+    `<rect x="7" y="5" width="12" height="2" rx="0.5" fill="currentColor"/>` +
+  `</svg>`;
+}
+
+function renderHdmiPort(i, diag, colSpace) {
+  const s = i.signal;
+  const isPort2 = i.port === 2;
+  const earcBadge = isPort2 ? '<span class="port-cap" translate="no">eARC</span>' : '';
+  const jackSvg = renderHdmiJackSvg();
+
+  if (!s && !i.deviceSeen) {
+    const emptyState = t('metrics.hdmi.empty', 'Empty');
+    const unconnected = t('metrics.hdmi.unconnected', 'Unconnected');
+    return `<div class="port empty">` +
+           `<div class="ptop">` +
+             `<div class="pnum-wrap"><span class="pn num">${i.port}</span>${earcBadge}</div>` +
+             `<div class="pstatus-wrap">${jackSvg}<span class="pst">${emptyState}</span></div>` +
+           `</div>` +
+           `<div class="pl empty">${unconnected}</div>` +
+           `</div>`;
+  }
+
+  const cls = i.active ? 'port live' : 'port seen';
+  const state = i.active ? t('metrics.hdmi.active', 'Active') : t('metrics.hdmi.idle', 'Idle');
+  const isMatchDiag = i.active || (diag && diag.port === i.port);
+
+  const badges = [];
+  if (s) {
+    if (s.resolution) {
+      const mode = [s.resolution.replace('x', '×'),
+                    s.refreshHz ? s.refreshHz + ' Hz' : null,
+                    s.interlaced ? t('metrics.hdmi.interlaced', 'interlaced') : null].filter(Boolean).join(' · ');
+      badges.push(`<span class="hdmi-badge res num">${esc(mode)}</span>`);
+    }
+    if (isMatchDiag && diag) {
+      if (diag.phy_mode) badges.push(`<span class="hdmi-badge">${esc(diag.phy_mode)}</span>`);
+      if (diag.chroma) badges.push(`<span class="hdmi-badge">${esc(diag.chroma)}</span>`);
+      if (diag.hdcp && diag.hdcp !== 'None') badges.push(`<span class="hdmi-badge">HDCP ${esc(diag.hdcp.replace(/^HDCP\s*/i, ''))}</span>`);
+      if (colSpace) badges.push(`<span class="hdmi-badge">${esc(colSpace)}</span>`);
+      if (diag.allm) badges.push(`<span class="hdmi-badge feat" translate="no">ALLM</span>`);
+      if (diag.vrr) badges.push(`<span class="hdmi-badge feat green" translate="no">VRR</span>`);
+      if (diag.qms) badges.push(`<span class="hdmi-badge feat" translate="no">QMS</span>`);
+    } else if (s.colorDepth) {
+      badges.push(`<span class="hdmi-badge">${esc(s.colorDepth)}</span>`);
+    }
+    if (s.pixelClockMhz) {
+      badges.push(`<span class="hdmi-badge num">${s.pixelClockMhz} MHz</span>`);
+    }
+  }
+
+  const detailsHtml = badges.length
+    ? `<div class="pbadges">${badges.join('')}</div>`
+    : `<div class="pd">${t('metrics.hdmi.noSignal', 'Device seen, no signal')}</div>`;
+
+  return `<div class="${cls}">` +
+         `<div class="ptop">` +
+           `<div class="pnum-wrap"><span class="pn num">${i.port}</span>${earcBadge}</div>` +
+           `<div class="pstatus-wrap">${jackSvg}<span class="pst">${state}</span></div>` +
+         `</div>` +
+         `<div class="pl">${esc(i.label)}</div>` +
+         detailsHtml +
+         `</div>`;
+}
+
+function renderHdmiGrid() {
+  const grid = q('hdmi-grid');
+  if (!grid || !currentHdmiInputs) return;
+  grid.innerHTML = currentHdmiInputs.map(i => renderHdmiPort(i, currentHdmiDiag, currentColSpace)).join('');
+}
+
 function renderHdmiDiag(diag, colSpace) {
+  currentHdmiDiag = diag;
+  currentColSpace = colSpace;
+  if (currentHdmiInputs) renderHdmiGrid();
   const el = q('hdmi-diag-row');
-  if (!el) return;
-  const parts = [];
-  if (diag) {
-    if (diag.phy_mode) parts.push(esc(diag.phy_mode));
-    if (diag.chroma) parts.push(esc(diag.chroma));
-    if (diag.hdcp && diag.hdcp !== 'None') parts.push('HDCP ' + esc(diag.hdcp.replace(/^HDCP\s*/i, '')));
-  }
-  if (colSpace) parts.push(esc(colSpace));
-  if (diag) {
-    if (diag.allm) parts.push('ALLM');
-    if (diag.vrr) parts.push('VRR');
-    if (diag.qms) parts.push('QMS');
-  }
-  if (parts.length) {
-    el.innerHTML = parts.join(' &middot; ');
-    el.hidden = false;
-  } else {
-    el.hidden = true;
-  }
+  if (el) el.hidden = true;
 }
 
 async function loadHdmi() {
   try {
     const r = await fetch(api('/api/hdmi'), { cache: 'no-store' });
     const d = await r.json();
+    currentHdmiInputs = d.inputs;
     const act = d.inputs.find(i => i.active);
     q('hdmi-cur').textContent = ': ' + (act ? act.label : t('metrics.hdmi.noInput', 'no active input'));
-    q('hdmi-grid').innerHTML = d.inputs.map(i => {
-      const s = i.signal;
-      /* The resolution is the headline; the link figures sit under it. Both
-         only exist for the port actually carrying signal - see hdmiInputs(),
-         which refuses to guess a pairing it cannot prove. */
-      const mode = s
-        ? [s.resolution ? s.resolution.replace('x', '×') : null,
-           s.refreshHz ? s.refreshHz + ' Hz' : null,
-           s.interlaced ? t('metrics.hdmi.interlaced', 'interlaced') : null].filter(Boolean).join(' · ')
-        : t('metrics.hdmi.noSignal', 'Device seen, no signal');
-      const link = s
-        ? [s.colorDepth, s.pixelClockMhz ? s.pixelClockMhz + ' MHz' : null]
-            .filter(Boolean).join(' · ')
-        : '';
-      /* An empty port is just its number. Writing "HDMI 3 / Nothing connected"
-         under a large 3 says the same thing three times, and leaves the one
-         port that matters competing with three that do not. */
-      if (!s && !i.deviceSeen) {
-        return `<div class="port empty"><div class="ptop">` +
-               `<span class="pn num">${i.port}</span></div></div>`;
-      }
-      const cls = i.active ? 'port live' : 'port seen';
-      const state = i.active ? t('metrics.hdmi.active', 'Active') : t('metrics.hdmi.idle', 'Idle');
-      return `<div class="${cls}">` +
-             `<div class="ptop"><span class="pn num">${i.port}</span>` +
-             `<span class="pst">${state}</span></div>` +
-             `<div class="pl">${esc(i.label)}</div>` +
-             `<div class="pd">${esc(mode)}${link ? ' · ' + esc(link) : ''}</div>` +
-             `</div>`;
-    }).join('');
+    renderHdmiGrid();
   } catch (e) {
     q('hdmi-grid').innerHTML = `<div class="sub">${esc(t('metrics.hdmi.failed', 'Could not read HDMI state \u2014 {error}', { error: e.message }))}</div>`;
   }
