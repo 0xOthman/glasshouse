@@ -171,13 +171,27 @@ it, logs the same pair as `Battery threshold : Mid %d, Low %d`, and an MR24 on
 a C4, the remote on a C5 and the remotes in the test fixtures all read 52.
 `mrcu1.scd` has `BA 35`, the Low threshold.
 
-No live level was found. `/sys/class/power_supply` is empty and the system log
-has no battery lines. `com.webos.service.mrcu/getConnectionStatus` reported the
-remote disconnected while idle. `getDeviceInfo` answers "Invalid Parameter" to
-`{}`, `deviceId` 0 and 1, and `deviceType` `mrcu`, `MRCU` and 0. lginput2 has a
-`batteryLevel` field near `deviceInfo` and logs an IR blaster's battery level,
-so a level may exist for other devices. Its strings are otherwise about the
-low-battery warning.
+Swapping the batteries left `mrcu1.info` unchanged. The remote's reconnect
+went out from `com.webos.service.mrcu` as `getConnectionStatus` replies, with
+no battery in them, and the binary `.dcd` file beside it was rewritten. Nothing
+else showed a level: `/sys/class/power_supply` is empty, the system log has
+only button presses, and `getDiagnosisItem` stays empty. `getDeviceInfo`
+answers "Invalid Parameter" to `{}`, `deviceId` 0 and 1, and `deviceType`
+`mrcu`, `MRCU` and 0.
+
+The remote has the standard Battery Service, and `com.webos.service.bluetooth2`
+reads it. The remote is in `device/getStatus` (name `LGE MR24`, type `ble`), but
+`gatt/getServices` answers "Device is not connected to profile" until
+`gatt/connect` is called with its address, which returns a `clientId`. After
+`gatt/discoverServices`, the remote lists `180f` among its services, and
+`gatt/readCharacteristicValue` with that `clientId`, service
+`0000180f-0000-1000-8000-00805f9b34fb` and characteristic
+`00002a19-0000-1000-8000-00805f9b34fb` returned `"bytes": [61]` with old
+batteries in it. The call takes no `address`. The characteristic also has
+notify. `gatt/disconnect` with the `clientId` ended it, and the remote worked
+after each of the two connections. How often this can be done
+without disturbing lginput2's own connection, and whether webOS 9 and earlier
+have these calls, is not yet known.
 
 ## Boot and app state (webOS 9.2.2, C2)
 
