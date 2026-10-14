@@ -216,6 +216,16 @@ function hdmiKey(d) {
           diag.chroma || '', diag.hdcp || '', d.colorimetry || pe.colorimetry || '', pe.hdr_mode || ''].join('|');
 }
 
+function formatUptime(sec) {
+  if (typeof sec !== 'number' || isNaN(sec) || sec < 0) return '—';
+  const dd = Math.floor(sec / 86400);
+  const hh = Math.floor((sec % 86400) / 3600);
+  const mm = Math.floor((sec % 3600) / 60);
+  return dd ? t('metrics.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
+    : (hh ? t('metrics.uptime.hours', '{h}h {m}m', { h: hh, m: mm })
+    : t('metrics.uptime.mins', '{m}m', { m: mm || 1 }));
+}
+
 async function tick() {
   try {
     const r = await fetch(api('/api/stats'), { cache: 'no-store' });
@@ -710,13 +720,36 @@ async function tick() {
       renderMoreOutputs(offered ? offered.filter(o => !SOUND_BUTTON[o.id]) : [], curSo);
     }
 
-    if (typeof d.uptime === 'number') {
-      const up = d.uptime, dd = Math.floor(up / 86400), hh = Math.floor(up % 86400 / 3600), mm = Math.floor(up % 3600 / 60);
-      const upFor = dd ? t('metrics.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
-        : (hh ? t('metrics.uptime.hours', '{h}h {m}m', { h: hh, m: mm })
-        : t('metrics.uptime.mins', '{m}m', { m: mm || 1 }));
-      const upEl = q('tv-uptime');
-      if (upEl) upEl.textContent = upFor;
+    const upEl = q('tv-uptime');
+    const upLbl = q('tv-uptime-lbl');
+    const bootVal = q('tv-boot-val');
+    const bootRow = q('uptime-boot-row');
+    const screenActive = isOn || (ps.screenOn !== false && !isStandby && !isComp);
+
+    if (upLbl) {
+      upLbl.textContent = screenActive ? t('metrics.uptime.currentSession', 'Current session') : t('metrics.uptime.standby', 'Standby');
+    }
+    if (upEl) {
+      if (screenActive) {
+        upEl.classList.remove('dim', 'text-val');
+        const sessionSec = (typeof d.sessionTime === 'number' && d.sessionTime > 0) ? d.sessionTime : d.uptime;
+        upEl.textContent = (typeof sessionSec === 'number') ? formatUptime(sessionSec) : '—';
+      } else {
+        upEl.classList.add('dim');
+        if (typeof d.standbyTime === 'number' && d.standbyTime > 0) {
+          upEl.classList.remove('text-val');
+          upEl.textContent = formatUptime(d.standbyTime);
+        } else {
+          upEl.classList.add('text-val');
+          upEl.textContent = t('metrics.uptime.standby', 'Standby');
+        }
+      }
+    }
+    if (bootVal) {
+      bootVal.textContent = (typeof d.uptime === 'number') ? formatUptime(d.uptime) : '—';
+    }
+    if (bootRow) {
+      bootRow.title = d.bootTime ? t('metrics.uptime.bootedAt', 'Booted: {time}', { time: new Date(d.bootTime).toLocaleString() }) : '';
     }
     setVersion(d.tvwebVersion);
     // Several groups stay hidden until the first payload says the TV has them,

@@ -245,6 +245,8 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
 .cols .v{font-family:'Outfit';font-weight:300;font-size:24px;color:var(--w100);margin-top:6px}
 .cols .sub{overflow:visible;text-overflow:clip}
 .uptime-val{font-family:'Outfit';font-weight:200;font-size:clamp(34px,4.5vw,48px);color:var(--w100);line-height:1;letter-spacing:-.02em;margin-top:10px}
+.uptime-val.dim{color:var(--w60)}
+.uptime-val.text-val{font-size:clamp(24px,3vw,34px);font-weight:300}
 /* Flash wear changes over years, so it sits small under the free space. */
 .flash-row{display:flex;flex-wrap:wrap;gap:16px 44px;margin-top:20px;padding-top:16px;border-top:1px solid var(--w06)}
 .flash-v{display:flex;align-items:center;gap:12px;height:28px;margin-top:6px;
@@ -416,10 +418,11 @@ html.nav-hidden body.nav-open{overflow:hidden}
 .grp-sec.first, #tempblock[hidden] + .grp-sec{margin-top:0;padding-top:0;border-top:0}
 #remoteblock .grp{display:flex;align-items:center;justify-content:space-between}
 #remote-pill.idle::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--w40);flex:none}
-.remote-meta{margin-top:14px;font-size:12.5px;line-height:1.6;color:var(--w60)}
-.remote-meta-row{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:baseline}
-.remote-meta-lbl{color:var(--w50);font-weight:400;flex-shrink:0}
-.remote-meta-val{color:var(--w80);font-weight:400;word-break:break-word}
+.remote-meta, .uptime-meta{margin-top:14px;font-size:12.5px;line-height:1.6;color:var(--w60)}
+.uptime-meta{margin-top:10px}
+.remote-meta-row, .uptime-meta-row{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:baseline}
+.remote-meta-lbl, .uptime-meta-lbl{color:var(--w50);font-weight:400;flex-shrink:0}
+.remote-meta-val, .uptime-meta-val{color:var(--w80);font-weight:400;word-break:break-word}
 .col-sec-hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   padding-bottom:12px;border-bottom:1px solid var(--w25);margin-bottom:22px}
 .col-sec-hdr .col-sec{padding-bottom:0;border-bottom:0;margin-bottom:0}

@@ -28,6 +28,8 @@ var onTime = null;
 var onTimeReadAt = 0;
 // The raw power state last seen, null until the first.
 var lastState = null;
+var sessionStartMono = null;
+var standbyStartMono = null;
 
 // tvpower gives the times as strings of seconds: "27196.63".
 function seconds(v) {
@@ -69,6 +71,15 @@ function refresh(done) {
     luna(TIME_URI, {}, function (t) {
       onTime = parseTime(t);
       onTimeReadAt = clockFn();
+      if (onTime && typeof onTime.ontime === 'number') {
+        if (onTime.ontime > 0) {
+          sessionStartMono = onTimeReadAt - Math.round(onTime.ontime * 1000);
+          standbyStartMono = null;
+        } else {
+          sessionStartMono = null;
+          if (standbyStartMono === null) standbyStartMono = onTimeReadAt;
+        }
+      }
       done();
     });
   });
@@ -83,17 +94,33 @@ function movedOn(v, since) {
  * The last reading, as /api/stats gives it under powerState. The times are
  * read only at start and at transitions, so they are moved on by the time
  * since; an ontime of 0 is the TV in standby and stays 0.
- * @returns {{onReason: ?string, onTime: ?{uptime: ?number, ontime: ?number}}}
+ * @returns {{onReason: ?string, onTime: ?{uptime: ?number, ontime: ?number}, sessionTime: ?number, standbyTime: ?number}}
  */
 function current() {
-  if (!onTime) return { onReason: onReason, onTime: null };
-  var since = (clockFn() - onTimeReadAt) / 1000;
+  var now = clockFn();
+  var since = (now - onTimeReadAt) / 1000;
+  var liveOnTime = onTime ? {
+    uptime: onTime.uptime === null ? null : movedOn(onTime.uptime, since),
+    ontime: onTime.ontime ? movedOn(onTime.ontime, since) : onTime.ontime
+  } : null;
+
+  var sessionSec = null;
+  if (liveOnTime && typeof liveOnTime.ontime === 'number' && liveOnTime.ontime > 0) {
+    sessionSec = Math.round(liveOnTime.ontime);
+  } else if (sessionStartMono !== null) {
+    sessionSec = Math.max(1, Math.round((now - sessionStartMono) / 1000));
+  }
+
+  var standbySec = null;
+  if (standbyStartMono !== null) {
+    standbySec = Math.max(0, Math.round((now - standbyStartMono) / 1000));
+  }
+
   return {
     onReason: onReason,
-    onTime: {
-      uptime: onTime.uptime === null ? null : movedOn(onTime.uptime, since),
-      ontime: onTime.ontime ? movedOn(onTime.ontime, since) : onTime.ontime
-    }
+    onTime: liveOnTime,
+    sessionTime: sessionSec,
+    standbyTime: standbySec
   };
 }
 
@@ -122,10 +149,22 @@ function start() {
 function stateChanged(state) {
   var from = lastState, to = String(state);
   lastState = to;
+  var fromMapped = from ? names.powerState(from) : null;
+  var toMapped = names.powerState(to);
+  var now = clockFn();
+
+  if (toMapped.screenOn && (!fromMapped || !fromMapped.screenOn)) {
+    sessionStartMono = now;
+    standbyStartMono = null;
+  } else if (!toMapped.screenOn && (!fromMapped || fromMapped.screenOn)) {
+    standbyStartMono = now;
+    sessionStartMono = null;
+  }
+
   // The first reading is where the TV was at start, not a transition.
   if (from === null || from === to) return;
   var line = 'power: ' + from + ' -> ' + to;
-  var turningOn = names.powerState(to).systemOn && !names.powerState(from).systemOn;
+  var turningOn = toMapped.systemOn && (!fromMapped || !fromMapped.systemOn);
   if (!turningOn) {
     log(line);
     flush();
@@ -174,7 +213,10 @@ function init(opts) {
   syslogModule = opts.syslog || null;
   onReason = null;
   onTime = null;
+  onTimeReadAt = 0;
   lastState = null;
+  sessionStartMono = null;
+  standbyStartMono = null;
 }
 
 module.exports = {
@@ -186,5 +228,7 @@ module.exports = {
   mapState: mapState,
   isScreenSaver: isScreenSaver,
   parseReason: parseReason,
-  parseTime: parseTime
+  parseTime: parseTime,
+  sessionTime: function () { return current().sessionTime; },
+  standbyTime: function () { return current().standbyTime; }
 };

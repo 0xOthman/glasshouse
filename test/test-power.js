@@ -54,7 +54,12 @@ function testStart(next) {
   power.start();
   later(function () {
     assert.deepEqual(tv.lines, ['power: on by rebootByOnRegular, up 12 s']);
-    assert.deepEqual(power.current(), { onReason: 'rebootByOnRegular', onTime: { uptime: 12.4, ontime: 0 } });
+    assert.deepEqual(power.current(), {
+      onReason: 'rebootByOnRegular',
+      onTime: { uptime: 12.4, ontime: 0 },
+      sessionTime: null,
+      standbyTime: 0
+    });
     console.log('  ✓ start logs why the TV is on and how long it has been up');
     next();
   });
@@ -71,7 +76,10 @@ function testUnknown(next) {
   later(function () {
     power.stateChanged('Active');
     later(function () {
-      assert.deepEqual(power.current(), { onReason: null, onTime: null });
+      assert.strictEqual(power.current().onReason, null);
+      assert.strictEqual(power.current().onTime, null);
+      assert.strictEqual(typeof power.current().sessionTime, 'number');
+      assert.strictEqual(power.current().standbyTime, null);
       assert.deepEqual(tv.lines, ['power: the TV gives no power-on reason', 'power: Active Standby -> Active']);
       console.log('  ✓ a TV without the methods gets nulls and says so once');
       next();
@@ -160,6 +168,8 @@ function testStats(next) {
         assert.strictEqual(stats.powerState.raw, 'Active');
         assert.strictEqual(stats.powerState.onReason, 'alwaysOn');
         assert.deepEqual(stats.powerState.onTime, { uptime: 27196.63, ontime: 0 });
+        assert.strictEqual(stats.sessionTime, null);
+        assert.strictEqual(typeof stats.standbyTime, 'number');
         console.log('  ✓ /api/stats gives the reason and the times under powerState');
         next();
       });
@@ -167,12 +177,47 @@ function testStats(next) {
   });
 }
 
+// 7. Session time and standby time track state transitions
+function testSessionTracking(next) {
+  var replies = {};
+  replies[REASON_URI] = C4_REASON;
+  replies[TIME_URI] = UNKNOWN;
+  var now = 10000;
+  power.init({
+    luna: function (uri, payload, cb) { process.nextTick(function () { cb(replies[uri], ''); }); },
+    log: function () {},
+    clock: function () { return now; }
+  });
+  power.stateChanged('Active Standby');
+  assert.strictEqual(power.current().sessionTime, null);
+  assert.strictEqual(power.current().standbyTime, 0);
+
+  now += 120000;
+  assert.strictEqual(power.current().standbyTime, 120);
+
+  power.stateChanged('Active');
+  assert.strictEqual(power.current().standbyTime, null);
+  assert.strictEqual(power.current().sessionTime, 1);
+
+  now += 300000;
+  assert.strictEqual(power.current().sessionTime, 300);
+  assert.strictEqual(power.current().standbyTime, null);
+
+  power.stateChanged('Active Standby');
+  assert.strictEqual(power.current().sessionTime, null);
+  assert.strictEqual(power.current().standbyTime, 0);
+  console.log('  ✓ sessionTime and standbyTime track power transitions and age correctly');
+  next();
+}
+
 testStart(function () {
   testUnknown(function () {
     testTransitions(function () {
       testAging(function () {
         testStats(function () {
-          console.log('test-power.js: all passed');
+          testSessionTracking(function () {
+            console.log('test-power.js: all passed');
+          });
         });
       });
     });

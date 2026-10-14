@@ -1547,6 +1547,14 @@
   "text": "Tiempo de actividad de la TV",
   "from": "TV uptime"
  },
+ "metrics.uptime.bootedAt": {
+  "text": "Iniciado: {time}",
+  "from": "Booted: {time}"
+ },
+ "metrics.uptime.currentSession": {
+  "text": "Sesión actual",
+  "from": "Current session"
+ },
  "metrics.uptime.days": {
   "text": "{d}d {h}h {m}m",
   "from": "{d}d {h}h {m}m"
@@ -1562,6 +1570,10 @@
  "metrics.uptime.sinceBoot": {
   "text": "Tiempo desde el encendido",
   "from": "Time since boot"
+ },
+ "metrics.uptime.standby": {
+  "text": "En espera",
+  "from": "Standby"
  },
  "metrics.watch": {
   "text": "Tiempo de visionado",

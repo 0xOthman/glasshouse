@@ -1770,7 +1770,11 @@ function collectStats(cb) {
       var on = powerModule ? powerModule.current() : { onReason: null, onTime: null };
       out.powerState.onReason = on.onReason;
       out.powerState.onTime = on.onTime;
+      out.powerState.sessionTime = on.sessionTime !== undefined ? on.sessionTime : null;
+      out.powerState.standbyTime = on.standbyTime !== undefined ? on.standbyTime : null;
     }
+    out.sessionTime = out.powerState ? out.powerState.sessionTime : null;
+    out.standbyTime = out.powerState ? out.powerState.standbyTime : null;
     out.screenSaver = power.isScreenSaver(out.powerState);
     out.screensaverMode = screensaversModule ? screensaversModule.screensaverMode() : 'stock';
     out.screensaverLevel = screensaversModule ? screensaversModule.screensaverLevel() : 'dim';

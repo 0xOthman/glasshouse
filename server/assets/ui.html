@@ -205,8 +205,13 @@
 
     <div class="grp-sec" id="uptimeblock" data-col="1">
       <div class="grp" data-t="metrics.uptime">TV uptime</div>
-      <div class="lbl" data-t="metrics.uptime.sinceBoot">Time since boot</div>
+      <div class="lbl" id="tv-uptime-lbl">&mdash;</div>
       <div class="uptime-val num" id="tv-uptime">&mdash;</div>
+      <div class="uptime-meta" id="uptime-meta">
+        <div class="uptime-meta-row" id="uptime-boot-row">
+          <span class="uptime-meta-lbl"><span data-t="metrics.uptime.sinceBoot">Time since boot</span>:</span> <span class="uptime-meta-val" id="tv-boot-val">&mdash;</span>
+        </div>
+      </div>
     </div>
 
     <div class="grp-sec" id="advblock" data-col="1">
