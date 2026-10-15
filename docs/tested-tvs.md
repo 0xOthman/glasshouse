@@ -1,6 +1,6 @@
 # Tested TVs
 
-Confirmed on 45 TVs across 30 series so far, running webOS 2.2 through 11 (LG's webOS 26). Other rooted models should work. The oldest, webOS 2 and 3, have fewer of LG's services, so some readings and controls do not appear there.
+Confirmed on 46 TVs across 30 series so far, running webOS 2.2 through 11 (LG's webOS 26). Other rooted models should work. The oldest, webOS 2 and 3, have fewer of LG's services, so some readings and controls do not appear there.
 
 Versions here are the ones the TV reports itself, as the dashboard shows them; [webOS version numbers](#webos-version-numbers) below gives LG's names for them.
 
@@ -25,7 +25,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | C1            | 2021 | OLED  | 6.x               | 2       |
 | UP80          | 2021 | LCD   | 6.5               | 1       |
 | UP81          | 2021 | LCD   | 6.5               | 1       |
-| C2            | 2022 | OLED  | 9.2               | 1       |
+| C2            | 2022 | OLED  | 9.2, 10.3         | 2       |
 | G2            | 2022 | OLED  | 7.4               | 1       |
 | QNED82        | 2022 | LCD   | 7.6               | 1       |
 | LX3           | 2022 | OLED  | —                 | 1       |
@@ -78,6 +78,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | OLED65CSPSA | 10.3.0       | 33.31.20 | OLED  | Reported working                                               |
 | OLED65C41LA | 10.3.0       | 33.31.24 | OLED  | Rooted with Dangbro; installed with webOS Dev Manager          |
 | OLED65C3PUA | 10.3.1       | 33.31.68 | OLED  | MQTT and volume control confirmed                              |
+| OLED55C25LB | 10.3.1       | 33.31.68 | OLED  | Reported working; screen saver confirmed                       |
 | OLED65C4PSA | 10.3.1       | 33.31.6  | OLED  |                                                                |
 | OLED65G45LW | 10.3.1       | —        | OLED  | Rooted with Dangbro                                            |
 | OLED77C4PSA | 10.3.1       | 33.31.68 | OLED  | Rooted with Dangbro; resolution reported stuck at 1920x1081    |
