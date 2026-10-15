@@ -4,6 +4,34 @@ Findings about how LG's webOS works, kept so the same ground is not covered
 twice. Each entry names the TV and webOS version it was found on. For how
 Glasshouse itself works, see [IMPLEMENTATION.md](../IMPLEMENTATION.md).
 
+## Which window has the remote (webOS 6.4.0, C1)
+
+- `com.webos.applicationManager/getForegroundAppInfo` names only the app
+  beneath LG's own windows: with Settings, User Guide, Home or Quick Settings
+  open over HDMI 3 it still reports `com.webos.app.hdmi3`.
+- `com.webos.surfacemanager/getForegroundAppInfo` lists the windows on screen,
+  each with `appId`, `displayId` and `windowType`: HDMI 3 as
+  `_WEBOS_WINDOW_TYPE_CARD`, Settings (`com.palm.app.settings`) as
+  `_WEBOS_WINDOW_TYPE_OVERLAY`, and Home (`com.webos.app.home`) as
+  `_WEBOS_WINDOW_TYPE_HOME`, not as an overlay. Opening User Guide from
+  Settings replaces the overlay with `com.webos.app.tvuserguide`.
+- Quick Settings (`com.webos.app.quicksettings`) is not in that list. It is in
+  `com.webos.surfacemanager/getFocusedWindowInfo` and
+  `getForegroundWindowInfo`, as `SYSTEM_UI_TYPE_OVERLAY`. The focused window
+  is the one the remote's keys reach.
+- All three accept `subscribe: true`. SurfaceManager's replies are formatted
+  JSON over several lines even without luna-send's `-f`.
+
+## Disconnected input devices (webOS 6.4.0, C1)
+
+A stale evdev descriptor can remain readable to `select` while reads fail or
+return EOF. Retrying without closing it creates a busy loop. On 14 October
+2026, the remote-button worker reached 8.16 million read calls with only
+451 KB read, and a `top` sample showed 85% CPU. Reopening its devices stopped
+the loop. The patched worker closes EOF/permanent-error descriptors, retains
+EAGAIN/EINTR descriptors, and retries discovery every five seconds. Four
+minutes after deployment it had 189 read calls and 0.1% lifetime CPU.
+
 ## Home screen (webOS 9.2.2, C2)
 
 **The home app** is `com.webos.app.home`, a native QML app in
@@ -96,6 +124,10 @@ and later have a Flutter one (its log lines come from `flutter-client`). The
 QML has code for LG's webOS 23 (`webOS23Test`, the `webOS23` app list style),
 so a webOS 8 TV may read the same layout file; that has not been tried.
 
+## The clock since boot stops in suspend (webOS 4.4.3, B8)
+
+With Quick Start, the B8 suspends in standby, and `/proc/uptime` and `/proc/stat`'s `btime` leave the suspended time out: rebooted at 07:47 UTC and put in standby twice, it gave its boot as 18:18 the same day. Time since boot, and a boot time worked out from it, are wrong on such a TV after its first standby.
+
 ## Keeping a TV awake while off (webOS 4.4.3, B8)
 
 The question was whether the B8 could stay reachable while switched off, as
@@ -162,6 +194,27 @@ Unix seconds, `offset` in minutes (120 in Ljubljana in October), `timezone`
 `utc` matched `offset`. Watch time works its offset out from `localtime` and
 `utc`. Which of these fields older webOS versions give is not yet known.
 
+## Toasts as the screen comes on (C4, webOS 10.3.1)
+
+A toast sent through `com.webos.notification/createToast` in the moment
+`turnOnScreen` brings the screen back is accepted (`returnValue: true`) but not
+seen. The same toast sent with the screen already on is. Screen-time limits
+wait 5 seconds after the screen comes on before sending one.
+
+`turnOffScreen` while LG's screen saver is showing does not hold: tvpower goes
+from Screen Saver to Screen Off and back to Active 0.2 s later, with the screen
+on. From Active it holds. Screen-time limits dismiss the screen saver with
+Back first, as the screen saver tab does.
+
+## Switching off (C5, webOS 10.3.1)
+
+`power/powerOff` with reason `remoteKey` switched the TV off, going Active,
+Active Standby 3.3 s after the request, then Power Off 5.7 s later, but its
+answer was taken as a failure: a second `powerOff` with reason `localKey` got
+"com.webos.service.tvpower/power is busy". From Power Off, switching on with
+the remote booted the TV from scratch (uptime 42 s), so the server started
+again.
+
 ## The Magic Remote's battery (C4, webOS 10.3.1)
 
 `/mnt/lg/cmn_data/mrcu/mrcu1.info` is written when the remote pairs and not
@@ -192,6 +245,25 @@ notify. `gatt/disconnect` with the `clientId` ended it, and the remote worked
 after each of the two connections. How often this can be done
 without disturbing lginput2's own connection, and whether webOS 9 and earlier
 have these calls, is not yet known.
+
+On a B8 (4.4.3) and a C2 (9.2.2), `getConnectionStatus` asked once answers
+`isBleRemocon: false` even with the Magic Remote connected. Subscribed, the
+update sent as the remote wakes has `connected: true, isBleRemocon: true`, and
+the one as it sleeps keeps `isBleRemocon: true`.
+
+On the B8, `getDeviceInfo` with `deviceName` `MagicRemote_1` answers
+`batteryLevel` 49, and 63 once other batteries were put in: the charge, not a
+threshold. Its `mrcu1.info` (in `/mnt/lg/cmn_data/btsvc`) has no battery line.
+Its `gatt/connect` answers `appId` and no `clientId`. The C2 answers
+`batteryLevel` `"-"`.
+
+On the B8, lginput2 once started a diagnostic capture, a
+`/tmp/var/log/<date>_MRCU.log` with columns for motion, RSSI, voltage,
+temperature and gyro, beside a `ManualDevice-<remote MAC>-rawInput.dsf`. A new
+`mrcu_LS2` thread started with it and used a whole core until the TV was
+rebooted, through a night in standby. lginput2's luna methods include
+`enableLoggingMotion`, `getSensorData` and `enablePrintRfStatus`, none of which
+Glasshouse calls; `getConnectionStatus` and `getDeviceInfo` left it at 0%.
 
 ## Boot and app state (webOS 9.2.2, C2)
 

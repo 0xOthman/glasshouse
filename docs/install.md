@@ -143,6 +143,7 @@ Advanced settings can be adjusted in `config.json` or through the dashboard's Se
 | `allowTileHiding` | `false` | Experimental: allows hiding built-in LG system tiles and apps on the home screen. |
 | `allowOnWebos10` | `false` | Experimental: allows custom QML screensavers on webOS 10 and newer. |
 | `allowNetworkDebugger` | `false` | Exposes the webOS app inspector on port `9998` over the local network for developers using `ares-inspect`. |
+| `iconServer` | `false` | Serves installed apps' icons, read-only and without a token, at `http://<tv-ip>:8082/icons/<appId>.png` (the dashboard's port plus two), for launchers on other devices. Home Assistant's Launch App select then lists each icon's address in `app_icons`. Also switched from the MQTT tab. |
 | `update.check` | `false` | When `true`, automatically queries GitHub once daily for new Glasshouse releases. |
 
 #### Command-line flags

@@ -1000,6 +1000,7 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .wb-stack b{display:block;flex:none}
 .w-sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:9px;vertical-align:0}
 .w-sw.ws-off{border:1px solid var(--w40)}
+.w-sw.ws-saver{border:1px dashed var(--w40)}
 /* ---- HDMI port grid ----
    Four tiles representing the TV's physical HDMI port bay. State is
    carried by line weight, opacity, and port jack silhouette on true black. */
@@ -1122,10 +1123,29 @@ footer{margin-top:38px;font-size:13px;letter-spacing:.08em;text-transform:upperc
 /* The days take the row's full width, under the title and the time, so all
    seven fit on one line. */
 #row-ontimer,#row-offtimer{flex-wrap:wrap}
+#ssh-row{flex-wrap:wrap}
+.ssh-body{flex-basis:100%;margin-top:-4px}
+.ssh-key{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--edge)}
+.ssh-key .ssh-k{flex:1;min-width:0}
+.ssh-key .ssh-print{color:var(--w60);font-size:12px;overflow-wrap:anywhere}
+.ssh-btns{margin-top:10px}
+#ssh-state.warn{color:var(--warn,#e5534b)}
+#backup-daily-row{flex-wrap:wrap}
+.backup-saved{flex-basis:100%;margin-top:-4px}
+.backup-saved .bk{display:flex;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--edge)}
+.backup-saved .bk-date{flex:1;min-width:0}
+.backup-saved .bk-size{color:var(--w60);font-size:13px}
 .timer-days{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;margin-top:-4px}
 .timer-days button{min-width:44px;height:32px;padding:0 8px;font:500 12px 'Manrope';letter-spacing:.06em;
   color:var(--w60);background:transparent;border:1px solid var(--edge);border-radius:2px;cursor:pointer}
 .timer-days button.on{color:var(--green);border-color:var(--green)}
+#st-apps-row{flex-wrap:wrap}
+.st-apps{flex-basis:100%;margin-top:-4px}
+.st-app{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--edge)}
+.st-app .st-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-app .st-used{color:var(--w60);font-size:13px;white-space:nowrap}
+.st-app .pill-sel{min-width:0;width:96px}
+.st-note{color:var(--warn,#e5534b)}
 #apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row, #server-health-row{flex-wrap:wrap}
 #apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main, #server-health-row .prot-main{flex:1 1 160px}
 #apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status, #server-health-status{

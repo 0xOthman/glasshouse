@@ -2,6 +2,7 @@
 var fs = require('fs');
 var toInt = require('./util').toInt;
 var allocBuffer = require('./util').allocBuffer;
+var monotonicMs = require('./util').monotonicMs;
 var execFile = require('child_process').execFile;
 var msg = require('./say').msg;
 var timers = require('./timers');
@@ -54,11 +55,16 @@ var KEY_VOLUMEDOWN = 114;
 // gets, so nothing behind it sees this.
 var KEY_BACK = 158;
 
+// How long after a power request its state is read back.
+var POWER_SETTLE_MS = 1500;
+
 var SLEEP_TIMER_VALUES = ['off', '10', '30', '60', '90', '120'];
 var ENERGY_SAVING_VALUES = names.ENERGY_SAVING_STEPS;
 var LOGO_DIMMING_VALUES = Object.keys(names.LOGO_DIMMING);
 
 var luna = null;
+// luna's callUrgent: remote key presses go ahead of telemetry's queued reads.
+var lunaUrgent = null;
 var clearLunaCache = function () {};
 var config = {};
 /** @type {typeof import('./telemetry')} */
@@ -85,6 +91,8 @@ var devtoolsModule = null;
 var ntpModule = null;
 /** @type {typeof import('./history')} */
 var historyModule = null;
+/** @type {typeof import('./backup')} */
+var backupModule = null;
 var republishDiscoveryFn = null;
 var tvAppFn = null;
 var restartSelfFn = null;
@@ -210,6 +218,13 @@ function volumeAnswer(r) {
     telemetry.noteVolumeRefused();
   }
   return { ok: !!(r && r.returnValue) };
+}
+
+// A power state the TV is in once switching off has begun, read back after a powerOff.
+function switchingOff(raw) {
+  var state = names.powerState(raw);
+  for (var key in names.POWER_STATES) if (names.POWER_STATES[key] === state) return state.systemOn === false;
+  return false;
 }
 
 function doControl(action, value, cb) {
@@ -692,13 +707,15 @@ function doControl(action, value, cb) {
 
     case 'rcu':
       var rcuName = String(value || '').trim().toLowerCase();
+      var rcuAt = monotonicMs();
       if (rcuName === 'home') {
         // webOS 6+ (2021+) uses com.webos.app.home as a standalone app.
         // webOS 3-5 (2016-2020) does not have com.webos.app.home (the launcher
         // is a system UI component); KEY_LEFTMETA (125) with a 100ms press/release
         // delay triggers the native home ribbon across webOS versions.
-        return luna('com.webos.applicationManager/launch', { id: 'com.webos.app.home' },
-                    function (r) {
+        return lunaUrgent('com.webos.applicationManager/launch', { id: 'com.webos.app.home' },
+                    function (r, raw, timing) {
+                      logRcu(rcuName, rcuAt, timing, r && r.returnValue);
                       if (r && r.returnValue) {
                         telemetry.clearCache();
                         return cb({ ok: true });
@@ -712,9 +729,10 @@ function doControl(action, value, cb) {
       if (!RCU_KEYS.hasOwnProperty(rcuName)) {
         return cb({ ok: false, error: 'unknown key: ' + rcuName });
       }
-      return luna('com.webos.service.networkinput/test/sendKeyCode',
+      return lunaUrgent('com.webos.service.networkinput/test/sendKeyCode',
                   { keyCode: RCU_KEYS[rcuName] },
-                  function (r) {
+                  function (r, raw, timing) {
+                    logRcu(rcuName, rcuAt, timing, r && r.returnValue);
                     telemetry.clearCache();
                     cb({ ok: !!(r && r.returnValue) });
                   });
@@ -772,7 +790,7 @@ function doControl(action, value, cb) {
           luna('com.webos.service.tvpower/power/getPowerState', {}, function (st) {
             next(!!(st && st.state === 'Active'));
           });
-        }, 1500);
+        }, POWER_SETTLE_MS);
       };
       return luna('com.webos.service.tvpower/power/powerOn', { reason: 'remoteKey' }, function (p) {
         if (p && p.returnValue) return cb({ ok: true });
@@ -786,14 +804,27 @@ function doControl(action, value, cb) {
         });
       });
 
+    /*
+     * A C5 (webOS 10.3.1) can answer the first powerOff with a failure and
+     * still switch off, reaching Active Standby 3.3 s after the request: a
+     * second request then got "com.webos.service.tvpower/power is busy". So
+     * the state read back, or that answer, counts as switching off.
+     */
     case 'powerOff':
       if (!config.allowPower) return cb({ ok: false, error: msg('srv.powerOff', 'power actions disabled (set allowPower)') });
       return luna('com.webos.service.tvpower/power/powerOff', { reason: 'remoteKey' },
                   function (r) {
                     if (r && r.returnValue) return cb({ ok: true });
-                    luna('com.webos.service.tvpower/power/powerOff', { reason: 'localKey' }, function (r2) {
-                      cb({ ok: !!(r2 && r2.returnValue), error: (r2 && r2.errorText) || (r && r.errorText) });
-                    });
+                    setTimeout(function () {
+                      luna('com.webos.service.tvpower/power/getPowerState', {}, function (st) {
+                        if (switchingOff(st && st.state)) return cb({ ok: true });
+                        luna('com.webos.service.tvpower/power/powerOff', { reason: 'localKey' }, function (r2) {
+                          // Busy: the first request is still switching it off.
+                          if (r2 && /power is busy/i.test(String(r2.errorText || ''))) return cb({ ok: true });
+                          cb({ ok: !!(r2 && r2.returnValue), error: (r2 && r2.errorText) || (r && r.errorText) });
+                        });
+                      });
+                    }, POWER_SETTLE_MS);
                   });
 
     /*
@@ -930,6 +961,15 @@ function doControl(action, value, cb) {
         cb(getUpdateSummary());
       });
 
+    // Daily backups. Those already kept stay when it is switched off.
+    case 'setBackupDaily':
+      if (!writeSettingsFn || !backupModule) return cb({ ok: false, error: 'no backup configured' });
+      var dailyOn = (value === true || value === 'on' || value === 'true');
+      return writeSettingsFn({ backup: { daily: dailyOn } }, function (err) {
+        if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
+        backupModule.setDaily(dailyOn, function () { cb(getUpdateSummary()); });
+      });
+
     case 'clearHistory':
       if (!historyModule) return cb({ ok: false, error: 'no history configured' });
       historyModule.clear();
@@ -957,9 +997,26 @@ function doControl(action, value, cb) {
   }
 }
 
+/*
+ * One debug line per remote key: queued is from the command arriving to its
+ * luna-send starting, luna the child's own run. A stand-in luna may pass no
+ * timing.
+ */
+function logRcu(name, receivedAt, timing, ok) {
+  if (!timing) return;
+  console.debug('rcu ' + name + ': queued ' + Math.round(timing.startedAt - receivedAt) +
+                ' ms, luna ' + Math.round(timing.endedAt - timing.startedAt) + ' ms, ' +
+                (ok ? 'ok' : 'failed'));
+}
+
 function init(opts) {
   opts = opts || {};
-  if (opts.luna) luna = opts.luna;
+  // A luna given without an urgent one serves both, as test stand-ins do.
+  if (opts.luna) {
+    luna = opts.luna;
+    lunaUrgent = opts.lunaUrgent || opts.luna;
+  }
+  if (opts.lunaUrgent) lunaUrgent = opts.lunaUrgent;
   if (opts.clearLunaCache) clearLunaCache = opts.clearLunaCache;
   if (opts.config) config = opts.config;
   if (opts.writeSettings) writeSettingsFn = opts.writeSettings;
@@ -975,6 +1032,7 @@ function init(opts) {
   if (opts.devtools) devtoolsModule = opts.devtools;
   if (opts.ntp) ntpModule = opts.ntp;
   if (opts.history) historyModule = opts.history;
+  if (opts.backup) backupModule = opts.backup;
   if (opts.republishDiscovery) republishDiscoveryFn = opts.republishDiscovery;
   if (opts.tvApp) tvAppFn = opts.tvApp;
   if (opts.restartSelf) restartSelfFn = opts.restartSelf;

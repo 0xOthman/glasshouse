@@ -10,6 +10,7 @@ import time
 import select
 import struct
 import signal
+import errno
 
 BUTTON_CODES = {
     398: 'red',
@@ -34,17 +35,22 @@ def handle_sigterm(signum, frame):
 signal.signal(signal.SIGTERM, handle_sigterm)
 signal.signal(signal.SIGINT, handle_sigterm)
 
-def main():
-    devs = {}
+def open_devices(devs):
     for i in range(16):
         path = '/dev/input/event%d' % i
-        if not os.path.exists(path):
+        if path in devs.values() or not os.path.exists(path):
             continue
         try:
             fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
             devs[fd] = path
         except Exception:
             pass
+
+
+def main():
+    devs = {}
+    open_devices(devs)
+    next_scan = time.time() + 5
 
     log_path = '/tmp/var/log/inputcommon'
     log_fd = None
@@ -74,6 +80,11 @@ def main():
         stdin_fd = -1
 
     while running:
+        # Input devices can disappear/reappear when an app or remote changes.
+        # Retry slowly, including paths that failed to open or read earlier.
+        if time.time() >= next_scan:
+            open_devices(devs)
+            next_scan = time.time() + 5
         watch_fds = list(devs.keys())
         if stdin_fd >= 0:
             watch_fds.append(stdin_fd)
@@ -96,7 +107,19 @@ def main():
                 continue
             try:
                 buf = os.read(fd, 256)
-            except Exception:
+            except OSError as exc:
+                if exc.errno in (errno.EAGAIN, errno.EWOULDBLOCK, errno.EINTR):
+                    continue
+                buf = b''
+
+            if not buf:
+                # select keeps a hung-up evdev fd readable. Keeping it here
+                # spins without waiting (millions of reads on the LG C1).
+                del devs[fd]
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
                 continue
 
             ev_size = 16 if len(buf) % 16 == 0 else (24 if len(buf) % 24 == 0 else 0)

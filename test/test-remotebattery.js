@@ -29,7 +29,8 @@ function fakeLuna(opts) {
       return cb(opts.read || { returnValue: true, value: { value: { bytes: [61] } } });
     }
     if (m === 'bluetooth2/gatt/disconnect') { assert.strictEqual(payload.clientId, '004'); return cb({ returnValue: true }); }
-    if (m === 'mrcu/getDeviceInfo') return cb(opts.deviceInfo || { returnValue: true, batteryLevel: 49, bdAddress: REMOTE.address });
+    // webOS 9 and later have no charge here; webOS 4 does (see below).
+    if (m === 'mrcu/getDeviceInfo') return cb(opts.deviceInfo || { returnValue: true, batteryLevel: '-', bdAddress: '00:00:00:00:00:00' });
     throw new Error('unexpected ' + uri);
   };
   fn.calls = calls;
@@ -51,7 +52,7 @@ function check(name, opts, expectLevel, expectCalls) {
   });
 }
 
-var ALL = ['mrcu/getConnectionStatus', 'bluetooth2/device/getStatus', 'bluetooth2/gatt/connect',
+var ALL = ['mrcu/getConnectionStatus', 'mrcu/getDeviceInfo', 'bluetooth2/device/getStatus', 'bluetooth2/gatt/connect',
   'bluetooth2/gatt/discoverServices', 'bluetooth2/gatt/readCharacteristicValue', 'bluetooth2/gatt/disconnect'];
 
 // Each read waits on a timer, so they run one after another.
@@ -59,9 +60,9 @@ var steps = [
   function () { check('the level is read, and the connection given back', {}, 61, ALL); },
   function () { check('a remote that is asleep is not woken', { status: { returnValue: true, connected: false } }, null, ['mrcu/getConnectionStatus']); },
   function () { check('no paired remote, no connection', { devices: [{ paired: true, typeOfDevice: 'classic', name: 'Soundbar' }] }, null,
-    ['mrcu/getConnectionStatus', 'bluetooth2/device/getStatus']); },
+    ['mrcu/getConnectionStatus', 'mrcu/getDeviceInfo', 'bluetooth2/device/getStatus']); },
   function () { check('a refused connection has nothing to give back', { connect: { returnValue: false } }, null,
-    ['mrcu/getConnectionStatus', 'bluetooth2/device/getStatus', 'bluetooth2/gatt/connect']); },
+    ['mrcu/getConnectionStatus', 'mrcu/getDeviceInfo', 'bluetooth2/device/getStatus', 'bluetooth2/gatt/connect']); },
   function () { check('a failed read still disconnects', { read: { returnValue: false, errorText: 'x' } }, null, ALL); },
   function () { check('a value out of range is no level', { read: { returnValue: true, value: { value: { bytes: [255] } } } }, null, ALL); }
 ];
@@ -139,15 +140,27 @@ steps.push(function () {
 });
 steps.push(function () {
   pending++;
-  var luna = fakeLuna({ discover: { returnValue: false, errorCode: 168 } });
+  var luna = fakeLuna({ deviceInfo: { returnValue: true, batteryLevel: 63, bdAddress: REMOTE.address } });
   rb.init({ luna: luna, discoverMs: 0, settleMs: 0 });
   rb.read(function (level) {
-    assert.strictEqual(level, 49, 'read from getDeviceInfo');
-    assert.ok(luna.calls.indexOf('mrcu/getDeviceInfo') !== -1, 'getDeviceInfo was called on discover failure');
-    assert.ok(luna.calls.indexOf('bluetooth2/gatt/disconnect') !== -1, 'disconnected after fallback');
-    console.log('  ✓ falls back to getDeviceInfo when GATT service discovery fails (webOS 4)');
+    assert.strictEqual(level, 63, 'read from getDeviceInfo');
+    assert.deepEqual(luna.calls, ['mrcu/getConnectionStatus', 'mrcu/getDeviceInfo'], 'no Bluetooth connection');
+    console.log('  ✓ where getDeviceInfo has the charge (webOS 4), no Bluetooth connection is made');
     pending--;
   });
+});
+// As on the B8 and C2: the subscription says the remote is Bluetooth, the
+// one-off status asked by the read does not.
+steps.push(function () {
+  pending++;
+  var luna = fakeLuna({ status: { returnValue: true, connected: true, isBleRemocon: false } });
+  rb.init({ luna: luna, discoverMs: 0, settleMs: 0 });
+  rb.connectionChanged({ returnValue: true, connected: true, isBleRemocon: true });
+  setTimeout(function () {
+    assert.ok(luna.calls.indexOf('bluetooth2/gatt/readCharacteristicValue') !== -1, 'read at the wake');
+    console.log('  ✓ a wake is read though the one-off status leaves isBleRemocon false');
+    pending--;
+  }, 20);
 });
 steps.push(function () {
   rb.init();

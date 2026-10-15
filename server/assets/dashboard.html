@@ -393,7 +393,6 @@ function sysRows(d) {
   if (d.hardware && d.hardware.soc_arch) r.push({ label: 'SoC', value: d.hardware.soc_arch });
   if (d.hardware && d.hardware.ram) r.push({ label: 'RAM', value: d.hardware.ram });
   if (d.hardware && d.hardware.refresh_rate) r.push({ label: t('tv.system.panelRefresh', 'Panel refresh'), value: withUnit(d.hardware.refresh_rate, 'Hz') });
-  if (d.uptime) r.push({ label: t('tv.system.uptime', 'Uptime'), value: fmtUptime(d.uptime) });
   if (d.remote && d.remote.battery !== null && d.remote.battery !== undefined)
     r.push({ label: t('tv.system.remoteBattery', 'Remote battery'), value: withUnit(d.remote.battery, '%') });
   if (d.ssid) r.push({ label: t('tv.system.wiFi', 'Wi-Fi'), value: d.ssid });

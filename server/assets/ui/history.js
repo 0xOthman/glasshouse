@@ -4,6 +4,9 @@
 const WATCH_DAYS_SHOWN = 14;
 const WATCH_TOP = 5;
 const SCREEN_OFF_KEY = 'screen_off';
+const SCREEN_SAVER_KEY = 'screen_saver';
+// The TV on with nothing watched: listed apart, and left out of the totals and bars.
+const isIdleKey = k => k === SCREEN_OFF_KEY || k === SCREEN_SAVER_KEY;
 
 function watchDuration(sec) {
   const m = Math.round(sec / 60), h = Math.floor(m / 60);
@@ -30,12 +33,12 @@ function watchByDay(hours) {
   return days;
 }
 
-function watchSum(days, fromDay, withScreenOff) {
+function watchSum(days, fromDay, withIdle) {
   const out = {};
   for (const day in days) {
     if (day < fromDay) continue;
     for (const k in days[day]) {
-      if (k === SCREEN_OFF_KEY && !withScreenOff) continue;
+      if (isIdleKey(k) && !withIdle) continue;
       out[k] = (out[k] || 0) + days[day][k];
     }
   }
@@ -52,6 +55,7 @@ function daysAgo(n) {
 
 function watchName(key, titles) {
   if (key === SCREEN_OFF_KEY) return t('metrics.watch.screenOff', 'Screen off');
+  if (key === SCREEN_SAVER_KEY) return t('metrics.watch.screenSaver', 'Screen saver');
   return titles[key] || key;
 }
 
@@ -72,7 +76,7 @@ function renderWatchTime(d) {
   q('watch-month').textContent = watchTotal(total(watchSum(days, localDayKey(daysAgo(29)))));
 
   // The most watched over 30 days get a shade each; the rest are Other.
-  const ranked = Object.keys(month).filter(k => k !== SCREEN_OFF_KEY).sort((a, b) => month[b] - month[a]);
+  const ranked = Object.keys(month).filter(k => !isIdleKey(k)).sort((a, b) => month[b] - month[a]);
   const top = ranked.slice(0, WATCH_TOP);
   const shade = k => { const i = top.indexOf(k); return i === -1 ? WATCH_TOP : i; };
 
@@ -83,7 +87,7 @@ function renderWatchTime(d) {
   q('watch-bars').innerHTML = shown.map(day => {
     const key = localDayKey(day), byKey = days[key] || {};
     const parts = Array(WATCH_TOP + 1).fill(0);
-    for (const k in byKey) if (k !== SCREEN_OFF_KEY) parts[shade(k)] += byKey[k];
+    for (const k in byKey) if (!isIdleKey(k)) parts[shade(k)] += byKey[k];
     const label = day.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
     const tip = t('metrics.watch.dayTip', '{day}: {time}', { day: label, time: watchDuration(watchedOn(key)) });
     return `<div class="wb" title="${esc(tip)}"><div class="wb-stack">` +
@@ -95,6 +99,7 @@ function renderWatchTime(d) {
   const rest = ranked.slice(WATCH_TOP).reduce((a, k) => a + month[k], 0);
   if (rest) rows.push({ name: t('metrics.watch.other', 'Other'), sec: rest, cls: 'ws' + WATCH_TOP });
   if (month[SCREEN_OFF_KEY]) rows.push({ name: watchName(SCREEN_OFF_KEY, titles), sec: month[SCREEN_OFF_KEY], cls: 'ws-off' });
+  if (month[SCREEN_SAVER_KEY]) rows.push({ name: watchName(SCREEN_SAVER_KEY, titles), sec: month[SCREEN_SAVER_KEY], cls: 'ws-saver' });
   q('watch-list').innerHTML = rows.length
     ? rows.map(r => `<div class="proc"><div class="p-name"><i class="w-sw ${r.cls}"></i>${esc(r.name)}</div>` +
         `<div class="p-mb">${esc(watchDuration(r.sec))}</div></div>`).join('')

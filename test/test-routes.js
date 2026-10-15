@@ -205,6 +205,13 @@ function createMockRes(cb) {
   assert.ok(v7.errors.length > 0);
 
   console.log('  ✓ validateSettings strictly validates broker, ports, topics, and device IDs');
+
+  // The MQTT form's icon switch: saved when given as a boolean, else left alone.
+  assert.strictEqual(routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: true }).value.iconServer, true);
+  assert.strictEqual(routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: false }).value.iconServer, false);
+  assert.strictEqual('iconServer' in v1.value, false, 'absent, config.json keeps what it had');
+  assert.strictEqual('iconServer' in routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: 'yes' }).value, false);
+  console.log('  ✓ the icon server switch is saved from the MQTT form only as true or false');
 })();
 
 // 4b. Settings Persistence (writeSettings) and Update Summary (updateSummary)
@@ -1226,6 +1233,57 @@ function createMockRes(cb) {
   console.log('  ✓ /api/oledcare is unavailable on a TV without an OLED panel');
 })();
 
+// SSH keys are a way in that outlasts the server: changing them needs a
+// token, even from the TV itself, and without one the comments are not shown.
+(function testSshKeysNeedToken() {
+  var added = [];
+  var keys = {
+    status: function (cb) { cb({ ok: true, keys: [{ type: 'ssh-ed25519', comment: 'me@example.com', options: '', fingerprint: 'SHA256:x' }] }); },
+    add: function (key, cb) { added.push(key); cb({ ok: true, keys: [] }); },
+    remove: function (p, cb) { cb({ ok: true, keys: [] }); },
+    deleteFile: function (cb) { cb({ ok: true, keys: [] }); }
+  };
+  function call(token, method, url, from, body) {
+    var out = null;
+    routes.init({ config: { web: { enabled: false }, allowControl: true, token: token }, sshKeys: keys });
+    var req = createMockReq({
+      url: url, method: method, remoteAddress: from,
+      headers: { host: '192.168.8.20:8080', 'content-type': 'application/json' }
+    });
+    routes.handleRequest(req, createMockRes(function (r) { out = { code: r.statusCode, body: JSON.parse(r.body) }; }));
+    if (body) { req.emit('data', JSON.stringify(body)); req.emit('end'); }
+    return out;
+  }
+  var add = { action: 'add', key: 'ssh-ed25519 AAAA' };
+
+  var r = call('', 'GET', '/api/ssh', '192.168.8.10');
+  assert.strictEqual(r.body.writable, false);
+  assert.strictEqual(r.body.needsToken, true);
+  r = call('', 'POST', '/api/ssh', '192.168.8.10', add);
+  assert.strictEqual(r.code, 403);
+  assert.deepEqual(added, [], 'nothing added from the network without a token');
+
+  r = call('', 'GET', '/api/ssh', '192.168.8.10');
+  assert.strictEqual(r.body.keys[0].comment, undefined, 'no comment without a token');
+  assert.strictEqual(r.body.keys[0].fingerprint, 'SHA256:x');
+
+  // A rebinding page in the TV's browser, or an app on the TV, comes from 127.0.0.1 too.
+  r = call('', 'POST', '/api/ssh', '127.0.0.1', add);
+  assert.strictEqual(r.code, 403, 'not from the TV itself either');
+  assert.deepEqual(added, []);
+
+  r = call('secret', 'POST', '/api/ssh', '192.168.8.10', add);
+  assert.strictEqual(r.code, 401, 'the token is checked first');
+  r = call('secret', 'POST', '/api/ssh?k=secret', '192.168.8.10', add);
+  assert.strictEqual(r.code, 200);
+  assert.strictEqual(added.length, 1);
+  r = call('secret', 'GET', '/api/ssh?k=secret', '192.168.8.10');
+  assert.strictEqual(r.body.writable, true);
+  assert.strictEqual(r.body.needsToken, false);
+  assert.strictEqual(r.body.keys[0].comment, 'me@example.com');
+  console.log('  ✓ SSH keys can be changed only with a token, even from the TV itself, and their comments shown only with it');
+})();
+
 // Opening the dashboard in setup unsets host (dual-stack); closing it binds
 // loopback.
 (function testNetworkAccess() {
@@ -1311,6 +1369,31 @@ function createMockRes(cb) {
   });
 
   console.log('  ✓ setup emulation: safe dry-run responses without restart or persistent writes');
+})();
+
+// The dashboard's icon route answers through the icon server's shared reply.
+(function testAppIconRoute() {
+  var iconFile = path.join(os.tmpdir(), 'routes-icon-' + process.pid + '.png');
+  fs.writeFileSync(iconFile, 'png bytes');
+  routes.init({
+    config: { allowControl: true, token: '', web: { enabled: false } },
+    apps: { getIconPath: function (id, cb) { cb(id === 'com.example.app' ? iconFile : null); } }
+  });
+  routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=com.example.app' }), createMockRes(function (r) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(r.body, 'png bytes');
+    var etag = r.headers.ETag;
+    assert.ok(etag);
+    routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=com.example.app', headers: { 'if-none-match': etag } }), createMockRes(function (r304) {
+      assert.strictEqual(r304.statusCode, 304);
+      routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=other' }), createMockRes(function (r404) {
+        assert.strictEqual(r404.statusCode, 404);
+        assert.strictEqual(JSON.parse(r404.body).error, 'icon not found');
+        try { fs.unlinkSync(iconFile); } catch (e) {}
+        console.log('  ✓ /api/apps/icon serves the icon with an ETag and a 304');
+      }));
+    }));
+  }));
 })();
 
 console.log('ALL test-routes.js assertions passed!');
