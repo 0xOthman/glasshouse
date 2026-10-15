@@ -74,6 +74,7 @@ var logsModule = require('./lib/logs');
 var syslogForwarder = require('./lib/syslog');
 var ntpClient = require('./lib/ntp');
 var history = require('./lib/history');
+var screentime = require('./lib/screentime');
 var remoteBattery = require('./lib/remotebattery');
 var backup = require('./lib/backup');
 var power = require('./lib/power');
@@ -260,6 +261,23 @@ var CONFIG = {
    */
   history: {
     enabled: false
+  },
+
+  /*
+   * Screen-time limits, counted by watch time: a daily total in minutes (0
+   * for none), a bedtime from bedtimeStart to bedtimeEnd ('HH:MM', TV time),
+   * and apps, minutes a day by app or input. action is what the TV does at
+   * the daily limit or bedtime (off, screenOff or warn), appAction what an
+   * app does at its own (home, off, screenOff or warn).
+   */
+  screenTime: {
+    enabled: false,
+    dailyMinutes: 0,
+    bedtimeStart: '',
+    bedtimeEnd: '',
+    action: 'off',
+    appAction: 'home',
+    apps: {}
   },
 
   device: {
@@ -792,6 +810,7 @@ routes.init({
   syslog: syslogForwarder,
   ntp: ntpClient,
   history: history,
+  screentime: screentime,
   backup: backup,
   configFile: CONFIG_FILE,
   controls: controls,
@@ -1609,6 +1628,8 @@ if (!CLI_MODE) {
 
   history.init({ config: CONFIG, luna: luna, liveState: liveState, appTitle: telemetry.appTitle });
   history.start();
+  screentime.init({ config: CONFIG, liveState: liveState, control: controls.doControl, injectKey: controls.injectKey, keyBack: controls.KEY_BACK });
+  screentime.start();
   /*
    * Registered before the MQTT bridge's handlers, which exit, so it runs
    * first. With no bridge it is the only handler, and exits itself.

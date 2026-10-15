@@ -448,3 +448,38 @@ console.log('Running test-controls.js ...');
 })();
 
 console.log('ALL test-controls.js assertions passed!\n');
+
+// 6. A powerOff answered with a failure is read back before trying again
+(function testPowerOffReadBack() {
+  // [first answer, state read back, second answer, ok expected, requests expected]
+  var cases = [
+    [{ returnValue: false }, 'Active Standby', null, true, 2],
+    [{ returnValue: false }, 'Active', { returnValue: false, errorText: 'com.webos.service.tvpower/power is busy' }, true, 3],
+    [{ returnValue: false, errorText: 'refused' }, 'Active', { returnValue: false, errorText: 'refused again' }, false, 3]
+  ];
+  var done = 0;
+  function next(i) {
+    if (i === cases.length) {
+      done = i;
+      return console.log('  ✓ a powerOff answered with a failure counts as done once the TV is switching off');
+    }
+    var c = cases[i], calls = [];
+    controls.init({
+      config: { allowControl: true, allowPower: true },
+      luna: function (uri, payload, cb) {
+        calls.push(uri);
+        if (/getPowerState$/.test(uri)) return cb({ returnValue: true, state: c[1] });
+        cb(calls.length === 1 ? c[0] : c[2]);
+      },
+      clearLunaCache: function () {},
+      telemetry: { clearCache: function () {} }
+    });
+    controls.doControl('powerOff', null, function (res) {
+      assert.strictEqual(res.ok, c[3], 'case ' + i);
+      assert.strictEqual(calls.length, c[4], 'case ' + i + ' requests');
+      next(i + 1);
+    });
+  }
+  next(0);
+  process.on('exit', function () { assert.strictEqual(done, cases.length, 'every powerOff case answered'); });
+})();

@@ -194,6 +194,27 @@ Unix seconds, `offset` in minutes (120 in Ljubljana in October), `timezone`
 `utc` matched `offset`. Watch time works its offset out from `localtime` and
 `utc`. Which of these fields older webOS versions give is not yet known.
 
+## Toasts as the screen comes on (C4, webOS 10.3.1)
+
+A toast sent through `com.webos.notification/createToast` in the moment
+`turnOnScreen` brings the screen back is accepted (`returnValue: true`) but not
+seen. The same toast sent with the screen already on is. Screen-time limits
+wait 5 seconds after the screen comes on before sending one.
+
+`turnOffScreen` while LG's screen saver is showing does not hold: tvpower goes
+from Screen Saver to Screen Off and back to Active 0.2 s later, with the screen
+on. From Active it holds. Screen-time limits dismiss the screen saver with
+Back first, as the screen saver tab does.
+
+## Switching off (C5, webOS 10.3.1)
+
+`power/powerOff` with reason `remoteKey` switched the TV off, going Active,
+Active Standby 3.3 s after the request, then Power Off 5.7 s later, but its
+answer was taken as a failure: a second `powerOff` with reason `localKey` got
+"com.webos.service.tvpower/power is busy". From Power Off, switching on with
+the remote booted the TV from scratch (uptime 42 s), so the server started
+again.
+
 ## The Magic Remote's battery (C4, webOS 10.3.1)
 
 `/mnt/lg/cmn_data/mrcu/mrcu1.info` is written when the remote pairs and not

@@ -92,6 +92,8 @@ var syslogModule = null;
 var ntpModule = null;
 /** @type {typeof import('./history')} */
 var historyModule = null;
+/** @type {typeof import('./screentime')} */
+var screentimeModule = null;
 /** @type {typeof import('./backup')} */
 var backupModule = null;
 var fromHbcFn = null;
@@ -1247,6 +1249,31 @@ function handleRequest(req, res) {
     return send(res, 200, JSON.stringify(historyReply));
   }
 
+  // Screen-time limits: GET for the Advanced tab, POST to change any of the settings.
+  if (pathname === '/api/screentime' && screentimeModule) {
+    if (req.method !== 'POST') {
+      var stReply = screentimeModule.status(Date.now());
+      stReply.ok = true;
+      stReply.writable = !!config.allowControl;
+      return send(res, 200, JSON.stringify(stReply));
+    }
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      var st = screentimeModule.validate(body);
+      if (st.error) return send(res, 400, JSON.stringify({ ok: false, error: st.error }));
+      writeSettings({ screenTime: st.value }, function (err) {
+        if (err) return send(res, 500, JSON.stringify({ ok: false, error: 'could not save setting: ' + err.message }));
+        screentimeModule.apply(st.value);
+        var stSaved = screentimeModule.status(Date.now());
+        stSaved.ok = true;
+        stSaved.writable = true;
+        send(res, 200, JSON.stringify(stSaved));
+      });
+    });
+  }
+
   if (pathname === '/api/cpu') {
     return telemetryModule.collectCpuProcesses(function (r) { send(res, 200, JSON.stringify(r)); });
   }
@@ -1649,6 +1676,7 @@ function init(opts) {
   if (opts.syslog) syslogModule = opts.syslog;
   if (opts.ntp) ntpModule = opts.ntp;
   if (opts.history) historyModule = opts.history;
+  if (opts.screentime) screentimeModule = opts.screentime;
   if (opts.backup) backupModule = opts.backup;
   if (opts.fromHomebrewChannel) fromHbcFn = opts.fromHomebrewChannel;
   if (opts.tileHidingOff) tileHidingOffMsg = opts.tileHidingOff;
