@@ -67,6 +67,8 @@ var HA_ENTITIES = [
   { id: 'pause', type: 'button', name: 'Pause', cat: 'controls' },
   { id: 'play_pause', type: 'button', name: 'Play / Pause', cat: 'controls' },
   { id: 'stop', type: 'button', name: 'Stop', cat: 'controls' },
+  { id: 'rewind', type: 'button', name: 'Rewind', cat: 'controls' },
+  { id: 'fast_forward', type: 'button', name: 'Fast Forward', cat: 'controls' },
   { id: 'screensaver', type: 'button', name: 'Screen Saver', cat: 'controls' },
   { id: 'screen_saver_active', type: 'binary_sensor', name: 'Screen Saver Active', cat: 'controls' },
   { id: 'screensaver_mode', type: 'select', name: 'Screen Saver Mode', cat: 'controls' },
@@ -1314,6 +1316,24 @@ function buildEntities(opts) {
           command_topic: topic.command('playback'),
           payload_press: 'stop',
           icon: 'mdi:stop'
+        }
+      },
+      {
+        type: 'button', id: 'rewind',
+        payload: {
+          name: 'Rewind',
+          command_topic: topic.command('playback'),
+          payload_press: 'rewind',
+          icon: 'mdi:rewind'
+        }
+      },
+      {
+        type: 'button', id: 'fast_forward',
+        payload: {
+          name: 'Fast Forward',
+          command_topic: topic.command('playback'),
+          payload_press: 'fastForward',
+          icon: 'mdi:fast-forward'
         }
       }
     ];
