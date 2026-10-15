@@ -92,6 +92,8 @@ var syslogModule = null;
 var ntpModule = null;
 /** @type {typeof import('./history')} */
 var historyModule = null;
+/** @type {typeof import('./sshkeys')} */
+var sshKeysModule = null;
 /** @type {typeof import('./screentime')} */
 var screentimeModule = null;
 /** @type {typeof import('./backup')} */
@@ -1250,6 +1252,44 @@ function handleRequest(req, res) {
     return send(res, 200, JSON.stringify(historyReply));
   }
 
+  /*
+   * The keys that may log in as root over SSH: GET lists them, POST adds one,
+   * removes one or deletes the file. A key is a way in that outlasts this
+   * server, so changing them needs a token, which every /api/ request has
+   * then been checked for. A request from the TV itself is not enough: a page
+   * in its browser reached through a rebinding name, or any app on the TV,
+   * comes from 127.0.0.1 too, and a key added that way is root.
+   */
+  if (pathname === '/api/ssh' && sshKeysModule) {
+    var sshNeedsToken = !config.token;
+    if (req.method !== 'POST') {
+      return sshKeysModule.status(function (r) {
+        r.writable = !!config.allowControl && !sshNeedsToken;
+        r.needsToken = !!config.allowControl && sshNeedsToken;
+        // A key's comment is often its owner's address: only for whoever could change the keys.
+        if (sshNeedsToken) {
+          (r.keys || []).forEach(function (k) { delete k.comment; delete k.options; });
+        }
+        send(res, 200, JSON.stringify(r));
+      });
+    }
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (sshNeedsToken) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.ssh.needsToken', 'Changing SSH keys needs a token in config.json.') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      var sshReply = function (r) {
+        if (r.ok) r.writable = true;
+        send(res, r.ok ? 200 : 400, JSON.stringify(r));
+      };
+      if (body.action === 'add') return sshKeysModule.add(body.key, sshReply);
+      if (body.action === 'remove') return sshKeysModule.remove(String(body.fingerprint || ''), sshReply);
+      if (body.action === 'deleteFile') return sshKeysModule.deleteFile(sshReply);
+      send(res, 400, JSON.stringify({ ok: false, error: 'unknown action' }));
+    });
+  }
   // Screen-time limits: GET for the Advanced tab, POST to change any of the settings.
   if (pathname === '/api/screentime' && screentimeModule) {
     if (req.method !== 'POST') {
@@ -1684,6 +1724,7 @@ function init(opts) {
   if (opts.syslog) syslogModule = opts.syslog;
   if (opts.ntp) ntpModule = opts.ntp;
   if (opts.history) historyModule = opts.history;
+  if (opts.sshKeys) sshKeysModule = opts.sshKeys;
   if (opts.screentime) screentimeModule = opts.screentime;
   if (opts.backup) backupModule = opts.backup;
   if (opts.fromHomebrewChannel) fromHbcFn = opts.fromHomebrewChannel;

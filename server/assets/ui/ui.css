@@ -1123,6 +1123,13 @@ footer{margin-top:38px;font-size:13px;letter-spacing:.08em;text-transform:upperc
 /* The days take the row's full width, under the title and the time, so all
    seven fit on one line. */
 #row-ontimer,#row-offtimer{flex-wrap:wrap}
+#ssh-row{flex-wrap:wrap}
+.ssh-body{flex-basis:100%;margin-top:-4px}
+.ssh-key{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--edge)}
+.ssh-key .ssh-k{flex:1;min-width:0}
+.ssh-key .ssh-print{color:var(--w60);font-size:12px;overflow-wrap:anywhere}
+.ssh-btns{margin-top:10px}
+#ssh-state.warn{color:var(--warn,#e5534b)}
 #backup-daily-row{flex-wrap:wrap}
 .backup-saved{flex-basis:100%;margin-top:-4px}
 .backup-saved .bk{display:flex;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--edge)}

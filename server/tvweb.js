@@ -74,6 +74,7 @@ var logsModule = require('./lib/logs');
 var syslogForwarder = require('./lib/syslog');
 var ntpClient = require('./lib/ntp');
 var history = require('./lib/history');
+var sshKeys = require('./lib/sshkeys');
 var screentime = require('./lib/screentime');
 var remoteBattery = require('./lib/remotebattery');
 var backup = require('./lib/backup');
@@ -819,6 +820,7 @@ routes.init({
   syslog: syslogForwarder,
   ntp: ntpClient,
   history: history,
+  sshKeys: sshKeys,
   screentime: screentime,
   backup: backup,
   configFile: CONFIG_FILE,
