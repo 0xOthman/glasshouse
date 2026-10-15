@@ -88,6 +88,8 @@ var devtoolsModule = null;
 var ntpModule = null;
 /** @type {typeof import('./history')} */
 var historyModule = null;
+/** @type {typeof import('./backup')} */
+var backupModule = null;
 var republishDiscoveryFn = null;
 var tvAppFn = null;
 var restartSelfFn = null;
@@ -936,6 +938,15 @@ function doControl(action, value, cb) {
         cb(getUpdateSummary());
       });
 
+    // Daily backups. Those already kept stay when it is switched off.
+    case 'setBackupDaily':
+      if (!writeSettingsFn || !backupModule) return cb({ ok: false, error: 'no backup configured' });
+      var dailyOn = (value === true || value === 'on' || value === 'true');
+      return writeSettingsFn({ backup: { daily: dailyOn } }, function (err) {
+        if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
+        backupModule.setDaily(dailyOn, function () { cb(getUpdateSummary()); });
+      });
+
     case 'clearHistory':
       if (!historyModule) return cb({ ok: false, error: 'no history configured' });
       historyModule.clear();
@@ -998,6 +1009,7 @@ function init(opts) {
   if (opts.devtools) devtoolsModule = opts.devtools;
   if (opts.ntp) ntpModule = opts.ntp;
   if (opts.history) historyModule = opts.history;
+  if (opts.backup) backupModule = opts.backup;
   if (opts.republishDiscovery) republishDiscoveryFn = opts.republishDiscovery;
   if (opts.tvApp) tvAppFn = opts.tvApp;
   if (opts.restartSelf) restartSelfFn = opts.restartSelf;

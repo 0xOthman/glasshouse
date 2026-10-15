@@ -20,6 +20,7 @@
  * through its usual preview, since a file anyone could edit should not decide
  * on its own what is installed or given root.
  */
+var fs = require('fs');
 var path = require('path');
 var util = require('./util');
 
@@ -50,6 +51,7 @@ var GLASSHOUSE = {
   },
   ntp: { server: isString, port: isPort, enabled: isBool },
   history: { enabled: isBool },
+  backup: { daily: isBool },
   prometheus: { enabled: isBool },
   update: { check: isBool }
 };
@@ -68,6 +70,23 @@ var keepApp = function (id) { return !!id; };
 var pendingFile = '/var/lib/tvweb/restore-apps.json';
 
 var DEVELOPER_APPS = '/media/developer/apps/';
+
+/*
+ * Daily backups, while config.backup.daily is on: one a day, named by its UTC
+ * date, the last KEEP_DAILY kept. Checked hourly while the server runs, as
+ * the TV is often off at any one time of day.
+ */
+var dailyDir = '/var/lib/tvweb/backups';
+var KEEP_DAILY = 7;
+var DAILY_CHECK_MS = 3600000;
+// After the server starts, so LG's settings services are up.
+var DAILY_FIRST_MS = 300000;
+// A clock before this has not been set yet (as ntp.js).
+var CLOCK_FLOOR_MS = Date.UTC(2026, 0, 1);
+var DAILY_NAME = /^glasshouse-backup-(\d{4}-\d{2}-\d{2})\.json$/;
+var dailyTimer = null;
+var dailyFirst = null;
+var nowMs = function () { return Date.now(); };
 
 // The developer apps installed, as { id: { title, version } }, or null when
 // the TV did not answer.
@@ -268,6 +287,85 @@ function restoreGlasshouse(src, lgResult, cb) {
   writeSettings(patch, done);
 }
 
+function dailyEnabled() {
+  return !!(config && config.backup && config.backup.daily === true);
+}
+
+// The daily backups kept, newest first: { name, date, size }.
+function saved() {
+  var files = [];
+  try { files = fs.readdirSync(dailyDir); } catch (e) {}
+  var out = [];
+  files.forEach(function (f) {
+    var m = DAILY_NAME.exec(f);
+    if (!m) return;
+    var size = 0;
+    try { size = fs.statSync(path.join(dailyDir, f)).size; } catch (e) { return; }
+    out.push({ name: f, date: m[1], size: size });
+  });
+  return out.sort(function (a, b) { return a.name < b.name ? 1 : -1; });
+}
+
+/**
+ * A daily backup's contents by its name, or null for a name not kept.
+ * @param {string} name
+ */
+function readSaved(name) {
+  if (!DAILY_NAME.test(String(name))) return null;
+  try { return fs.readFileSync(path.join(dailyDir, name), 'utf8'); } catch (e) { return null; }
+}
+
+/*
+ * Makes today's backup unless there is one, then deletes all but the newest
+ * KEEP_DAILY. Waits for the clock, which names it.
+ */
+function dailyCheck(cb) {
+  cb = cb || function () {};
+  if (!dailyEnabled() || nowMs() < CLOCK_FLOOR_MS) return cb(null);
+  var name = 'glasshouse-backup-' + new Date(nowMs()).toISOString().slice(0, 10) + '.json';
+  if (saved().some(function (s) { return s.name === name; })) return cb(null);
+  create(function (b) {
+    try {
+      util.mkdirp(dailyDir);
+      util.writeJsonAtomic(path.join(dailyDir, name), b);
+    } catch (e) {
+      console.error('backup: could not write ' + name + ': ' + e.message);
+      return cb(null);
+    }
+    saved().slice(KEEP_DAILY).forEach(function (s) { util.unlinkQuiet(path.join(dailyDir, s.name)); });
+    console.log('backup: saved ' + name);
+    cb(name);
+  });
+}
+
+function startDaily() {
+  stopDaily();
+  if (!dailyEnabled()) return;
+  dailyFirst = setTimeout(function () { dailyFirst = null; dailyCheck(); }, DAILY_FIRST_MS);
+  dailyTimer = setInterval(dailyCheck, DAILY_CHECK_MS);
+}
+
+function stopDaily() {
+  if (dailyFirst) { clearTimeout(dailyFirst); dailyFirst = null; }
+  if (dailyTimer) { clearInterval(dailyTimer); dailyTimer = null; }
+}
+
+// The Server tab's switch. Turning it on makes today's backup straight away.
+function setDaily(on, cb) {
+  if (config) {
+    config.backup = config.backup || {};
+    config.backup.daily = !!on;
+  }
+  if (!on) { stopDaily(); return cb(); }
+  startDaily();
+  dailyCheck(function () { cb(); });
+}
+
+// For the Server tab: whether daily backups are on, and those kept.
+function dailyStatus() {
+  return { enabled: dailyEnabled(), saved: saved() };
+}
+
 /**
  * @param {Object} opts
  * @param {typeof import('./lgsettings')} opts.lgSettings
@@ -281,6 +379,8 @@ function restoreGlasshouse(src, lgResult, cb) {
  * @param {function(string): boolean} [opts.keepApp] whether an app id belongs
  *   in a backup: not the Homebrew Channel or Glasshouse itself
  * @param {string} [opts.pendingFile] where the apps left to install are kept
+ * @param {string} [opts.dailyDir] where daily backups are kept, for tests
+ * @param {function(): number} [opts.now] wall clock, for tests
  */
 function init(opts) {
   lgSettings = opts.lgSettings;
@@ -291,6 +391,8 @@ function init(opts) {
   repo = opts.repo || null;
   if (opts.keepApp) keepApp = opts.keepApp;
   if (opts.pendingFile) pendingFile = opts.pendingFile;
+  if (opts.dailyDir) dailyDir = opts.dailyDir;
+  if (opts.now) nowMs = opts.now;
 }
 
 module.exports = {
@@ -301,5 +403,13 @@ module.exports = {
   restore: restore,
   pendingApps: pendingApps,
   clearPendingApps: clearPendingApps,
-  pickGlasshouse: pickGlasshouse
+  pickGlasshouse: pickGlasshouse,
+  KEEP_DAILY: KEEP_DAILY,
+  startDaily: startDaily,
+  stopDaily: stopDaily,
+  dailyCheck: dailyCheck,
+  setDaily: setDaily,
+  dailyStatus: dailyStatus,
+  saved: saved,
+  readSaved: readSaved
 };

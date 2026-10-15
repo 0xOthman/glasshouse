@@ -1151,6 +1151,14 @@
           <div class="sub" id="backup-msg" hidden></div>
         </div>
       </div>
+      <div class="prot-row" id="backup-daily-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.backup.daily">Daily backup</div>
+          <div class="prot-desc" data-t="server.backup.daily.desc">Saves the same backup on the TV once a day, and keeps the last 7. Each can be downloaded or restored here.</div>
+        </div>
+        <div class="prot-status"><button type="button" class="pill idle" id="backup-daily" onclick="toggleBackupDaily()">&mdash;</button></div>
+        <div class="backup-saved" id="backup-saved" hidden></div>
+      </div>
       <!-- Hidden where the TV will not take the app; renderTvApp shows it. -->
       <div class="prot-row" id="tvapp-row" hidden>
         <div class="prot-main">

@@ -15,6 +15,7 @@ riskier controls ask for confirmation in the dashboard first.
 | Home-screen tile | The Homebrew Channel app, or with `deploy.sh` a developer app | Removing the app |
 | Packages being installed | `/media/developer/temp/glasshouse-install`, deleted when the install ends or at the next start | Itself |
 | Watch time, while switched on in the Server tab | `/var/lib/tvweb/history`, a file for each month, kept for 13 months | **Clear history** in the Server tab, or uninstalling |
+| Daily backups, while switched on in the Server tab | `/var/lib/tvweb/backups`, one file a day, the last 7 kept | Uninstalling |
 | Install job and services run as root | `install-job.json` and `elevated.json` in `/var/lib/tvweb` | Uninstalling |
 
 Installed from the Homebrew Channel, uninstalling the app stops the server

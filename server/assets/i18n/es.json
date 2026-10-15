@@ -2415,17 +2415,37 @@
   "text": "¿Restaurar los ajustes guardados de {tv} el {date}? Esto cambia los ajustes de LG en esta TV.",
   "from": "Restore the settings saved from {tv} on {date}? This changes LG’s settings on this TV."
  },
+ "server.backup.daily": {
+  "text": "Copia de seguridad diaria",
+  "from": "Daily backup"
+ },
+ "server.backup.daily.desc": {
+  "text": "Guarda la misma copia de seguridad en el televisor una vez al día y conserva las 7 últimas. Cada una se puede descargar o restaurar aquí.",
+  "from": "Saves the same backup on the TV once a day, and keeps the last 7. Each can be downloaded or restored here."
+ },
  "server.backup.desc": {
   "text": "Guarda en un archivo los ajustes de sonido, dispositivos, HDMI y anuncios de LG, y los de Glasshouse. Al restaurarlo, en esta TV u otra, se aplican los que la TV tenga. No incluye el acceso por red, MQTT ni los ajustes de juego.",
   "from": "Saves LG's sound, device, HDMI and ad settings, and Glasshouse's own, to a file. Restoring it, on this TV or another, sets those the TV has. Network access, MQTT and game settings are not included."
+ },
+ "server.backup.download": {
+  "text": "Descargar",
+  "from": "Download"
  },
  "server.backup.failedSome": {
   "text": "{count} no se pudieron aplicar.",
   "from": "{count} could not be set."
  },
+ "server.backup.kb": {
+  "text": "{kb} KB",
+  "from": "{kb} KB"
+ },
  "server.backup.notBackup": {
   "text": "Ese archivo no es una copia de seguridad de Glasshouse",
   "from": "That file is not a Glasshouse backup"
+ },
+ "server.backup.readFailed": {
+  "text": "No se pudo leer esa copia de seguridad — {error}",
+  "from": "Could not read that backup — {error}"
  },
  "server.backup.restarting": {
   "text": "Glasshouse se reinicia para aplicar sus propios ajustes.",
@@ -2438,6 +2458,10 @@
  "server.backup.restoreFailed": {
   "text": "No se pudo restaurar — {error}",
   "from": "Could not restore — {error}"
+ },
+ "server.backup.restoreSaved": {
+  "text": "Restaurar",
+  "from": "Restore"
  },
  "server.backup.restored": {
   "text": "Se cambiaron {changed} ajustes de LG, {same} ya estaban así y {skipped} se omitieron porque esta TV no los tiene o no están disponibles ahora.",

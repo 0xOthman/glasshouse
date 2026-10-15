@@ -256,6 +256,14 @@ var CONFIG = {
     enabled: false
   },
 
+  /*
+   * A backup of the settings each day, as the Server tab's Download backup
+   * makes, kept in /var/lib/tvweb/backups for the last 7 days. Off by default.
+   */
+  backup: {
+    daily: false
+  },
+
   device: {
     id: 'lg_tv',
     name: '',
@@ -560,6 +568,7 @@ controls.init({
   devtools: devtools,
   ntp: ntpClient,
   history: history,
+  backup: backup,
   republishDiscovery: function () { republishDiscovery(); },
   tvApp: tvApp,
   restartSelf: restartSelf,
@@ -833,6 +842,7 @@ backup.init({
     return installer.SELF_UPDATING.indexOf(id) === -1 && !appsModule.PROTECTED_APP_IDS[id];
   }
 });
+if (!CLI_MODE) backup.startDaily();
 
 if (WEB_ENABLED && !CLI_MODE) routes.loadUI();   // otherwise nothing will serve it
 
