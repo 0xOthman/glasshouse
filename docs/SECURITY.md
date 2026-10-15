@@ -163,8 +163,9 @@ telnet.
 no root access, and recovery means re-rooting the TV.
 
 A key is a way in that outlasts the dashboard, so the Server tab changes keys
-only with a `token` set, or from the TV's own browser; without a token it only
-lists them. Its **Delete the key file** puts the `alpine` password back from
+only with a `token` set, even from the TV itself: a page in the TV's browser
+reached through a rebinding name, or any app on the TV, also connects from the
+TV. Without a token it only lists them, by fingerprint. Its **Delete the key file** puts the `alpine` password back from
 the next reboot, for a TV whose keys are lost; add a key again straight after.
 
 `deploy.sh` prefers SSH and falls back to telnet automatically, so it keeps

@@ -6584,8 +6584,8 @@
   "from": "Could not delete {file}: {error}"
  },
  "srv.ssh.needsToken": {
-  "text": "Cambiar las claves SSH requiere un token en config.json, o el navegador del propio televisor.",
-  "from": "Changing SSH keys needs a token in config.json, or the TV's own browser."
+  "text": "Cambiar las claves SSH requiere un token en config.json.",
+  "from": "Changing SSH keys needs a token in config.json."
  },
  "srv.ssh.noSuchKey": {
   "text": "Esa clave no está.",

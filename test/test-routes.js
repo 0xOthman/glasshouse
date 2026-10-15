@@ -1203,12 +1203,12 @@ function createMockRes(cb) {
   console.log('  ✓ /api/oledcare is unavailable on a TV without an OLED panel');
 })();
 
-// SSH keys are a way in that outlasts the server: changing them needs a token,
-// or a request from the TV itself.
+// SSH keys are a way in that outlasts the server: changing them needs a
+// token, even from the TV itself, and without one the comments are not shown.
 (function testSshKeysNeedToken() {
   var added = [];
   var keys = {
-    status: function (cb) { cb({ ok: true, keys: [] }); },
+    status: function (cb) { cb({ ok: true, keys: [{ type: 'ssh-ed25519', comment: 'me@example.com', options: '', fingerprint: 'SHA256:x' }] }); },
     add: function (key, cb) { added.push(key); cb({ ok: true, keys: [] }); },
     remove: function (p, cb) { cb({ ok: true, keys: [] }); },
     deleteFile: function (cb) { cb({ ok: true, keys: [] }); }
@@ -1233,19 +1233,25 @@ function createMockRes(cb) {
   assert.strictEqual(r.code, 403);
   assert.deepEqual(added, [], 'nothing added from the network without a token');
 
+  r = call('', 'GET', '/api/ssh', '192.168.8.10');
+  assert.strictEqual(r.body.keys[0].comment, undefined, 'no comment without a token');
+  assert.strictEqual(r.body.keys[0].fingerprint, 'SHA256:x');
+
+  // A rebinding page in the TV's browser, or an app on the TV, comes from 127.0.0.1 too.
   r = call('', 'POST', '/api/ssh', '127.0.0.1', add);
-  assert.strictEqual(r.code, 200, 'the TV itself');
-  assert.strictEqual(added.length, 1);
+  assert.strictEqual(r.code, 403, 'not from the TV itself either');
+  assert.deepEqual(added, []);
 
   r = call('secret', 'POST', '/api/ssh', '192.168.8.10', add);
   assert.strictEqual(r.code, 401, 'the token is checked first');
   r = call('secret', 'POST', '/api/ssh?k=secret', '192.168.8.10', add);
   assert.strictEqual(r.code, 200);
-  assert.strictEqual(added.length, 2);
+  assert.strictEqual(added.length, 1);
   r = call('secret', 'GET', '/api/ssh?k=secret', '192.168.8.10');
   assert.strictEqual(r.body.writable, true);
   assert.strictEqual(r.body.needsToken, false);
-  console.log('  ✓ SSH keys can be changed only with a token, or from the TV itself');
+  assert.strictEqual(r.body.keys[0].comment, 'me@example.com');
+  console.log('  ✓ SSH keys can be changed only with a token, even from the TV itself, and their comments shown only with it');
 })();
 
 // Opening the dashboard in setup unsets host (dual-stack); closing it binds
