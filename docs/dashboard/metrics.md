@@ -22,7 +22,8 @@ Shown while **Watch time** is on in the [Server tab](server.md#glasshouse). It
 is off until then, as it records what the household watches. While on, the
 server counts how long the screen is on with each app or input in front, and
 the time the TV is on with its panel off, such as music, apart as **Screen
-off**. The card shows today, the last 7 days and the last 30 days, a bar for
+off**, and the time LG's screen saver shows apart as **Screen saver**. Neither
+counts in the totals or the bars. The card shows today, the last 7 days and the last 30 days, a bar for
 each of the last 14 days with the five most watched apps and inputs over 30
 days, and the time for each of them. It updates every 30 seconds while the tab
 is open.

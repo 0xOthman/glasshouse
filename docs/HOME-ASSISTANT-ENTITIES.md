@@ -110,7 +110,7 @@ of Unknowns.
 | `sensor` | `sensor.lg_tv_flash_wear` | Flash Wear Level | JEDEC write-cycle consumption (`0–10%`) |
 | `sensor` | `sensor.lg_tv_mac_address` | MAC Address | MAC address of the interface the TV is using (diagnostic) |
 | `sensor` | `sensor.lg_tv_uptime` | Uptime | When the TV's processor last booted; standby does not reset it (diagnostic) |
-| `sensor` | `sensor.lg_tv_watch_time_today` | Watch Time Today | Hours the screen has been on since the TV's local midnight, not counting time with the panel off (`h`). Published only while **Watch time** is on in the Server tab |
+| `sensor` | `sensor.lg_tv_watch_time_today` | Watch Time Today | Hours the screen has been on since the TV's local midnight, not counting time with the panel off or LG's screen saver showing (`h`). Published only while **Watch time** is on in the Server tab |
 | `sensor` | `sensor.lg_tv_watch_time_week` | Watch Time, Last 7 Days | The same over today and the six days before it (`h`) |
 | `sensor` | `sensor.lg_tv_watch_top_app_today` | Most Watched Today | The app or input on screen longest today |
 | `sensor` | `sensor.lg_tv_tvweb_version` | Server Version | Version of this server, not TV firmware (diagnostic) |

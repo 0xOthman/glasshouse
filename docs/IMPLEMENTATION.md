@@ -802,7 +802,9 @@ change of error state.
 is on with each app or input in front. It follows the live `power` and
 `application` subscriptions, and starts the `application` one itself, which the
 MQTT bridge otherwise starts only with a broker. Off, or on with the panel off,
-is counted as nothing and as `screen_off`.
+is counted as nothing and as `screen_off`, and LG's screen saver as
+`screen_saver`, from tvpower's Screen Saver state: the foreground app stays
+the one it draws over. Home Assistant's watch-time sensors leave both out.
 
 Each change closes a segment measured on the monotonic clock. The wall clock
 places it: it is often wrong for a while after boot, until the broadcast time

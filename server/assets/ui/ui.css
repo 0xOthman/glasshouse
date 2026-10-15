@@ -1000,6 +1000,7 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .wb-stack b{display:block;flex:none}
 .w-sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:9px;vertical-align:0}
 .w-sw.ws-off{border:1px solid var(--w40)}
+.w-sw.ws-saver{border:1px dashed var(--w40)}
 /* ---- HDMI port grid ----
    Four tiles representing the TV's physical HDMI port bay. State is
    carried by line weight, opacity, and port jack silhouette on true black. */

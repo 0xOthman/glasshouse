@@ -16,6 +16,7 @@
 var fs = require('fs');
 var path = require('path');
 var util = require('./util');
+var names = require('./names');
 
 var DIR = '/var/lib/tvweb/history';
 // While the screen is on. Switching off writes at once; a power cut loses at most this.
@@ -27,6 +28,8 @@ var DAY_MS = 86400000;
 var CLOCK_FLOOR_MS = Date.UTC(2026, 0, 1);
 // The TV on with its screen off, such as music with the panel off.
 var SCREEN_OFF = 'screen_off';
+// LG's screen saver drawing over whatever is in front.
+var SCREEN_SAVER = 'screen_saver';
 var OFFSET_REFRESH_MS = HOUR_MS;
 
 var config = null;
@@ -195,13 +198,16 @@ function scheduleFlush() {
 
 /*
  * What is being counted for a state: nothing with the TV off, screen_off with
- * the panel off, otherwise the app or input in front.
+ * the panel off, screen_saver while LG's screen saver shows, otherwise the app
+ * or input in front. tvpower is the only source for the screen saver: the
+ * foreground app stays the one it draws over.
  */
 function keyFor(snap) {
   var power = snap.power || {};
   var app = snap.application || {};
   if (power.systemOn !== true) return null;
   if (power.screenOn !== true) return SCREEN_OFF;
+  if (names.powerState(power.state) === names.POWER_STATES.screensaver) return SCREEN_SAVER;
   return app.app || null;
 }
 
@@ -351,17 +357,20 @@ function sumSince(sinceMs) {
   return out;
 }
 
+// Screen off and screen saver time is the TV on with nothing being watched.
+function isIdle(key) { return key === SCREEN_OFF || key === SCREEN_SAVER; }
+
 function watched(byKey) {
   var s = 0;
-  for (var k in byKey) if (k !== SCREEN_OFF) s += byKey[k];
+  for (var k in byKey) if (!isIdle(k)) s += byKey[k];
   return s;
 }
 
 /*
  * Today and the last 7 days on the TV's local calendar, for Home Assistant,
- * or null while off. Screen-off time is left out of both. Hours are whole UTC
- * hours, so a time zone with a half-hour offset starts its day up to 30
- * minutes off.
+ * or null while off. Screen-off and screen saver time is left out of both.
+ * Hours are whole UTC hours, so a time zone with a half-hour offset starts its
+ * day up to 30 minutes off.
  */
 function summary() {
   if (!running) return null;
@@ -374,7 +383,7 @@ function summary() {
   var week = sumSince(dayStart - 6 * DAY_MS);
   var top = null;
   for (var k in today) {
-    if (k !== SCREEN_OFF && (top === null || today[k] > today[top])) top = k;
+    if (!isIdle(k) && (top === null || today[k] > today[top])) top = k;
   }
   return {
     today_h: Math.round(watched(today) / 36) / 100,
@@ -424,6 +433,8 @@ function init(opts) {
 
 module.exports = {
   SCREEN_OFF: SCREEN_OFF,
+  SCREEN_SAVER: SCREEN_SAVER,
+  isIdle: isIdle,
   init: init,
   start: start,
   stop: stop,
