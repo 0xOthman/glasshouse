@@ -831,6 +831,13 @@ come before an app's. At a limit it shows a toast through
 limit is still due, so turning the screen off or leaving the app in that
 minute cancels it. Each warning is shown once per local day.
 
+A toast sent as the screen comes on is not shown while the panel wakes (C4,
+webOS 10.3.1), so after the screen comes on the check waits 5 seconds. The TV
+reports itself on before its screen does, so a TV switched back on after the
+daily limit or bedtime switched it off gets its toast once the screen is on,
+the screen off 10 seconds later, and the TV off after 5 minutes, unless the
+limit has been changed by then.
+
 ## Reading the Magic Remote's battery
 
 LG's pairing file has only the remote model's battery thresholds, so

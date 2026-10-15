@@ -162,6 +162,13 @@ Unix seconds, `offset` in minutes (120 in Ljubljana in October), `timezone`
 `utc` matched `offset`. Watch time works its offset out from `localtime` and
 `utc`. Which of these fields older webOS versions give is not yet known.
 
+## Toasts as the screen comes on (C4, webOS 10.3.1)
+
+A toast sent through `com.webos.notification/createToast` in the moment
+`turnOnScreen` brings the screen back is accepted (`returnValue: true`) but not
+seen. The same toast sent with the screen already on is. Screen-time limits
+wait 5 seconds after the screen comes on before sending one.
+
 ## The Magic Remote's battery (C4, webOS 10.3.1)
 
 `/mnt/lg/cmn_data/mrcu/mrcu1.info` is written when the remote pairs and not

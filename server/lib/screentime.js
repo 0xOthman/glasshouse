@@ -7,8 +7,8 @@
  *
  * Checked every 30 seconds and at each change of app, input or screen. Five
  * minutes before a limit the TV shows a toast; at the limit it shows another
- * and acts a minute later, so a TV switched on after its limit or in bedtime
- * gets the same warning before it goes off again.
+ * and acts a minute later. A TV switched back on after a limit switched it
+ * off gets the toast, its screen off and 5 minutes before it goes off again.
  */
 /** @type {typeof import('./history')} */
 var history = require('./history');
@@ -16,6 +16,12 @@ var history = require('./history');
 var CHECK_MS = 30000;
 var WARN_S = 300;
 var GRACE_MS = 60000;
+// Switched back on after its limit switched it off: the screen off once the
+// toast has been read, and the TV off later.
+var BLANK_MS = 10000;
+var AGAIN_MS = 300000;
+// After the screen comes on, before a toast can be seen.
+var SETTLE_MS = 5000;
 var DAY_MS = 86400000;
 var MAX_APPS = 50;
 
@@ -27,6 +33,7 @@ var THEN = {
   screenOff: 'The screen goes off in a minute.',
   home: 'Going to Home in a minute.'
 };
+var AGAIN = 'The screen goes off now, and the TV switches off in 5 minutes unless the limit is changed in Glasshouse.';
 var DEFAULTS = {
   enabled: false, dailyMinutes: 0, bedtimeStart: '', bedtimeEnd: '',
   action: 'off', appAction: 'home', apps: {}
@@ -44,8 +51,12 @@ var later = function (fn, ms) {
 var checkTimer = null;
 var listening = false;
 var running = false;
-// The action waiting out its minute: { id, cancel }.
+// The action waiting out its minute, or its 5 minutes: { id, cancel }.
 var pending = null;
+// The whole TV's limits that have switched it off, until no longer reached.
+var switchedOff = {};
+var settling = false;
+var wasScreenOn = false;
 // Toasts already shown today, by id, so each is shown once.
 var warned = {};
 var warnedDay = null;
@@ -131,11 +142,12 @@ function warnOnce(id, text) {
   toast(text);
 }
 
-function run(action) {
+function run(action, id) {
   var done = function (r) {
     if (!r || !r.ok) console.error('screentime: ' + action + ' failed: ' + ((r && r.error) || 'no answer'));
   };
-  console.log('screentime: limit reached, ' + action);
+  console.log('screentime: ' + (id || 'limit') + ', ' + action);
+  if (action === 'off' && (id === 'daily' || id === 'bedtime')) switchedOff[id] = true;
   if (action === 'off') control('powerOff', null, done);
   else if (action === 'screenOff') control('screenOff', null, done);
   else if (action === 'home') control('rcu', 'home', done);
@@ -147,10 +159,10 @@ function cancelPending() {
 }
 
 /*
- * What is due now: { id, action, text } for a limit reached, or null. The
- * whole TV's limits come before an app's.
+ * The whole TV's limit reached, { id, action, text }, or null. Warns of one
+ * coming when screenOn.
  */
-function evaluate(s, key, local, today) {
+function tvDue(s, local, today, screenOn) {
   var tvLeft = Infinity, tvWhy = null;
   var bed = bedtime(s, local);
   if (bed && bed.inside) {
@@ -164,12 +176,15 @@ function evaluate(s, key, local, today) {
   if (tvWhy === 'daily' && tvLeft <= 0) {
     return { id: 'daily', action: s.action, text: 'Today\'s screen time is used up.' };
   }
-  if (tvWhy && tvLeft <= WARN_S) {
+  if (screenOn && tvWhy && tvLeft <= WARN_S) {
     warnOnce('soon:' + tvWhy, tvWhy === 'bedtime' ?
       'Bedtime in ' + minutesText(tvLeft) + '.' :
       minutesText(tvLeft) + ' of screen time left today.');
   }
+  return null;
+}
 
+function appDue(s, key, today) {
   var limit = s.apps[key];
   if (!limit) return null;
   var appLeft = limit * 60 - (today[key] || 0);
@@ -180,21 +195,80 @@ function evaluate(s, key, local, today) {
   return null;
 }
 
-function due() {
+/*
+ * Where the limits stand: { tv, app, key, screenOn } with what is due, or
+ * null while they do not apply (off, the TV off, or the clock unset).
+ */
+function assess() {
   var s = settings();
   if (!running || !s.enabled || !liveState) return null;
   var key = history.keyFor(liveState.state.snapshot());
-  if (!key || key === history.SCREEN_OFF) return null;
+  if (!key) return null;
   var local = history.localNow();
   var today = history.today();
   if (local === null || !today) return null;
   var day = new Date(local).toISOString().slice(0, 10);
   if (day !== warnedDay) { warned = {}; warnedDay = day; }
-  return evaluate(s, key, local, today);
+  var screenOn = key !== history.SCREEN_OFF;
+  return {
+    tv: tvDue(s, local, today, screenOn),
+    app: screenOn ? appDue(s, key, today) : null,
+    key: key,
+    screenOn: screenOn
+  };
+}
+
+/*
+ * Switched back on after the TV was switched off at this limit: the toast,
+ * the screen off soon after, and the TV off in 5 minutes, which leaves time
+ * to change the limit from Glasshouse. The screen goes off again if it comes
+ * back on in that time.
+ */
+function afterSwitchedOff(d, screenOn) {
+  if (!pending || pending.id !== 'again:' + d.id) {
+    cancelPending();
+    var id = d.id;
+    pending = {
+      id: 'again:' + id,
+      told: false,
+      blanking: false,
+      cancel: later(function () {
+        pending = null;
+        var now = assess();
+        if (now && now.tv && now.tv.id === id && switchedOff[id]) run('off', id);
+      }, AGAIN_MS)
+    };
+  }
+  if (!screenOn || pending.blanking) return;
+  // The TV reports itself on before its screen, so the toast waits for the screen.
+  if (pending.told) return blankSoon(0);
+  pending.told = true;
+  toast(d.text + ' ' + AGAIN);
+  blankSoon(BLANK_MS);
+}
+
+function blankSoon(ms) {
+  var mine = pending;
+  mine.blanking = true;
+  var blank = function () {
+    mine.blanking = false;
+    if (pending === mine) run('screenOff');
+  };
+  if (!ms) return blank();
+  var cancelWait = mine.cancel;
+  var cancelBlank = later(blank, ms);
+  mine.cancel = function () { cancelWait(); cancelBlank(); };
 }
 
 function check() {
-  var d = due();
+  // The screen has just come on; the check after SETTLE_MS takes it.
+  if (settling) return;
+  var a = assess();
+  if (!a) return cancelPending();
+  for (var id in switchedOff) if (!a.tv || a.tv.id !== id) delete switchedOff[id];
+  if (a.tv && a.tv.action === 'off' && switchedOff[a.tv.id]) return afterSwitchedOff(a.tv, a.screenOn);
+  if (!a.screenOn) return cancelPending();
+  var d = a.tv || a.app;
   if (!d) return cancelPending();
   if (d.action === 'warn') {
     cancelPending();
@@ -204,15 +278,34 @@ function check() {
   cancelPending();
   // Said each time it comes due, as the TV may have just been switched back on.
   toast(d.text + ' ' + THEN[d.action]);
-  var id = d.id;
+  var due = d.id;
   pending = {
-    id: id,
+    id: due,
     cancel: later(function () {
       pending = null;
-      var now = due();
-      if (now && now.id === id && now.action !== 'warn') run(now.action);
+      var now = assess();
+      var still = now && now.screenOn && (now.tv || now.app);
+      if (still && still.id === due && still.action !== 'warn') run(still.action, due);
     }, GRACE_MS)
   };
+}
+
+/*
+ * A toast sent as the screen comes on is not shown: the panel is still
+ * waking. Seen on a C4 (webOS 10.3.1), switching the screen back on.
+ */
+function powerChanged() {
+  var a = liveState.state.snapshot();
+  var screenOn = !!(a.power && a.power.systemOn === true && a.power.screenOn === true);
+  var cameOn = screenOn && !wasScreenOn;
+  wasScreenOn = screenOn;
+  if (!cameOn) return check();
+  if (settling) return;
+  settling = true;
+  later(function () {
+    settling = false;
+    check();
+  }, SETTLE_MS);
 }
 
 function start() {
@@ -220,9 +313,13 @@ function start() {
   running = true;
   if (liveState && !listening) {
     listening = true;
+    var p = liveState.state.snapshot().power || {};
+    wasScreenOn = p.systemOn === true && p.screenOn === true;
     // After history's own listener, so the time is counted first.
     liveState.state.onChange(function (ev) {
-      if (ev.group === 'power' || (ev.group === 'application' && ev.key === 'app')) check();
+      if (!running) return;
+      if (ev.group === 'power') powerChanged();
+      else if (ev.group === 'application' && ev.key === 'app') check();
     });
   }
   checkTimer = setInterval(check, CHECK_MS);
@@ -290,6 +387,9 @@ function init(opts) {
   liveState = opts.liveState || null;
   control = opts.control;
   if (opts.later) later = opts.later;
+  switchedOff = {};
+  settling = false;
+  wasScreenOn = false;
   warned = {};
   warnedDay = null;
 }

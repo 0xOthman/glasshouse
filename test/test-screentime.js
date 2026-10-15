@@ -47,8 +47,8 @@ function setup(limits, historyOn) {
       if (action === 'toast') toasts.push(value); else calls.push(value ? action + ':' + value : action);
       cb({ ok: true });
     },
-    later: function (fn) {
-      var entry = { fn: fn, cancelled: false };
+    later: function (fn, ms) {
+      var entry = { fn: fn, ms: ms, cancelled: false };
       waiting.push(entry);
       return function () { entry.cancelled = true; };
     }
@@ -57,16 +57,27 @@ function setup(limits, historyOn) {
   return {
     state: state, calls: calls, toasts: toasts,
     advance: function (ms) { clock.wall += ms; clock.mono += ms; screentime.check(); },
-    // The minute's grace running out.
-    elapse: function () {
-      var due = waiting.splice(0);
+    // The wait of ms running out: the minute's grace unless given.
+    elapse: function (ms) {
+      ms = ms || 60000;
+      var due = waiting.filter(function (e) { return e.ms === ms; });
+      waiting = waiting.filter(function (e) { return e.ms !== ms; });
       due.forEach(function (e) { if (!e.cancelled) e.fn(); });
+    },
+    // The screen coming on, and the seconds before a toast is seen.
+    screen: function (on) {
+      state.update('power', 'screenOn', on);
+      if (on) this.elapse(5000);
     },
     on: function (app) {
       state.update('power', 'systemOn', true);
-      state.update('power', 'screenOn', true);
       state.update('application', 'app_id', app);
       state.update('application', 'app', app);
+      this.screen(true);
+    },
+    off: function () {
+      state.update('power', 'systemOn', false);
+      state.update('power', 'screenOn', false);
     },
     done: function () { screentime.stop(); history.stop(); }
   };
@@ -96,7 +107,7 @@ function setup(limits, historyOn) {
   var tv = setup({ dailyMinutes: 30, action: 'off' });
   tv.on('netflix');
   tv.advance(31 * 60000);
-  tv.state.update('power', 'screenOn', false);
+  tv.screen(false);
   tv.elapse();
   assert.deepEqual(tv.calls, [], 'the screen went off within the minute');
   tv.done();
@@ -162,6 +173,59 @@ function setup(limits, historyOn) {
   assert.strictEqual(screentime.status(T).historyOn, false);
   tv.done();
   console.log('  ✓ nothing is limited while watch time is off');
+})();
+
+(function testToastWaitsForScreen() {
+  var tv = setup({ apps: { netflix: 10 }, appAction: 'screenOff' });
+  tv.on('netflix');
+  tv.advance(11 * 60000);
+  tv.elapse();
+  assert.deepEqual(tv.calls, ['screenOff']);
+  tv.screen(false);
+  tv.state.update('power', 'screenOn', true);
+  tv.advance(1000);
+  assert.strictEqual(tv.toasts.length, 1, 'no toast while the panel wakes');
+  tv.elapse(5000);
+  assert.strictEqual(tv.toasts[1], 'Today\'s time for this is used up. The screen goes off in a minute.');
+  tv.done();
+  console.log('  ✓ a toast waits five seconds after the screen comes on');
+})();
+
+(function testSwitchedBackOn() {
+  var again = 'Today\'s screen time is used up. The screen goes off now, and the TV switches off in 5 minutes unless the limit is changed in Glasshouse.';
+  var tv = setup({ dailyMinutes: 30, action: 'off' });
+  tv.on('netflix');
+  tv.advance(31 * 60000);
+  tv.elapse();
+  assert.deepEqual(tv.calls, ['powerOff']);
+  tv.off();
+
+  tv.on('netflix');
+  assert.strictEqual(tv.toasts[tv.toasts.length - 1], again);
+  tv.elapse();
+  assert.deepEqual(tv.calls, ['powerOff'], 'not off after a minute');
+  tv.elapse(10000);
+  assert.deepEqual(tv.calls, ['powerOff', 'screenOff'], 'the screen off once the toast is read');
+  tv.screen(false);
+  // A key wakes the screen: off again, with no new toast.
+  var toasts = tv.toasts.length;
+  tv.screen(true);
+  assert.deepEqual(tv.calls, ['powerOff', 'screenOff', 'screenOff']);
+  assert.strictEqual(tv.toasts.length, toasts);
+  tv.screen(false);
+  tv.advance(4 * 60000);
+  tv.elapse(300000);
+  assert.deepEqual(tv.calls, ['powerOff', 'screenOff', 'screenOff', 'powerOff']);
+  tv.off();
+
+  // Raised from Glasshouse within the 5 minutes.
+  tv.on('netflix');
+  tv.elapse(10000);
+  screentime.apply({ dailyMinutes: 120 });
+  tv.elapse(300000);
+  assert.deepEqual(tv.calls.slice(4), ['screenOff'], 'stays on');
+  tv.done();
+  console.log('  ✓ switched back on after its limit: the screen off, and the TV off 5 minutes later unless the limit is changed');
 })();
 
 (function testValidate() {
