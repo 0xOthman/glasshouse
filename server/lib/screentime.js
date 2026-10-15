@@ -404,7 +404,11 @@ function stop() {
   if (checkTimer) { clearInterval(checkTimer); checkTimer = null; }
 }
 
-// Applies saved settings: restarts the checks, as a limit raised may cancel what is pending.
+/*
+ * Applies saved settings: restarts the checks, as a limit raised may cancel
+ * what is pending. A change made in Glasshouse also ends a switch-off's 5
+ * minutes, as its toast says, so it is forgotten.
+ */
 function apply(patch) {
   if (config) {
     config.screenTime = config.screenTime || {};
@@ -412,6 +416,10 @@ function apply(patch) {
   }
   stop();
   warned = {};
+  if (Object.keys(switchedOff).length) {
+    switchedOff = {};
+    saveSwitchedOff();
+  }
   start();
 }
 

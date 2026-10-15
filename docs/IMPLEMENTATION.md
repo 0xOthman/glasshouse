@@ -837,8 +837,9 @@ reports itself on before its screen does, so a TV switched back on after the
 daily limit or bedtime switched it off gets its toast once the screen is on,
 the screen off 10 seconds later, and the TV off after 5 minutes, unless the
 limit has been changed by then. That the limit switched it off is kept in
-`/var/lib/tvweb/screentime.json` until the limit no longer applies, as a C5
-(webOS 10.3.1) shuts down fully and starts the server again when switched on.
+`/var/lib/tvweb/screentime.json` until the limit no longer applies or the
+settings are changed, as a C5 (webOS 10.3.1) shuts down fully and starts the
+server again when switched on.
 
 Turning the screen off over LG's screen saver does not hold, so when it is
 showing, Back dismisses it first and the screen goes off 1.5 seconds later.

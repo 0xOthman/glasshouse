@@ -252,11 +252,11 @@ function setup(limits, historyOn) {
   assert.deepEqual(tv.calls, ['powerOff', 'screenOff']);
   tv.elapse(3000);
 
-  // Raised: no longer reached, so the file goes.
-  screentime.apply({ dailyMinutes: 120 });
+  // Switched off in Glasshouse: forgotten, though the limit is still reached.
+  screentime.apply({ enabled: false });
   assert.strictEqual(fs.existsSync(path.join(root, 'screentime.json')), false);
   tv.done();
-  console.log('  ✓ a switch-off by the limit is remembered across a server restart, until the limit is no longer reached');
+  console.log('  ✓ a switch-off by the limit is remembered across a server restart, until the settings are changed');
 })();
 
 (function testScreenSaver() {
