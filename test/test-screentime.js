@@ -43,6 +43,7 @@ function setup(limits, historyOn) {
   history.start();
   var stOpts = {
     config: config, liveState: liveState, stateFile: path.join(root, 'screentime.json'),
+    homeAppDir: os.tmpdir(),
     control: function (action, value, cb) {
       if (action === 'toast') toasts.push(value); else calls.push(value ? action + ':' + value : action);
       if (action === 'screenOff') state.update('power', 'screenOn', false);
@@ -278,6 +279,19 @@ function setup(limits, historyOn) {
   tv.elapse(3000);
   tv.done();
   console.log('  ✓ over LG\'s screen saver, Back dismisses it before the screen goes off, and the screen is turned off again if it comes back');
+})();
+
+(function testNoHomeApp() {
+  var config = { screenTime: { enabled: true, appAction: 'home', apps: { hdmi2: 30 } }, allowPower: true };
+  screentime.init({ config: config, control: function (a, v, cb) { cb({ ok: true }); },
+                    stateFile: path.join(os.tmpdir(), 'gh-st-nohome-' + process.pid + '.json'),
+                    homeAppDir: path.join(os.tmpdir(), 'no-such-home-app-' + process.pid) });
+  assert.strictEqual(screentime.settings().appAction, 'off', 'switched off, as Home is only the ribbon');
+  config.allowPower = false;
+  assert.strictEqual(screentime.settings().appAction, 'screenOff', 'or the screen off without power actions');
+  config.screenTime.appAction = 'warn';
+  assert.strictEqual(screentime.settings().appAction, 'warn', 'other choices kept');
+  console.log('  ✓ without LG\'s Home app (webOS 3 to 5), an app\'s limit set to go Home switches the TV off');
 })();
 
 (function testValidate() {

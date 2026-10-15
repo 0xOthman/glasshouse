@@ -63,7 +63,8 @@ function renderScreenTime(d) {
     sel.value = v;
   };
   actions(q('st-action'), ['off', 'screenOff', 'warn'], s.action);
-  actions(q('st-app-action'), ['home', 'off', 'screenOff', 'warn'], s.appAction);
+  // A TV without LG's Home app (webOS 3 to 5) has only the ribbon, which leaves the app playing.
+  actions(q('st-app-action'), d.homeApp ? ['home', 'off', 'screenOff', 'warn'] : ['off', 'screenOff', 'warn'], s.appAction);
 
   const byKey = {};
   d.choices.forEach(c => { byKey[c.key] = c; });

@@ -13,6 +13,7 @@
 /** @type {typeof import('./history')} */
 var history = require('./history');
 var power = require('./power');
+var fs = require('fs');
 var path = require('path');
 var util = require('./util');
 
@@ -67,6 +68,13 @@ var pending = null;
  */
 var switchedOff = {};
 var stateFile = '/var/lib/tvweb/screentime.json';
+/*
+ * webOS 3 to 5 have no Home app: Home is LG's ribbon over what is playing,
+ * which carries on behind it (a B8, webOS 4.4, went on showing HDMI 2 and the
+ * limit came due again). There an app's limit switches the TV off instead.
+ */
+var homeAppDir = '/usr/palm/applications/com.webos.app.home';
+var hasHomeApp = true;
 var settling = false;
 var wasScreenOn = false;
 // While the screen is being turned off, as the screen saver closing reports the screen on.
@@ -106,6 +114,9 @@ function settings() {
   var c = (config && config.screenTime) || {};
   var out = {};
   for (var k in DEFAULTS) out[k] = c[k] !== undefined && VALID[k](c[k]) ? c[k] : DEFAULTS[k];
+  // Without a Home app, Home would not stop anything: switched off instead,
+  // or the screen turned off where power actions are not allowed.
+  if (!hasHomeApp && out.appAction === 'home') out.appAction = config && config.allowPower ? 'off' : 'screenOff';
   return out;
 }
 
@@ -446,6 +457,7 @@ function status(nowMs) {
     historyOn: hist.running,
     clockSet: history.localNow() !== null,
     allowPower: !!(config && config.allowPower),
+    homeApp: hasHomeApp,
     watchedToday: today ? Math.round(history.watched(today)) : null,
     choices: choices
   };
@@ -459,6 +471,7 @@ function status(nowMs) {
  * @param {function(number, function(boolean): void, number=): void} [opts.injectKey] controls.injectKey
  * @param {number} [opts.keyBack] controls.KEY_BACK
  * @param {string} [opts.stateFile] where the switch-offs are kept, for tests
+ * @param {string} [opts.homeAppDir] the Home app's folder, for tests
  * @param {function(function(): void, number): function(): void} [opts.later] for tests
  */
 function init(opts) {
@@ -472,6 +485,8 @@ function init(opts) {
   keyBack = opts.keyBack || null;
   acting = false;
   if (opts.stateFile) stateFile = opts.stateFile;
+  if (opts.homeAppDir) homeAppDir = opts.homeAppDir;
+  hasHomeApp = fs.existsSync(homeAppDir);
   var saved = util.readJson(stateFile, null);
   switchedOff = {};
   ['daily', 'bedtime'].forEach(function (id) {
