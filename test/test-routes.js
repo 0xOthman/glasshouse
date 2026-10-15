@@ -1196,6 +1196,51 @@ function createMockRes(cb) {
   console.log('  ✓ /api/oledcare is unavailable on a TV without an OLED panel');
 })();
 
+// SSH keys are a way in that outlasts the server: changing them needs a token,
+// or a request from the TV itself.
+(function testSshKeysNeedToken() {
+  var added = [];
+  var keys = {
+    status: function (cb) { cb({ ok: true, keys: [] }); },
+    add: function (key, cb) { added.push(key); cb({ ok: true, keys: [] }); },
+    remove: function (p, cb) { cb({ ok: true, keys: [] }); },
+    deleteFile: function (cb) { cb({ ok: true, keys: [] }); }
+  };
+  function call(token, method, url, from, body) {
+    var out = null;
+    routes.init({ config: { web: { enabled: false }, allowControl: true, token: token }, sshKeys: keys });
+    var req = createMockReq({
+      url: url, method: method, remoteAddress: from,
+      headers: { host: '192.168.8.20:8080', 'content-type': 'application/json' }
+    });
+    routes.handleRequest(req, createMockRes(function (r) { out = { code: r.statusCode, body: JSON.parse(r.body) }; }));
+    if (body) { req.emit('data', JSON.stringify(body)); req.emit('end'); }
+    return out;
+  }
+  var add = { action: 'add', key: 'ssh-ed25519 AAAA' };
+
+  var r = call('', 'GET', '/api/ssh', '192.168.8.10');
+  assert.strictEqual(r.body.writable, false);
+  assert.strictEqual(r.body.needsToken, true);
+  r = call('', 'POST', '/api/ssh', '192.168.8.10', add);
+  assert.strictEqual(r.code, 403);
+  assert.deepEqual(added, [], 'nothing added from the network without a token');
+
+  r = call('', 'POST', '/api/ssh', '127.0.0.1', add);
+  assert.strictEqual(r.code, 200, 'the TV itself');
+  assert.strictEqual(added.length, 1);
+
+  r = call('secret', 'POST', '/api/ssh', '192.168.8.10', add);
+  assert.strictEqual(r.code, 401, 'the token is checked first');
+  r = call('secret', 'POST', '/api/ssh?k=secret', '192.168.8.10', add);
+  assert.strictEqual(r.code, 200);
+  assert.strictEqual(added.length, 2);
+  r = call('secret', 'GET', '/api/ssh?k=secret', '192.168.8.10');
+  assert.strictEqual(r.body.writable, true);
+  assert.strictEqual(r.body.needsToken, false);
+  console.log('  ✓ SSH keys can be changed only with a token, or from the TV itself');
+})();
+
 // Opening the dashboard in setup unsets host (dual-stack); closing it binds
 // loopback.
 (function testNetworkAccess() {

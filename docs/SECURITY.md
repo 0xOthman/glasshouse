@@ -162,10 +162,10 @@ telnet.
 **Do not turn telnet off before step 5.** If SSH does not come up you will have
 no root access, and recovery means re-rooting the TV.
 
-Anyone who can change settings on the dashboard can add a key there, so it
-grants what the dashboard's other controls already do: root on the TV. Its
-**Delete the key file** puts the `alpine` password back from the next reboot,
-for a TV whose keys are lost; add a key again straight after.
+A key is a way in that outlasts the dashboard, so the Server tab changes keys
+only with a `token` set, or from the TV's own browser; without a token it only
+lists them. Its **Delete the key file** puts the `alpine` password back from
+the next reboot, for a TV whose keys are lost; add a key again straight after.
 
 `deploy.sh` prefers SSH and falls back to telnet automatically, so it keeps
 working throughout. `--telnet` forces the old path if you need it.

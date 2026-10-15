@@ -6367,6 +6367,10 @@
   "text": "No se pudieron leer las claves SSH — {error}",
   "from": "Could not read the SSH keys — {error}"
  },
+ "server.ssh.needsToken": {
+  "text": "Para cambiarlas hace falta un token en config.json. Sin él, cualquiera en la red podría añadir su propia clave.",
+  "from": "Changing these needs a token set in config.json. Without one, anyone on the network could add their own key."
+ },
  "server.ssh.newKey": {
   "text": "Clave pública que añadir",
   "from": "Public key to add"
@@ -6446,6 +6450,10 @@
  "srv.ssh.deleteFailed": {
   "text": "No se pudo borrar {file}: {error}",
   "from": "Could not delete {file}: {error}"
+ },
+ "srv.ssh.needsToken": {
+  "text": "Cambiar las claves SSH requiere un token en config.json, o el navegador del propio televisor.",
+  "from": "Changing SSH keys needs a token in config.json, or the TV's own browser."
  },
  "srv.ssh.noSuchKey": {
   "text": "Esa clave no está.",

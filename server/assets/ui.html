@@ -1198,6 +1198,7 @@
             <div class="prot-title" data-t="server.ssh.title">SSH keys</div>
             <div class="prot-desc" data-t="server.ssh.desc">The public keys that can log in to the TV as root over SSH. While any key file is there, the Homebrew Channel leaves root without a password, so only these keys get in.</div>
             <div class="prot-desc" id="ssh-state"></div>
+            <div class="prot-desc" id="ssh-token" hidden data-t="server.ssh.needsToken">Changing these needs a token set in config.json. Without one, anyone on the network could add their own key.</div>
           </div>
           <div class="ssh-body">
             <div id="ssh-keys"></div>

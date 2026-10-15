@@ -30,6 +30,7 @@ function renderSsh(d) {
   sshStatus = d;
   const state = q('ssh-state');
   state.textContent = sshStateText(d);
+  q('ssh-token').hidden = !d.needsToken;
   state.classList.toggle('warn', !d.fileExists || !!d.passwordNow);
   q('ssh-keys').innerHTML = d.keys.map(k =>
     `<div class="ssh-key"><div class="ssh-k"><div translate="no">${esc(k.comment || k.type)}</div>` +

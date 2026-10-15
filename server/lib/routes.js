@@ -1246,17 +1246,25 @@ function handleRequest(req, res) {
 
   /*
    * The keys that may log in as root over SSH: GET lists them, POST adds one,
-   * removes one or deletes the file. Held to what other controls are.
+   * removes one or deletes the file. A key is a way in that outlasts this
+   * server, so changing them needs a token, which every /api/ request has
+   * then been checked for, or a request from the TV itself: without one,
+   * anything on the network could let itself in.
    */
   if (pathname === '/api/ssh' && sshKeysModule) {
+    var sshNeedsToken = !config.token && !fromTV(req);
     if (req.method !== 'POST') {
       return sshKeysModule.status(function (r) {
-        r.writable = !!config.allowControl;
+        r.writable = !!config.allowControl && !sshNeedsToken;
+        r.needsToken = !!config.allowControl && sshNeedsToken;
         send(res, 200, JSON.stringify(r));
       });
     }
     if (!config.allowControl) {
       return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (sshNeedsToken) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.ssh.needsToken', 'Changing SSH keys needs a token in config.json, or the TV\'s own browser.') }));
     }
     return readJsonBody(req, res, function (body) {
       var sshReply = function (r) {
