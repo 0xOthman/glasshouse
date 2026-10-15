@@ -4,6 +4,24 @@ Findings about how LG's webOS works, kept so the same ground is not covered
 twice. Each entry names the TV and webOS version it was found on. For how
 Glasshouse itself works, see [IMPLEMENTATION.md](../IMPLEMENTATION.md).
 
+## Which window has the remote (webOS 6.4.0, C1)
+
+- `com.webos.applicationManager/getForegroundAppInfo` names only the app
+  beneath LG's own windows: with Settings, User Guide, Home or Quick Settings
+  open over HDMI 3 it still reports `com.webos.app.hdmi3`.
+- `com.webos.surfacemanager/getForegroundAppInfo` lists the windows on screen,
+  each with `appId`, `displayId` and `windowType`: HDMI 3 as
+  `_WEBOS_WINDOW_TYPE_CARD`, Settings (`com.palm.app.settings`) as
+  `_WEBOS_WINDOW_TYPE_OVERLAY`, and Home (`com.webos.app.home`) as
+  `_WEBOS_WINDOW_TYPE_HOME`, not as an overlay. Opening User Guide from
+  Settings replaces the overlay with `com.webos.app.tvuserguide`.
+- Quick Settings (`com.webos.app.quicksettings`) is not in that list. It is in
+  `com.webos.surfacemanager/getFocusedWindowInfo` and
+  `getForegroundWindowInfo`, as `SYSTEM_UI_TYPE_OVERLAY`. The focused window
+  is the one the remote's keys reach.
+- All three accept `subscribe: true`. SurfaceManager's replies are formatted
+  JSON over several lines even without luna-send's `-f`.
+
 ## Disconnected input devices (webOS 6.4.0, C1)
 
 A stale evdev descriptor can remain readable to `select` while reads fail or

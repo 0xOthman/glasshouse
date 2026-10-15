@@ -1549,6 +1549,8 @@ function setupHomeAssistant() {
   setInterval(tickTelemetry, intervalMs);
 
   liveState.start();
+  liveState.startGroup('surface');
+  liveState.startGroup('focus');
   notificationState.start();
   mqttClient.connect();
 }
