@@ -19,7 +19,7 @@
  * first 4096 bytes of a downloaded tvweb.js for this line (up to 0.82.2), and
  * refuses a release where it is further down (#586).
  */
-var TVWEB_VERSION = '0.96.0';
+var TVWEB_VERSION = '0.97.0';
 
 var http = require('http');
 var fs = require('fs');
@@ -552,6 +552,7 @@ remotebuttons.init({
 
 controls.init({
   luna: luna,
+  lunaUrgent: lunaTransport.callUrgent,
   piccap: piccap,
   clearLunaCache: clearLunaCache,
   config: CONFIG,
@@ -1371,6 +1372,14 @@ function setupHomeAssistant() {
 
     if (piccap.handleMqttCommand(action, val)) return;
 
+    // A held arrow sends a stream of keys, and a telemetry read after each one
+    // would queue a dozen luna calls per key. A key that changes the app
+    // reaches Home Assistant through the foreground-app subscription.
+    if (action === 'rcu') {
+      doControl(action, val, function () {});
+      return;
+    }
+
     if (action === 'screen') {
       var turnOff = (val.toUpperCase() === 'OFF');
       doControl(turnOff ? 'screenOff' : 'screenOn', null, function() {});
@@ -1615,7 +1624,7 @@ if (!CLI_MODE) {
     luna: luna,
     stateDir: __dirname,
     onLevel: function (level) {
-      console.log('remote: battery ' + level + '% (Bluetooth GATT 0x2A19)');
+      console.log('remote: battery ' + level + '%');
       telemetry.expireStats();
     }
   });

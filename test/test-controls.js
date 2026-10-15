@@ -416,4 +416,35 @@ console.log('Running test-controls.js ...');
   console.log('  ✓ updateCheck and updateAutoCheck return unified updateSummary including daemon');
 })();
 
+// Remote keys and Home go ahead of the luna queue, and log how long they took
+(function testRcuUrgent() {
+  var normal = [];
+  var urgent = [];
+  var debugs = [];
+  var realDebug = console.debug;
+  console.debug = function (m) { debugs.push(String(m)); };
+  controls.init({
+    config: { allowControl: true },
+    telemetry: { clearCache: function () {} },
+    luna: function (uri, payload, cb) { normal.push(uri); cb({ returnValue: true }); },
+    lunaUrgent: function (uri, payload, cb) {
+      urgent.push(uri + ' ' + JSON.stringify(payload));
+      var now = require('../server/lib/util').monotonicMs();
+      cb({ returnValue: true }, '', { startedAt: now, endedAt: now + 31 });
+    }
+  });
+  controls.doControl('rcu', 'right', function (res) { assert.strictEqual(res.ok, true); });
+  controls.doControl('rcu', 'home', function (res) { assert.strictEqual(res.ok, true); });
+  controls.doControl('volume', 20, function () {});
+  console.debug = realDebug;
+  assert.deepEqual(urgent, [
+    'com.webos.service.networkinput/test/sendKeyCode {"keyCode":106}',
+    'com.webos.applicationManager/launch {"id":"com.webos.app.home"}'
+  ]);
+  assert.deepEqual(normal, ['com.webos.audio/setVolume'], 'only rcu takes the urgent path');
+  assert.ok(/^rcu right: queued \d+ ms, luna 31 ms, ok$/.test(debugs[0]), debugs[0]);
+  assert.ok(/^rcu home: queued \d+ ms, luna 31 ms, ok$/.test(debugs[1]), debugs[1]);
+  console.log('  ✓ remote keys and Home use the urgent luna path and log their timing');
+})();
+
 console.log('ALL test-controls.js assertions passed!\n');
