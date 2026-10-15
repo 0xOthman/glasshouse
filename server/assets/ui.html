@@ -1071,11 +1071,16 @@
   </div>
 
   <div class="pv-h" data-t="mqtt.icons">App icons</div>
-  <div class="pv-sub" data-t="mqtt.icons.desc">Lets a launcher or dashboard on another device show this TV's apps with their own
-    icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can
-    fetch the icons, and so tell which apps are installed.</div>
-  <div class="cfg-toggles">
-    <button id="cfg-icons" onclick="cfgToggle('cfg-icons')" data-t="mqtt.icons.toggle">Share app icons</button>
+  <div class="pv-table">
+    <div class="pv-row">
+      <div>
+        <div class="n" data-t="mqtt.icons.toggle">Share app icons</div>
+        <div class="d" data-t="mqtt.icons.desc">Lets a launcher or dashboard on another device show this TV's apps with their own
+          icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can
+          fetch the icons, and so tell which apps are installed.</div>
+      </div>
+      <button type="button" class="pill idle" id="cfg-icons" onclick="cfgToggleIcons()">&mdash;</button>
+    </div>
   </div>
 
   <div class="pv-h" data-t="mqtt.entities">Home Assistant entities</div>

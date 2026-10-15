@@ -255,6 +255,21 @@ function renderEntitiesUI() {
   renderMqttTopology(cfgLastStatus);
 }
 
+// Part of the form, like the entity categories: it applies on Save & restart.
+let cfgIcons = false;
+
+function renderCfgIcons() {
+  updateToggle('cfg-icons', {
+    cls: cfgIcons ? 'good' : 'idle',
+    label: cfgIcons ? t('mqtt.cat.enabled', 'Enabled') : t('mqtt.cat.disabled', 'Disabled')
+  });
+}
+
+function cfgToggleIcons() {
+  cfgIcons = !cfgIcons;
+  renderCfgIcons();
+}
+
 function cfgToggleCat(catId) {
   cfgEntities[catId] = !(cfgEntities[catId] !== false);
   renderEntitiesUI();
@@ -297,7 +312,8 @@ async function loadSettings(keepMsg) {
     q('cfg-interval').value = m.telemetryIntervalMs;
     q('cfg-enabled').classList.toggle('on', m.enabled);
     cfgSyncEnabled();
-    q('cfg-icons').classList.toggle('on', !!j.iconServer);
+    cfgIcons = !!j.iconServer;
+    renderCfgIcons();
     q('cfg-tls').classList.toggle('on', m.tls);
     q('cfg-verify').classList.toggle('on', m.tlsRejectUnauthorized);
     cfgSyncTls();
@@ -359,7 +375,7 @@ async function saveSettings() {
       }
     },
     device: { id: q('cfg-devid').value, name: q('cfg-devname').value },
-    iconServer: q('cfg-icons').classList.contains('on')
+    iconServer: cfgIcons
   };
   // An untouched password field means "keep the stored one", not "clear it".
   const pass = q('cfg-pass').value;
