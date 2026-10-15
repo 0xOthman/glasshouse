@@ -1699,6 +1699,10 @@
   "text": "Pantalla apagada",
   "from": "Screen off"
  },
+ "metrics.watch.screenSaver": {
+  "text": "Salvapantallas",
+  "from": "Screen saver"
+ },
  "metrics.watch.today": {
   "text": "Hoy",
   "from": "Today"
