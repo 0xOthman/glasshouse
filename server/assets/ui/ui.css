@@ -1123,6 +1123,11 @@ footer{margin-top:38px;font-size:13px;letter-spacing:.08em;text-transform:upperc
 /* The days take the row's full width, under the title and the time, so all
    seven fit on one line. */
 #row-ontimer,#row-offtimer{flex-wrap:wrap}
+#backup-daily-row{flex-wrap:wrap}
+.backup-saved{flex-basis:100%;margin-top:-4px}
+.backup-saved .bk{display:flex;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--edge)}
+.backup-saved .bk-date{flex:1;min-width:0}
+.backup-saved .bk-size{color:var(--w60);font-size:13px}
 .timer-days{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;margin-top:-4px}
 .timer-days button{min-width:44px;height:32px;padding:0 8px;font:500 12px 'Manrope';letter-spacing:.06em;
   color:var(--w60);background:transparent;border:1px solid var(--edge);border-radius:2px;cursor:pointer}
