@@ -22,6 +22,16 @@ Glasshouse itself works, see [IMPLEMENTATION.md](../IMPLEMENTATION.md).
 - All three accept `subscribe: true`. SurfaceManager's replies are formatted
   JSON over several lines even without luna-send's `-f`.
 
+## Disconnected input devices (webOS 6.4.0, C1)
+
+A stale evdev descriptor can remain readable to `select` while reads fail or
+return EOF. Retrying without closing it creates a busy loop. On 14 October
+2026, the remote-button worker reached 8.16 million read calls with only
+451 KB read, and a `top` sample showed 85% CPU. Reopening its devices stopped
+the loop. The patched worker closes EOF/permanent-error descriptors, retains
+EAGAIN/EINTR descriptors, and retries discovery every five seconds. Four
+minutes after deployment it had 189 read calls and 0.1% lifetime CPU.
+
 ## Home screen (webOS 9.2.2, C2)
 
 **The home app** is `com.webos.app.home`, a native QML app in
@@ -210,6 +220,25 @@ notify. `gatt/disconnect` with the `clientId` ended it, and the remote worked
 after each of the two connections. How often this can be done
 without disturbing lginput2's own connection, and whether webOS 9 and earlier
 have these calls, is not yet known.
+
+On a B8 (4.4.3) and a C2 (9.2.2), `getConnectionStatus` asked once answers
+`isBleRemocon: false` even with the Magic Remote connected. Subscribed, the
+update sent as the remote wakes has `connected: true, isBleRemocon: true`, and
+the one as it sleeps keeps `isBleRemocon: true`.
+
+On the B8, `getDeviceInfo` with `deviceName` `MagicRemote_1` answers
+`batteryLevel` 49, and 63 once other batteries were put in: the charge, not a
+threshold. Its `mrcu1.info` (in `/mnt/lg/cmn_data/btsvc`) has no battery line.
+Its `gatt/connect` answers `appId` and no `clientId`. The C2 answers
+`batteryLevel` `"-"`.
+
+On the B8, lginput2 once started a diagnostic capture, a
+`/tmp/var/log/<date>_MRCU.log` with columns for motion, RSSI, voltage,
+temperature and gyro, beside a `ManualDevice-<remote MAC>-rawInput.dsf`. A new
+`mrcu_LS2` thread started with it and used a whole core until the TV was
+rebooted, through a night in standby. lginput2's luna methods include
+`enableLoggingMotion`, `getSensorData` and `enablePrintRfStatus`, none of which
+Glasshouse calls; `getConnectionStatus` and `getDeviceInfo` left it at 0%.
 
 ## Boot and app state (webOS 9.2.2, C2)
 

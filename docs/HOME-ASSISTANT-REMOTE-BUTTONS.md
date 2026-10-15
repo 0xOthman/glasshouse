@@ -214,5 +214,6 @@ trigger:
 
 - **Input Devices**: webOS exposes remote input streams via `/dev/input/event*` devices (`LGE RCU` for infrared, `LGE M-RCU` for Bluetooth Magic Remotes).
 - **Non-Invasive**: The listener reads the Linux kernel input stream passively without injecting binaries or intercepting system processes.
+- **Disconnected Devices**: A device that disconnects is closed, and input devices are looked for again every five seconds, so a remote that comes back is picked up and a stale device cannot keep a CPU core busy.
 - **Debouncing**: Hardware keypresses across duplicate event devices are automatically debounced within 200 ms to prevent double-triggering.
 - **Automatic Discovery**: On supported hardware, the entity is discovered automatically; on unsupported hardware or emulators, the discovery entity is withheld.
