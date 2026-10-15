@@ -145,27 +145,68 @@ See the README for a config example and the `deploy.sh` per-IP config lookup.
 
 ## App icons for launchers
 
-A launcher on another device, or a Home Assistant dashboard, can show the TV's apps as tiles with their own icons. Switch **Share app icons** on in the dashboard's **MQTT** tab and save; the server restarts and serves each installed app's icon at `http://<tv-ip>:8082/icons/<appId>.png`. Anyone on the network can fetch them, and so tell which apps are installed.
+Glasshouse can share the TV's app icons with other devices on the network, so a dashboard or a launcher elsewhere can show the TV's apps as tiles. Home Assistant does not draw them by itself: the **Launch App** entity keeps its one icon and lists apps by name. The icons' addresses arrive as attributes of that entity, for a dashboard card or another app to use.
 
-The Launch App select (`select.lg_tv_app`) then carries three attributes, shown under **Developer tools** → **States**:
+### Switching it on
 
-* `app_ids`: each option's label and its app id, which stays the same when an app's title changes.
-* `app_icons`: each app id and its icon's address, only while icons are shared.
-* `app_colors`: each app id and the background colour its `appinfo.json` gives, as `#rrggbb`, where it gives one.
+1. Open the dashboard's **MQTT** tab, set **Share app icons** to **Enabled**, and select **Save & restart**.
+2. The TV then serves each installed app's icon at `http://<tv-ip>:8082/icons/<appId>.png`. Anyone on the network can fetch them, and so tell which apps are installed.
 
-Home Assistant shows none of them by itself. A Markdown card shows the tiles:
+### What Home Assistant receives
+
+Open **Launch App** (`select.lg_tv_app`) and expand **Attributes**, or find it under **Developer tools** → **States**:
+
+* **App ids** (`app_ids`): each app's name and its app id, which stays the same when an app's title changes.
+* **App icons** (`app_icons`): each app id and its icon's address, only while icons are shared.
+* **App colors** (`app_colors`): each app id and the background colour the app declares, as `#rrggbb`, where it declares one.
+
+### Adding the icons to a dashboard
+
+1. Open a dashboard, select the pencil (**Edit dashboard**), then **Add card**.
+2. Pick **Manual** at the bottom of the list, which takes the card as YAML.
+3. Paste one of the cards below, change `select.lg_tv_app` to the TV's own entity if its device id is not `lg_tv`, and select **Save**.
+
+Every installed app, with its icon and name:
 
 ```yaml
 type: markdown
+title: TV apps
 content: >
-  {% set ids = state_attr('select.lg_tv_app', 'app_ids') %}
+  {% set ids = state_attr('select.lg_tv_app', 'app_ids') or {} %}
   {% set icons = state_attr('select.lg_tv_app', 'app_icons') or {} %}
   {% for name, id in ids.items() if id in icons %}
-  <img src="{{ icons[id] }}" height="48" alt="{{ name }}"> {{ name }}
+  <img src="{{ icons[id] }}" height="48" alt=""> {{ name }}
   {% endfor %}
 ```
 
-The icons are plain `http`, so a browser showing Home Assistant over `https`, as through Home Assistant Cloud, blocks them as mixed content.
+A row of tiles that each open an app. Each `option` is a name from the Launch App list, and each `image` the address from **App icons**:
+
+```yaml
+type: grid
+columns: 4
+square: true
+cards:
+  - type: picture
+    image: http://192.168.1.20:8082/icons/netflix.png
+    tap_action:
+      action: perform-action
+      perform_action: select.select_option
+      target:
+        entity_id: select.lg_tv_app
+      data:
+        option: Netflix
+  - type: picture
+    image: http://192.168.1.20:8082/icons/youtube.leanback.v4.png
+    tap_action:
+      action: perform-action
+      perform_action: select.select_option
+      target:
+        entity_id: select.lg_tv_app
+      data:
+        option: YouTube
+```
+
+The icons are plain `http`. A browser showing Home Assistant over `https`, as through Home Assistant Cloud, blocks them as mixed content, and the cards show no pictures there.
 
 ## Example automations
 
