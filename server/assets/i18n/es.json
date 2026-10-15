@@ -6347,6 +6347,70 @@
   "text": "Notas completas de la versión",
   "from": "Full release notes"
  },
+ "server.ssh.add": {
+  "text": "Añadir clave",
+  "from": "Add key"
+ },
+ "server.ssh.delete": {
+  "text": "Borrar el archivo de claves",
+  "from": "Delete the key file"
+ },
+ "server.ssh.deleteConfirm": {
+  "text": "¿Borrar el archivo de claves? Desde ahora ninguna clave podrá entrar, y desde el próximo reinicio root entrará con la contraseña alpine, que todo el mundo conoce. Hasta ese reinicio nada podrá entrar por SSH.",
+  "from": "Delete the key file? No key will log in from now on, and from the next reboot root logs in with the password alpine, which everyone knows. Until that reboot nothing can log in over SSH."
+ },
+ "server.ssh.desc": {
+  "text": "Las claves públicas que pueden entrar en el televisor como root por SSH. Mientras exista el archivo de claves, el Homebrew Channel deja a root sin contraseña, así que solo entran estas claves.",
+  "from": "The public keys that can log in to the TV as root over SSH. While any key file is there, the Homebrew Channel leaves root without a password, so only these keys get in."
+ },
+ "server.ssh.failed": {
+  "text": "No se pudieron leer las claves SSH — {error}",
+  "from": "Could not read the SSH keys — {error}"
+ },
+ "server.ssh.newKey": {
+  "text": "Clave pública que añadir",
+  "from": "Public key to add"
+ },
+ "server.ssh.noKeys": {
+  "text": "El archivo de claves no tiene ninguna, así que nada podrá entrar por SSH hasta que se añada una.",
+  "from": "The key file has no keys, so nothing can log in over SSH until one is added."
+ },
+ "server.ssh.notRunning": {
+  "text": "SSH está desactivado en el Homebrew Channel, así que nada de esto se aplica hasta activarlo allí y reiniciar el televisor.",
+  "from": "SSH is off in the Homebrew Channel, so none of this applies until it is turned on there and the TV restarted."
+ },
+ "server.ssh.password": {
+  "text": "No hay archivo de claves, así que root entra con la contraseña alpine, que todo el mundo conoce. Añadir una clave lo termina desde el próximo reinicio.",
+  "from": "There is no key file, so root logs in with the password alpine, which everyone knows. Adding a key ends that from the next reboot."
+ },
+ "server.ssh.passwordAfterReboot": {
+  "text": "El archivo de claves está borrado. Desde el próximo reinicio root entrará con la contraseña alpine, que todo el mundo conoce. Hasta entonces nada podrá entrar por SSH.",
+  "from": "The key file is deleted. From the next reboot root logs in with the password alpine, which everyone knows. Until then nothing can log in over SSH."
+ },
+ "server.ssh.passwordUntilReboot": {
+  "text": "La contraseña alpine sigue funcionando hasta el próximo reinicio.",
+  "from": "The password alpine still works until the next reboot."
+ },
+ "server.ssh.reboot": {
+  "text": "Reiniciar ahora",
+  "from": "Reboot now"
+ },
+ "server.ssh.remove": {
+  "text": "Quitar",
+  "from": "Remove"
+ },
+ "server.ssh.removeConfirm": {
+  "text": "¿Quitar esta clave? Ya no podrá entrar.",
+  "from": "Remove this key? It will no longer be able to log in."
+ },
+ "server.ssh.removeLastConfirm": {
+  "text": "¿Quitar la última clave? Nada podrá entrar por SSH hasta que se añada una.",
+  "from": "Remove the last key? Nothing will be able to log in over SSH until a key is added."
+ },
+ "server.ssh.title": {
+  "text": "Claves SSH",
+  "from": "SSH keys"
+ },
  "server.watch.clear": {
   "text": "Borrar historial",
   "from": "Clear history"
@@ -6374,6 +6438,38 @@
  "server.whatsNew.moreOne": {
   "text": "Y 1 versión más",
   "from": "And 1 more release"
+ },
+ "srv.ssh.already": {
+  "text": "Esa clave ya está.",
+  "from": "That key is already there."
+ },
+ "srv.ssh.deleteFailed": {
+  "text": "No se pudo borrar {file}: {error}",
+  "from": "Could not delete {file}: {error}"
+ },
+ "srv.ssh.noSuchKey": {
+  "text": "Esa clave no está.",
+  "from": "That key is not there."
+ },
+ "srv.ssh.notKey": {
+  "text": "Eso no es una clave pública SSH.",
+  "from": "That is not an SSH public key."
+ },
+ "srv.ssh.oneKey": {
+  "text": "Pega una sola clave pública, en una línea.",
+  "from": "Paste one public key, on one line."
+ },
+ "srv.ssh.private": {
+  "text": "Eso es una clave privada. Pega la clave pública, del archivo .pub.",
+  "from": "That is a private key. Paste the public key, from the .pub file."
+ },
+ "srv.ssh.tooMany": {
+  "text": "Ya hay 50 claves.",
+  "from": "There are already 50 keys."
+ },
+ "srv.ssh.writeFailed": {
+  "text": "No se pudo escribir {file}: {error}",
+  "from": "Could not write {file}: {error}"
  },
  "tv.update.whatsNew.more.hint": {
   "text": "Sus notas están en GitHub, en las versiones de Glasshouse.",

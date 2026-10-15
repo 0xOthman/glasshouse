@@ -91,6 +91,8 @@ var syslogModule = null;
 var ntpModule = null;
 /** @type {typeof import('./history')} */
 var historyModule = null;
+/** @type {typeof import('./sshkeys')} */
+var sshKeysModule = null;
 /** @type {typeof import('./backup')} */
 var backupModule = null;
 var fromHbcFn = null;
@@ -1242,6 +1244,32 @@ function handleRequest(req, res) {
     return send(res, 200, JSON.stringify(historyReply));
   }
 
+  /*
+   * The keys that may log in as root over SSH: GET lists them, POST adds one,
+   * removes one or deletes the file. Held to what other controls are.
+   */
+  if (pathname === '/api/ssh' && sshKeysModule) {
+    if (req.method !== 'POST') {
+      return sshKeysModule.status(function (r) {
+        r.writable = !!config.allowControl;
+        send(res, 200, JSON.stringify(r));
+      });
+    }
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      var sshReply = function (r) {
+        if (r.ok) r.writable = true;
+        send(res, r.ok ? 200 : 400, JSON.stringify(r));
+      };
+      if (body.action === 'add') return sshKeysModule.add(body.key, sshReply);
+      if (body.action === 'remove') return sshKeysModule.remove(String(body.fingerprint || ''), sshReply);
+      if (body.action === 'deleteFile') return sshKeysModule.deleteFile(sshReply);
+      send(res, 400, JSON.stringify({ ok: false, error: 'unknown action' }));
+    });
+  }
+
   if (pathname === '/api/cpu') {
     return telemetryModule.collectCpuProcesses(function (r) { send(res, 200, JSON.stringify(r)); });
   }
@@ -1664,6 +1692,7 @@ function init(opts) {
   if (opts.syslog) syslogModule = opts.syslog;
   if (opts.ntp) ntpModule = opts.ntp;
   if (opts.history) historyModule = opts.history;
+  if (opts.sshKeys) sshKeysModule = opts.sshKeys;
   if (opts.backup) backupModule = opts.backup;
   if (opts.fromHomebrewChannel) fromHbcFn = opts.fromHomebrewChannel;
   if (opts.tileHidingOff) tileHidingOffMsg = opts.tileHidingOff;

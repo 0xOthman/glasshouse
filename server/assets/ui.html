@@ -1193,6 +1193,26 @@
           </div>
           <div class="prot-status"><button type="button" class="pill idle" id="srv-devtools" onclick="toggleNetworkDebugger()">&mdash;</button></div>
         </div>
+        <div class="prot-row" id="ssh-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.ssh.title">SSH keys</div>
+            <div class="prot-desc" data-t="server.ssh.desc">The public keys that can log in to the TV as root over SSH. While any key file is there, the Homebrew Channel leaves root without a password, so only these keys get in.</div>
+            <div class="prot-desc" id="ssh-state"></div>
+          </div>
+          <div class="ssh-body">
+            <div id="ssh-keys"></div>
+            <form class="toast-form" onsubmit="event.preventDefault();addSshKey();">
+              <input type="text" id="ssh-new" placeholder="ssh-ed25519 AAAA… user@host" translate="no" maxlength="16384" autocomplete="off" spellcheck="false"
+                aria-label="Public key to add" data-t-aria-label="server.ssh.newKey">
+              <button type="submit" id="ssh-add" data-t="server.ssh.add">Add key</button>
+            </form>
+            <div class="btns ssh-btns">
+              <button type="button" id="ssh-reboot" hidden onclick="powerAction('reboot')" data-t="server.ssh.reboot">Reboot now</button>
+              <button type="button" class="link-btn" id="ssh-delete" hidden onclick="deleteSshKeys()" data-t="server.ssh.delete">Delete the key file</button>
+            </div>
+            <div class="sub" id="ssh-msg" hidden></div>
+          </div>
+        </div>
       </div>
 
       <div class="pv-g" data-t="server.experimental">Experimental features</div>
@@ -1315,6 +1335,7 @@
 <script src="/assets/ui/game.js"></script>
 <script src="/assets/ui/system.js"></script>
 <script src="/assets/ui/history.js"></script>
+<script src="/assets/ui/ssh.js"></script>
 <script src="/assets/ui/apps.js"></script>
 <script src="/assets/ui/install.js"></script>
 <script src="/assets/ui/tabs.js"></script>

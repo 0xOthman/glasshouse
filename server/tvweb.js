@@ -73,6 +73,7 @@ var logsModule = require('./lib/logs');
 var syslogForwarder = require('./lib/syslog');
 var ntpClient = require('./lib/ntp');
 var history = require('./lib/history');
+var sshKeys = require('./lib/sshkeys');
 var remoteBattery = require('./lib/remotebattery');
 var backup = require('./lib/backup');
 var power = require('./lib/power');
@@ -785,6 +786,7 @@ routes.init({
   syslog: syslogForwarder,
   ntp: ntpClient,
   history: history,
+  sshKeys: sshKeys,
   backup: backup,
   configFile: CONFIG_FILE,
   controls: controls,
