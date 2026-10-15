@@ -36,6 +36,7 @@ The table below summarizes hardware specifications across key LG TV generations 
 | **G4 / M4** (2024) | webOS 9.x, updated to 10.x | Alpha 11 (O24Pro) | 4× Cortex-A78 @ 1.6 GHz (ARMv8.2-A) | Mali-G57 MC4 | 4.0 GB | 16 GB | Linux 5.15 / 6.1 | Node 20.x / Chr 120+ | 4× HDMI 2.1 (144 Hz) |
 | **[C5](c5.md)** (2025) | webOS 10.x | Alpha 9 Gen 8 (LG1213 / O22A3) | 4× Cortex-A76 @ 1.4 GHz (ARMv8.2-A) | Mali-G52 MP3 | 2.5 GB (2.0 GB to Linux) | 16 GB | Linux 5.4 | Node 16.20 / Chr 120 | 4× HDMI 2.1 (144 Hz) |
 | **G5** (2025) | webOS 10.x / 11.x | Alpha 11 Gen 2 | Quad-core ARMv8.2-A (ARMv8) | Mali-G57 / Immortalis | 4.0 GB | 16 GB | Linux 6.1+ | Node 20+ / Chr 120+ | 4× HDMI 2.1 (144 Hz) |
+| **[UA73](ua73.md)** (2025 LCD) | webOS 10.x | Realtek K25LP (RTD2875q) | 4× Cortex-A73 @ 1.24 GHz (ARMv8-A) | PowerVR Rogue (`rgx_merlin9`) | 2.0 GB (1.7 GB to Linux) | 8 GB | Linux 5.4 | Node 16.20 / Chr 120 | 3× HDMI (4K@60, eARC) |
 | **[NU80](nu80.md)** (2026 LCD) | webOS 11.x | Realtek K25Lpn | 4× Cortex-A73 @ 1.24 GHz (ARMv8-A) | PowerVR CXM-2-64 | ~1.5 GB (1.2 GB to Linux) | 8 GB | Linux 6.12 | Node 20.12 / — | — |
 
 ---
@@ -48,6 +49,7 @@ Detailed diagnostic scrapes gathered directly from live hardware via root shells
 - [LG OLED48CXPUB (2020 — webOS 5)](cx.md): Alpha 9 Gen 3 (LG1212 / "O20"), 4× Cortex-A55, Mali-G51 MP3, Node v8.12.0, Chromium 68, Linux 4.4.
 - [LG OLED42C24LA (2022 — webOS 6/9)](c2.md): Alpha 9 Gen 5 (LG1213 / "O22"), 4× Cortex-A76 @ 1.4 GHz, Mali-G52 MP3, Node v16.19.1, Chromium 108, Linux 5.4.
 - [LG OLED48C5PUA (2025 — webOS 10)](c5.md): Alpha 9 Gen 8 (LG1213 / "O22"), 4× Cortex-A76 @ 1.4 GHz, Mali-G52 MP3, Node v16.20.2, Chromium 120, Linux 5.4.
+- [LG 55UA73006LA (2025 — webOS 10)](ua73.md): Realtek RTD2875q / "K25LP", 4× Cortex-A73 @ 1.24 GHz, PowerVR Rogue (`rgx_merlin9`, BVNC 46.72.102.389), Node v16.20.2, Chromium 120, Linux 5.4.
 - [LG 43NU800BPSC (2026 — webOS 11)](nu80.md): Realtek K25Lpn, 4× Cortex-A73 @ 1.24 GHz, PowerVR GPU, Node v20.12.2, Linux 6.12.
 
 ### Generational leap: B8 vs C2

@@ -23,6 +23,7 @@
 var fs = require('fs');
 var path = require('path');
 var util = require('./util');
+var screentime = require('./screentime');
 
 var msg = require('./say').msg;
 
@@ -52,6 +53,7 @@ var GLASSHOUSE = {
   ntp: { server: isString, port: isPort, enabled: isBool },
   history: { enabled: isBool },
   backup: { daily: isBool },
+  screenTime: screentime.VALID,
   prometheus: { enabled: isBool },
   update: { check: isBool }
 };

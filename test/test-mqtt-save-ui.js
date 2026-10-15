@@ -113,6 +113,7 @@ function runTest(name, scenario, done) {
     cfgCategories: {},
     cfgCatalogue: [],
     cfgPasswordSet: true,
+    updateToggle: function () {},
     fetch: function (url, opts) {
       fetchLog.push({ url: url, opts: opts });
       return scenario.onFetch(url, opts);
@@ -177,10 +178,17 @@ var tests = [
       assert.strictEqual(saveBtn.classList.contains('busy'), false);
       assert.strictEqual(saveBtn.disabled, false);
 
+      context.cfgToggleIcons();
+      var sent = null, realFetch = context.fetch;
+      context.fetch = function (url, opts) {
+        if (opts && opts.method === 'POST') sent = JSON.parse(opts.body);
+        return realFetch(url, opts);
+      };
       context.saveSettings().then(function () {
         assert.strictEqual(saveBtn.classList.contains('busy'), false, 'busy class must be removed');
         assert.strictEqual(saveBtn.disabled, false, 'button must be re-enabled');
         assert.strictEqual(dom.getEl('cfg-msg').textContent, 'Applied.', 'message must indicate applied');
+        assert.strictEqual(sent.iconServer, true, 'the icon switch is saved with the form');
         cb();
       }).catch(cb);
     }

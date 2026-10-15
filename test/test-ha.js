@@ -350,8 +350,8 @@ console.log('Running test-ha.js ...');
   assert.strictEqual(ha.defaultEntityId('switch', 'LG-C9', 'on_timer'), 'switch.lg_c9_on_timer');
   assert.strictEqual(ha.defaultEntityId('sensor', 'Living Room TV', 'active_app'), 'sensor.living_room_tv_active_app');
   var activeApp = ha.buildEntities({ pfx: 'test/tv' }).filter(function (e) { return e.id === 'active_app'; })[0];
-  assert.strictEqual(activeApp.payload.json_attributes_topic, activeApp.payload.state_topic, 'the app id comes with the title');
-  assert.ok(/"app_id": value_json\.app_id/.test(activeApp.payload.json_attributes_template), 'the active app carries its app id');
+  assert.strictEqual(activeApp.payload.json_attributes_topic, 'test/tv/state/application/remote', 'routing arrives without waiting for telemetry');
+  assert.strictEqual(activeApp.payload.json_attributes_template, '{{ value_json | tojson }}');
   var launch = ha.buildEntities({ pfx: 'test/tv', installedApps: [{ id: 'netflix', title: 'Netflix' }, { id: 'com.example.player', title: 'Example Player' }] })
     .filter(function (e) { return e.id === 'app'; })[0];
   var ids = JSON.parse(launch.payload.json_attributes_template.replace(/^\{\{ | \| tojson \}\}$/g, '')).app_ids;
@@ -364,6 +364,38 @@ console.log('Running test-ha.js ...');
   assert.strictEqual(ha.defaultEntityId('number', '', 'volume'), 'number.volume');
   assert.strictEqual(ha.defaultEntityId('select', null, 'sound_output'), 'select.sound_output');
   console.log('  ✓ defaultEntityId generates valid, sanitized Home Assistant entity IDs');
+})();
+
+// The Launch App select's icons and colours, for a launcher showing tiles
+(function testLaunchAppIconsAndColors() {
+  function launchAttrs(opts) {
+    opts.pfx = 'test/tv';
+    var launch = ha.buildEntities(opts).filter(function (e) { return e.id === 'app'; })[0];
+    var tpl = launch.payload.json_attributes_template;
+    assert.ok(/^\{\{ \{.*\} \| tojson \}\}$/.test(tpl), 'a dict literal piped through tojson');
+    return JSON.parse(tpl.replace(/^\{\{ | \| tojson \}\}$/g, ''));
+  }
+  var apps = [
+    { id: 'netflix', title: 'Netflix', iconColor: '#E50914' },
+    { id: 'youtube.leanback.v4', title: 'YouTube', iconColor: '#fff' },
+    { id: 'bad.colour', title: 'Bad', iconColor: 'red' },
+    { id: 'no.colour', title: 'None' }
+  ];
+
+  var off = launchAttrs({ installedApps: apps });
+  assert.strictEqual('app_icons' in off, false, 'no icons while the icon server is off or the address unknown');
+  assert.ok(off.app_ids.Netflix, 'app_ids stays');
+
+  var on = launchAttrs({ installedApps: apps, iconBaseUrl: 'http://192.168.1.131:8082/icons/' });
+  assert.strictEqual(on.app_icons.netflix, 'http://192.168.1.131:8082/icons/netflix.png');
+  assert.strictEqual(on.app_icons['youtube.leanback.v4'], 'http://192.168.1.131:8082/icons/youtube.leanback.v4.png');
+  assert.strictEqual(on.app_icons['com.palm.app.settings'], 'http://192.168.1.131:8082/icons/com.palm.app.settings.png');
+  console.log('  ✓ app_icons is published only with the icon server listening and the TV\'s address known');
+
+  assert.deepEqual(on.app_colors, { netflix: '#e50914', 'youtube.leanback.v4': '#ffffff' });
+  var plain = launchAttrs({ installedApps: [{ id: 'no.colour', title: 'None' }] });
+  assert.strictEqual('app_colors' in plain, false, 'no app_colors when no app has a valid colour');
+  console.log('  ✓ app_colors carries only valid hex colours, as #rrggbb');
 })();
 
 console.log('ALL test-ha.js assertions passed!\n');

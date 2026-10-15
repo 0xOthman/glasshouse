@@ -127,11 +127,25 @@ function read(done) {
   }
 
   luna('com.webos.service.mrcu/getConnectionStatus', {}, function (st) {
-    if (st) {
-      if (typeof st.connected === 'boolean') connected = st.connected;
-      if (typeof st.isBleRemocon === 'boolean') isBle = st.isBleRemocon;
-    }
-    if (!st || !st.connected || !st.isBleRemocon) return finish(null);
+    // Asked once, getConnectionStatus gives isBleRemocon false even with the
+    // Magic Remote connected (B8 on 4.4, C2 on 9.2); only the subscription's
+    // updates carry true. So this answer can confirm it, never clear it.
+    if (st && typeof st.connected === 'boolean') connected = st.connected;
+    if (st && st.isBleRemocon === true) isBle = true;
+    if (!st || !st.connected || !isBle) return finish(null);
+    // webOS 4 has the charge here (a B8's went from 49 to 63 with other
+    // batteries), and its gatt/connect answers with no clientId to disconnect
+    // by. Later webOS answer "-", and are read over Bluetooth.
+    fallbackDeviceInfo(function (dl) {
+      if (dl !== null) {
+        tried = true;
+        return finish(dl);
+      }
+      readGatt();
+    });
+  });
+
+  function readGatt() {
     luna(BT + '/device/getStatus', {}, function (ds) {
       address = remoteAddress(ds && ds.devices);
       if (!address) return finish(null);
@@ -140,9 +154,7 @@ function read(done) {
         clientId = c && c.returnValue && c.clientId ? String(c.clientId) : null;
         if (!clientId) return finish(null);
         luna(BT + '/gatt/discoverServices', { address: address }, function (disc) {
-          if (disc && disc.returnValue === false) {
-            return fallbackDeviceInfo(function (dl) { finish(dl); });
-          }
+          if (disc && disc.returnValue === false) return finish(null);
           setTimeout(function () {
             luna(BT + '/gatt/readCharacteristicValue', {
               clientId: clientId, service: BATTERY_SERVICE, characteristic: BATTERY_LEVEL
@@ -151,7 +163,7 @@ function read(done) {
         });
       });
     });
-  });
+  }
 }
 
 function due() {

@@ -1131,6 +1131,13 @@ footer{margin-top:38px;font-size:13px;letter-spacing:.08em;text-transform:upperc
 .timer-days button{min-width:44px;height:32px;padding:0 8px;font:500 12px 'Manrope';letter-spacing:.06em;
   color:var(--w60);background:transparent;border:1px solid var(--edge);border-radius:2px;cursor:pointer}
 .timer-days button.on{color:var(--green);border-color:var(--green)}
+#st-apps-row{flex-wrap:wrap}
+.st-apps{flex-basis:100%;margin-top:-4px}
+.st-app{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--edge)}
+.st-app .st-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-app .st-used{color:var(--w60);font-size:13px;white-space:nowrap}
+.st-app .pill-sel{min-width:0;width:96px}
+.st-note{color:var(--warn,#e5534b)}
 #apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row, #server-health-row{flex-wrap:wrap}
 #apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main, #server-health-row .prot-main{flex:1 1 160px}
 #apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status, #server-health-status{

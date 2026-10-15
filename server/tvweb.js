@@ -19,7 +19,7 @@
  * first 4096 bytes of a downloaded tvweb.js for this line (up to 0.82.2), and
  * refuses a release where it is further down (#586).
  */
-var TVWEB_VERSION = '0.96.0';
+var TVWEB_VERSION = '0.97.0';
 
 var http = require('http');
 var fs = require('fs');
@@ -50,6 +50,7 @@ var devtools = require('./lib/devtools');
 var oled = require('./lib/oled');
 var screensavers = require('./lib/screensavers');
 var appsModule = require('./lib/apps');
+var iconServer = require('./lib/iconserver');
 var samrescan = require('./lib/samrescan');
 var servicesModule = require('./lib/services');
 var preload = require('./lib/preload');
@@ -73,6 +74,7 @@ var logsModule = require('./lib/logs');
 var syslogForwarder = require('./lib/syslog');
 var ntpClient = require('./lib/ntp');
 var history = require('./lib/history');
+var screentime = require('./lib/screentime');
 var remoteBattery = require('./lib/remotebattery');
 var backup = require('./lib/backup');
 var power = require('./lib/power');
@@ -187,6 +189,11 @@ var CONFIG = {
   // `token`: it widens who can run code on the TV.
   allowNetworkDebugger: false,
 
+  // Installed apps' icons, read-only and unauthenticated, at
+  // http://<tv>:<port + 2>/icons/<appId>.png, for a launcher on another
+  // device. Also switched from the MQTT tab.
+  iconServer: false,
+
   // For testing the first-run setup wizard UI without touching TV settings or restarting.
   emulateSetup: false,
 
@@ -262,6 +269,23 @@ var CONFIG = {
    */
   backup: {
     daily: false
+  },
+
+  /*
+   * Screen-time limits, counted by watch time: a daily total in minutes (0
+   * for none), a bedtime from bedtimeStart to bedtimeEnd ('HH:MM', TV time),
+   * and apps, minutes a day by app or input. action is what the TV does at
+   * the daily limit or bedtime (off, screenOff or warn), appAction what an
+   * app does at its own (home, off, screenOff or warn).
+   */
+  screenTime: {
+    enabled: false,
+    dailyMinutes: 0,
+    bedtimeStart: '',
+    bedtimeEnd: '',
+    action: 'off',
+    appAction: 'home',
+    apps: {}
   },
 
   device: {
@@ -469,6 +493,7 @@ privacy.init({ luna: luna, lunaCached: lunaCached, config: CONFIG, lgSettings: l
 oled.init({ luna: luna, config: CONFIG });
 samrescan.init({ luna: luna });
 appsModule.init({ luna: luna, config: CONFIG });
+iconServer.init({ config: CONFIG, apps: appsModule });
 servicesModule.init({ stateDir: __dirname });
 preload.init({ luna: luna, stateDir: __dirname });
 quickAccess.init({ luna: luna, inputNames: telemetry.inputNameMap });
@@ -794,6 +819,7 @@ routes.init({
   syslog: syslogForwarder,
   ntp: ntpClient,
   history: history,
+  screentime: screentime,
   backup: backup,
   configFile: CONFIG_FILE,
   controls: controls,
@@ -868,6 +894,8 @@ if (!CLI_MODE) {
 }
 
 if (!CLI_MODE) servicesModule.startEnforcing();
+// Discovery carries the icons' address once the server is listening.
+if (!CLI_MODE) iconServer.start(function (err, started) { if (started) republishDiscovery(); });
 // Late, so configd is up after a boot.
 if (!CLI_MODE) {
   var preloadTimer = setTimeout(function () { preload.reapply(); }, 60000);
@@ -1053,7 +1081,8 @@ function setupHomeAssistant() {
       allowPower: CONFIG.allowPower,
       isOled: oled.getIsOled(),
       updatesElsewhere: fromHomebrewChannel(),
-      piccap: piccapWanted() && piccap.getState() !== null
+      piccap: piccapWanted() && piccap.getState() !== null,
+      iconBaseUrl: iconServer.baseUrl()
     });
 
     entities = ha.filterWithholds(entities, {
@@ -1546,11 +1575,13 @@ function setupHomeAssistant() {
 
   process.on('SIGTERM', function() {
     remotebuttons.stop();
+    iconServer.stop();
     if (mqttClient) mqttClient.disconnect();
     process.exit(0);
   });
   process.on('SIGINT', function() {
     remotebuttons.stop();
+    iconServer.stop();
     if (mqttClient) mqttClient.disconnect();
     process.exit(0);
   });
@@ -1559,6 +1590,8 @@ function setupHomeAssistant() {
   setInterval(tickTelemetry, intervalMs);
 
   liveState.start();
+  liveState.startGroup('surface');
+  liveState.startGroup('focus');
   notificationState.start();
   mqttClient.connect();
 }
@@ -1605,6 +1638,8 @@ if (!CLI_MODE) {
 
   history.init({ config: CONFIG, luna: luna, liveState: liveState, appTitle: telemetry.appTitle });
   history.start();
+  screentime.init({ config: CONFIG, liveState: liveState, control: controls.doControl, injectKey: controls.injectKey, keyBack: controls.KEY_BACK });
+  screentime.start();
   /*
    * Registered before the MQTT bridge's handlers, which exit, so it runs
    * first. With no bridge it is the only handler, and exits itself.
@@ -1622,7 +1657,7 @@ if (!CLI_MODE) {
     luna: luna,
     stateDir: __dirname,
     onLevel: function (level) {
-      console.log('remote: battery ' + level + '% (Bluetooth GATT 0x2A19)');
+      console.log('remote: battery ' + level + '%');
       telemetry.expireStats();
     }
   });
