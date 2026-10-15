@@ -1,6 +1,6 @@
 # Tested TVs
 
-Confirmed on 46 TVs across 30 series so far, running webOS 2.2 through 11 (LG's webOS 26). Other rooted models should work. The oldest, webOS 2 and 3, have fewer of LG's services, so some readings and controls do not appear there.
+Confirmed on 47 TVs across 31 series so far, running webOS 2.2 through 11 (LG's webOS 26). Other rooted models should work. The oldest, webOS 2 and 3, have fewer of LG's services, so some readings and controls do not appear there.
 
 Versions here are the ones the TV reports itself, as the dashboard shows them; [webOS version numbers](#webos-version-numbers) below gives LG's names for them.
 
@@ -39,6 +39,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | UT81          | 2024 | LCD   | 10                | 1       |
 | C5            | 2025 | OLED  | 10                | 3       |
 | G5            | 2025 | OLED  | 10 – 11           | 2       |
+| UA73          | 2025 | LCD   | 10.3.1            | 1       |
 | NU80          | 2026 | LCD   | 11                | 1       |
 
 <details markdown="1">
@@ -85,6 +86,7 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | OLED48C55LA | 10.3.1       | 33.31.68 | OLED  | Installed over telnet; in-app update to 0.37.2 confirmed       |
 | OLED77C57LA | 10.3.1       | 33.31.68 | OLED  | MQTT, privacy, screen saver and web dashboard confirmed        |
 | OLED48C5PUA | 10.3.1       | 33.31.69 | OLED  | Rooted with slopbro; dashboard, telemetry and API .ipk installs |
+| 55UA73006LA | 10.3.1       | 33.31.61 | LCD   | Homebrew Channel; SSH install; dashboard and telemetry confirmed |
 | OLED65G5WUA | 10           | 33.30.69 | OLED  | No screen saver tab; volume stuck at +10 on optical output     |
 | 42LX3Q6LA   | —            | 33.31.68 | OLED  | Flex; model number has no OLED prefix                          |
 | 43UT73006LA | —            | —        | LCD   | Reported working                                               |
