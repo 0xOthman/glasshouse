@@ -4,6 +4,16 @@ Findings about how LG's webOS works, kept so the same ground is not covered
 twice. Each entry names the TV and webOS version it was found on. For how
 Glasshouse itself works, see [IMPLEMENTATION.md](../IMPLEMENTATION.md).
 
+## Disconnected input devices (webOS 6.4.0, C1)
+
+A stale evdev descriptor can remain readable to `select` while reads fail or
+return EOF. Retrying without closing it creates a busy loop. On 14 October
+2026, the remote-button worker reached 8.16 million read calls with only
+451 KB read, and a `top` sample showed 85% CPU. Reopening its devices stopped
+the loop. The patched worker closes EOF/permanent-error descriptors, retains
+EAGAIN/EINTR descriptors, and retries discovery every five seconds. Four
+minutes after deployment it had 189 read calls and 0.1% lifetime CPU.
+
 ## Home screen (webOS 9.2.2, C2)
 
 **The home app** is `com.webos.app.home`, a native QML app in
