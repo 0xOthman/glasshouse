@@ -85,7 +85,7 @@ surface({ returnValue: true, foregroundAppInfo: [
 ] });
 assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.hdmi3');
 surface({ returnValue: true, foregroundAppInfo: [] });
-assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, '');
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.hdmi3', 'a transient empty surface waits');
 surface({ returnValue: true, foregroundAppInfo: [{ appId: 'netflix', windowType: '_WEBOS_WINDOW_TYPE_CARD' }] });
 assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'netflix');
 var focus = routing.groups.focus.subscription.handlers.message;
@@ -96,7 +96,7 @@ assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'co
 focus({ returnValue: true, focusedWindowInfo: [{ appId: 'com.webos.app.home' }] });
 assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.home');
 focus({ returnValue: true, focusedWindowInfo: [] });
-assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, '', 'no focus releases remote');
+assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.home', 'a transient empty focus waits');
 focus({ returnValue: true, focusedWindowInfo: [{ appId: 'com.webos.app.hdmi3' }] });
 assert.strictEqual(remoteMessages[remoteMessages.length - 1].control_app_id, 'com.webos.app.hdmi3');
 routing.groups.power.subscription.handlers.message({ returnValue: true, state: 'Suspend' });

@@ -18,6 +18,9 @@ function init(opts) {
   var topic = topics(opts.prefix);
   var legacyScreenTopic = opts.legacyScreenTopic || topic.state('screen');
   var manager = null;
+  var emptyRemoteTimer = null;
+  var lastRemoteBody = null;
+  var remoteSnapshotPending = false;
 
   function publishValue(group, key, value) {
     if (value === null || typeof value === 'undefined') return;
@@ -40,8 +43,9 @@ function init(opts) {
    * reports leaves control_app_id out; an empty one is a screen with nothing
    * focused, or the TV off, and must not be read as the last app.
    */
-  function publishRemote() {
+  function publishRemote(force, settled) {
     if (!manager) return;
+    if (force) remoteSnapshotPending = true;
     var snap = manager.snapshot();
     var payload = { app_id: (snap.application && snap.application.app_id) || '' };
     var windowGroups = [snap.surface, snap.focus];
@@ -53,7 +57,22 @@ function init(opts) {
     if (payload.control_app_id !== undefined && snap.power && snap.power.systemOn === false) {
       payload.control_app_id = '';
     }
-    client.publish(topic.state('application/remote'), JSON.stringify(payload), true);
+    // Closing an LG window can report no focus for about 100 ms before HDMI
+    // regains it. Standby still releases the remote immediately.
+    if (payload.control_app_id === '' && !(snap.power && snap.power.systemOn === false) && !settled) {
+      if (!emptyRemoteTimer) emptyRemoteTimer = setTimeout(function () {
+        emptyRemoteTimer = null;
+        publishRemote(false, true);
+      }, 200);
+      return;
+    }
+    if (emptyRemoteTimer) clearTimeout(emptyRemoteTimer);
+    emptyRemoteTimer = null;
+    var body = JSON.stringify(payload);
+    if (!remoteSnapshotPending && body === lastRemoteBody) return;
+    remoteSnapshotPending = false;
+    lastRemoteBody = body;
+    client.publish(topic.state('application/remote'), body, true);
   }
 
   function changesRemote(event) {
@@ -79,7 +98,7 @@ function init(opts) {
     for (group in values) {
       for (key in values[group]) publishValue(group, key, values[group][key]);
     }
-    publishRemote();
+    publishRemote(true);
   }
 
   return {

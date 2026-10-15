@@ -277,7 +277,10 @@ function init(opts) {
 
   function start() {
     var key;
-    for (key in groups) groups[key].start();
+    // Window tracking is only useful to MQTT, which starts those groups itself.
+    for (key in groups) {
+      if (key !== 'surface' && key !== 'focus') groups[key].start();
+    }
   }
 
   function stop() {
