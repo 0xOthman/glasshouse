@@ -182,12 +182,13 @@ function setupPending() {
 
 /*
  * Settings the dashboard is allowed to write. Security-sensitive settings in
- * config.json (port, host, allowControl, allowPower, token, iconServer) stay file-only:
+ * config.json (port, host, allowControl, allowPower, token) stay file-only:
  * those decide who may reach this server at all, and a UI that can widen its
  * own exposure defeats the point of setting them. The one exception is host,
  * from the TV itself during setup - see setNetworkAccess. Experimental feature
  * toggles (allowTileHiding, allowOnWebos10), allowNetworkDebugger and
- * prometheus.enabled are writable from the Server tab.
+ * prometheus.enabled are writable from the Server tab, and iconServer from the
+ * MQTT tab: its port answers nothing but the icons the dashboard serves.
  */
 function readConfigFile() {
   try {
@@ -265,6 +266,8 @@ function validateSettings(j) {
   if (!/^[a-z0-9_]{1,64}$/.test(out.device.id)) e.push('device id must be 1-64 characters of a-z, 0-9 or _');
   out.device.name = trimmedString(d.name);
 
+  // Saved with the MQTT form, whose Launch App select lists the icons' addresses.
+  if (j && typeof j.iconServer === 'boolean') out.iconServer = j.iconServer;
 
   return { errors: e, value: out };
 }
@@ -935,6 +938,7 @@ function getSettingsPayload() {
     ok: true,
     writable: config.allowControl,
     configFile: configFilePath,
+    iconServer: config.iconServer === true,
     mqtt: {
       enabled: !!mc.enabled,
       host: mc.host || '',

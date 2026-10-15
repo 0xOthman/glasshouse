@@ -205,6 +205,13 @@ function createMockRes(cb) {
   assert.ok(v7.errors.length > 0);
 
   console.log('  ✓ validateSettings strictly validates broker, ports, topics, and device IDs');
+
+  // The MQTT form's icon switch: saved when given as a boolean, else left alone.
+  assert.strictEqual(routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: true }).value.iconServer, true);
+  assert.strictEqual(routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: false }).value.iconServer, false);
+  assert.strictEqual('iconServer' in v1.value, false, 'absent, config.json keeps what it had');
+  assert.strictEqual('iconServer' in routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: 'yes' }).value, false);
+  console.log('  ✓ the icon server switch is saved from the MQTT form only as true or false');
 })();
 
 // 4b. Settings Persistence (writeSettings) and Update Summary (updateSummary)

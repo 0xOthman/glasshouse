@@ -190,7 +190,7 @@ var CONFIG = {
 
   // Installed apps' icons, read-only and unauthenticated, at
   // http://<tv>:<port + 2>/icons/<appId>.png, for a launcher on another
-  // device. File-only, like `port`: it opens a port to the network.
+  // device. Also switched from the MQTT tab.
   iconServer: false,
 
   // For testing the first-run setup wizard UI without touching TV settings or restarting.

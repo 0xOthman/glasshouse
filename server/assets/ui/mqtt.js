@@ -297,6 +297,7 @@ async function loadSettings(keepMsg) {
     q('cfg-interval').value = m.telemetryIntervalMs;
     q('cfg-enabled').classList.toggle('on', m.enabled);
     cfgSyncEnabled();
+    q('cfg-icons').classList.toggle('on', !!j.iconServer);
     q('cfg-tls').classList.toggle('on', m.tls);
     q('cfg-verify').classList.toggle('on', m.tlsRejectUnauthorized);
     cfgSyncTls();
@@ -357,7 +358,8 @@ async function saveSettings() {
         disabled: cfgEntities.disabled || []
       }
     },
-    device: { id: q('cfg-devid').value, name: q('cfg-devname').value }
+    device: { id: q('cfg-devid').value, name: q('cfg-devname').value },
+    iconServer: q('cfg-icons').classList.contains('on')
   };
   // An untouched password field means "keep the stored one", not "clear it".
   const pass = q('cfg-pass').value;

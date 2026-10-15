@@ -66,7 +66,7 @@ port 8081 answers a one-time code for up to ten minutes. The server connects out
 only to the configured MQTT broker, to the NTP server when one is configured,
 and, when update checks are switched on, to GitHub's releases API. Update checks are off by default.
 
-With `iconServer` set to `true` in `config.json`, port 8082 (the dashboard's
+With **Share app icons** on in the MQTT tab (`iconServer` in `config.json`), port 8082 (the dashboard's
 port plus two) answers on the whole network, dual-stack like the dashboard,
 with installed apps' icons at `/icons/<appId>.png` and nothing else: no other
 paths, no listing, read-only and without a token, whatever the dashboard is

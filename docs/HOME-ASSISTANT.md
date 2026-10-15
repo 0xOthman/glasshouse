@@ -71,7 +71,7 @@ For config-file deployments, `deploy.sh` checks for `server/config.<tv-ip>.json`
 
 The dashboard can change the broker, credentials, topic prefix and device identity — the settings that decide *where* telemetry goes.
 
-`port`, `host`, `allowControl`, `allowPower`, `token` and `iconServer` are file-only. They decide *who can reach the server at all*, and a web UI able to widen its own exposure would defeat the point of setting them. `syslog` is file-only too. `allowTileHiding`, `allowOnWebos10`, `allowNetworkDebugger`, `prometheus.enabled` and `ntp` can be set in `config.json` or from the Server tab.
+`port`, `host`, `allowControl`, `allowPower` and `token` are file-only. They decide *who can reach the server at all*, and a web UI able to widen its own exposure would defeat the point of setting them. `syslog` is file-only too. `allowTileHiding`, `allowOnWebos10`, `allowNetworkDebugger`, `prometheus.enabled` and `ntp` can be set in `config.json` or from the Server tab, and `iconServer` from the MQTT tab ([App icons](#app-icons-for-launchers)).
 
 Edit those in `config.json` and redeploy, or edit `/var/lib/tvweb/config.json` on the TV and restart.
 
@@ -142,6 +142,30 @@ config, otherwise they overwrite each other's state and disconnect each other.
 See the README for a config example and the `deploy.sh` per-IP config lookup.
 
 ---
+
+## App icons for launchers
+
+A launcher on another device, or a Home Assistant dashboard, can show the TV's apps as tiles with their own icons. Switch **Share app icons** on in the dashboard's **MQTT** tab and save; the server restarts and serves each installed app's icon at `http://<tv-ip>:8082/icons/<appId>.png`. Anyone on the network can fetch them, and so tell which apps are installed.
+
+The Launch App select (`select.lg_tv_app`) then carries three attributes, shown under **Developer tools** → **States**:
+
+* `app_ids`: each option's label and its app id, which stays the same when an app's title changes.
+* `app_icons`: each app id and its icon's address, only while icons are shared.
+* `app_colors`: each app id and the background colour its `appinfo.json` gives, as `#rrggbb`, where it gives one.
+
+Home Assistant shows none of them by itself. A Markdown card shows the tiles:
+
+```yaml
+type: markdown
+content: >
+  {% set ids = state_attr('select.lg_tv_app', 'app_ids') %}
+  {% set icons = state_attr('select.lg_tv_app', 'app_icons') or {} %}
+  {% for name, id in ids.items() if id in icons %}
+  <img src="{{ icons[id] }}" height="48" alt="{{ name }}"> {{ name }}
+  {% endfor %}
+```
+
+The icons are plain `http`, so a browser showing Home Assistant over `https`, as through Home Assistant Cloud, blocks them as mixed content.
 
 ## Example automations
 
