@@ -327,7 +327,8 @@ function dailyCheck(cb) {
   create(function (b) {
     try {
       util.mkdirp(dailyDir);
-      util.writeJsonAtomic(path.join(dailyDir, name), b);
+      // Readable by root only, as config.json is.
+      util.writeJsonAtomic(path.join(dailyDir, name), b, parseInt('600', 8));
     } catch (e) {
       console.error('backup: could not write ' + name + ': ' + e.message);
       return cb(null);

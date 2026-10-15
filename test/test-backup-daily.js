@@ -50,6 +50,7 @@ var T = Date.UTC(2026, 9, 15, 9, 0);
   assert.strictEqual(kept.format, 'glasshouse-backup');
   assert.deepEqual(kept.lg, { soundMode: 'standard' });
   assert.deepEqual(kept.glasshouse.backup, { daily: true }, 'the switch is in the backup');
+  assert.strictEqual(fs.statSync(path.join(dir, 'glasshouse-backup-2026-10-15.json')).mode & parseInt('777', 8), parseInt('600', 8));
 
   tv.clock.wall += 3 * 3600000;
   backup.dailyCheck(function (name) { assert.strictEqual(name, null, 'one a day'); });
