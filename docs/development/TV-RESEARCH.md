@@ -203,6 +203,19 @@ after each of the two connections. How often this can be done
 without disturbing lginput2's own connection, and whether webOS 9 and earlier
 have these calls, is not yet known.
 
+On a B8 (4.4.3) and a C2 (9.2.2), `getConnectionStatus` asked once answers
+`isBleRemocon: false` even with the Magic Remote connected. Subscribed, the
+update sent as the remote wakes has `connected: true, isBleRemocon: true`, and
+the one as it sleeps keeps `isBleRemocon: true`.
+
+On the B8, lginput2 once started a diagnostic capture, a
+`/tmp/var/log/<date>_MRCU.log` with columns for motion, RSSI, voltage,
+temperature and gyro, beside a `ManualDevice-<remote MAC>-rawInput.dsf`. A new
+`mrcu_LS2` thread started with it and used a whole core until the TV was
+rebooted, through a night in standby. lginput2's luna methods include
+`enableLoggingMotion`, `getSensorData` and `enablePrintRfStatus`, none of which
+Glasshouse calls; `getConnectionStatus` and `getDeviceInfo` left it at 0%.
+
 ## Boot and app state (webOS 9.2.2, C2)
 
 - The kernel command line has `snapshot resume=/dev/mmcblk0p51 criu_enabled`.

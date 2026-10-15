@@ -127,11 +127,12 @@ function read(done) {
   }
 
   luna('com.webos.service.mrcu/getConnectionStatus', {}, function (st) {
-    if (st) {
-      if (typeof st.connected === 'boolean') connected = st.connected;
-      if (typeof st.isBleRemocon === 'boolean') isBle = st.isBleRemocon;
-    }
-    if (!st || !st.connected || !st.isBleRemocon) return finish(null);
+    // Asked once, getConnectionStatus gives isBleRemocon false even with the
+    // Magic Remote connected (B8 on 4.4, C2 on 9.2); only the subscription's
+    // updates carry true. So this answer can confirm it, never clear it.
+    if (st && typeof st.connected === 'boolean') connected = st.connected;
+    if (st && st.isBleRemocon === true) isBle = true;
+    if (!st || !st.connected || !isBle) return finish(null);
     luna(BT + '/device/getStatus', {}, function (ds) {
       address = remoteAddress(ds && ds.devices);
       if (!address) return finish(null);

@@ -149,6 +149,19 @@ steps.push(function () {
     pending--;
   });
 });
+// As on the B8 and C2: the subscription says the remote is Bluetooth, the
+// one-off status asked by the read does not.
+steps.push(function () {
+  pending++;
+  var luna = fakeLuna({ status: { returnValue: true, connected: true, isBleRemocon: false } });
+  rb.init({ luna: luna, discoverMs: 0, settleMs: 0 });
+  rb.connectionChanged({ returnValue: true, connected: true, isBleRemocon: true });
+  setTimeout(function () {
+    assert.ok(luna.calls.indexOf('bluetooth2/gatt/readCharacteristicValue') !== -1, 'read at the wake');
+    console.log('  ✓ a wake is read though the one-off status leaves isBleRemocon false');
+    pending--;
+  }, 20);
+});
 steps.push(function () {
   rb.init();
   assert.strictEqual(rb.connected(), false);
