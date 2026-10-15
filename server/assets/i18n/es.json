@@ -115,6 +115,110 @@
   "text": "Al apagar, la TV entra en un sueño ligero en lugar de apagarse del todo, así que vuelve a encenderse más rápido. LG lo llama Quick Start+.",
   "from": "Switching off puts the TV into a light sleep rather than shutting it down, so it comes back on faster. LG calls this Quick Start+."
  },
+ "adv.screenTime": {
+  "text": "Tiempo de pantalla",
+  "from": "Screen time"
+ },
+ "adv.screenTime.action": {
+  "text": "Al llegar al límite diario o a la hora de dormir",
+  "from": "At the daily limit or bedtime"
+ },
+ "adv.screenTime.add": {
+  "text": "Añadir un límite",
+  "from": "Add a limit"
+ },
+ "adv.screenTime.appAction": {
+  "text": "Al llegar al límite de una app o entrada",
+  "from": "At an app or input’s limit"
+ },
+ "adv.screenTime.apps": {
+  "text": "Límites por app y entrada",
+  "from": "App and input limits"
+ },
+ "adv.screenTime.apps.desc": {
+  "text": "Minutos al día para una app o entrada. Se pueden elegir las vistas en los últimos 30 días.",
+  "from": "Minutes a day for one app or input. Those watched in the last 30 days can be picked."
+ },
+ "adv.screenTime.bedtime": {
+  "text": "Hora de dormir",
+  "from": "Bedtime"
+ },
+ "adv.screenTime.bedtime.desc": {
+  "text": "Entre estas dos horas, el televisor hace lo elegido abajo. Al borrar cualquiera de las dos, se desactiva la hora de dormir.",
+  "from": "Between these two times, the TV does what is chosen below. Clearing either time turns bedtime off."
+ },
+ "adv.screenTime.bedtime.from": {
+  "text": "Empieza la hora de dormir",
+  "from": "Bedtime starts"
+ },
+ "adv.screenTime.bedtime.to": {
+  "text": "Termina la hora de dormir",
+  "from": "Bedtime ends"
+ },
+ "adv.screenTime.clockUnset": {
+  "text": "El reloj del televisor aún no está en hora. Los límites se aplican cuando lo esté.",
+  "from": "The TV’s clock is not set yet. The limits apply once it is."
+ },
+ "adv.screenTime.daily": {
+  "text": "Límite diario",
+  "from": "Daily limit"
+ },
+ "adv.screenTime.daily.desc": {
+  "text": "El tiempo de pantalla permitido cada día, contado desde la medianoche según el reloj del televisor.",
+  "from": "The screen time allowed each day, counted from midnight on the TV’s clock."
+ },
+ "adv.screenTime.desc": {
+  "text": "Limita cuánto tiempo está encendida la pantalla cada día, en total y por app o entrada, y la mantiene apagada a la hora de dormir. El televisor muestra un aviso cinco minutos antes de un límite y otro al alcanzarlo, y un minuto después hace lo elegido abajo.",
+  "from": "Limits how long the screen is on each day, in all and per app or input, and keeps it off at bedtime. The TV shows a warning five minutes before a limit, and another when it is reached, then does what is chosen below a minute later."
+ },
+ "adv.screenTime.do.home": {
+  "text": "Ir a Inicio",
+  "from": "Go to Home"
+ },
+ "adv.screenTime.do.off": {
+  "text": "Apagar el televisor",
+  "from": "Switch the TV off"
+ },
+ "adv.screenTime.do.screenOff": {
+  "text": "Apagar la pantalla",
+  "from": "Turn the screen off"
+ },
+ "adv.screenTime.do.warn": {
+  "text": "Solo avisar",
+  "from": "Only warn"
+ },
+ "adv.screenTime.limits": {
+  "text": "Límites de tiempo de pantalla",
+  "from": "Screen-time limits"
+ },
+ "adv.screenTime.minutes": {
+  "text": "Minutos al día",
+  "from": "Minutes a day"
+ },
+ "adv.screenTime.needsWatch": {
+  "text": "Se cuenta con el tiempo de visionado, que está desactivado. Se activa en la pestaña Servidor.",
+  "from": "Counted by watch time, which is off. It is turned on in the Server tab."
+ },
+ "adv.screenTime.noLimit": {
+  "text": "Sin límite",
+  "from": "No limit"
+ },
+ "adv.screenTime.noPower": {
+  "text": "Las acciones de encendido están desactivadas en la configuración del servidor, así que el televisor no se puede apagar.",
+  "from": "Power actions are turned off in the server’s config, so the TV cannot be switched off."
+ },
+ "adv.screenTime.remove": {
+  "text": "Quitar",
+  "from": "Remove"
+ },
+ "adv.screenTime.today": {
+  "text": "Hoy hasta ahora: {time}",
+  "from": "Today so far: {time}"
+ },
+ "adv.screenTime.used": {
+  "text": "{time} hoy",
+  "from": "{time} today"
+ },
  "adv.sound": {
   "text": "Sonido",
   "from": "Sound"
@@ -1543,10 +1647,6 @@
   "text": "Temperatura",
   "from": "Temperature"
  },
- "metrics.uptime": {
-  "text": "Tiempo de actividad de la TV",
-  "from": "TV uptime"
- },
  "metrics.uptime.days": {
   "text": "{d}d {h}h {m}m",
   "from": "{d}d {h}h {m}m"
@@ -1558,10 +1658,6 @@
  "metrics.uptime.mins": {
   "text": "{m}m",
   "from": "{m}m"
- },
- "metrics.uptime.sinceBoot": {
-  "text": "Tiempo desde el encendido",
-  "from": "Time since boot"
  },
  "metrics.watch": {
   "text": "Tiempo de visionado",
@@ -1730,6 +1826,18 @@
  "mqtt.host.hint": {
   "text": "Nombre de host o IP del broker MQTT.",
   "from": "Hostname or IP of the MQTT broker."
+ },
+ "mqtt.icons": {
+  "text": "Iconos de apps",
+  "from": "App icons"
+ },
+ "mqtt.icons.desc": {
+  "text": "Permite que un lanzador o panel en otro dispositivo muestre las apps de esta TV con sus propios iconos. Launch App en Home Assistant indica entonces la dirección de cada icono. Cualquiera en la red puede descargar los iconos y saber así qué apps están instaladas.",
+  "from": "Lets a launcher or dashboard on another device show this TV's apps with their own icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can fetch the icons, and so tell which apps are installed."
+ },
+ "mqtt.icons.toggle": {
+  "text": "Compartir iconos de apps",
+  "from": "Share app icons"
  },
  "mqtt.interval": {
   "text": "Intervalo de telemetría",
@@ -6114,10 +6222,6 @@
  "tv.system.temperature.hint": {
   "text": "El sensor del procesador principal (SoC), no del panel. Sube con la decodificación de vídeo y la carga de CPU.",
   "from": "The main processor (SoC) sensor, not the panel. It climbs with video decoding and CPU workload."
- },
- "tv.system.uptime": {
-  "text": "Tiempo en marcha",
-  "from": "Uptime"
  },
  "tv.system.wiFi": {
   "text": "Wi-Fi",

@@ -70,7 +70,7 @@ function showTab(name) {
   if (name === 'server') loadTvApp();
   if (name === 'oledcare') loadOledCare();
   gamePolling(name === 'game');
-  if (name === 'advanced') { loadAdvSettings(); loadUpdate(); }
+  if (name === 'advanced') { loadAdvSettings(); loadUpdate(); loadScreenTime(); }
   if (name === 'servicemenu') loadServiceMenu();
   if (name === 'screensaver') loadScreensavers();
   if (name === 'privacy') loadPrivacy();

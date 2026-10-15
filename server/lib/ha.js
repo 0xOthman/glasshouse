@@ -10,6 +10,8 @@ var msg = require('./say').msg;
 var SS = require('./screensavers').SCREENSAVERS;
 var topics = require('./topics');
 var names = require('./names');
+var hexColor = require('./util').hexColor;
+var APP_ID_RE = require('./iconserver').APP_ID_RE;
 var SS_IDS = Object.keys(SS);
 function ssMap(byLabel) {
   var m = {};
@@ -234,6 +236,8 @@ function entityCategory(e) {
   return ENTITY_CATEGORIES[e.type + '.' + e.id] || ENTITY_CATEGORIES[e.id] || 'diagnostics';
 }
 
+var SETTINGS_APP_ID = 'com.palm.app.settings';
+
 /*
  * Launch App options by name. Before the app list has loaded, the common apps
  * stand in so the select is not empty. A name two apps share gets the id of
@@ -262,7 +266,37 @@ function appNames(installed) {
   } else {
     for (var i = 0; i < installed.length; i++) add(installed[i].id, installed[i].title);
   }
+  // LG's Settings is a system app the installed list leaves out, but it
+  // launches like any other: offered so a non-admin client can open it.
+  add(SETTINGS_APP_ID, 'Settings');
   return byId;
+}
+
+/*
+ * The Launch App select's attributes: each option's app id, and for a
+ * launcher showing the apps as tiles, each app's icon on the LAN icon server
+ * (iconBaseUrl, when it is listening) and its appinfo.json iconColor.
+ */
+function appAttributes(toId, byId, installed, iconBaseUrl) {
+  var attrs = { app_ids: toId };
+  var id;
+  if (iconBaseUrl) {
+    var icons = {};
+    for (id in byId) {
+      if (APP_ID_RE.test(id)) icons[id] = iconBaseUrl + id + '.png';
+    }
+    attrs.app_icons = icons;
+  }
+  var colors = {}, anyColor = false;
+  for (var i = 0; i < (installed || []).length; i++) {
+    var color = hexColor(installed[i].iconColor);
+    if (color && byId[installed[i].id]) {
+      colors[installed[i].id] = color;
+      anyColor = true;
+    }
+  }
+  if (anyColor) attrs.app_colors = colors;
+  return attrs;
 }
 
 /*
@@ -491,6 +525,10 @@ function buildEntities(opts) {
           name: 'Active App',
           state_topic: topic.telemetry,
           value_template: '{{ value_json.display_title or value_json.app_name or value_json.app }}',
+          // The title changes when an app is renamed; the id does not. A
+          // remote that only acts in certain apps checks the id.
+          json_attributes_topic: topic.state('application/remote'),
+          json_attributes_template: '{{ value_json | tojson }}',
           icon: 'mdi:television-play'
         }
       },
@@ -1031,6 +1069,10 @@ function buildEntities(opts) {
             command_template: '{{ ' + JSON.stringify(toId) + '.get(value, value) }}',
             state_topic: topic.telemetry,
             value_template: '{{ ' + JSON.stringify(byId) + '.get(value_json.app_id, "None") }}',
+            // Each option's app id, for a client that keeps a chosen app by id:
+            // a title can change while the id stays.
+            json_attributes_topic: topic.telemetry,
+            json_attributes_template: '{{ ' + JSON.stringify(appAttributes(toId, byId, installedApps, opts.iconBaseUrl)) + ' | tojson }}',
             options: Object.keys(toId),
             icon: 'mdi:apps'
           };

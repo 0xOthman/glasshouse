@@ -569,12 +569,28 @@ function getIconPath(appId, cb) {
         path.join(appDir, 'icon.png'),
         path.join(appDir, 'assets', 'icon.png')
       ];
-      for (var c = 0; c < candidates.length; c++) {
-        if (fs.existsSync(candidates[c])) return cb(candidates[c]);
-      }
+      return cb(firstFileInside(appDir, candidates));
     } catch (e) {}
     cb(null);
   });
+}
+
+/*
+ * The first of the paths that is a file inside dir once symlinks are
+ * followed, or null. The icon's path comes from the app's own appinfo.json,
+ * and the icons are served unauthenticated to the LAN with iconServer on, so
+ * an "icon" of "../../../var/lib/tvweb/config.json" must not be read.
+ */
+function firstFileInside(dir, paths) {
+  var root;
+  try { root = fs.realpathSync(dir); } catch (e) { return null; }
+  for (var i = 0; i < paths.length; i++) {
+    try {
+      var real = fs.realpathSync(paths[i]);
+      if (real.indexOf(root + path.sep) === 0 && fs.statSync(real).isFile()) return real;
+    } catch (e) {}
+  }
+  return null;
 }
 
 var dirSizeCache = {};
@@ -1130,6 +1146,7 @@ function uninstallApp(appId, cb) {
 
 module.exports = {
   init: init,
+  firstFileInside: firstFileInside,
   isProtected: isProtected,
   getApps: getApps,
   getIconPath: getIconPath,
