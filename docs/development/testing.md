@@ -24,7 +24,7 @@ something is wrong, and Home Assistant and the TV's own browser fail quietly.
 | [`check-entities.py`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/checks.yml#L57-L58) | A Home Assistant entity reading a field the TV's telemetry does not have, checked against a B8's real telemetry. |
 | [`check-upgrade.js`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/checks.yml#L61-L62) | A release the updater already installed on a TV would refuse. The updaters of the latest release and the oldest still in use install the change in place, from a local copy, as a TV does when it updates; 0.82.0 and 0.82.1 could not be installed that way (#586). |
 | [`Package build`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/checks.yml#L65-L77) | The Homebrew Channel `.ipk` still builds, and passes the Homebrew Channel's own compatibility check for webOS 2.2 and later, the oldest confirmed (a 49LF632V). |
-| [`Unit tests`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/checks.yml#L80-L97) | Each part of the server, and one suite that starts the whole server against a fake TV and MQTT broker, once with a TV that answers and once with one that answers late, wrongly or not at all, and checking the dashboard keeps answering and telemetry keeps flowing. |
+| [`Unit tests`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/checks.yml#L80-L97) | Each part of the server, and one suite that starts the whole server against a fake TV and MQTT broker, with a TV that answers, one that answers late, wrongly or not at all, and MQTT disabled, and checking the dashboard keeps answering and telemetry keeps flowing. |
 
 ## On each supported TV's node
 
@@ -37,8 +37,16 @@ So the tests run on node 0.10 as well, and use none of what it lacks: no
 unless a fallback is in place. `test/test-syslog.js` and `test/test-logs.js`
 make temporary folders without `mkdtempSync`, and `test/test-installer.js`
 gzips without `zlib.gzipSync`. The suites that run the repository's own scripts
-through `execSync`, `test-module-calls.js` and `test-tvwebctl.js`, skip on node
-0.10.
+through `execSync`, `test-module-calls.js`, `test-tvwebctl.js` and
+`test-remote-worker.js`, skip on node 0.10.
+
+`test-remote-worker.js` runs the remote-button worker's Python tests
+(`test/test_remote_buttons.py`) under Python 3: a disconnected device and one at
+EOF are dropped rather than read in a busy loop, a device with nothing to read
+yet is kept, and a device that comes back is reopened and its buttons arrive.
+The worker itself stays Python 2.7 compatible for the TV.
+
+`test-window-state.js` checks that short gaps in window focus do not publish empty remote attributes, persistent gaps do, standby clears immediately, and reconnects republish the retained state. The server boot test checks that both SurfaceManager subscriptions start only with MQTT enabled.
 
 ## Home Assistant
 

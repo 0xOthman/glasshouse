@@ -1,6 +1,7 @@
 /**
  * test/test-server-boot.js - The whole server starts, keeps answering and
- * keeps publishing, against a TV that answers and one that misbehaves
+ * keeps publishing, against a TV that answers and one that misbehaves,
+ * and keeps window subscriptions off when MQTT is disabled
  *
  * Runs server/tvweb.js as its own process, with the TV's files in a temporary
  * root (test/mocks/boot-server.js), LG's luna-send replaced by
@@ -111,8 +112,8 @@ function waitFor(what, test, ms, cb, fail) {
   })();
 }
 
-function phase(name, chaos, next) {
-  var root = path.join(os.tmpdir(), 'tvweb-boot-' + process.pid + '-' + (chaos ? 'chaos' : 'steady'));
+function phase(name, chaos, next, mqttDisabled) {
+  var root = path.join(os.tmpdir(), 'tvweb-boot-' + process.pid + '-' + (mqttDisabled ? 'no-mqtt' : chaos ? 'chaos' : 'steady'));
   rmrf(root); // fake-luna-send's call counts live here and must start at 0
   Object.keys(mockFiles).forEach(function (f) {
     if (mockFiles[f] === null) return;
@@ -129,12 +130,13 @@ function phase(name, chaos, next) {
       var cfg = path.join(root, 'var/lib/tvweb/config.json');
       fs.writeFileSync(cfg, JSON.stringify({
         port: port, host: '127.0.0.1',
-        mqtt: { enabled: true, host: '127.0.0.1', port: broker.port, topicPrefix: 'boot', telemetryIntervalMs: 2000 }
+        mqtt: { enabled: !mqttDisabled, host: '127.0.0.1', port: broker.port, topicPrefix: 'boot', telemetryIntervalMs: 2000 }
       }));
       var env = {};
       for (var k in process.env) env[k] = process.env[k];
       env.FAKE_ROOT = root;
       env.TVWEB_LUNA_SEND = FAKE_LUNA;
+      env.FAKE_LUNA_LOG = path.join(root, 'luna-calls.jsonl');
       if (chaos) env.FAKE_LUNA_CHAOS = '1';
 
       var out = '';
@@ -162,8 +164,8 @@ function phase(name, chaos, next) {
         if (exited) return fail('server exited at start: ' + JSON.stringify(exited));
         var beat = path.join(root, 'var/run/tvweb.beat');
         waitFor('the heartbeat', function () { return fs.existsSync(beat); }, 5000, function () {
-          waitFor('telemetry at the broker', function () { return broker.last(/^boot\/telemetry$/); }, 20000, function () {
-            waitFor('discovery at the broker', function () { return broker.last(/^homeassistant\/.*\/config$/); }, 20000, function () {
+          waitFor('telemetry at the broker', function () { return mqttDisabled ? out.indexOf('mqtt: disabled') !== -1 : broker.last(/^boot\/telemetry$/); }, 20000, function () {
+            waitFor('discovery at the broker', function () { return mqttDisabled || broker.last(/^homeassistant\/.*\/config$/); }, 20000, function () {
 
             /*
              * Steady use: the dashboard asked once a second, telemetry every 2s.
@@ -204,18 +206,25 @@ function phase(name, chaos, next) {
                   worstPage = Math.max(worstPage, pms);
                 });
                 var t = broker.last(/^boot\/telemetry$/);
-                if (Date.now() - t.at > gapLimit) { clearInterval(probe); return fail('no telemetry for ' + Math.round((Date.now() - t.at) / 1000) + 's'); }
+                if (!mqttDisabled && Date.now() - t.at > gapLimit) { clearInterval(probe); return fail('no telemetry for ' + Math.round((Date.now() - t.at) / 1000) + 's'); }
                 if (Date.now() < until) return;
                 clearInterval(probe);
                 if (worst >= statsLimit) return fail('slowest stats answer ' + worst + 'ms');
                 console.log('  ✓ ' + name + ': answered for ' + SECS + 's (slowest stats ' + worst + 'ms, page ' +
-                            worstPage + 'ms), telemetry kept flowing');
+                            worstPage + 'ms)' + (mqttDisabled ? ', MQTT stayed disabled' : ', telemetry kept flowing'));
 
+                var calls = fs.readFileSync(env.FAKE_LUNA_LOG, 'utf8');
+                var windowCalls = ['getForegroundAppInfo', 'getFocusedWindowInfo'];
+                windowCalls.forEach(function (method) {
+                  var called = calls.indexOf('luna://com.webos.surfacemanager/' + method) !== -1;
+                  if (called === !!mqttDisabled) fail(method + (mqttDisabled ? ' subscribed without MQTT' : ' never subscribed'));
+                });
+                console.log('  ✓ ' + name + ': window subscriptions follow MQTT enablement');
                 stopping = true;
                 srv.kill('SIGTERM');
                 waitFor('the server to stop', function () { return exited; }, 5000, function () {
-                  if (exited.code !== 0) { stopping = false; return fail('exit ' + JSON.stringify(exited)); }
-                  if (broker.disconnects < 1) { stopping = false; return fail('MQTT was not disconnected cleanly'); }
+                  if (exited.code !== 0 && !(mqttDisabled && exited.signal === 'SIGTERM')) { stopping = false; return fail('exit ' + JSON.stringify(exited)); }
+                  if (!mqttDisabled && broker.disconnects < 1) { stopping = false; return fail('MQTT was not disconnected cleanly'); }
                   console.log('  ✓ ' + name + ': stopped cleanly on SIGTERM');
                   broker.server.close();
                   rmrf(root);
@@ -231,7 +240,7 @@ function phase(name, chaos, next) {
   });
 }
 
-var phasesLeft = 2;
+var phasesLeft = 3;
 function phaseDone() {
   if (--phasesLeft) return;
   console.log('ALL test-server-boot.js assertions passed!\n');
@@ -239,3 +248,4 @@ function phaseDone() {
 }
 phase('steady TV', false, phaseDone);
 phase('unreliable TV', true, phaseDone);
+phase('MQTT disabled', false, phaseDone, true);

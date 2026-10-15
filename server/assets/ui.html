@@ -203,12 +203,6 @@
       <div class="sub" id="watch-note" hidden></div>
     </div>
 
-    <div class="grp-sec" id="uptimeblock" data-col="1">
-      <div class="grp" data-t="metrics.uptime">TV uptime</div>
-      <div class="lbl" data-t="metrics.uptime.sinceBoot">Time since boot</div>
-      <div class="uptime-val num" id="tv-uptime">&mdash;</div>
-    </div>
-
     <div class="grp-sec" id="advblock" data-col="1">
       <div class="grp" data-t="tab.advanced">Advanced</div>
       <details class="disc" id="disc-hwinfo" hidden style="border-top:0;margin-top:0">
@@ -1125,6 +1119,19 @@
       <label for="cfg-interval" data-t="mqtt.interval">Telemetry interval</label>
       <input type="number" id="cfg-interval" placeholder="10000" translate="no" min="1000" max="600000" autocomplete="off">
       <div class="hint" data-t="mqtt.interval.hint">Milliseconds between publishes.</div>
+    </div>
+  </div>
+
+  <div class="pv-h" data-t="mqtt.icons">App icons</div>
+  <div class="pv-table">
+    <div class="pv-row">
+      <div>
+        <div class="n" data-t="mqtt.icons.toggle">Share app icons</div>
+        <div class="d" data-t="mqtt.icons.desc">Lets a launcher or dashboard on another device show this TV's apps with their own
+          icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can
+          fetch the icons, and so tell which apps are installed.</div>
+      </div>
+      <button type="button" class="pill idle" id="cfg-icons" onclick="cfgToggleIcons()">&mdash;</button>
     </div>
   </div>
 

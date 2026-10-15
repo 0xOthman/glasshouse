@@ -56,7 +56,7 @@ Measured with `scripts/footprint.sh` on 2026-10-03, over a minute each, with MQT
 | OLED65B8SLC (webOS 4) | 1.4–1.7% | 29–42 MB | 5, 6 MB | 432–445 of 1976 MB |
 | OLED42C24LA (webOS 9.2) | 1.2–1.3% | 35–38 MB | 5, 10 MB | 525–535 of 1996 MB |
 
-The children are the five subscriptions held open for live state. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
+The children are the five subscriptions held open for live state, to which a TV whose SurfaceManager reports its windows adds two while the MQTT bridge is enabled. These two are started explicitly by the bridge; a TV without MQTT runs neither. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
 
 ---
 
@@ -533,6 +533,17 @@ The server attempts to launch `com.webos.app.home` first. If that succeeds (webO
 
 The 100ms hold duration between key-down and key-up gives Qt's event loop sufficient time to arm `longPressTimer`, ensuring `global.goHome()` fires on release (`LSM NL_HOME_SHOWN`) and toggles the native Home launcher ribbon on webOS 3–5.
 
+### Key presses go ahead of telemetry
+
+Remote keys forwarded over MQTT, the arrows, OK, Back and Home, jump the queue
+of luna-send calls. Telemetry makes about a dozen calls per collection, and a
+key press arriving during one used to wait behind them. A key now goes ahead of
+every call waiting, may run beside the usual two, and keeps the gap between
+child starts. Keys run one at a time, since two `sendKeyCode` calls running
+together can finish out of order. A key schedules no telemetry read of its own;
+an app it opens reaches Home Assistant through the foreground-app subscription.
+Each key's wait and run time is logged at debug level.
+
 ## Older hardware capabilities (webOS 3.x and LCD models)
 
 Testing against 2016 hardware (such as 43UH610V-ZB and 55UH6030-UC on webOS 3.4.3) highlights several differences between older LCD platforms and modern OLED sets:
@@ -855,8 +866,13 @@ is not woken for this, so the read waits for it to wake, from
 `com.webos.service.mrcu/getConnectionStatus` subscribed: the first wake after
 the TV switches on, then one at least an hour after the last read, or five
 minutes after a failed one. A check every 10 minutes covers a remote kept
-awake. lginput2 holds the remote's own connection, and the Bluetooth service reads the
-service only over a GATT connection of its own, so each read is
+awake. The subscription's updates are trusted for whether the remote is a
+Bluetooth one: asked once, the same method says it is not. On webOS 4,
+`com.webos.service.mrcu/getDeviceInfo` has the charge in `batteryLevel`, so it
+is asked first, and no Bluetooth connection is made where it answers; webOS 9
+and later answer `"-"`. lginput2 holds the remote's own connection, and the
+Bluetooth service reads the service only over a GATT connection of its own, so
+each read there is
 `gatt/connect`, `gatt/discoverServices`, `gatt/readCharacteristicValue` by the
 `clientId` that connect returned, then `gatt/disconnect`, which is made
 whatever failed after connecting. A plain level in the pairing file, should

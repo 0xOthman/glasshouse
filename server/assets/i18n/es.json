@@ -1647,10 +1647,6 @@
   "text": "Temperatura",
   "from": "Temperature"
  },
- "metrics.uptime": {
-  "text": "Tiempo de actividad de la TV",
-  "from": "TV uptime"
- },
  "metrics.uptime.days": {
   "text": "{d}d {h}h {m}m",
   "from": "{d}d {h}h {m}m"
@@ -1662,10 +1658,6 @@
  "metrics.uptime.mins": {
   "text": "{m}m",
   "from": "{m}m"
- },
- "metrics.uptime.sinceBoot": {
-  "text": "Tiempo desde el encendido",
-  "from": "Time since boot"
  },
  "metrics.watch": {
   "text": "Tiempo de visionado",
@@ -1830,6 +1822,18 @@
  "mqtt.host.hint": {
   "text": "Nombre de host o IP del broker MQTT.",
   "from": "Hostname or IP of the MQTT broker."
+ },
+ "mqtt.icons": {
+  "text": "Iconos de apps",
+  "from": "App icons"
+ },
+ "mqtt.icons.desc": {
+  "text": "Permite que un lanzador o panel en otro dispositivo muestre las apps de esta TV con sus propios iconos. Launch App en Home Assistant indica entonces la dirección de cada icono. Cualquiera en la red puede descargar los iconos y saber así qué apps están instaladas.",
+  "from": "Lets a launcher or dashboard on another device show this TV's apps with their own icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can fetch the icons, and so tell which apps are installed."
+ },
+ "mqtt.icons.toggle": {
+  "text": "Compartir iconos de apps",
+  "from": "Share app icons"
  },
  "mqtt.interval": {
   "text": "Intervalo de telemetría",
@@ -6214,10 +6218,6 @@
  "tv.system.temperature.hint": {
   "text": "El sensor del procesador principal (SoC), no del panel. Sube con la decodificación de vídeo y la carga de CPU.",
   "from": "The main processor (SoC) sensor, not the panel. It climbs with video decoding and CPU workload."
- },
- "tv.system.uptime": {
-  "text": "Tiempo en marcha",
-  "from": "Uptime"
  },
  "tv.system.wiFi": {
   "text": "Wi-Fi",

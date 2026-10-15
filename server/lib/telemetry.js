@@ -13,6 +13,7 @@ var dns = require('dns');
 var readTrimmed = require('./util').readTrimmed;
 var toInt = require('./util').toInt;
 var lanAddress = require('./util').lanAddress;
+var hexColor = require('./util').hexColor;
 var path = require('path');
 var execFile = require('child_process').execFile;
 var names = require('./names');
@@ -1145,10 +1146,11 @@ function parseAppList(raw) {
     if (a && a.id && a.visible !== false && a.id.indexOf('com.webos.app.container') !== 0) {
       if (!seen[a.id]) {
         seen[a.id] = true;
-        list.push({
-          id: a.id,
-          title: a.title || a.id
-        });
+        var entry = { id: a.id, title: a.title || a.id };
+        // listApps carries each app's appinfo.json fields, iconColor among them.
+        var color = hexColor(a.iconColor);
+        if (color) entry.iconColor = color;
+        list.push(entry);
       }
     }
   }
