@@ -676,7 +676,8 @@ button.pill.busy:not([style*="--p"]){
    and full width left the pill stranded from the label it belongs to. */
 .pv-top{display:grid;grid-template-columns:1fr;gap:0 clamp(30px,4vw,52px);
   padding-bottom:clamp(24px,3vw,36px)}
-@media (min-width:900px){ .pv-top{grid-template-columns:repeat(2,1fr);align-items:start} }
+/* Side by side only where each column fits the blocker's three tiers on one line. */
+@media (min-width:1100px){ .pv-top{grid-template-columns:repeat(2,1fr);align-items:start} }
 .pv-top .pv-h:first-child{margin-top:0}
 /* The long lists stay one column - a consent row is a sentence, not a tile -
    but capped so the pill stays near what it describes on a wide screen. */
@@ -892,6 +893,8 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 #pv-adv>summary{border-top:0;min-height:0;align-items:center}
 #pv-adv[open]>summary{margin-bottom:22px}
 .pv-note{font-size:14px;color:var(--w60);border-left:2px solid var(--w25);padding:10px 14px;margin:16px 0;max-width:64ch}
+/* A note that warns: the yellow accent of the OLED and service menu warnings. */
+.pv-note.warn{border-left-color:var(--cand)}
 .cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(232px,100%),1fr));
   gap:18px 20px;max-width:840px;margin-top:4px}
 .cfg-f{display:flex;flex-direction:column;gap:7px;min-width:0}
@@ -917,7 +920,24 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .cfg-side .pv-row{border-bottom:0;padding-top:0}
 /* One switch does not need the width of the column it sits in. */
 .cfg-side .cfg-toggles{max-width:380px}
-.pv-top .btns button{white-space:nowrap}
+/* The blocker's tiers and the advertising ID's actions: a label wraps rather than
+   spilling out, a button too narrow for its longest word moves to the next line,
+   and one left on a line of its own takes the line. */
+.pv-top .btns{display:flex;flex-wrap:wrap}
+.pv-top .btns button{flex:1 1 120px}
+/* Custom ad blocking: Upload and Delete side by side in the row's status column. */
+/* The warnings' yellow accent, closer to the text it follows. */
+.abc-warn{margin-top:16px}
+.abc-table{margin-top:14px}
+/* On a phone the controls go under their text rather than squeezing it to a word a line. */
+.abc-table .prot-row{flex-wrap:wrap}
+.abc-table .prot-main{flex:1 1 240px}
+.abc-table .prot-status{max-width:100%}
+.abc-list-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#abc-detail{margin:12px 0 18px}
+#abc-detail:empty{display:none}
+/* Refusals look like the page's own error banner (#offline). */
+#abc-detail.bad{font-size:14px;border-left:2px solid var(--red);padding:9px 13px;background:var(--w06);color:var(--w90)}
 .cfg-cols>*{min-width:0}
 .cfg-save{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:22px;max-width:840px}
 .cfg-save button{min-height:48px;padding:0 30px}

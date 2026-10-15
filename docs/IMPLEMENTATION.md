@@ -261,7 +261,7 @@ proved everything that matters. Certificate verification is never disabled: what
 comes back runs as root on the next restart.
 
 **The directory is updated in place, not swapped.** `/var/lib/tvweb` holds more
-than code — `config.json`, `adblock_hosts`, the staged screen saver the boot hook
+than code — `config.json`, `adblock_hosts`, `adblock_custom.json`, the staged screen saver the boot hook
 bind-mounts, `services_stopped` — and a wholesale swap has to carry every one of
 them across or silently lose it. Replacing only the files the release ships
 cannot lose state it never touches.
@@ -646,6 +646,31 @@ To prevent this while preserving full platform blocking:
   entirely, and `nextlgsdp.com` is blocked immediately.
 * With an [NTP server](#setting-the-clock-from-ntp) configured, the first answer it
   gives sets the time as `sdp`, which ends the wait at once.
+* An owner's hosts list that names `nextlgsdp.com` or a name under it gets the same wait,
+  on either tier.
+
+### The owner's hosts list
+
+`POST /api/adblock/custom` takes `{mode, text}` to upload a list, `{mode}` to
+change how the kept one is used, and `{clear: true}` to remove it, where `mode`
+is `add` or `replace`. It is held to what `/api/control` is (controls allowed,
+JSON, same origin) but takes up to 1 MB, where `/api/control` takes 4 KB.
+`parseCustomHosts` in `privacy.js` keeps the names a hosts file blackholes, or
+a plain list's names, lower-cased and once each, and counts redirects and
+anything that is not a host name as skipped. More than 10,000 names is refused:
+a hosts file is read line by line on every lookup.
+
+Only the names are saved, in `/var/lib/tvweb/adblock_custom.json`, never the
+table built from them. `adBlockList` puts them together with the tier's names
+from the running version each time the table is written: `add` takes the
+tier's names and then the owner's not already among them, `replace` the
+owner's alone. The table is rewritten at every start (`checkBootAdBlock`), so
+after an update the new version's names are in it without the file being sent
+again. The updater replaces only the files a release ships, so the saved list
+survives it, as `adblock_hosts` does. `/api/privacy` gives `adblock.custom`:
+`mode`, `count`, `updated`, `shared` (names on both lists), `ownCount` (the
+tier's own) and `blocked` (the table's total), for the tier in use, or
+`ads` while the blocker is off.
 
 ## Entity state must come from the TV, not from the command
 
@@ -939,7 +964,7 @@ A custom client path can also be configured in `config.json` via `"update": { "c
 
 ### Safe In-Place Staging & Rollback
 1. **Extraction & Validation**: The tarball is decompressed via Node's `zlib.gunzipSync` and unpacked into `/var/lib/tvweb/.update/`. It validates that the downloaded package contains a valid `server/tvweb.js` declaring the expected release version.
-2. **Non-Destructive Upgrade**: Files are copied over `/var/lib/tvweb/`. `config.json`, the ad blocker's hosts file (`adblock_hosts`), staged screensavers, and stopped service lists are strictly preserved.
+2. **Non-Destructive Upgrade**: Files are copied over `/var/lib/tvweb/`. `config.json`, the ad blocker's hosts file (`adblock_hosts`) and the owner's hosts list (`adblock_custom.json`), staged screensavers, and stopped service lists are strictly preserved.
 3. **Rollback Backup**: A complete copy of the replaced version is retained in `/var/lib/tvweb/.previous/`. Running `tvwebctl rollback` (or manually copying `.previous/.` back to `/var/lib/tvweb/`) restores the previous version without redeploying.
 
 ---

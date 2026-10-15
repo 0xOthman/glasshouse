@@ -246,6 +246,7 @@ async function loadPrivacy() {
       const btn = q('ab-' + m);
       if (btn) btn.classList.toggle('on', m === mode);
     }
+    renderCustomHosts(ab.custom, mode);
   } catch (e) {
     q('pv-live').innerHTML = `<div class="d">${esc(t('pv.failed', 'Could not load privacy information \u2014 {error}', { error: e.message }))}</div>`;
   }
@@ -282,6 +283,124 @@ q('pv-consent').addEventListener('click', async (ev) => {
  * leaving Everything, for two minutes.
  */
 let adblockReconnectTimer = null;
+
+/*
+ * Custom ad blocking: the owner's hosts list, kept on the TV. It can be
+ * switched off without deleting it, and is used added to Glasshouse's list or
+ * in place of it. Each action says how it went in the row itself, as the
+ * page's error bar is out of sight this far down.
+ */
+let customHosts = null;
+// How a list not yet uploaded will be used.
+let customHostsMode = 'add';
+// The last action's outcome, shown until the next: { text, bad }.
+let customHostsNote = null;
+
+function customHostsListText(cu) {
+  if (!cu) return t('pv.adblock.custom.noList', 'None uploaded yet.');
+  const when = cu.updated ? new Date(cu.updated).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const names = t('pv.adblock.custom.summary', '{n} names', { n: cu.count });
+  return [cu.file, names, when && t('pv.adblock.custom.uploaded', 'uploaded {date}', { date: when })].filter(Boolean).join(' · ');
+}
+
+function customHostsStatus(cu, mode) {
+  if (!cu) return '';
+  if (!cu.enabled) return t('pv.adblock.custom.isOff', 'Off: nothing in the file is blocked.');
+  if (mode === 'off') return t('pv.adblock.custom.offNote', 'Nothing is blocked while the blocker is off.');
+  const vars = { n: cu.count, own: cu.ownCount, shared: cu.shared };
+  let text = cu.mode === 'add'
+    ? t('pv.adblock.custom.addDetail', 'The file’s {n} names are blocked as well as Glasshouse’s {own} for this tier. In both: {shared}.', vars)
+    : t('pv.adblock.custom.replaceDetail', 'Only the file’s {n} names are blocked, not Glasshouse’s {own} for this tier. In both: {shared}.', vars);
+  // The ad blocker's own count: blocked software updates are a separate setting.
+  return text + ' ' + t('pv.adblock.custom.total', 'The ad blocker blocks {n} names.', { n: cu.blocked });
+}
+
+function renderCustomHosts(cu, mode) {
+  customHosts = cu || null;
+  updateToggle('abc-enabled', {
+    cls: cu && cu.enabled ? 'good' : 'idle',
+    label: cu && cu.enabled ? t('common.on', 'On') : t('common.off', 'Off'),
+    on: !!(cu && cu.enabled),
+    disabled: !cu
+  });
+  q('abc-list').textContent = customHostsListText(cu);
+  q('abc-upload').textContent = cu ? t('pv.adblock.custom.uploadNew', 'Upload a new file') : t('pv.adblock.custom.upload', 'Upload a file');
+  q('abc-clear').hidden = !cu;
+  q('abc-mode').value = cu ? cu.mode : customHostsMode;
+  if (cu && cu.enabled && cu.mode === 'replace' && mode !== 'off') {
+    q('adblock-detail').textContent = t('pv.adblock.custom.replacing',
+      'Blocks the names in your hosts file and none of Glasshouse’s, on either tier.');
+  }
+  const el = q('abc-detail');
+  el.textContent = customHostsNote ? customHostsNote.text : customHostsStatus(cu, mode);
+  el.classList.toggle('bad', !!(customHostsNote && customHostsNote.bad));
+  q('abc-summary').textContent = !cu ? t('pv.adblock.custom.notUsed', 'None')
+    : cu.enabled ? t('pv.adblock.custom.onCount', 'On · {n} names', { n: cu.count })
+    : t('common.off', 'Off');
+}
+
+function noteCustomHosts(text, bad) {
+  // The server words some refusals for its log, starting in lower case.
+  if (text) text = text.charAt(0).toUpperCase() + text.slice(1);
+  customHostsNote = text ? { text, bad: !!bad } : null;
+  const el = q('abc-detail');
+  if (!text) return;
+  el.textContent = text;
+  el.classList.toggle('bad', !!bad);
+}
+
+async function postCustomHosts(body) {
+  for (const id of ['abc-enabled', 'abc-upload', 'abc-clear', 'abc-mode']) q(id).disabled = true;
+  try {
+    const r = await fetch(api('/api/adblock/custom'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    const j = await r.json();
+    if (j.ok) noteCustomHosts(null);
+    else noteCustomHosts(j.error || t('common.actionFailed', 'Action failed'), true);
+    return j;
+  } catch (e) {
+    noteCustomHosts(e.message, true);
+    return null;
+  } finally {
+    for (const id of ['abc-upload', 'abc-clear', 'abc-mode']) q(id).disabled = false;
+    await loadPrivacy();
+  }
+}
+
+function toggleCustomHosts() {
+  if (customHosts) postCustomHosts({ enabled: !customHosts.enabled });
+}
+
+function setCustomHostsMode(mode) {
+  if (!customHosts) {
+    customHostsMode = mode;
+    return;
+  }
+  if (mode !== customHosts.mode) postCustomHosts({ mode });
+}
+
+async function uploadCustomHosts(input) {
+  const f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  if (f.size > 1000000) return noteCustomHosts(t('pv.adblock.custom.big', 'That file is over 1 MB.'), true);
+  noteCustomHosts(t('pv.adblock.custom.uploading', 'Uploading {file}…', { file: f.name }));
+  const mode = customHosts ? customHosts.mode : customHostsMode;
+  const r = await postCustomHosts({ mode, text: await f.text(), file: f.name });
+  // What the upload took and left out is said once, until the next action.
+  if (r && r.ok && r.custom) {
+    let text = t('pv.adblock.custom.saved', 'Saved {file}: {n} names.', { file: f.name, n: r.custom.count });
+    if (r.skipped) text += ' ' + t('pv.adblock.custom.leftOut', 'Left out: {n}, as redirects or not host names.', { n: r.skipped });
+    noteCustomHosts(text);
+  }
+}
+
+async function clearCustomHosts() {
+  if (!confirm(t('pv.adblock.custom.removeConfirm', 'Delete the hosts file from the TV?'))) return;
+  customHostsMode = 'add';
+  await postCustomHosts({ clear: true });
+}
 
 async function setAdBlockMode(mode) {
   const full = q('ab-full');

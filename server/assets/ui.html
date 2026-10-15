@@ -949,9 +949,9 @@
       </div>
       <div class="sub" id="adblock-detail" style="margin-top:12px">&mdash;</div>
       <div class="pv-note" id="adblock-reconnect" hidden data-t="pv.adblock.reconnect">LG's apps, such as the Content Store and LG Channels, can take about a minute to connect again. If one shows an error, exit it and open it again after a minute.</div>
-      <div class="pv-note" id="adblock-help" hidden data-t="pv.adblock.troubleshoot">If an app or one of LG's
+      <div class="pv-note warn" id="adblock-help" hidden data-t="pv.adblock.troubleshoot">If an app or one of LG's
         services stops working while the blocker is on, switch it off to check whether it is the cause.</div>
-      <div class="pv-note"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
+      <div class="pv-note warn"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
         the LG ThinQ app can no longer control the TV, and the app store, software updates and LG
         Channels may stop working.</b> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
         updates in the Advanced tab.</span></div>
@@ -996,6 +996,45 @@
     <div class="pv-grp"><div class="pv-g"><span data-t="pv.diagnostics">Diagnostics services</span></div><div id="pv-daemons"></div></div>
   </div>
   <div class="pv-note" id="pv-running-note"></div>
+  </details>
+  <details class="pv-d" id="disc-adblock-custom">
+  <summary><span data-t="pv.adblock.custom">Custom ad blocking</span> <span class="cur" id="abc-summary"></span></summary>
+  <div class="pv-sub" data-t="pv.adblock.custom.desc">Use your own hosts file to customise what the ad blocker blocks.
+    The TV keeps the list, so it is not uploaded again after a Glasshouse update.</div>
+  <div class="oled-warn abc-warn" data-t="pv.adblock.custom.warn">Depending on what it blocks, a list can stop apps, LG's
+    services or software updates working. If something stops working, switch Block its names off to check.</div>
+  <div class="prot-table abc-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.file">Hosts file</div>
+        <div class="prot-desc" id="abc-list">&mdash;</div>
+      </div>
+      <div class="prot-status abc-list-btns">
+        <button type="button" class="pill idle" id="abc-upload" onclick="q('abc-file').click()">&mdash;</button>
+        <button type="button" class="pill idle" id="abc-clear" onclick="clearCustomHosts()" hidden data-t="pv.adblock.custom.delete">Delete</button>
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.use">Block its names</div>
+        <div class="prot-desc" data-t="pv.adblock.custom.use.desc">Off keeps the file on the TV but blocks nothing in it.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="abc-enabled" onclick="toggleCustomHosts()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.how">What is blocked</div>
+        <div class="prot-desc" data-t="pv.adblock.custom.how.desc">Glasshouse's list is the one the ad blocker uses on its own.</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="abc-mode" onchange="setCustomHostsMode(this.value)"
+        aria-label="What is blocked" data-t-aria-label="pv.adblock.custom.how">
+        <option value="add" data-t="pv.adblock.custom.add">Your file and Glasshouse's list</option>
+        <option value="replace" data-t="pv.adblock.custom.replace">Only your file</option>
+      </select></div>
+    </div>
+  </div>
+  <input type="file" id="abc-file" accept=".txt,.hosts,text/plain" hidden onchange="uploadCustomHosts(this)">
+  <div class="sub" id="abc-detail" role="status" aria-live="polite"></div>
   </details>
   </details>
 </section>

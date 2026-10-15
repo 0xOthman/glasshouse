@@ -906,6 +906,17 @@ function privacyRows(d) {
              act: 'adblock', key: cur.next, from: abMode,
              press: cur.press,
              hint: cur.hint + ' ' + t('tv.privacy.blocking.streaming', 'Streaming apps are untouched.') });
+    // Uploaded, changed and removed in the browser dashboard only.
+    if (ab.custom) {
+      r.push({ label: t('pv.adblock.custom', 'Custom ad blocking'),
+               value: !ab.custom.enabled
+                 ? t('tv.privacy.custom.off', 'Off, {n} names kept', { n: ab.custom.count })
+                 : ab.custom.mode === 'add'
+                 ? t('tv.privacy.custom.add', '{n} names, with Glasshouse’s', { n: ab.custom.count })
+                 : t('tv.privacy.custom.replace', '{n} names, instead of Glasshouse’s', { n: ab.custom.count }),
+               cls: 'st note',
+               hint: t('tv.privacy.custom.hint', 'Changed or removed in the browser dashboard: Privacy, then Advanced.') });
+    }
   }
 
   // LG's own settings from lgsettings.js; only those the TV has come back.
