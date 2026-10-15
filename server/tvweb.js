@@ -545,6 +545,7 @@ remotebuttons.init({
 
 controls.init({
   luna: luna,
+  lunaUrgent: lunaTransport.callUrgent,
   piccap: piccap,
   clearLunaCache: clearLunaCache,
   config: CONFIG,
@@ -1360,6 +1361,14 @@ function setupHomeAssistant() {
     console.log('mqtt: command received: ' + action + ' -> ' + val);
 
     if (piccap.handleMqttCommand(action, val)) return;
+
+    // A held arrow sends a stream of keys, and a telemetry read after each one
+    // would queue a dozen luna calls per key. A key that changes the app
+    // reaches Home Assistant through the foreground-app subscription.
+    if (action === 'rcu') {
+      doControl(action, val, function () {});
+      return;
+    }
 
     if (action === 'screen') {
       var turnOff = (val.toUpperCase() === 'OFF');

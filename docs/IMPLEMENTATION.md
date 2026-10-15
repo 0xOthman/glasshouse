@@ -533,6 +533,17 @@ The server attempts to launch `com.webos.app.home` first. If that succeeds (webO
 
 The 100ms hold duration between key-down and key-up gives Qt's event loop sufficient time to arm `longPressTimer`, ensuring `global.goHome()` fires on release (`LSM NL_HOME_SHOWN`) and toggles the native Home launcher ribbon on webOS 3–5.
 
+### Key presses go ahead of telemetry
+
+Remote keys forwarded over MQTT, the arrows, OK, Back and Home, jump the queue
+of luna-send calls. Telemetry makes about a dozen calls per collection, and a
+key press arriving during one used to wait behind them. A key now goes ahead of
+every call waiting, may run beside the usual two, and keeps the gap between
+child starts. Keys run one at a time, since two `sendKeyCode` calls running
+together can finish out of order. A key schedules no telemetry read of its own;
+an app it opens reaches Home Assistant through the foreground-app subscription.
+Each key's wait and run time is logged at debug level.
+
 ## Older hardware capabilities (webOS 3.x and LCD models)
 
 Testing against 2016 hardware (such as 43UH610V-ZB and 55UH6030-UC on webOS 3.4.3) highlights several differences between older LCD platforms and modern OLED sets:

@@ -2,6 +2,7 @@
 var fs = require('fs');
 var toInt = require('./util').toInt;
 var allocBuffer = require('./util').allocBuffer;
+var monotonicMs = require('./util').monotonicMs;
 var execFile = require('child_process').execFile;
 var msg = require('./say').msg;
 var timers = require('./timers');
@@ -59,6 +60,8 @@ var ENERGY_SAVING_VALUES = names.ENERGY_SAVING_STEPS;
 var LOGO_DIMMING_VALUES = Object.keys(names.LOGO_DIMMING);
 
 var luna = null;
+// luna's callUrgent: remote key presses go ahead of telemetry's queued reads.
+var lunaUrgent = null;
 var clearLunaCache = function () {};
 var config = {};
 /** @type {typeof import('./telemetry')} */
@@ -692,13 +695,15 @@ function doControl(action, value, cb) {
 
     case 'rcu':
       var rcuName = String(value || '').trim().toLowerCase();
+      var rcuAt = monotonicMs();
       if (rcuName === 'home') {
         // webOS 6+ (2021+) uses com.webos.app.home as a standalone app.
         // webOS 3-5 (2016-2020) does not have com.webos.app.home (the launcher
         // is a system UI component); KEY_LEFTMETA (125) with a 100ms press/release
         // delay triggers the native home ribbon across webOS versions.
-        return luna('com.webos.applicationManager/launch', { id: 'com.webos.app.home' },
-                    function (r) {
+        return lunaUrgent('com.webos.applicationManager/launch', { id: 'com.webos.app.home' },
+                    function (r, raw, timing) {
+                      logRcu(rcuName, rcuAt, timing, r && r.returnValue);
                       if (r && r.returnValue) {
                         telemetry.clearCache();
                         return cb({ ok: true });
@@ -712,9 +717,10 @@ function doControl(action, value, cb) {
       if (!RCU_KEYS.hasOwnProperty(rcuName)) {
         return cb({ ok: false, error: 'unknown key: ' + rcuName });
       }
-      return luna('com.webos.service.networkinput/test/sendKeyCode',
+      return lunaUrgent('com.webos.service.networkinput/test/sendKeyCode',
                   { keyCode: RCU_KEYS[rcuName] },
-                  function (r) {
+                  function (r, raw, timing) {
+                    logRcu(rcuName, rcuAt, timing, r && r.returnValue);
                     telemetry.clearCache();
                     cb({ ok: !!(r && r.returnValue) });
                   });
@@ -957,9 +963,26 @@ function doControl(action, value, cb) {
   }
 }
 
+/*
+ * One debug line per remote key: queued is from the command arriving to its
+ * luna-send starting, luna the child's own run. A stand-in luna may pass no
+ * timing.
+ */
+function logRcu(name, receivedAt, timing, ok) {
+  if (!timing) return;
+  console.debug('rcu ' + name + ': queued ' + Math.round(timing.startedAt - receivedAt) +
+                ' ms, luna ' + Math.round(timing.endedAt - timing.startedAt) + ' ms, ' +
+                (ok ? 'ok' : 'failed'));
+}
+
 function init(opts) {
   opts = opts || {};
-  if (opts.luna) luna = opts.luna;
+  // A luna given without an urgent one serves both, as test stand-ins do.
+  if (opts.luna) {
+    luna = opts.luna;
+    lunaUrgent = opts.lunaUrgent || opts.luna;
+  }
+  if (opts.lunaUrgent) lunaUrgent = opts.lunaUrgent;
   if (opts.clearLunaCache) clearLunaCache = opts.clearLunaCache;
   if (opts.config) config = opts.config;
   if (opts.writeSettings) writeSettingsFn = opts.writeSettings;
