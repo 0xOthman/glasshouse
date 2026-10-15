@@ -10,6 +10,7 @@ var http = require('http');
 var say = require('./say');
 var lanAddress = require('./util').lanAddress;
 var listenDualStack = require('./util').listenDualStack;
+var sendIconFile = require('./iconserver').sendIconFile;
 var writeJsonAtomic = require('./util').writeJsonAtomic;
 var unlinkQuiet = require('./util').unlinkQuiet;
 var existsQuiet = require('./util').existsQuiet;
@@ -186,7 +187,8 @@ function setupPending() {
  * own exposure defeats the point of setting them. The one exception is host,
  * from the TV itself during setup - see setNetworkAccess. Experimental feature
  * toggles (allowTileHiding, allowOnWebos10), allowNetworkDebugger and
- * prometheus.enabled are writable from the Server tab.
+ * prometheus.enabled are writable from the Server tab, and iconServer from the
+ * MQTT tab: its port answers nothing but the icons the dashboard serves.
  */
 function readConfigFile() {
   try {
@@ -264,6 +266,8 @@ function validateSettings(j) {
   if (!/^[a-z0-9_]{1,64}$/.test(out.device.id)) e.push('device id must be 1-64 characters of a-z, 0-9 or _');
   out.device.name = trimmedString(d.name);
 
+  // Saved with the MQTT form, whose Launch App select lists the icons' addresses.
+  if (j && typeof j.iconServer === 'boolean') out.iconServer = j.iconServer;
 
   return { errors: e, value: out };
 }
@@ -934,6 +938,7 @@ function getSettingsPayload() {
     ok: true,
     writable: config.allowControl,
     configFile: configFilePath,
+    iconServer: config.iconServer === true,
     mqtt: {
       enabled: !!mc.enabled,
       host: mc.host || '',
@@ -1323,28 +1328,8 @@ function handleRequest(req, res) {
     var iconAppId = u.query && u.query.id;
     return appsModule.getIconPath(iconAppId, function (iconPath) {
       if (!iconPath) return send(res, 404, JSON.stringify({ ok: false, error: 'icon not found' }));
-      fs.stat(iconPath, function (err, st) {
-        if (err || !st) return send(res, 404, JSON.stringify({ ok: false, error: 'icon read failed' }));
-        var etag = '"' + st.size.toString(16) + '-' + Number(st.mtime).toString(16) + '"';
-        var headers = {
-          'Content-Type': 'image/png',
-          'Content-Length': st.size,
-          'Cache-Control': 'public, max-age=86400',
-          'ETag': etag
-        };
-        if (req.headers && req.headers['if-none-match'] === etag) {
-          res.writeHead(304, { 'ETag': etag, 'Cache-Control': headers['Cache-Control'] });
-          return res.end();
-        }
-        if (req.method === 'HEAD') {
-          res.writeHead(200, headers);
-          return res.end();
-        }
-        fs.readFile(iconPath, function (readErr, buf) {
-          if (readErr || !buf) return send(res, 500, JSON.stringify({ ok: false, error: 'icon read failed' }));
-          res.writeHead(200, headers);
-          res.end(buf);
-        });
+      sendIconFile(req, res, iconPath, function (status, error) {
+        send(res, status, JSON.stringify({ ok: false, error: error }));
       });
     });
   }
