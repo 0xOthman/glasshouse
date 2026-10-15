@@ -124,6 +124,10 @@ and later have a Flutter one (its log lines come from `flutter-client`). The
 QML has code for LG's webOS 23 (`webOS23Test`, the `webOS23` app list style),
 so a webOS 8 TV may read the same layout file; that has not been tried.
 
+## The clock since boot stops in suspend (webOS 4.4.3, B8)
+
+With Quick Start, the B8 suspends in standby, and `/proc/uptime` and `/proc/stat`'s `btime` leave the suspended time out: rebooted at 07:47 UTC and put in standby twice, it gave its boot as 18:18 the same day. Time since boot, and a boot time worked out from it, are wrong on such a TV after its first standby.
+
 ## Keeping a TV awake while off (webOS 4.4.3, B8)
 
 The question was whether the B8 could stay reachable while switched off, as
