@@ -603,6 +603,7 @@ function updateSummary() {
   s.isWebos10 = !!(screensaversModule && screensaversModule.slowSwitch && screensaversModule.slowSwitch());
   s.prometheusEnabled = prometheusEnabled();
   s.watchHistory = historyModule ? historyModule.status() : null;
+  s.backupDaily = backupModule ? backupModule.dailyStatus() : null;
   s.ntp = ntpModule ? ntpModule.getStatus() : null;
   // What is saved, on or off, so the switch can show a server kept while off.
   var ntpConf = (config && config.ntp) || {};
@@ -1567,6 +1568,13 @@ function handleRequest(req, res) {
     }
     backupModule.clearPendingApps();
     return send(res, 200, JSON.stringify({ ok: true, apps: [] }));
+  }
+
+  // A daily backup kept on the TV, by name, saved by the browser as a file.
+  if (pathname === '/api/backup/saved' && req.method === 'GET' && backupModule) {
+    var savedBackup = backupModule.readSaved(String(u.query.name || ''));
+    if (savedBackup === null) return send(res, 404, JSON.stringify({ ok: false, error: 'no such backup' }));
+    return send(res, 200, savedBackup);
   }
 
   // A backup of the TV's settings, saved by the browser as a file.

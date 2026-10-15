@@ -74,7 +74,7 @@ The syslog counters count since the server started and have samples only while [
 
 The NTP families have samples only while [setting the clock from NTP](IMPLEMENTATION.md#setting-the-clock-from-ntp) is on, and the offset, round trip, stratum, and last answer only once the server has answered. The counters count since the server started. The offset is the server's time less the TV's at that answer, before the clock was set from it. How long since the last answer is `time() - glasshouse_ntp_last_answer_timestamp_seconds`.
 
-`glasshouse_watch_seconds_total` has samples only while [watch time](dashboard/metrics.md#watch-time) is on, one for each `app` the history has: the app's id, the input's, such as `hdmi2`, or `screen_off` for the TV on with its panel off. Clearing the history resets it.
+`glasshouse_watch_seconds_total` has samples only while [watch time](dashboard/metrics.md#watch-time) is on, one for each `app` the history has: the app's id, the input's, such as `hdmi2`, `screen_off` for the TV on with its panel off, or `screen_saver` for LG's screen saver showing. Clearing the history resets it.
 
 `version` is the Glasshouse version. A label the TV does not report is present with an empty value. The panel usage since the last compensation cycle is `glasshouse_oled_panel_usage_seconds_total - glasshouse_oled_last_compensation_usage_seconds`, the uptime is `time() - glasshouse_boot_time_seconds`, and the processor's busy share is `1 - avg without (cpu, mode) (rate(glasshouse_cpu_seconds_total{mode="idle"}[5m]))`.
 

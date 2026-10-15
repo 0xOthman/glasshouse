@@ -604,7 +604,7 @@ var FAMILIES = [
   },
   {
     name: 'glasshouse_watch_seconds_total', type: 'counter',
-    help: 'Time the TV has been on, per app or input in front, in seconds, while watch time is on. screen_off is the TV on with its panel off. Clearing the history resets it.',
+    help: 'Time the TV has been on, per app or input in front, in seconds, while watch time is on. screen_off is the TV on with its panel off, screen_saver with LG\'s screen saver showing. Clearing the history resets it.',
     samples: function (s, version, syslog, ntp, watch) {
       if (!watch) return [];
       return Object.keys(watch).sort().map(function (app) { return [{ app: app }, watch[app]]; });
