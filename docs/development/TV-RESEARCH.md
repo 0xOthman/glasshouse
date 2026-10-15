@@ -169,6 +169,11 @@ A toast sent through `com.webos.notification/createToast` in the moment
 seen. The same toast sent with the screen already on is. Screen-time limits
 wait 5 seconds after the screen comes on before sending one.
 
+`turnOffScreen` while LG's screen saver is showing does not hold: tvpower goes
+from Screen Saver to Screen Off and back to Active 0.2 s later, with the screen
+on. From Active it holds. Screen-time limits dismiss the screen saver with
+Back first, as the screen saver tab does.
+
 ## The Magic Remote's battery (C4, webOS 10.3.1)
 
 `/mnt/lg/cmn_data/mrcu/mrcu1.info` is written when the remote pairs and not

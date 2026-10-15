@@ -1605,7 +1605,7 @@ if (!CLI_MODE) {
 
   history.init({ config: CONFIG, luna: luna, liveState: liveState, appTitle: telemetry.appTitle });
   history.start();
-  screentime.init({ config: CONFIG, liveState: liveState, control: controls.doControl });
+  screentime.init({ config: CONFIG, liveState: liveState, control: controls.doControl, injectKey: controls.injectKey, keyBack: controls.KEY_BACK });
   screentime.start();
   /*
    * Registered before the MQTT bridge's handlers, which exit, so it runs

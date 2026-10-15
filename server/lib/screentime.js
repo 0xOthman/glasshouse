@@ -12,6 +12,7 @@
  */
 /** @type {typeof import('./history')} */
 var history = require('./history');
+var power = require('./power');
 
 var CHECK_MS = 30000;
 var WARN_S = 300;
@@ -22,6 +23,10 @@ var BLANK_MS = 10000;
 var AGAIN_MS = 300000;
 // After the screen comes on, before a toast can be seen.
 var SETTLE_MS = 5000;
+// Back to dismiss LG's screen saver, then this long before the screen goes off.
+var SCREEN_SAVER_MS = 1500;
+// After the screen goes off, when it is checked to have stayed off.
+var VERIFY_MS = 3000;
 var DAY_MS = 86400000;
 var MAX_APPS = 50;
 
@@ -57,6 +62,12 @@ var pending = null;
 var switchedOff = {};
 var settling = false;
 var wasScreenOn = false;
+// While the screen is being turned off, as the screen saver closing reports the screen on.
+var acting = false;
+/** @type {?function(number, function(boolean): void, number=): void} */
+var injectKey = null;
+// The key a screen saver takes as the one that dismisses it.
+var keyBack = null;
 // Toasts already shown today, by id, so each is shown once.
 var warned = {};
 var warnedDay = null;
@@ -149,8 +160,40 @@ function run(action, id) {
   console.log('screentime: ' + (id || 'limit') + ', ' + action);
   if (action === 'off' && (id === 'daily' || id === 'bedtime')) switchedOff[id] = true;
   if (action === 'off') control('powerOff', null, done);
-  else if (action === 'screenOff') control('screenOff', null, done);
+  else if (action === 'screenOff') turnScreenOff(done);
   else if (action === 'home') control('rcu', 'home', done);
+}
+
+function screenIsOn() {
+  var p = (liveState && liveState.state.snapshot().power) || {};
+  return p.systemOn === true && p.screenOn === true;
+}
+
+/*
+ * Turning the screen off over LG's screen saver does not hold: the screen
+ * saver closes and brings the screen back 0.2 s later (C4, webOS 10.3.1). So
+ * the screen saver is dismissed first, and the screen is turned off again if
+ * it comes back.
+ */
+function turnScreenOff(done) {
+  acting = true;
+  var off = function (again) {
+    control('screenOff', null, function (r) {
+      done(r);
+      later(function () {
+        if (again && screenIsOn()) {
+          console.log('screentime: the screen came back on, turning it off again');
+          return off(false);
+        }
+        acting = false;
+      }, VERIFY_MS);
+    });
+  };
+  var p = (liveState && liveState.state.snapshot().power) || {};
+  if (!injectKey || !keyBack || !power.isScreenSaver(power.mapState(p.state))) return off(true);
+  injectKey(keyBack, function () {
+    later(function () { off(true); }, SCREEN_SAVER_MS);
+  });
 }
 
 function cancelPending() {
@@ -261,8 +304,9 @@ function blankSoon(ms) {
 }
 
 function check() {
-  // The screen has just come on; the check after SETTLE_MS takes it.
-  if (settling) return;
+  // The screen has just come on, and the check after SETTLE_MS takes it, or
+  // is being turned off.
+  if (settling || acting) return;
   var a = assess();
   if (!a) return cancelPending();
   for (var id in switchedOff) if (!a.tv || a.tv.id !== id) delete switchedOff[id];
@@ -299,7 +343,7 @@ function powerChanged() {
   var screenOn = !!(a.power && a.power.systemOn === true && a.power.screenOn === true);
   var cameOn = screenOn && !wasScreenOn;
   wasScreenOn = screenOn;
-  if (!cameOn) return check();
+  if (!cameOn || acting) return check();
   if (settling) return;
   settling = true;
   later(function () {
@@ -378,6 +422,8 @@ function status(nowMs) {
  * @param {any} opts.config the server's config
  * @param {any} [opts.liveState] state.init()'s result
  * @param {function(string, any, function(any): void): void} opts.control controls.doControl
+ * @param {function(number, function(boolean): void, number=): void} [opts.injectKey] controls.injectKey
+ * @param {number} [opts.keyBack] controls.KEY_BACK
  * @param {function(function(): void, number): function(): void} [opts.later] for tests
  */
 function init(opts) {
@@ -387,6 +433,9 @@ function init(opts) {
   liveState = opts.liveState || null;
   control = opts.control;
   if (opts.later) later = opts.later;
+  injectKey = opts.injectKey || null;
+  keyBack = opts.keyBack || null;
+  acting = false;
   switchedOff = {};
   settling = false;
   wasScreenOn = false;

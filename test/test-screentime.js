@@ -45,8 +45,11 @@ function setup(limits, historyOn) {
     config: config, liveState: liveState,
     control: function (action, value, cb) {
       if (action === 'toast') toasts.push(value); else calls.push(value ? action + ':' + value : action);
+      if (action === 'screenOff') state.update('power', 'screenOn', false);
       cb({ ok: true });
     },
+    injectKey: function (code, cb) { calls.push('key:' + code); cb(true); },
+    keyBack: 158,
     later: function (fn, ms) {
       var entry = { fn: fn, ms: ms, cancelled: false };
       waiting.push(entry);
@@ -181,7 +184,7 @@ function setup(limits, historyOn) {
   tv.advance(11 * 60000);
   tv.elapse();
   assert.deepEqual(tv.calls, ['screenOff']);
-  tv.screen(false);
+  tv.elapse(3000);
   tv.state.update('power', 'screenOn', true);
   tv.advance(1000);
   assert.strictEqual(tv.toasts.length, 1, 'no toast while the panel wakes');
@@ -206,13 +209,13 @@ function setup(limits, historyOn) {
   assert.deepEqual(tv.calls, ['powerOff'], 'not off after a minute');
   tv.elapse(10000);
   assert.deepEqual(tv.calls, ['powerOff', 'screenOff'], 'the screen off once the toast is read');
-  tv.screen(false);
+  tv.elapse(3000);
   // A key wakes the screen: off again, with no new toast.
   var toasts = tv.toasts.length;
   tv.screen(true);
   assert.deepEqual(tv.calls, ['powerOff', 'screenOff', 'screenOff']);
   assert.strictEqual(tv.toasts.length, toasts);
-  tv.screen(false);
+  tv.elapse(3000);
   tv.advance(4 * 60000);
   tv.elapse(300000);
   assert.deepEqual(tv.calls, ['powerOff', 'screenOff', 'screenOff', 'powerOff']);
@@ -226,6 +229,27 @@ function setup(limits, historyOn) {
   assert.deepEqual(tv.calls.slice(4), ['screenOff'], 'stays on');
   tv.done();
   console.log('  ✓ switched back on after its limit: the screen off, and the TV off 5 minutes later unless the limit is changed');
+})();
+
+(function testScreenSaver() {
+  var tv = setup({ dailyMinutes: 30, action: 'screenOff' });
+  tv.on('netflix');
+  tv.advance(31 * 60000);
+  // LG's screen saver comes on within the minute.
+  tv.state.update('power', 'state', 'Screen Saver');
+  tv.elapse();
+  assert.deepEqual(tv.calls, ['key:158'], 'Back dismisses the screen saver first');
+  tv.state.update('power', 'state', 'Active');
+  tv.elapse(1500);
+  assert.deepEqual(tv.calls, ['key:158', 'screenOff']);
+  // Comes back on by itself, as the screen saver closing brings it back.
+  tv.state.update('power', 'screenOn', true);
+  tv.elapse(3000);
+  assert.deepEqual(tv.calls, ['key:158', 'screenOff', 'screenOff'], 'turned off again');
+  assert.strictEqual(tv.toasts.length, 1, 'with no second toast');
+  tv.elapse(3000);
+  tv.done();
+  console.log('  ✓ over LG\'s screen saver, Back dismisses it before the screen goes off, and the screen is turned off again if it comes back');
 })();
 
 (function testValidate() {

@@ -838,6 +838,11 @@ daily limit or bedtime switched it off gets its toast once the screen is on,
 the screen off 10 seconds later, and the TV off after 5 minutes, unless the
 limit has been changed by then.
 
+Turning the screen off over LG's screen saver does not hold, so when it is
+showing, Back dismisses it first and the screen goes off 1.5 seconds later.
+Either way, a screen back on 3 seconds after is turned off once more. Checks
+wait meanwhile, as the screen saver closing reports the screen on.
+
 ## Reading the Magic Remote's battery
 
 LG's pairing file has only the remote model's battery thresholds, so
