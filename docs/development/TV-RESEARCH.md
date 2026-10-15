@@ -208,6 +208,12 @@ On a B8 (4.4.3) and a C2 (9.2.2), `getConnectionStatus` asked once answers
 update sent as the remote wakes has `connected: true, isBleRemocon: true`, and
 the one as it sleeps keeps `isBleRemocon: true`.
 
+On the B8, `getDeviceInfo` with `deviceName` `MagicRemote_1` answers
+`batteryLevel` 49, and 63 once other batteries were put in: the charge, not a
+threshold. Its `mrcu1.info` (in `/mnt/lg/cmn_data/btsvc`) has no battery line.
+Its `gatt/connect` answers `appId` and no `clientId`. The C2 answers
+`batteryLevel` `"-"`.
+
 On the B8, lginput2 once started a diagnostic capture, a
 `/tmp/var/log/<date>_MRCU.log` with columns for motion, RSSI, voltage,
 temperature and gyro, beside a `ManualDevice-<remote MAC>-rawInput.dsf`. A new

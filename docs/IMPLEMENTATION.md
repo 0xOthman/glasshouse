@@ -839,8 +839,13 @@ is not woken for this, so the read waits for it to wake, from
 `com.webos.service.mrcu/getConnectionStatus` subscribed: the first wake after
 the TV switches on, then one at least an hour after the last read, or five
 minutes after a failed one. A check every 10 minutes covers a remote kept
-awake. lginput2 holds the remote's own connection, and the Bluetooth service reads the
-service only over a GATT connection of its own, so each read is
+awake. The subscription's updates are trusted for whether the remote is a
+Bluetooth one: asked once, the same method says it is not. On webOS 4,
+`com.webos.service.mrcu/getDeviceInfo` has the charge in `batteryLevel`, so it
+is asked first, and no Bluetooth connection is made where it answers; webOS 9
+and later answer `"-"`. lginput2 holds the remote's own connection, and the
+Bluetooth service reads the service only over a GATT connection of its own, so
+each read there is
 `gatt/connect`, `gatt/discoverServices`, `gatt/readCharacteristicValue` by the
 `clientId` that connect returned, then `gatt/disconnect`, which is made
 whatever failed after connecting. A plain level in the pairing file, should

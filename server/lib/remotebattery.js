@@ -133,6 +133,19 @@ function read(done) {
     if (st && typeof st.connected === 'boolean') connected = st.connected;
     if (st && st.isBleRemocon === true) isBle = true;
     if (!st || !st.connected || !isBle) return finish(null);
+    // webOS 4 has the charge here (a B8's went from 49 to 63 with other
+    // batteries), and its gatt/connect answers with no clientId to disconnect
+    // by. Later webOS answer "-", and are read over Bluetooth.
+    fallbackDeviceInfo(function (dl) {
+      if (dl !== null) {
+        tried = true;
+        return finish(dl);
+      }
+      readGatt();
+    });
+  });
+
+  function readGatt() {
     luna(BT + '/device/getStatus', {}, function (ds) {
       address = remoteAddress(ds && ds.devices);
       if (!address) return finish(null);
@@ -141,9 +154,7 @@ function read(done) {
         clientId = c && c.returnValue && c.clientId ? String(c.clientId) : null;
         if (!clientId) return finish(null);
         luna(BT + '/gatt/discoverServices', { address: address }, function (disc) {
-          if (disc && disc.returnValue === false) {
-            return fallbackDeviceInfo(function (dl) { finish(dl); });
-          }
+          if (disc && disc.returnValue === false) return finish(null);
           setTimeout(function () {
             luna(BT + '/gatt/readCharacteristicValue', {
               clientId: clientId, service: BATTERY_SERVICE, characteristic: BATTERY_LEVEL
@@ -152,7 +163,7 @@ function read(done) {
         });
       });
     });
-  });
+  }
 }
 
 function due() {
