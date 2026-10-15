@@ -56,7 +56,7 @@ Measured with `scripts/footprint.sh` on 2026-10-03, over a minute each, with MQT
 | OLED65B8SLC (webOS 4) | 1.4–1.7% | 29–42 MB | 5, 6 MB | 432–445 of 1976 MB |
 | OLED42C24LA (webOS 9.2) | 1.2–1.3% | 35–38 MB | 5, 10 MB | 525–535 of 1996 MB |
 
-The children are the five subscriptions held open for live state. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
+The children are the five subscriptions held open for live state, to which a TV whose SurfaceManager reports its windows adds two while the MQTT bridge is enabled. These two are started explicitly by the bridge; a TV without MQTT runs neither. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
 
 ---
 
@@ -830,6 +830,33 @@ The dashboard groups the hours into the browser's days. Home Assistant's
 `utc` that `com.webos.service.systemservice/time/getSystemTime` reports
 together, read hourly. With no reading it is UTC.
 
+## Screen-time limits
+
+`server/lib/screentime.js` reads today's time per app and input from watch
+time, so it needs `history.js` running and the TV's offset from UTC read: the
+day starts at the TV's local midnight, to the whole UTC hour, as Home
+Assistant's "today" does. It checks every 30 seconds and at each change of
+power, screen or app, after `history.js` has counted it. The whole TV's limits
+come before an app's. At a limit it shows a toast through
+`com.webos.notification/createToast` and acts a minute later only if the same
+limit is still due, so turning the screen off or leaving the app in that
+minute cancels it. Each warning is shown once per local day.
+
+A toast sent as the screen comes on is not shown while the panel wakes (C4,
+webOS 10.3.1), so after the screen comes on the check waits 5 seconds. The TV
+reports itself on before its screen does, so a TV switched back on after the
+daily limit or bedtime switched it off gets its toast once the screen is on,
+the screen off 10 seconds later, and the TV off after 5 minutes, unless the
+limit has been changed by then. That the limit switched it off is kept in
+`/var/lib/tvweb/screentime.json` until the limit no longer applies or the
+settings are changed, as a C5 (webOS 10.3.1) shuts down fully and starts the
+server again when switched on.
+
+Turning the screen off over LG's screen saver does not hold, so when it is
+showing, Back dismisses it first and the screen goes off 1.5 seconds later.
+Either way, a screen back on 3 seconds after is turned off once more. Checks
+wait meanwhile, as the screen saver closing reports the screen on.
+
 ## Reading the Magic Remote's battery
 
 LG's pairing file has only the remote model's battery thresholds, so
@@ -839,8 +866,13 @@ is not woken for this, so the read waits for it to wake, from
 `com.webos.service.mrcu/getConnectionStatus` subscribed: the first wake after
 the TV switches on, then one at least an hour after the last read, or five
 minutes after a failed one. A check every 10 minutes covers a remote kept
-awake. lginput2 holds the remote's own connection, and the Bluetooth service reads the
-service only over a GATT connection of its own, so each read is
+awake. The subscription's updates are trusted for whether the remote is a
+Bluetooth one: asked once, the same method says it is not. On webOS 4,
+`com.webos.service.mrcu/getDeviceInfo` has the charge in `batteryLevel`, so it
+is asked first, and no Bluetooth connection is made where it answers; webOS 9
+and later answer `"-"`. lginput2 holds the remote's own connection, and the
+Bluetooth service reads the service only over a GATT connection of its own, so
+each read there is
 `gatt/connect`, `gatt/discoverServices`, `gatt/readCharacteristicValue` by the
 `clientId` that connect returned, then `gatt/disconnect`, which is made
 whatever failed after connecting. A plain level in the pairing file, should

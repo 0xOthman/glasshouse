@@ -36,6 +36,7 @@ the first reboot after uninstalling.
 | Debugger closed to the network | Adds a firewall rule dropping port 9998 (WebAppMgr's DevTools, opened by Developer Mode) on every interface but loopback. Put back each time the server starts, not by the boot hook | `allowNetworkDebugger` in `config.json` or toggled from the Server tab, uninstalling from the Homebrew Channel, a reboot after any other uninstall, or `iptables -D INPUT -p tcp --dport 9998 ! -i lo -j DROP` |
 | Clock set from an NTP server | With a time server set on the Server tab, or `ntp.server` in `config.json`, sets the TV's clock through its time service, hourly and when the TV switches on. The service records the time as coming from LG's time servers | Switching it off on the Server tab, or emptying `ntp.server`. The clock stays as set until LG's next sync |
 | Home screen layout | On webOS 9, writes a copy of LG's own Home screen layout without the parts switched off to `/mnt/lg/cmn_data/manifest/`, where the home app looks before its built-in one, and restarts the home app after deleting its saved copies (`/tmp/checkpoint` and `/mnt/lg/cmn_data/checkpoint`), which the TV makes again. Input tiles are LG's own launch points, recorded in `home-inputs.json` in `/var/lib/tvweb` | **Put back LG's Home screen** on the Apps tab, or `tvwebctl restore-home` before uninstalling |
+| Screen-time limits | While on in the Advanced tab, shows toasts and, at a limit, switches the TV or its screen off or goes to Home | Switching them off |
 | Replacement screen saver | Bind-mounts over the built-in screen saver app. Experimental on webOS 10 and later, where the built-in one is a Flutter app: turned on from the Screensaver tab, or under Server → Advanced → Experimental features | Choosing the stock screen saver |
 
 ## Changes that stay
@@ -66,3 +67,12 @@ setup. While a phone is being used to enter Home Assistant details,
 port 8081 answers a one-time code for up to ten minutes. The server connects out
 only to the configured MQTT broker, to the NTP server when one is configured,
 and, when update checks are switched on, to GitHub's releases API. Update checks are off by default.
+
+With **Share app icons** on in the MQTT tab (`iconServer` in `config.json`), port 8082 (the dashboard's
+port plus two) answers on the whole network, dual-stack like the dashboard,
+with installed apps' icons at `/icons/<appId>.png` and nothing else: no other
+paths, no listing, read-only and without a token, whatever the dashboard is
+limited to. An icon is only read from inside its app's own folder,
+whatever the app's `appinfo.json` names. Anyone on the network can tell which
+apps are installed by asking for their icons. Off by default. A port already in use is logged and left, and the
+dashboard and Home Assistant bridge carry on without it.

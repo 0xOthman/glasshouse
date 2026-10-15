@@ -81,6 +81,13 @@ assert.strictEqual(util.hostPort('::', 8080), '[::]:8080');
 assert.strictEqual(util.hostPort('0.0.0.0', 8080), '0.0.0.0:8080');
 console.log('  ✓ hostPort brackets an IPv6 address');
 
+assert.strictEqual(util.hexColor('#E50914'), '#e50914');
+assert.strictEqual(util.hexColor('#fA0'), '#ffaa00');
+assert.strictEqual(util.hexColor('red'), null);
+assert.strictEqual(util.hexColor('#12345'), null);
+assert.strictEqual(util.hexColor(null), null);
+console.log('  ✓ hexColor takes #rgb or #rrggbb and spells it out as #rrggbb');
+
 var tvwebSrc = fs.readFileSync(path.join(__dirname, '..', 'server', 'tvweb.js'), 'utf8');
 assert.ok(/^\s*host: '::',/m.test(tvwebSrc), 'the server listens on :: by default');
 console.log('  ✓ the server listens dual-stack by default');
