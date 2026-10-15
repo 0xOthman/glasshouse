@@ -70,5 +70,7 @@ With `iconServer` set to `true` in `config.json`, port 8082 (the dashboard's
 port plus two) answers on the whole network, dual-stack like the dashboard,
 with installed apps' icons at `/icons/<appId>.png` and nothing else: no other
 paths, no listing, read-only and without a token, whatever the dashboard is
-limited to. Off by default. A port already in use is logged and left, and the
+limited to. An icon is only read from inside its app's own folder,
+whatever the app's `appinfo.json` names. Anyone on the network can tell which
+apps are installed by asking for their icons. Off by default. A port already in use is logged and left, and the
 dashboard and Home Assistant bridge carry on without it.
