@@ -41,8 +41,8 @@ function setup(limits, historyOn) {
     mono: function () { return clock.mono; }
   });
   history.start();
-  screentime.init({
-    config: config, liveState: liveState,
+  var stOpts = {
+    config: config, liveState: liveState, stateFile: path.join(root, 'screentime.json'),
     control: function (action, value, cb) {
       if (action === 'toast') toasts.push(value); else calls.push(value ? action + ':' + value : action);
       if (action === 'screenOff') state.update('power', 'screenOn', false);
@@ -55,7 +55,8 @@ function setup(limits, historyOn) {
       waiting.push(entry);
       return function () { entry.cancelled = true; };
     }
-  });
+  };
+  screentime.init(stOpts);
   screentime.start();
   return {
     state: state, calls: calls, toasts: toasts,
@@ -81,6 +82,12 @@ function setup(limits, historyOn) {
     off: function () {
       state.update('power', 'systemOn', false);
       state.update('power', 'screenOn', false);
+    },
+    // The server restarting, as on a TV that shuts down fully.
+    restart: function () {
+      screentime.stop();
+      screentime.init(stOpts);
+      screentime.start();
     },
     done: function () { screentime.stop(); history.stop(); }
   };
@@ -229,6 +236,27 @@ function setup(limits, historyOn) {
   assert.deepEqual(tv.calls.slice(4), ['screenOff'], 'stays on');
   tv.done();
   console.log('  ✓ switched back on after its limit: the screen off, and the TV off 5 minutes later unless the limit is changed');
+})();
+
+(function testSwitchedOnAfterRestart() {
+  var tv = setup({ dailyMinutes: 30, action: 'off' });
+  tv.on('netflix');
+  tv.advance(31 * 60000);
+  tv.elapse();
+  assert.deepEqual(tv.calls, ['powerOff']);
+  tv.off();
+  tv.restart();
+  tv.on('netflix');
+  assert.ok(/switches off in 5 minutes/.test(tv.toasts[tv.toasts.length - 1]), 'remembered across the restart');
+  tv.elapse(10000);
+  assert.deepEqual(tv.calls, ['powerOff', 'screenOff']);
+  tv.elapse(3000);
+
+  // Raised: no longer reached, so the file goes.
+  screentime.apply({ dailyMinutes: 120 });
+  assert.strictEqual(fs.existsSync(path.join(root, 'screentime.json')), false);
+  tv.done();
+  console.log('  ✓ a switch-off by the limit is remembered across a server restart, until the limit is no longer reached');
 })();
 
 (function testScreenSaver() {

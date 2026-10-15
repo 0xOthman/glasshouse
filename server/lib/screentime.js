@@ -13,6 +13,8 @@
 /** @type {typeof import('./history')} */
 var history = require('./history');
 var power = require('./power');
+var path = require('path');
+var util = require('./util');
 
 var CHECK_MS = 30000;
 var WARN_S = 300;
@@ -58,8 +60,13 @@ var listening = false;
 var running = false;
 // The action waiting out its minute, or its 5 minutes: { id, cancel }.
 var pending = null;
-// The whole TV's limits that have switched it off, until no longer reached.
+/*
+ * The whole TV's limits that have switched it off, until no longer reached.
+ * Kept in a file, as a TV that shuts down fully restarts the server when
+ * switched back on (C5, webOS 10.3.1).
+ */
 var switchedOff = {};
+var stateFile = '/var/lib/tvweb/screentime.json';
 var settling = false;
 var wasScreenOn = false;
 // While the screen is being turned off, as the screen saver closing reports the screen on.
@@ -158,7 +165,10 @@ function run(action, id) {
     if (!r || !r.ok) console.error('screentime: ' + action + ' failed: ' + ((r && r.error) || 'no answer'));
   };
   console.log('screentime: ' + (id || 'limit') + ', ' + action);
-  if (action === 'off' && (id === 'daily' || id === 'bedtime')) switchedOff[id] = true;
+  if (action === 'off' && (id === 'daily' || id === 'bedtime') && !switchedOff[id]) {
+    switchedOff[id] = true;
+    saveSwitchedOff();
+  }
   if (action === 'off') control('powerOff', null, done);
   else if (action === 'screenOff') turnScreenOff(done);
   else if (action === 'home') control('rcu', 'home', done);
@@ -194,6 +204,18 @@ function turnScreenOff(done) {
   injectKey(keyBack, function () {
     later(function () { off(true); }, SCREEN_SAVER_MS);
   });
+}
+
+function saveSwitchedOff() {
+  try {
+    if (Object.keys(switchedOff).length) {
+      util.mkdirp(path.dirname(stateFile));
+      util.writeJsonAtomic(stateFile, { switchedOff: switchedOff });
+    }
+    else util.unlinkQuiet(stateFile);
+  } catch (e) {
+    console.error('screentime: could not write ' + stateFile + ': ' + e.message);
+  }
 }
 
 function cancelPending() {
@@ -309,7 +331,11 @@ function check() {
   if (settling || acting) return;
   var a = assess();
   if (!a) return cancelPending();
-  for (var id in switchedOff) if (!a.tv || a.tv.id !== id) delete switchedOff[id];
+  var cleared = false;
+  for (var id in switchedOff) {
+    if (!a.tv || a.tv.id !== id) { delete switchedOff[id]; cleared = true; }
+  }
+  if (cleared) saveSwitchedOff();
   if (a.tv && a.tv.action === 'off' && switchedOff[a.tv.id]) return afterSwitchedOff(a.tv, a.screenOn);
   if (!a.screenOn) return cancelPending();
   var d = a.tv || a.app;
@@ -424,6 +450,7 @@ function status(nowMs) {
  * @param {function(string, any, function(any): void): void} opts.control controls.doControl
  * @param {function(number, function(boolean): void, number=): void} [opts.injectKey] controls.injectKey
  * @param {number} [opts.keyBack] controls.KEY_BACK
+ * @param {string} [opts.stateFile] where the switch-offs are kept, for tests
  * @param {function(function(): void, number): function(): void} [opts.later] for tests
  */
 function init(opts) {
@@ -436,7 +463,12 @@ function init(opts) {
   injectKey = opts.injectKey || null;
   keyBack = opts.keyBack || null;
   acting = false;
+  if (opts.stateFile) stateFile = opts.stateFile;
+  var saved = util.readJson(stateFile, null);
   switchedOff = {};
+  ['daily', 'bedtime'].forEach(function (id) {
+    if (saved && saved.switchedOff && saved.switchedOff[id] === true) switchedOff[id] = true;
+  });
   settling = false;
   wasScreenOn = false;
   warned = {};

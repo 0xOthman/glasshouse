@@ -174,6 +174,15 @@ from Screen Saver to Screen Off and back to Active 0.2 s later, with the screen
 on. From Active it holds. Screen-time limits dismiss the screen saver with
 Back first, as the screen saver tab does.
 
+## Switching off (C5, webOS 10.3.1)
+
+`power/powerOff` with reason `remoteKey` switched the TV off, going Active,
+Active Standby 3.3 s after the request, then Power Off 5.7 s later, but its
+answer was taken as a failure: a second `powerOff` with reason `localKey` got
+"com.webos.service.tvpower/power is busy". From Power Off, switching on with
+the remote booted the TV from scratch (uptime 42 s), so the server started
+again.
+
 ## The Magic Remote's battery (C4, webOS 10.3.1)
 
 `/mnt/lg/cmn_data/mrcu/mrcu1.info` is written when the remote pairs and not
