@@ -1612,7 +1612,7 @@ if (!CLI_MODE) {
     luna: luna,
     stateDir: __dirname,
     onLevel: function (level) {
-      console.log('remote: battery ' + level + '% (Bluetooth GATT 0x2A19)');
+      console.log('remote: battery ' + level + '%');
       telemetry.expireStats();
     }
   });
