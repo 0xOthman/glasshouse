@@ -314,6 +314,8 @@ function renderCustomHosts(cu, mode) {
     text += ' ' + t('pv.adblock.custom.skipped', '{n} entries in the last file were left out: lines pointing a name at another address, or not host names.', { n: customHostsSkipped });
   }
   q('abc-detail').textContent = text;
+  // Folded away like the rows beside it: whether a list is in use shows without opening it.
+  q('abc-summary').textContent = cu ? t('pv.adblock.custom.summary', '{n} names', { n: cu.count }) : t('pv.adblock.custom.notUsed', 'None');
 }
 
 async function postCustomHosts(body) {

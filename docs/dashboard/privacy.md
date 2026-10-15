@@ -21,7 +21,7 @@ On the **everything** tier, after a power cut the TV is left to set its clock fr
 
 If an app or one of LG's services stops working while the blocker is on, switch it off to check whether it is the cause.
 
-**Your own hosts list**, under the blocker, uploads a hosts file or a plain list of names from the computer the dashboard is open on. Names pointed at `0.0.0.0`, `127.0.0.1`, `::` or `::1`, and bare names, are taken; a line pointing a name at any other address is a redirect and is left out, and the dashboard says how many were. Up to 10,000 names and 1 MB.
+**Custom ad blocking**, a row below the blocker that stays closed until opened, uploads a hosts file or a plain list of names from the computer the dashboard is open on. Names pointed at `0.0.0.0`, `127.0.0.1`, `::` or `::1`, and bare names, are taken; a line pointing a name at any other address is a redirect and is left out, and the dashboard says how many were. Up to 10,000 names and 1 MB.
 
 * **Add** blocks the names together with the tier's own.
 * **Replace** blocks only the names in the file; then both tiers block the same names, and the buttons only switch blocking on and off.
