@@ -81,7 +81,7 @@ The NTP families have samples only while [setting the clock from NTP](IMPLEMENTA
 | Metric                                            | Type    | Labels                                  | Value                                                       |
 | :------------------------------------------------ | :------ | :-------------------------------------- | :---------------------------------------------------------- |
 | `glasshouse_info`                                 | gauge   | `model`, `firmware`, `webos`, `version` | 1                                                           |
-| `glasshouse_boot_time_seconds`                    | gauge   |                                         | When the TV last booted, as a Unix time                     |
+| `glasshouse_boot_time_seconds`                    | gauge   |                                         | When the TV last booted, as a Unix time; later than the real boot on a TV that suspends in standby |
 | `glasshouse_system_on`                            | gauge   |                                         | 1 when on, including with the screen off                    |
 | `glasshouse_screen_on`                            | gauge   |                                         | 1 when the screen is on, including a screen saver           |
 | `glasshouse_power_on_info`                        | gauge   | `reason`                                | 1                                                           |

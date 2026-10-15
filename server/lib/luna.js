@@ -7,6 +7,7 @@ var childProcess = require('child_process');
 var execFile = childProcess.execFile;
 var spawn = childProcess.spawn;
 var children = require('./children');
+var monotonicMs = require('./util').monotonicMs;
 
 // Overridable so the start-up test can run the whole server against a stand-in.
 var LUNA_SEND = process.env.TVWEB_LUNA_SEND || '/usr/bin/luna-send';
@@ -66,10 +67,38 @@ var PARALLEL = 2;
 var running = 0;
 var waiting = [];
 
+/*
+ * An urgent call, a remote key press, goes ahead of every normal call waiting
+ * and behind urgent ones already there, and may take one slot beyond PARALLEL
+ * so two slow reads cannot hold it up. Urgent calls run one at a time: two key
+ * presses running together could reach the TV in the wrong order. Urgent calls
+ * sit at the front of waiting, so a normal call at the front means none is
+ * queued.
+ */
+var urgentRunning = 0;
+
+function firstNormal() {
+  var i = 0;
+  while (i < waiting.length && waiting[i].urgent) i++;
+  return i;
+}
+
+function enqueue(job) {
+  waiting.splice(job.urgent ? firstNormal() : waiting.length, 0, job);
+}
+
+// A call run again goes first among its kind: it was started before the rest.
+function requeue(job) {
+  waiting.splice(job.urgent ? 0 : firstNormal(), 0, job);
+}
+
 function startWaiting() {
-  while (running < PARALLEL && waiting.length) {
+  while (waiting.length) {
+    var urgent = waiting[0].urgent;
+    if (urgent ? urgentRunning > 0 || running >= PARALLEL + 1 : running >= PARALLEL) break;
     var job = waiting.shift();
     running++;
+    if (urgent) urgentRunning++;
     run(job);
   }
 }
@@ -93,19 +122,22 @@ function diedEarly(err) {
 var MAX_REPLY = 4 * 1024 * 1024;
 
 function run(job) {
-  children.launch(function () { runNow(job); });
+  children.launch(function () { runNow(job); }, job.urgent);
 }
 
 function runNow(job) {
+  var startedAt = monotonicMs();
   execFile(LUNA_SEND, job.args, { timeout: 3500, maxBuffer: MAX_REPLY }, function (err, stdout) {
+    var endedAt = monotonicMs();
     running--;
+    if (job.urgent) urgentRunning--;
     if (diedEarly(err)) {
       var uri = job.args[job.args.length - 2];
       console.error('luna: ' + uri + ' died (' + err.signal + ') before answering' +
                     (job.retried ? ', giving up' : ', trying once more'));
       if (!job.retried) {
         job.retried = true;
-        waiting.unshift(job);
+        requeue(job);
         return startWaiting();
       }
     }
@@ -125,20 +157,31 @@ function runNow(job) {
       job.args[job.args.length - 2] = 'luna://' + oldUri;
       job.serviceRetried = true;
       running++;
+      if (job.urgent) urgentRunning++;
       return run(job);
     }
     handleServiceResult(rawUri, parsed);
 
-    if (job.cb) job.cb(parsed, String(stdout || ''));
+    // When the child that answered started and ended, on the monotonic clock.
+    if (job.cb) job.cb(parsed, String(stdout || ''), { startedAt: startedAt, endedAt: endedAt });
   });
 }
 
-function call(uri, payload, cb, appId) {
+function queueCall(uri, payload, cb, appId, urgent) {
   uri = resolveUri(uri);
   var args = appId ? ['-a', appId] : [];
   args = args.concat(['-n', '1', '-w', '2000', '-f', 'luna://' + uri, JSON.stringify(payload || {})]);
-  waiting.push({ args: args, cb: cb });
+  enqueue({ args: args, cb: cb, urgent: urgent });
   startWaiting();
+}
+
+function call(uri, payload, cb, appId) {
+  queueCall(uri, payload, cb, appId, false);
+}
+
+// The same, ahead of the queue: for a remote key press, which someone is waiting on.
+function callUrgent(uri, payload, cb, appId) {
+  queueCall(uri, payload, cb, appId, true);
 }
 
 function Subscription(uri, payload, appId, handlers) {
@@ -189,8 +232,7 @@ Subscription.prototype._spawn = function () {
   if (self.stopped || self.child) return;
 
   var args = self.appId ? ['-a', self.appId] : [];
-  // Formatted responses span several lines. Subscription responses are parsed
-  // as one compact JSON response per line instead.
+  // Prefer compact output; some services still send formatted JSON.
   args = args.concat(['-i', 'luna://' + resolveUri(self.uri), JSON.stringify(self.payload)]);
   self.buffer = '';
   self.child = spawn(LUNA_SEND, args);
@@ -217,19 +259,42 @@ Subscription.prototype._spawn = function () {
 };
 
 Subscription.prototype._consume = function (chunk) {
-  var lines, i, line, parsed;
+  var i, start = -1, depth = 0, quoted = false, escaped = false, ch, raw;
   this.buffer += chunk;
-  lines = this.buffer.split(/\r?\n/);
-  this.buffer = lines.pop();
-  for (i = 0; i < lines.length; i++) {
-    line = lines[i].replace(/^\s+|\s+$/g, '');
-    if (!line) continue;
-    try {
-      parsed = JSON.parse(line);
-      if (this.handlers.message) this.handlers.message(parsed);
-    } catch (e) {
-      if (this.handlers.error) this.handlers.error(e, line);
+  // SurfaceManager on webOS 6.4 formats its own JSON, even without -f.
+  // Frame complete objects rather than assuming one response per line.
+  for (i = 0; i < this.buffer.length; i++) {
+    ch = this.buffer.charAt(i);
+    if (start < 0) {
+      if (ch !== '{') continue;
+      start = i;
     }
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') quoted = false;
+    } else if (ch === '"') quoted = true;
+    else if (ch === '{' || ch === '[') depth++;
+    else if (ch === '}' || ch === ']') {
+      if (--depth === 0) {
+        raw = this.buffer.slice(start, i + 1);
+        try {
+          var parsed = JSON.parse(raw);
+          if (this.handlers.message) this.handlers.message(parsed);
+        } catch (e) {
+          if (this.handlers.error) this.handlers.error(e, raw);
+        }
+        this.buffer = this.buffer.slice(i + 1);
+        i = -1;
+        start = -1;
+      }
+    }
+  }
+  if (start < 0) this.buffer = '';
+  else this.buffer = this.buffer.slice(start);
+  if (this.buffer.length > 1048576) {
+    this.buffer = '';
+    if (this.handlers.error) this.handlers.error(new Error('Luna subscription response too large'));
   }
 };
 
@@ -276,6 +341,7 @@ function createCache(callFn) {
 
 module.exports = {
   call: call,
+  callUrgent: callUrgent,
   Subscription: Subscription,
   createCache: createCache
 };

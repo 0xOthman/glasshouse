@@ -366,6 +366,22 @@ function watched(byKey) {
   return s;
 }
 
+// The TV's local time as a UTC timestamp, or null until its clock and offset are known.
+function localNow() {
+  var wall = nowMs();
+  if (wall < CLOCK_FLOOR_MS || utcOffsetMin === null) return null;
+  return wall + utcOffsetMin * 60000;
+}
+
+// Seconds per key since the TV's local midnight, or null while off or the clock is unset.
+function today() {
+  if (!running) return null;
+  var local = localNow();
+  if (local === null) return null;
+  checkpoint();
+  return sumSince(Math.floor(local / DAY_MS) * DAY_MS - utcOffsetMin * 60000);
+}
+
 /*
  * Today and the last 7 days on the TV's local calendar, for Home Assistant,
  * or null while off. Screen-off and screen saver time is left out of both.
@@ -445,6 +461,10 @@ module.exports = {
   query: query,
   totals: totals,
   summary: summary,
+  today: today,
+  localNow: localNow,
+  watched: watched,
+  current: function () { return running && current ? current.key : null; },
   status: status,
   observe: observe,
   keyFor: keyFor,

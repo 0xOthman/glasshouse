@@ -203,12 +203,6 @@
       <div class="sub" id="watch-note" hidden></div>
     </div>
 
-    <div class="grp-sec" id="uptimeblock" data-col="1">
-      <div class="grp" data-t="metrics.uptime">TV uptime</div>
-      <div class="lbl" data-t="metrics.uptime.sinceBoot">Time since boot</div>
-      <div class="uptime-val num" id="tv-uptime">&mdash;</div>
-    </div>
-
     <div class="grp-sec" id="advblock" data-col="1">
       <div class="grp" data-t="tab.advanced">Advanced</div>
       <details class="disc" id="disc-hwinfo" hidden style="border-top:0;margin-top:0">
@@ -576,6 +570,64 @@
         <button type="button" class="pill idle" id="btn_offtimer" onclick="togglePowerTimer('off')">&mdash;</button>
       </div>
       <div class="timer-days" id="days_offtimer"></div>
+    </div>
+  </div>
+
+  <div class="pv-sec adv-sec" id="adv-screentime" data-t="adv.screenTime">Screen time</div>
+  <div class="prot-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.limits">Screen-time limits</div>
+        <div class="prot-desc" data-t="adv.screenTime.desc">Limits how long the screen is on each day, in all and per app or
+          input, and keeps it off at bedtime. The TV shows a warning five minutes before a limit, and another when it is
+          reached, then does what is chosen below a minute later.</div>
+        <div class="prot-desc st-note" id="st-note" hidden></div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="st-enabled" onclick="toggleScreenTime()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.daily">Daily limit</div>
+        <div class="prot-desc" data-t="adv.screenTime.daily.desc">The screen time allowed each day, counted from midnight on the TV’s clock.</div>
+        <div class="prot-desc" id="st-today" hidden></div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-daily" aria-label="Daily limit" data-t-aria-label="adv.screenTime.daily"
+        onchange="saveScreenTime({ dailyMinutes: Number(this.value) })"></select></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.bedtime">Bedtime</div>
+        <div class="prot-desc" data-t="adv.screenTime.bedtime.desc">Between these two times, the TV does what is chosen below. Clearing either time turns bedtime off.</div>
+      </div>
+      <div class="prot-status timer-ctl">
+        <input type="time" class="pill-sel" id="st-bed-from" aria-label="Bedtime starts" data-t-aria-label="adv.screenTime.bedtime.from"
+          onchange="saveScreenTime({ bedtimeStart: this.value })">
+        <input type="time" class="pill-sel" id="st-bed-to" aria-label="Bedtime ends" data-t-aria-label="adv.screenTime.bedtime.to"
+          onchange="saveScreenTime({ bedtimeEnd: this.value })">
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.action">At the daily limit or bedtime</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-action" aria-label="At the daily limit or bedtime" data-t-aria-label="adv.screenTime.action"
+        onchange="saveScreenTime({ action: this.value })"></select></div>
+    </div>
+    <div class="prot-row" id="st-apps-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.apps">App and input limits</div>
+        <div class="prot-desc" data-t="adv.screenTime.apps.desc">Minutes a day for one app or input. Those watched in the last 30 days can be picked.</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-add" aria-label="Add a limit" data-t-aria-label="adv.screenTime.add"
+        onchange="addScreenTimeApp(this.value)"></select></div>
+      <div class="st-apps" id="st-apps"></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.appAction">At an app or input’s limit</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-app-action" aria-label="At an app or input’s limit" data-t-aria-label="adv.screenTime.appAction"
+        onchange="saveScreenTime({ appAction: this.value })"></select></div>
     </div>
   </div>
 
@@ -1070,6 +1122,19 @@
     </div>
   </div>
 
+  <div class="pv-h" data-t="mqtt.icons">App icons</div>
+  <div class="pv-table">
+    <div class="pv-row">
+      <div>
+        <div class="n" data-t="mqtt.icons.toggle">Share app icons</div>
+        <div class="d" data-t="mqtt.icons.desc">Lets a launcher or dashboard on another device show this TV's apps with their own
+          icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can
+          fetch the icons, and so tell which apps are installed.</div>
+      </div>
+      <button type="button" class="pill idle" id="cfg-icons" onclick="cfgToggleIcons()">&mdash;</button>
+    </div>
+  </div>
+
   <div class="pv-h" data-t="mqtt.entities">Home Assistant entities</div>
   <div class="pv-sub" data-t="mqtt.entities.desc">Choose which entity categories are published over MQTT Discovery.
     Disabling an entity removes it cleanly from Home Assistant without leaving an orphaned state.</div>
@@ -1315,6 +1380,7 @@
 <script src="/assets/ui/game.js"></script>
 <script src="/assets/ui/system.js"></script>
 <script src="/assets/ui/history.js"></script>
+<script src="/assets/ui/screentime.js"></script>
 <script src="/assets/ui/apps.js"></script>
 <script src="/assets/ui/install.js"></script>
 <script src="/assets/ui/tabs.js"></script>
