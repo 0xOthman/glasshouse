@@ -174,6 +174,18 @@ function setup(limits, historyOn) {
   console.log('  ✓ Only warn says so once and does nothing else');
 })();
 
+(function testScreenSaverNotCounted() {
+  var tv = setup({ dailyMinutes: 30 });
+  tv.on('netflix');
+  tv.state.update('power', 'state', 'Screen Saver');
+  tv.advance(40 * 60000);
+  assert.deepEqual(tv.toasts, [], 'LG\'s screen saver is not screen time');
+  var keys = screentime.status(T + 40 * 60000).choices.map(function (c) { return c.key; });
+  assert.ok(keys.indexOf('screen_saver') === -1, 'and is not offered as an app to limit');
+  tv.done();
+  console.log('  ✓ time on LG\'s screen saver counts toward no limit, and is not offered as one');
+})();
+
 (function testNeedsWatchTime() {
   var tv = setup({ dailyMinutes: 30 }, false);
   tv.on('netflix');
