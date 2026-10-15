@@ -971,26 +971,6 @@
     </div>
   </div>
 
-  <details class="pv-d" id="disc-adblock-custom">
-  <summary><span data-t="pv.adblock.custom">Custom ad blocking</span> <span class="cur" id="abc-summary"></span></summary>
-  <div class="pv-sub" data-t="pv.adblock.custom.desc">Use your own hosts file, or a list of names, to customise what
-    the blocker blocks. Add blocks its names as well as Glasshouse's; Replace blocks them instead. The TV keeps the
-    list, so it is not uploaded again after a Glasshouse update.</div>
-  <div class="pv-note" data-t="pv.adblock.custom.warn">Depending on what it blocks, a list can stop apps, LG's
-    services or software updates working. If something stops working, remove the list or switch the blocker off
-    to check.</div>
-  <div class="btns" style="max-width:520px">
-    <button id="abc-add" onclick="setCustomHostsMode('add')" data-t="pv.adblock.custom.add">Add</button>
-    <button id="abc-replace" onclick="setCustomHostsMode('replace')" data-t="pv.adblock.custom.replace">Replace</button>
-  </div>
-  <input type="file" id="abc-file" accept=".txt,.hosts,text/plain" hidden onchange="uploadCustomHosts(this)">
-  <div class="btns" style="margin-top:8px;max-width:520px">
-    <button id="abc-upload" onclick="q('abc-file').click()" data-t="pv.adblock.custom.upload">Upload a file</button>
-    <button id="abc-clear" onclick="clearCustomHosts()" hidden data-t="pv.adblock.custom.remove">Remove the list</button>
-  </div>
-  <div class="sub" id="abc-detail" style="margin:12px 0 18px"></div>
-  </details>
-
   <details class="pv-d" id="pv-promo-d" hidden>
   <summary><span data-t="pv.promotions">LG ads and promotions</span> <span class="cur" id="pv-promo-cur"></span></summary>
   <div class="prot-table" id="pv-promo"></div>
@@ -1016,6 +996,45 @@
     <div class="pv-grp"><div class="pv-g"><span data-t="pv.diagnostics">Diagnostics services</span></div><div id="pv-daemons"></div></div>
   </div>
   <div class="pv-note" id="pv-running-note"></div>
+  </details>
+  <details class="pv-d" id="disc-adblock-custom">
+  <summary><span data-t="pv.adblock.custom">Custom ad blocking</span> <span class="cur" id="abc-summary"></span></summary>
+  <div class="pv-sub" data-t="pv.adblock.custom.desc">Use your own hosts file to customise what the ad blocker blocks.
+    The TV keeps the list, so it is not uploaded again after a Glasshouse update.</div>
+  <div class="oled-warn abc-warn" data-t="pv.adblock.custom.warn">Depending on what it blocks, a list can stop apps, LG's
+    services or software updates working. If something stops working, switch Block its names off to check.</div>
+  <div class="prot-table abc-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.file">Hosts file</div>
+        <div class="prot-desc" id="abc-list">&mdash;</div>
+      </div>
+      <div class="prot-status abc-list-btns">
+        <button type="button" class="pill idle" id="abc-upload" onclick="q('abc-file').click()">&mdash;</button>
+        <button type="button" class="pill idle" id="abc-clear" onclick="clearCustomHosts()" hidden data-t="pv.adblock.custom.delete">Delete</button>
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.use">Block its names</div>
+        <div class="prot-desc" data-t="pv.adblock.custom.use.desc">Off keeps the file on the TV but blocks nothing in it.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="abc-enabled" onclick="toggleCustomHosts()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.how">What is blocked</div>
+        <div class="prot-desc" data-t="pv.adblock.custom.how.desc">Glasshouse's list is the one the ad blocker uses on its own.</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="abc-mode" onchange="setCustomHostsMode(this.value)"
+        aria-label="What is blocked" data-t-aria-label="pv.adblock.custom.how">
+        <option value="add" data-t="pv.adblock.custom.add">Your file and Glasshouse's list</option>
+        <option value="replace" data-t="pv.adblock.custom.replace">Only your file</option>
+      </select></div>
+    </div>
+  </div>
+  <input type="file" id="abc-file" accept=".txt,.hosts,text/plain" hidden onchange="uploadCustomHosts(this)">
+  <div class="sub" id="abc-detail" role="status" aria-live="polite"></div>
   </details>
   </details>
 </section>

@@ -909,7 +909,9 @@ function privacyRows(d) {
     // Uploaded, changed and removed in the browser dashboard only.
     if (ab.custom) {
       r.push({ label: t('pv.adblock.custom', 'Custom ad blocking'),
-               value: ab.custom.mode === 'add'
+               value: !ab.custom.enabled
+                 ? t('tv.privacy.custom.off', 'Off, {n} names kept', { n: ab.custom.count })
+                 : ab.custom.mode === 'add'
                  ? t('tv.privacy.custom.add', '{n} names, with Glasshouse’s', { n: ab.custom.count })
                  : t('tv.privacy.custom.replace', '{n} names, instead of Glasshouse’s', { n: ab.custom.count }),
                cls: 'st note',

@@ -289,6 +289,12 @@ function withCustom(opts, fn) {
   }
 }
 
+test('an ordinary text file gives no names: one word is not a host name, nor is a line of words', function () {
+  var p = privacy.parseCustomHosts('Shopping: milk, eggs, bread.\nCall the plumber on Monday!\nnotes\n10.0.0.1\n');
+  assert.deepEqual(p.names, []);
+  assert.strictEqual(privacy.parseCustomHosts('ads.example.com\nsingleword\n').names.length, 1);
+});
+
 test('a hosts file gives its blackholed names; redirects and junk are counted, not taken', function () {
   var p = privacy.parseCustomHosts('# comment\n0.0.0.0 a.example.com b.example.com # trailing\r\n' +
     '127.0.0.1 localhost\n::1 ip6-localhost\n192.168.1.5 nas.example.com\nPlain.Example.org.\n' +
@@ -307,6 +313,26 @@ test('"add" blocks the owner\'s names with the tier\'s, once each', function () 
     assert.strictEqual(r.custom.shared, 1);
     assert.deepEqual(privacy.adBlockList('off'), [], 'nothing while the blocker is off');
   });
+});
+
+test('switched off, the list is kept but nothing in it is blocked; a new upload switches it on', function () {
+  var own = privacy.ownBlockList('ads');
+  withCustom({ mode: 'replace', text: 'mine.example.com\n', file: 'my-list.txt' }, function (r) {
+    assert.strictEqual(r.custom.enabled, true);
+    assert.strictEqual(r.custom.file, 'my-list.txt');
+    var off = setCustom({ enabled: false });
+    assert.ok(off.ok, off.error);
+    assert.strictEqual(off.custom.enabled, false);
+    assert.strictEqual(off.custom.count, 1, 'kept');
+    assert.deepEqual(privacy.adBlockList('ads'), own, 'the tier\'s own list, as with none uploaded');
+    assert.strictEqual(setCustom({ mode: 'add' }).custom.enabled, false, 'a mode change keeps it off');
+    assert.strictEqual(privacy.customSummary().file, 'my-list.txt', 'and keeps its name');
+    assert.ok(setCustom({ enabled: true }).custom.enabled);
+    assert.ok(privacy.adBlockList('ads').indexOf('mine.example.com') !== -1);
+    setCustom({ enabled: false });
+    assert.strictEqual(setCustom({ mode: 'add', text: 'other.example.com\n', file: 'new.txt' }).custom.enabled, true);
+  });
+  assert.strictEqual(setCustom({ enabled: true }).ok, false, 'nothing to switch on without a list');
 });
 
 test('"replace" blocks only the owner\'s names, on either tier', function () {

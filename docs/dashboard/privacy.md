@@ -21,12 +21,13 @@ On the **everything** tier, after a power cut the TV is left to set its clock fr
 
 If an app or one of LG's services stops working while the blocker is on, switch it off to check whether it is the cause.
 
-**Custom ad blocking**, a row below the blocker that stays closed until opened, uploads a hosts file or a plain list of names from the computer the dashboard is open on. Names pointed at `0.0.0.0`, `127.0.0.1`, `::` or `::1`, and bare names, are taken; a line pointing a name at any other address is a redirect and is left out, and the dashboard says how many were. Up to 10,000 names and 1 MB.
+**Custom ad blocking**, the last row of the Privacy tab's Advanced section, takes a hosts file or a plain list of names from the computer the dashboard is open on. It is a power-user feature: depending on what a list blocks, it can stop apps, LG's services or software updates working.
 
-* **Add** blocks the names together with the tier's own.
-* **Replace** blocks only the names in the file; then both tiers block the same names, and the buttons only switch blocking on and off.
+* **Hosts file**: **Upload a file** sends it; names pointed at `0.0.0.0`, `127.0.0.1`, `::` or `::1`, and lines of one bare name, are taken, and a line pointing a name at any other address is a redirect and is left out, with the count shown. A name needs a dot, so an ordinary text file is refused. Up to 10,000 names and 1 MB. Uploading switches blocking on. **Upload a new file** replaces it, and **Delete** removes it.
+* **Block its names** switches the file off without deleting it, to check whether it is what stopped something working.
+* **What is blocked**: **Your file and Glasshouse's list** blocks the file's names as well as the tier's own; **Only your file** blocks just the file's, so both tiers block the same.
 
-The list is blocked only while the blocker is on. The TV keeps it, and Glasshouse's own list comes from the version installed, so after an update the names it adds or drops take effect at once, the file is not uploaded again, and both choices are worked out against the new list. A name in the file stays blocked when an update drops it from Glasshouse's list. Switching between the two choices does not need the file again; **Remove the list** goes back to the tier's own. LG's time servers in the file are held back after a power cut until the clock is set, as on the everything tier. The TV app shows the list but cannot change it.
+The row shows the file's name, how many names it has and when it was uploaded, and says in place how each action went, with a refusal in the same banner as the page's own errors. The list is blocked only while the blocker is on. The TV keeps it, and Glasshouse's own list comes from the version installed, so after an update the names it adds or drops take effect at once and the file is not uploaded again. A name in the file stays blocked when an update drops it from Glasshouse's list. LG's time servers in the file are held back after a power cut until the clock is set, as on the everything tier. The TV app shows the list but cannot change it.
 
 After switching away from **everything**, LG's own apps, such as the Content Store and LG Channels, can take about a minute to connect again: they run in a browser engine that keeps a looked-up address for about a minute. If one shows an error, exit it and open it again after a minute. A restart is not needed.
 

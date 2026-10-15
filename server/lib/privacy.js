@@ -305,7 +305,7 @@ function isSdpName(name) {
 function adBlockList(mode) {
   var own = ownBlockList(mode);
   var c = customHosts();
-  if (mode === 'off' || !c) return own;
+  if (mode === 'off' || !c || !c.enabled) return own;
   // The TV's clock comes from nextlgsdp.com: see scheduleSdpBlock.
   var names = isSdpGracePeriodActive() ? c.names.filter(function (n) { return !isSdpName(n); }) : c.names;
   if (c.mode === 'replace') return names.slice();
@@ -317,7 +317,9 @@ function adBlockList(mode) {
 /*
  * The names in a hosts file or a plain list of names. A line that points a
  * name at an address other than a blackhole one is a redirect, not a block,
- * and is counted rather than taken.
+ * and is counted rather than taken. A name needs a dot, and a line with no
+ * address holds one name, as a plain list does: an ordinary text file read
+ * word by word gave "the" and "on" as names to block.
  */
 function parseCustomHosts(text) {
   var names = [];
@@ -330,11 +332,15 @@ function parseCustomHosts(text) {
     if (/^[0-9.]+$/.test(parts[0]) || parts[0].indexOf(':') !== -1) {
       if (!CUSTOM_SINK_ADDRS[parts[0]]) { skipped++; return; }
       parts = parts.slice(1);
+    } else if (parts.length > 1) {
+      skipped++;
+      return;
     }
     parts.forEach(function (n) {
       n = n.toLowerCase().replace(/\.$/, '');
       if (CUSTOM_NOT_NAMES[n] || seen[n]) return;
-      if (!/^[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?(\.[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?)*$/.test(n) || n.length > 253) {
+      if (!/^[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?(\.[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?)+$/.test(n) || n.length > 253 ||
+          /\.\d+$/.test(n)) {
         skipped++;
         return;
       }
@@ -351,7 +357,9 @@ function customHosts() {
   try {
     var j = JSON.parse(fs.readFileSync(ADBLOCK_CUSTOM_FILE, 'utf8'));
     if (j && Array.isArray(j.names) && j.names.length && (j.mode === 'add' || j.mode === 'replace')) {
-      customCache = { mode: j.mode, names: j.names, updated: j.updated || null };
+      // Switched off, the list stays on the TV and nothing in it is blocked.
+      customCache = { mode: j.mode, names: j.names, updated: j.updated || null, enabled: j.enabled !== false,
+                      file: typeof j.file === 'string' ? j.file : null };
     }
   } catch (e) {}
   return customCache;
@@ -368,6 +376,8 @@ function customSummary() {
   var shared = own.filter(function (n) { return inList[n]; }).length;
   return {
     mode: c.mode,
+    enabled: c.enabled,
+    file: c.file,
     count: c.names.length,
     updated: c.updated,
     shared: shared,
@@ -377,13 +387,17 @@ function customSummary() {
 }
 
 /*
- * opts: { mode: 'add' | 'replace', text } to upload a list, { mode } alone to
- * change how the kept one is used, { clear: true } to remove it. The table is
- * rewritten at once if the blocker is on.
+ * opts: { mode: 'add' | 'replace', text, file } to upload a list, which also
+ * switches it on; { mode } alone to change how the kept one is used;
+ * { enabled } alone to switch it on or off, keeping it; { clear: true } to
+ * remove it. The table is rewritten at once if the blocker is on.
  */
 function setCustomHosts(opts, cb) {
   opts = opts || {};
-  var fail = function (error) { cb({ ok: false, error: error }); };
+  var fail = function (error) {
+    console.log('adblock: hosts list refused: ' + error);
+    cb({ ok: false, error: error });
+  };
   if (opts.clear) {
     try {
       if (fs.existsSync(ADBLOCK_CUSTOM_FILE)) fs.unlinkSync(ADBLOCK_CUSTOM_FILE);
@@ -391,7 +405,13 @@ function setCustomHosts(opts, cb) {
       return fail(msg('srv.adblock.custom.saveFailed', 'could not save your hosts list: {error}', { error: e.message }));
     }
     customCache = undefined;
+    console.log('adblock: hosts list removed');
     return applyCustom(cb, { skipped: 0 });
+  }
+  var kept = customHosts();
+  if (typeof opts.enabled === 'boolean' && opts.mode === undefined && opts.text === undefined) {
+    if (!kept) return fail(msg('srv.adblock.custom.none', 'no hosts list has been uploaded'));
+    opts.mode = kept.mode;
   }
   if (opts.mode !== 'add' && opts.mode !== 'replace') {
     return fail(msg('srv.adblock.custom.badMode', 'mode must be add or replace'));
@@ -402,7 +422,7 @@ function setCustomHosts(opts, cb) {
     var parsed = parseCustomHosts(opts.text);
     names = parsed.names;
     skipped = parsed.skipped;
-    if (!names.length) return fail(msg('srv.adblock.custom.empty', 'no host names found in the file'));
+    if (!names.length) return fail(msg('srv.adblock.custom.empty', 'No host names found in the file. A hosts file has lines such as 0.0.0.0 ads.example.com, and a plain list has one name on each line.'));
     if (names.length > CUSTOM_MAX_NAMES) {
       return fail(msg('srv.adblock.custom.tooMany', 'the file has {n} names; the most the TV takes is {max}',
                       { n: names.length, max: CUSTOM_MAX_NAMES }));
@@ -412,15 +432,21 @@ function setCustomHosts(opts, cb) {
     if (!c) return fail(msg('srv.adblock.custom.none', 'no hosts list has been uploaded'));
     names = c.names;
   }
+  var uploaded = typeof opts.text === 'string';
+  var enabled = uploaded ? true : (typeof opts.enabled === 'boolean' ? opts.enabled : kept.enabled);
   try {
     fs.writeFileSync(ADBLOCK_CUSTOM_FILE, JSON.stringify({
-      mode: opts.mode, names: names,
-      updated: typeof opts.text === 'string' ? new Date().toISOString() : (customHosts() || {}).updated
+      mode: opts.mode, names: names, enabled: enabled,
+      // The name it had on the computer, only to show which list this is.
+      file: uploaded ? String(opts.file || '').replace(/[\u0000-\u001f]/g, '').slice(0, 120) || null : kept.file,
+      updated: uploaded ? new Date().toISOString() : kept.updated
     }), 'utf8');
   } catch (e) {
     return fail(msg('srv.adblock.custom.saveFailed', 'could not save your hosts list: {error}', { error: e.message }));
   }
   customCache = undefined;
+  console.log('adblock: hosts list ' + (uploaded ? 'saved, ' + names.length + ' names, ' + skipped + ' left out' : 'kept') +
+              ', ' + (opts.mode === 'add' ? 'with' : 'instead of') + ' the built-in list, ' + (enabled ? 'on' : 'off'));
   applyCustom(cb, { skipped: skipped });
 }
 
@@ -437,7 +463,7 @@ function applyCustom(cb, extra) {
 function waitsForSdp(mode) {
   if (mode === 'full') return true;
   var c = customHosts();
-  return mode !== 'off' && !!c && c.names.some(isSdpName);
+  return mode !== 'off' && !!c && c.enabled && c.names.some(isSdpName);
 }
 
 // Whether this server's table is over /etc/hosts, for ads, updates or both.

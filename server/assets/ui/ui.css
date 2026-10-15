@@ -918,6 +918,19 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 /* One switch does not need the width of the column it sits in. */
 .cfg-side .cfg-toggles{max-width:380px}
 .pv-top .btns button{white-space:nowrap}
+/* Custom ad blocking: Upload and Delete side by side in the row's status column. */
+/* The warnings' yellow accent, closer to the text it follows. */
+.abc-warn{margin-top:16px}
+.abc-table{margin-top:14px}
+/* On a phone the controls go under their text rather than squeezing it to a word a line. */
+.abc-table .prot-row{flex-wrap:wrap}
+.abc-table .prot-main{flex:1 1 240px}
+.abc-table .prot-status{max-width:100%}
+.abc-list-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#abc-detail{margin:12px 0 18px}
+#abc-detail:empty{display:none}
+/* Refusals look like the page's own error banner (#offline). */
+#abc-detail.bad{font-size:14px;border-left:2px solid var(--red);padding:9px 13px;background:var(--w06);color:var(--w90)}
 .cfg-cols>*{min-width:0}
 .cfg-save{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:22px;max-width:840px}
 .cfg-save button{min-height:48px;padding:0 30px}

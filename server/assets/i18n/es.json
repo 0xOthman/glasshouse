@@ -2212,24 +2212,48 @@
   "from": "Custom ad blocking"
  },
  "pv.adblock.custom.add": {
-  "text": "Añadir",
-  "from": "Add"
+  "text": "Tu fichero y la lista de Glasshouse",
+  "from": "Your file and Glasshouse's list"
  },
  "pv.adblock.custom.addDetail": {
-  "text": "{n} nombres, bloqueados junto a los {own} de Glasshouse para este nivel. En ambas listas: {shared}.",
-  "from": "{n} names, blocked with Glasshouse’s {own} for this tier. On both lists: {shared}."
+  "text": "Los {n} nombres del fichero se bloquean además de los {own} de Glasshouse para este nivel. En ambos: {shared}.",
+  "from": "The file’s {n} names are blocked as well as Glasshouse’s {own} for this tier. In both: {shared}."
  },
  "pv.adblock.custom.big": {
   "text": "Ese fichero supera 1 MB.",
   "from": "That file is over 1 MB."
  },
- "pv.adblock.custom.desc": {
-  "text": "Usa tu propio fichero hosts, o una lista de nombres, para personalizar lo que bloquea el bloqueador. Añadir bloquea sus nombres además de los de Glasshouse; Sustituir los bloquea en su lugar. La TV guarda la lista, así que no hay que volver a subirla tras una actualización de Glasshouse.",
-  "from": "Use your own hosts file, or a list of names, to customise what the blocker blocks. Add blocks its names as well as Glasshouse's; Replace blocks them instead. The TV keeps the list, so it is not uploaded again after a Glasshouse update."
+ "pv.adblock.custom.delete": {
+  "text": "Borrar",
+  "from": "Delete"
  },
- "pv.adblock.custom.none": {
-  "text": "No se ha subido ninguna lista. Elige cómo se usa y luego sube un fichero.",
-  "from": "No list uploaded. Choose how it is used, then upload a file."
+ "pv.adblock.custom.desc": {
+  "text": "Usa tu propio fichero hosts para personalizar lo que bloquea el bloqueador de anuncios. La TV guarda la lista, así que no hay que volver a subirla tras una actualización de Glasshouse.",
+  "from": "Use your own hosts file to customise what the ad blocker blocks. The TV keeps the list, so it is not uploaded again after a Glasshouse update."
+ },
+ "pv.adblock.custom.file": {
+  "text": "Fichero hosts",
+  "from": "Hosts file"
+ },
+ "pv.adblock.custom.how": {
+  "text": "Qué se bloquea",
+  "from": "What is blocked"
+ },
+ "pv.adblock.custom.how.desc": {
+  "text": "La lista de Glasshouse es la que usa el bloqueador de anuncios por sí solo.",
+  "from": "Glasshouse's list is the one the ad blocker uses on its own."
+ },
+ "pv.adblock.custom.isOff": {
+  "text": "Desactivado: no se bloquea nada del fichero.",
+  "from": "Off: nothing in the file is blocked."
+ },
+ "pv.adblock.custom.leftOut": {
+  "text": "Omitidas: {n}, por ser redirecciones o no ser nombres de host.",
+  "from": "Left out: {n}, as redirects or not host names."
+ },
+ "pv.adblock.custom.noList": {
+  "text": "Ninguno subido todavía.",
+  "from": "None uploaded yet."
  },
  "pv.adblock.custom.notUsed": {
   "text": "Ninguna",
@@ -2239,45 +2263,65 @@
   "text": "No se bloquea nada mientras el bloqueador está desactivado.",
   "from": "Nothing is blocked while the blocker is off."
  },
- "pv.adblock.custom.remove": {
-  "text": "Quitar la lista",
-  "from": "Remove the list"
+ "pv.adblock.custom.onCount": {
+  "text": "Activada · {n} nombres",
+  "from": "On · {n} names"
  },
  "pv.adblock.custom.removeConfirm": {
-  "text": "¿Quitar tu lista de hosts de la TV?",
-  "from": "Remove your hosts list from the TV?"
+  "text": "¿Borrar el fichero hosts de la TV?",
+  "from": "Delete the hosts file from the TV?"
  },
  "pv.adblock.custom.replace": {
-  "text": "Sustituir",
-  "from": "Replace"
+  "text": "Solo tu fichero",
+  "from": "Only your file"
  },
  "pv.adblock.custom.replaceDetail": {
-  "text": "{n} nombres, bloqueados en lugar de los {own} de Glasshouse para este nivel. En ambas listas: {shared}.",
-  "from": "{n} names, blocked instead of Glasshouse’s {own} for this tier. On both lists: {shared}."
+  "text": "Solo se bloquean los {n} nombres del fichero, no los {own} de Glasshouse para este nivel. En ambos: {shared}.",
+  "from": "Only the file’s {n} names are blocked, not Glasshouse’s {own} for this tier. In both: {shared}."
  },
  "pv.adblock.custom.replacing": {
-  "text": "Bloquea los nombres de tu lista y ninguno de los de Glasshouse, en cualquier nivel.",
-  "from": "Blocks the names in your list and none of Glasshouse’s, on either tier."
+  "text": "Bloquea los nombres de tu fichero hosts y ninguno de los de Glasshouse, en cualquier nivel.",
+  "from": "Blocks the names in your hosts file and none of Glasshouse’s, on either tier."
  },
- "pv.adblock.custom.skipped": {
-  "text": "Se omitieron {n} entradas del último fichero: líneas que apuntan un nombre a otra dirección, o que no son nombres de host.",
-  "from": "{n} entries in the last file were left out: lines pointing a name at another address, or not host names."
+ "pv.adblock.custom.saved": {
+  "text": "Guardado {file}: {n} nombres.",
+  "from": "Saved {file}: {n} names."
  },
  "pv.adblock.custom.summary": {
   "text": "{n} nombres",
   "from": "{n} names"
  },
  "pv.adblock.custom.total": {
-  "text": "{n} nombres bloqueados en total.",
-  "from": "{n} names blocked in all."
+  "text": "El bloqueador de anuncios bloquea {n} nombres.",
+  "from": "The ad blocker blocks {n} names."
  },
  "pv.adblock.custom.upload": {
   "text": "Subir un fichero",
   "from": "Upload a file"
  },
+ "pv.adblock.custom.uploadNew": {
+  "text": "Subir un fichero nuevo",
+  "from": "Upload a new file"
+ },
+ "pv.adblock.custom.uploaded": {
+  "text": "subida el {date}",
+  "from": "uploaded {date}"
+ },
+ "pv.adblock.custom.uploading": {
+  "text": "Subiendo {file}…",
+  "from": "Uploading {file}…"
+ },
+ "pv.adblock.custom.use": {
+  "text": "Bloquear sus nombres",
+  "from": "Block its names"
+ },
+ "pv.adblock.custom.use.desc": {
+  "text": "Desactivado, el fichero se queda en la TV pero no bloquea nada.",
+  "from": "Off keeps the file on the TV but blocks nothing in it."
+ },
  "pv.adblock.custom.warn": {
-  "text": "Según lo que bloquee, una lista puede hacer que dejen de funcionar apps, servicios de LG o las actualizaciones de software. Si algo deja de funcionar, quita la lista o desactiva el bloqueador para comprobarlo.",
-  "from": "Depending on what it blocks, a list can stop apps, LG's services or software updates working. If something stops working, remove the list or switch the blocker off to check."
+  "text": "Según lo que bloquee, una lista puede hacer que dejen de funcionar apps, servicios de LG o las actualizaciones de software. Si algo deja de funcionar, desactiva Bloquear sus nombres para comprobarlo.",
+  "from": "Depending on what it blocks, a list can stop apps, LG's services or software updates working. If something stops working, switch Block its names off to check."
  },
  "pv.adblock.desc": {
   "text": "Impide que la TV llegue a los servidores de anuncios, seguimiento y diagnóstico de LG.",
@@ -3220,8 +3264,8 @@
   "from": "mode must be add or replace"
  },
  "srv.adblock.custom.empty": {
-  "text": "no se encontraron nombres de host en el fichero",
-  "from": "no host names found in the file"
+  "text": "No se encontraron nombres de host en el fichero. Un fichero hosts tiene líneas como 0.0.0.0 ads.example.com, y una lista simple tiene un nombre en cada línea.",
+  "from": "No host names found in the file. A hosts file has lines such as 0.0.0.0 ads.example.com, and a plain list has one name on each line."
  },
  "srv.adblock.custom.none": {
   "text": "no se ha subido ninguna lista de hosts",
@@ -5954,6 +5998,10 @@
  "tv.privacy.custom.hint": {
   "text": "Se cambia o se quita en el panel del navegador: Privacidad, luego Avanzado.",
   "from": "Changed or removed in the browser dashboard: Privacy, then Advanced."
+ },
+ "tv.privacy.custom.off": {
+  "text": "Desactivada, {n} nombres guardados",
+  "from": "Off, {n} names kept"
  },
  "tv.privacy.custom.replace": {
   "text": "{n} nombres, en lugar de los de Glasshouse",
