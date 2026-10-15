@@ -449,6 +449,7 @@ function status(nowMs) {
   for (var h in recent.hours) for (var k in recent.hours[h]) keys[k] = true;
   for (var a in s.apps) keys[a] = true;
   delete keys[history.SCREEN_OFF];
+  delete keys[history.SCREEN_SAVER];
   var choices = Object.keys(keys).map(function (key) {
     return { key: key, title: titles[key] || null, today: today ? Math.round(today[key] || 0) : null };
   });
