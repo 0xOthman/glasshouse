@@ -303,11 +303,10 @@ function renderCustomHosts(cu, mode) {
   if (!cu) {
     text = t('pv.adblock.custom.none', 'No list uploaded. Choose how it is used, then upload a file.');
   } else {
-    text = t(cu.mode === 'add' ? 'pv.adblock.custom.addDetail' : 'pv.adblock.custom.replaceDetail',
-      cu.mode === 'add'
-        ? '{n} names, blocked with Glasshouse\u2019s {own} for this tier; {shared} are on both.'
-        : '{n} names, blocked instead of Glasshouse\u2019s {own} for this tier; {shared} are on both.',
-      { n: cu.count, own: cu.ownCount, shared: cu.shared });
+    const vars = { n: cu.count, own: cu.ownCount, shared: cu.shared };
+    text = cu.mode === 'add'
+      ? t('pv.adblock.custom.addDetail', '{n} names, blocked with Glasshouse\u2019s {own} for this tier. On both lists: {shared}.', vars)
+      : t('pv.adblock.custom.replaceDetail', '{n} names, blocked instead of Glasshouse\u2019s {own} for this tier. On both lists: {shared}.', vars);
     if (mode === 'off') text += ' ' + t('pv.adblock.custom.offNote', 'Nothing is blocked while the blocker is off.');
     else text += ' ' + t('pv.adblock.custom.total', '{n} names blocked in all.', { n: cu.blocked });
   }

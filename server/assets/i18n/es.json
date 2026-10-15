@@ -2207,6 +2207,66 @@
   "text": "Bloquea direcciones de publicidad, seguimiento y diagnóstico de LG. La app store y las actualizaciones de software siguen funcionando.",
   "from": "Blocks advertising, tracking and diagnostics addresses. LG's app store and software updates still work."
  },
+ "pv.adblock.custom": {
+  "text": "Tu propia lista de hosts",
+  "from": "Your own hosts list"
+ },
+ "pv.adblock.custom.add": {
+  "text": "Añadir",
+  "from": "Add"
+ },
+ "pv.adblock.custom.addDetail": {
+  "text": "{n} nombres, bloqueados junto a los {own} de Glasshouse para este nivel. En ambas listas: {shared}.",
+  "from": "{n} names, blocked with Glasshouse’s {own} for this tier. On both lists: {shared}."
+ },
+ "pv.adblock.custom.big": {
+  "text": "Ese fichero supera 1 MB.",
+  "from": "That file is over 1 MB."
+ },
+ "pv.adblock.custom.desc": {
+  "text": "Un fichero hosts o una lista de nombres desde este ordenador, bloqueados mientras el bloqueador está activado. Añadir los bloquea además de la lista de Glasshouse; Sustituir los bloquea en su lugar. La TV la guarda, así que no hay que enviarla de nuevo tras una actualización de Glasshouse.",
+  "from": "A hosts file or a list of names from this computer, blocked while the blocker is on. Add blocks it as well as Glasshouse's list; Replace blocks it instead. The TV keeps it, so it is not sent again after a Glasshouse update."
+ },
+ "pv.adblock.custom.none": {
+  "text": "No se ha subido ninguna lista. Elige cómo se usa y luego sube un fichero.",
+  "from": "No list uploaded. Choose how it is used, then upload a file."
+ },
+ "pv.adblock.custom.offNote": {
+  "text": "No se bloquea nada mientras el bloqueador está desactivado.",
+  "from": "Nothing is blocked while the blocker is off."
+ },
+ "pv.adblock.custom.remove": {
+  "text": "Quitar la lista",
+  "from": "Remove the list"
+ },
+ "pv.adblock.custom.removeConfirm": {
+  "text": "¿Quitar tu lista de hosts de la TV?",
+  "from": "Remove your hosts list from the TV?"
+ },
+ "pv.adblock.custom.replace": {
+  "text": "Sustituir",
+  "from": "Replace"
+ },
+ "pv.adblock.custom.replaceDetail": {
+  "text": "{n} nombres, bloqueados en lugar de los {own} de Glasshouse para este nivel. En ambas listas: {shared}.",
+  "from": "{n} names, blocked instead of Glasshouse’s {own} for this tier. On both lists: {shared}."
+ },
+ "pv.adblock.custom.replacing": {
+  "text": "Bloquea los nombres de tu lista y ninguno de los de Glasshouse, en cualquier nivel.",
+  "from": "Blocks the names in your list and none of Glasshouse’s, on either tier."
+ },
+ "pv.adblock.custom.skipped": {
+  "text": "Se omitieron {n} entradas del último fichero: líneas que apuntan un nombre a otra dirección, o que no son nombres de host.",
+  "from": "{n} entries in the last file were left out: lines pointing a name at another address, or not host names."
+ },
+ "pv.adblock.custom.total": {
+  "text": "{n} nombres bloqueados en total.",
+  "from": "{n} names blocked in all."
+ },
+ "pv.adblock.custom.upload": {
+  "text": "Subir un fichero",
+  "from": "Upload a file"
+ },
  "pv.adblock.desc": {
   "text": "Impide que la TV llegue a los servidores de anuncios, seguimiento y diagnóstico de LG.",
   "from": "Stops the TV reaching LG's ad, tracking and diagnostics servers."
@@ -3142,6 +3202,26 @@
  "sound.tvSpeaker": {
   "text": "Altavoz de la TV",
   "from": "TV Speaker"
+ },
+ "srv.adblock.custom.badMode": {
+  "text": "el modo debe ser add o replace",
+  "from": "mode must be add or replace"
+ },
+ "srv.adblock.custom.empty": {
+  "text": "no se encontraron nombres de host en el fichero",
+  "from": "no host names found in the file"
+ },
+ "srv.adblock.custom.none": {
+  "text": "no se ha subido ninguna lista de hosts",
+  "from": "no hosts list has been uploaded"
+ },
+ "srv.adblock.custom.saveFailed": {
+  "text": "no se pudo guardar tu lista de hosts: {error}",
+  "from": "could not save your hosts list: {error}"
+ },
+ "srv.adblock.custom.tooMany": {
+  "text": "el fichero tiene {n} nombres; la TV admite como máximo {max}",
+  "from": "the file has {n} names; the most the TV takes is {max}"
  },
  "srv.adblock.saveFailed": {
   "text": "no se pudo guardar el ajuste de bloqueo de publicidad: {error}",
@@ -5854,6 +5934,18 @@
  "tv.privacy.controlsOff": {
   "text": "Los controles están desactivados en la configuración de este tablero.",
   "from": "Controls are switched off in this dashboard’s config."
+ },
+ "tv.privacy.custom.add": {
+  "text": "{n} nombres, junto a los de Glasshouse",
+  "from": "{n} names, with Glasshouse’s"
+ },
+ "tv.privacy.custom.hint": {
+  "text": "Se cambia o se quita en el panel del navegador: Privacidad, luego Avanzado.",
+  "from": "Changed or removed in the browser dashboard: Privacy, then Advanced."
+ },
+ "tv.privacy.custom.replace": {
+  "text": "{n} nombres, en lugar de los de Glasshouse",
+  "from": "{n} names, instead of Glasshouse’s"
  },
  "tv.privacy.everything.hint": {
   "text": "También bloquea los servicios de la plataforma de LG. La app LG ThinQ ya no puede controlar la TV, y la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",

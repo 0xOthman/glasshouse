@@ -23,8 +23,8 @@ If an app or one of LG's services stops working while the blocker is on, switch 
 
 **Your own hosts list**, under the blocker, uploads a hosts file or a plain list of names from the computer the dashboard is open on. Names pointed at `0.0.0.0`, `127.0.0.1`, `::` or `::1`, and bare names, are taken; a line pointing a name at any other address is a redirect and is left out, and the dashboard says how many were. Up to 10,000 names and 1 MB.
 
-* **With Glasshouse's list** blocks the names together with the tier's own.
-* **Instead of Glasshouse's list** blocks only the names in the file; then both tiers block the same names, and the buttons only switch blocking on and off.
+* **Add** blocks the names together with the tier's own.
+* **Replace** blocks only the names in the file; then both tiers block the same names, and the buttons only switch blocking on and off.
 
 The list is blocked only while the blocker is on. The TV keeps it, and Glasshouse's own list comes from the version installed, so after an update the names it adds or drops take effect at once, the file is not uploaded again, and both choices are worked out against the new list. A name in the file stays blocked when an update drops it from Glasshouse's list. Switching between the two choices does not need the file again; **Remove the list** goes back to the tier's own. LG's time servers in the file are held back after a power cut until the clock is set, as on the everything tier. The TV app shows the list but cannot change it.
 
