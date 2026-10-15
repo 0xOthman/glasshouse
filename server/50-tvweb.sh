@@ -69,6 +69,24 @@ sam_nudge() {
   return 1
 }
 
+# sam ignores that list on webOS 10 (a C2 on 10.3.1), but there it rereads one
+# system app on blockSystemApp followed by releaseBlockSystemApp: on a C5 on
+# 10.3.1 a Flutter manifest replaced by a QML one was reported within the
+# second, sam kept its pid, and LG's blockedSystemAppList file was byte-identical
+# afterwards. The release goes out whatever the block answered, so an app is
+# never left blocked by a run cut short. Mirrors lib/samrescan.js.
+sam_reread_app() {
+  luna-send -n 1 luna://com.webos.applicationManager/blockSystemApp "{\"id\":\"$1\"}" 2>/dev/null |
+    grep -q '"returnValue": *true'
+  blocked=$?
+  for _ in 1 2 3; do
+    luna-send -n 1 luna://com.webos.applicationManager/releaseBlockSystemApp "{\"id\":\"$1\"}" 2>/dev/null |
+      grep -q '"returnValue": *true' && return $blocked
+    sleep 1
+  done
+  return 1
+}
+
 # Whether sam's getAppInfo for app $1 matches pattern $2 within 20s: at boot sam
 # can still be on its own first scan, and takes the nudge after it.
 sam_reports() {
@@ -113,7 +131,9 @@ if [ -f /var/lib/tvweb/screensaver/.tvweb-screensaver ]; then
     # --no-block: stopping sam waits on every app in its cgroup, which is most
     # of a minute, and no hook may hold up boot for that.
     if [ -n "$stock_type" ] && [ -n "$staged_type" ] && [ "$stock_type" != "$staged_type" ]; then
-      if sam_nudge && sam_reports com.webos.app.screensaver "\"type\": *\"$staged_type\""; then
+      if sam_reread_app com.webos.app.screensaver && sam_reports com.webos.app.screensaver "\"type\": *\"$staged_type\""; then
+        echo "$(date): sam read the screen saver again after a block and release, without a restart"
+      elif sam_nudge && sam_reports com.webos.app.screensaver "\"type\": *\"$staged_type\""; then
         echo "$(date): sam read the screen saver again, without a restart"
       else
         systemctl restart --no-block sam >/dev/null 2>&1 || true

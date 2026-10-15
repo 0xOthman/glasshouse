@@ -19,6 +19,18 @@
  * webOS 4 has no such setting (a B8 reports it missing), and there callers
  * restart sam as before. They also do if sam has not caught up in time.
  *
+ * sam ignores that list on webOS 10 (a C2 on 10.3.1 kept a blocked app on
+ * Home), so there rereadApp() asks sam for one app instead:
+ * applicationManager/blockSystemApp followed by releaseBlockSystemApp makes
+ * sam drop and reread that app's appinfo.json, overlay included. The block is
+ * written to /var/preferences/com.webos.applicationManager/
+ * blockedSystemAppList/<country>.json and the release takes it out again; on
+ * a C5 on 10.3.1 the file was byte-identical afterwards, a Flutter manifest
+ * replaced by a QML one was reported within the second and sam kept its pid.
+ * The two calls stay together, and the release is tried again if it fails,
+ * since an app left blocked cannot launch. A running instance is not stopped:
+ * the caller relaunches it.
+ *
  * Strict ES5: runs on node 0.12.
  */
 var KEY = 'profile.blockedAppList';
@@ -111,25 +123,71 @@ function restore(lg, tries, cb) {
 function refresh(check, cb) {
   nudge(function (ok) {
     if (!ok) return cb(false);
-    if (!check) return cb(true);
-    var polls = 0;
-    (function poll() {
-      polls++;
-      check(function (done) {
-        if (done) return cb(true);
-        if (polls >= CHECK_POLLS) {
-          console.log('samrescan: sam had not caught up after the nudge');
-          return cb(false);
-        }
-        setTimeout(poll, CHECK_POLL_MS);
-      });
-    })();
+    waitFor(check, 'the nudge', cb);
+  });
+}
+
+// cb(true) once check(done) says the change has taken, cb(false) after
+// CHECK_POLLS polls without it. No check: cb(true) at once.
+function waitFor(check, what, cb) {
+  if (!check) return cb(true);
+  var polls = 0;
+  (function poll() {
+    polls++;
+    check(function (done) {
+      if (done) return cb(true);
+      if (polls >= CHECK_POLLS) {
+        console.log('samrescan: sam had not caught up after ' + what);
+        return cb(false);
+      }
+      setTimeout(poll, CHECK_POLL_MS);
+    });
+  })();
+}
+
+function samCall(method, appId, cb) {
+  lunaFn('com.webos.applicationManager/' + method, { id: appId }, function (r) {
+    cb(!!(r && r.returnValue));
+  });
+}
+
+function release(appId, tries, cb) {
+  samCall('releaseBlockSystemApp', appId, function (ok) {
+    if (ok) return cb(true);
+    if (tries <= 1) {
+      console.error('samrescan: could not release ' + appId + '; it stays blocked in '
+                    + '/var/preferences/com.webos.applicationManager/blockedSystemAppList until released');
+      return cb(false);
+    }
+    setTimeout(function () { release(appId, tries - 1, cb); }, 1000);
+  });
+}
+
+/*
+ * Makes sam reread one system app's appinfo.json with a block and a release,
+ * then waits as refresh() does. cb(false) where sam has no such call (the
+ * block is refused and nothing is released), where the release failed, or
+ * where sam did not report the change in time, so the caller tries the nudge
+ * or restarts sam.
+ */
+function rereadApp(appId, check, cb) {
+  if (!lunaFn) return cb(false);
+  samCall('blockSystemApp', appId, function (blocked) {
+    if (!blocked) {
+      console.log('samrescan: sam did not take blockSystemApp for ' + appId);
+      return cb(false);
+    }
+    release(appId, 3, function (released) {
+      if (!released) return cb(false);
+      waitFor(check, 'the block and release', cb);
+    });
   });
 }
 
 module.exports = {
   init: init,
   refresh: refresh,
+  rereadApp: rereadApp,
   KEY: KEY,
   NUDGE_ID: NUDGE_ID
 };

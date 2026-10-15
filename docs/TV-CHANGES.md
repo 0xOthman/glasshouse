@@ -54,6 +54,7 @@ menus. Uninstalling the dashboard leaves them as they are.
 | Service menu lock | Unlocking asks for confirmation. Not locked again by uninstalling |
 | Privacy consents, advertising ID reset, advertising cookies | The same agreements as in the TV's settings |
 | LG's blocked-app list | Where hidden tiles or a screen saver switch use it, it is put back with LG's value but saved as a changed setting, which the TV has no way to remove. It keeps that value if LG's own list later changes with a firmware update or a new country. Not undone by uninstalling |
+| LG's blocked system app list | A screen saver switch on webOS 10 and later blocks the screen saver app and releases it at once, so that sam reads its manifest again. The block is written to `/var/preferences/com.webos.applicationManager/blockedSystemAppList/<country>.json` and the release takes it out; the file was byte-identical afterwards on a C5. Only a run cut short between the two calls leaves the app blocked, and the next switch or boot releases it |
 
 ## Network
 
