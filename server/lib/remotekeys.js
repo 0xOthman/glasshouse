@@ -13,19 +13,26 @@
  * cases, so this is where a key is changed, in JavaScript, with nothing
  * injected into any process.
  *
- * The compositor subscribes to the key and, on a change, destroys its loaded
- * filters and builds the chain again from the files, so a change here applies
- * at once, without a restart of anything. configd keeps a set value across
- * reboots, as it does for the preload list.
+ * Changing the chain makes the compositor destroy every loaded filter and
+ * build them again, LG's included, and as LG's set themselves up again the
+ * quick settings open: on a TV in Game mode, the Game Dashboard appears on
+ * screen (a C2, webOS 9.2.2). So the chain is written only to put this
+ * filter in or take it out. Which key does what is the configd value
+ * glasshouse.remoteKeys, { keys: { name: id } }, which the filter subscribes
+ * to: a change there applies at once, with nothing reloaded. configd keeps
+ * both values across reboots, so the keys work from boot, before the server
+ * starts. configd cannot delete a value, so after restore-keys an empty
+ * glasshouse.remoteKeys stays, read by nothing.
  *
- * The keys set here are kept in /var/lib/tvweb/remotekeys.json. From them a
- * filter file is written beside it and put first in the chain, so a key it
- * names never reaches LG's handler: pressed, it opens what was chosen, or
- * nothing; its release is consumed too, as some of LG's handlers act on the
- * release. Every other key falls through to LG's filters untouched. With no key
- * set the entry is taken out of the chain and the file deleted, and the TV is
- * as LG has it, which is also what `node remotekeys.js --restore` (tvwebctl
- * restore-keys) does before an uninstall.
+ * The keys set here are kept in /var/lib/tvweb/remotekeys.json and copied to
+ * configd. The filter, the same file whatever is set, is put first in the chain
+ * when a key is first set and stays there while Glasshouse is installed: a key
+ * not set falls through to LG's filters untouched, so with every key as LG has
+ * it the TV behaves as LG made it. A key that is set never reaches LG's
+ * handler: pressed, it opens what was chosen, or nothing; its release is
+ * consumed too, as some of LG's handlers act on the release. `node
+ * remotekeys.js --restore` (tvwebctl restore-keys) takes the filter out of the
+ * chain and deletes it.
  *
  * A key is offered only where this TV's own filter files name it, since LG's
  * key names differ by model and region (a C5 has a Disney+ button, a CX does
@@ -40,6 +47,8 @@ var path = require('path');
 var msg = require('./say').msg;
 
 var CONFIG_KEY = 'com.webos.surfacemanager.keyFilters';
+// What each key does, read by the filter; see the header.
+var MAP_KEY = 'glasshouse.remoteKeys';
 var LG_FILTERS_DIR = '/usr/lib/qt5/qml/KeyFilters';
 var HANDLER = 'handleGlasshouseKeys';
 var LIVE_TV = 'com.webos.app.livetv';
@@ -138,30 +147,58 @@ function writeMap(map) {
 }
 
 /*
- * The filter the compositor loads: one case per key set. It is plain ES5, as
- * the compositor's own filters are, and names only what they name
- * (applicationManager, KeyPolicy, and the key enums the shell imports).
+ * The filter the compositor loads. The same file whatever is set: it names
+ * every key that can be set, and learns which are set, and to what, from
+ * configd. Plain ES5, as the compositor's own filters are, using only what
+ * they use (lunaCall, applicationManager, KeyPolicy and the key enums).
  */
-function filterSource(map) {
+function filterSource() {
   var lines = [
-    '/* Written by Glasshouse from ' + mapFile() + ': the remote keys set on its Apps tab.',
-    ' * First in com.webos.surfacemanager.keyFilters; a key here never reaches LG\'s filters. */',
-    'function init() {}',
-    'function ' + HANDLER + '(key, pressed, autoRepeat) {',
-    // First in the chain, it sees every key, the arrows and OK included: an
-    // error here must hand the key on to LG's filters, never stop the chain.
-    '    try {',
-    '        var id = null;',
-    '        switch (key) {'
+    '/* Written by Glasshouse: the remote keys set on its Apps tab, read from the',
+    ' * configd value ' + MAP_KEY + '. First in ' + CONFIG_KEY + ',',
+    ' * so a key set there never reaches LG\'s filters. */',
+    'var glasshouseKeyIds = {};',
+    '',
+    '// Key code by name; a name this firmware lacks is left out.',
+    'function glasshouseKeyCodes() {',
+    '    var codes = {};'
   ];
-  Object.keys(map).forEach(function (k) {
-    var def = keyByName(k);
-    if (!def) return;
-    lines.push('        case ' + def.symbol + ': id = ' + JSON.stringify(map[k]) + '; break;');
+  KEYS.forEach(function (k) {
+    lines.push('    try { codes[' + JSON.stringify(k.key) + '] = ' + k.symbol + '; } catch (e) {}');
   });
   lines.push(
-    '        default: return KeyPolicy.NextPolicy;',
+    '    return codes;',
+    '}',
+    '',
+    'function glasshouseKeysChanged(payload) {',
+    '    try {',
+    '        var r = typeof payload === "string" ? JSON.parse(payload) : payload;',
+    '        var set = (r && r.configs && r.configs[' + JSON.stringify(MAP_KEY) + '] || {}).keys || {};',
+    '        var codes = glasshouseKeyCodes(), ids = {};',
+    '        for (var name in set) {',
+    '            if (set.hasOwnProperty(name) && codes[name] !== undefined && typeof set[name] === "string") ids[codes[name]] = set[name];',
     '        }',
+    '        glasshouseKeyIds = ids;',
+    '    } catch (e) {',
+    '        console.warn("glasshouse keyfilter: " + e + "; keys left as they were");',
+    '    }',
+    '}',
+    '',
+    'function init() {',
+    '    try {',
+    '        lunaCall.subscribe("com.webos.service.config", "/getConfigs",',
+    '            JSON.stringify({ "configNames": [' + JSON.stringify(MAP_KEY) + '], "subscribe": true }), glasshouseKeysChanged, true);',
+    '    } catch (e) {',
+    '        console.warn("glasshouse keyfilter: " + e + "; no keys set");',
+    '    }',
+    '}',
+    '',
+    // First in the chain, it sees every key, the arrows and OK included: an
+    // error here must hand the key on to LG's filters, never stop the chain.
+    'function ' + HANDLER + '(key, pressed, autoRepeat) {',
+    '    try {',
+    '        if (!glasshouseKeyIds.hasOwnProperty(key)) return KeyPolicy.NextPolicy;',
+    '        var id = glasshouseKeyIds[key];',
     '        if (pressed && !autoRepeat && id) {',
     '            console.info("glasshouse keyfilter: key", key, "opens", id);',
     '            applicationManager.launch(id, "{}");',
@@ -184,6 +221,15 @@ function readChain(cb) {
   });
 }
 
+// What each key does, for the filter. cb(ok).
+function writeKeys(map, cb) {
+  var configs = {};
+  configs[MAP_KEY] = { keys: map };
+  lunaFn('com.webos.service.config/setConfigs', { configs: configs }, function (r) {
+    cb(!!(r && r.returnValue));
+  });
+}
+
 function writeChain(list, cb) {
   var configs = {};
   configs[CONFIG_KEY] = list;
@@ -201,45 +247,50 @@ function withoutOurs(list) {
 }
 
 /*
- * Puts the chain as the map says: the filter file written and first in the
- * chain when a key is set, gone from both when none is. The chain is written
- * only when it has to change. cb(ok).
+ * Puts the TV as the map says. The keys go to configd, where the filter reads
+ * them at once. The chain is written only when the filter has to go in (the
+ * first key set, or after a configd reset) or its file has changed (a
+ * Glasshouse update): each chain write reloads every filter, LG's included,
+ * which opens the Game Dashboard on a TV in Game mode. With no key set and the
+ * filter not in the chain, it is not put in. cb(ok).
  */
 function apply(cb) {
   var map = readMap();
-  var want = Object.keys(map).length > 0;
   readChain(function (list) {
     if (!list) return cb(false);
-    var rest = withoutOurs(list);
-    var have = rest.length !== list.length;
-    if (want) {
+    var inChain = list.some(ours);
+    // Nothing set and nothing installed: configd is not written, as it can
+    // never forget the value again, and a TV that never sets a key keeps none.
+    if (!Object.keys(map).length && !inChain) return cb(true);
+    var src = filterSource();
+    var current = null;
+    try { current = fs.readFileSync(filterFile(), 'utf8'); } catch (e) {}
+    var changed = current !== src;
+    if (changed) {
       try {
-        fs.writeFileSync(filterFile(), filterSource(map), 'utf8');
+        fs.writeFileSync(filterFile(), src, 'utf8');
       } catch (e) {
         console.log('remotekeys: could not write ' + filterFile() + ': ' + e.message);
         return cb(false);
       }
-      // The compositor reloads its filters when the key's value changes, and
-      // configd tells it nothing when the same list is written again (a CX
-      // kept running the first filter through two rewrites of the file). So
-      // with the entry already in the chain it goes out and comes back: two
-      // changes, each a reload, with LG's chain alone for the moment between.
+    }
+    writeKeys(map, function (ok) {
+      if (!ok) return cb(false);
+      var rest = withoutOurs(list);
       var full = [{ file: filterFile(), handler: HANDLER }].concat(rest);
-      var done = function (ok) {
-        if (ok) console.log('remotekeys: ' + Object.keys(map).length + ' key(s) set, filter first in the chain');
-        cb(ok);
+      var done = function (ok2) {
+        if (ok2) console.log('remotekeys: filter first in the chain');
+        cb(ok2);
       };
-      if (!have) return writeChain(full, done);
-      return writeChain(rest, function (ok) {
-        if (!ok) return cb(false);
+      if (!inChain) return writeChain(full, done);
+      if (!changed) return cb(true);
+      // configd tells the compositor nothing when the same list is written
+      // again, so a changed file takes the entry out and back in (a CX kept
+      // running the old file through two rewrites of it).
+      writeChain(rest, function (ok2) {
+        if (!ok2) return cb(false);
         writeChain(full, done);
       });
-    }
-    try { fs.unlinkSync(filterFile()); } catch (e) {}
-    if (!have) return cb(true);
-    writeChain(rest, function (ok) {
-      if (ok) console.log('remotekeys: no key set, filter taken out of the chain');
-      cb(ok);
     });
   });
 }
@@ -352,33 +403,38 @@ function save(map, cb) {
 }
 
 /*
- * At the server's start: a map with keys set is put into the chain again only
- * where the chain has lost it or the file is gone (a configd reset, a copy of
- * the data folder); a chain that has it is left alone, as a write would reload
- * the compositor's filters for nothing. cb(ok).
+ * At the server's start: puts back what a configd reset or a missing file has
+ * lost, and moves an older version of the filter to this one. Where all is in
+ * place nothing is written to the chain, as a write would reload the
+ * compositor's filters for nothing. cb(ok).
  */
 function ensure(cb) {
   cb = cb || function () {};
   if (!lunaFn) return cb(false);
-  var map = readMap();
-  if (!Object.keys(map).length) return cb(true);
   if (!keysOnTv()) return cb(false);
-  readChain(function (list) {
-    if (!list) return cb(false);
-    var inChain = list.some(ours);
-    var fileThere = false;
-    try { fileThere = fs.statSync(filterFile()).isFile(); } catch (e) {}
-    if (inChain && fileThere) return cb(true);
-    console.log('remotekeys: ' + (inChain ? 'filter file missing' : 'filter not in the chain') + ' at start, putting it back');
-    apply(cb);
-  });
+  apply(cb);
 }
 
-// Everything as LG has it: the map and the filter deleted, the entry out of the chain.
+// Everything as LG has it: the map deleted, the keys emptied in configd (it
+// cannot delete the value), and the filter out of the chain and deleted.
 function restore(cb) {
   if (!lunaFn) return cb(false);
   try { fs.unlinkSync(mapFile()); } catch (e) {}
-  apply(cb);
+  writeKeys({}, function (okKeys) {
+    readChain(function (list) {
+      if (!list) return cb(false);
+      var rest = withoutOurs(list);
+      var finish = function (ok) {
+        if (ok) { try { fs.unlinkSync(filterFile()); } catch (e) {} }
+        cb(ok && okKeys);
+      };
+      if (rest.length === list.length) return finish(true);
+      writeChain(rest, function (ok) {
+        if (ok) console.log('remotekeys: filter taken out of the chain');
+        finish(ok);
+      });
+    });
+  });
 }
 
 module.exports = {
@@ -390,6 +446,7 @@ module.exports = {
   filterSource: filterSource,
   KEYS: KEYS,
   CONFIG_KEY: CONFIG_KEY,
+  MAP_KEY: MAP_KEY,
   HANDLER: HANDLER
 };
 

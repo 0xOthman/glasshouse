@@ -61,7 +61,7 @@ Sets what a key on the remote does: **As LG has it**, **Nothing**, or opening an
 
 The list is what the TV handles, not what any one remote has. A Magic Remote has no Guide, Info or color keys, and a plain IR remote no Netflix or Prime Video button, while the TV handles all of them because other remotes send them. Look at the remote before setting a key: a key it cannot send does nothing when set, and does no harm either.
 
-A change applies straight away, on whatever is on screen, and lasts across reboots. Setting every key back to **As LG has it** leaves the TV exactly as it was; so does `tvwebctl restore-keys` before uninstalling.
+A change applies straight away, on whatever is on screen, and lasts across reboots, working before the server has started. Setting every key back to **As LG has it** gives every key back to the TV; `tvwebctl restore-keys`, which uninstalling from the Homebrew Channel runs, also takes Glasshouse's filter out of the TV's key handling.
 
 A key set here is taken before any app sees it, so it wins over an app's own use of that key. YouTube uses **Guide** for its own guide, and Live TV and the HDMI inputs use the color keys for their banners and teletext: with such a key set here, those apps no longer get it, whatever is on screen, until the key is **As LG has it** again. There is no per-app setting. How it works is in [Remote keys through the compositor's filter chain](../IMPLEMENTATION.md#remote-keys-through-the-compositors-filter-chain).
 
