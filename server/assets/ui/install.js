@@ -124,8 +124,10 @@ function catalogRow(a, writable, from) {
   else if (flash) { label = flash.label; cls = flash.cls; off = true; }
   else if (a.state === 'hbc') { label = t('apps.install.viaHbc', 'Updates through Homebrew Channel'); off = true; }
   else if (a.state === 'installed') { label = t('apps.uninstall.button', 'Uninstall'); cls = 'bad'; isInstalled = true; }
-  else if (a.state === 'store') { label = t('apps.install.replaceStore', 'Replace store app'); cls = 'warn'; }
   else if (a.state === 'update') { label = t('apps.install.update', 'Update'); cls = 'warn'; }
+  // state 'store': what the TV has under this id is the LG store's app, not
+  // this one, so it is offered as not installed; the preview asks before
+  // replacing the store's copy.
   else { label = t('apps.install.button', 'Install'); cls = 'good'; }
   const icon = a.iconUri
     ? `<img src="${esc(a.iconUri)}" width="38" height="38" loading="lazy" referrerpolicy="no-referrer" alt="" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">`
@@ -147,7 +149,7 @@ function catalogRow(a, writable, from) {
     </div>
     <div class="prot-status">
       ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
-      ${a.installedVersion !== null && a.installedVersion !== undefined && !uninstalling[a.id] ? `<button type="button" class="pill good" onclick="sendCommand('launchApp','${jsq(a.id)}')" ${writable ? '' : 'disabled'}>${esc(t('apps.launch.button', 'Launch'))}</button>` : ''}
+      ${a.installedVersion !== null && a.installedVersion !== undefined && a.state !== 'store' && !uninstalling[a.id] ? `<button type="button" class="pill good" onclick="sendCommand('launchApp','${jsq(a.id)}')" ${writable ? '' : 'disabled'}>${esc(t('apps.launch.button', 'Launch'))}</button>` : ''}
       <button type="button" class="pill ${cls}" data-app="${esc(a.id)}" data-repo="${esc(a.repo || '')}" onclick="${clickFn}"${fill} ${off ? 'disabled' : ''}>${esc(label)}</button>
     </div>
   </div>`;

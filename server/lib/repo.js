@@ -1,7 +1,5 @@
 // Strict ES5 - node v0.12.2 on webOS 4 (LG OLED B8) has no ES6 support.
 // The Homebrew Channel catalog, merged with what is installed on the TV.
-var fs = require('fs');
-var path = require('path');
 var url = require('url');
 var msg = require('./say').msg;
 var PROTECTED_APP_IDS = require('./apps').PROTECTED_APP_IDS;
@@ -17,8 +15,6 @@ var CACHE_MS = 3600000;
 var RETRY_MS = 10000;
 var config = {};
 var lunaFn = null;
-// Where the LG store installs apps; a copy here is the store's, not a catalog's.
-var storeAppsDir = '/media/cryptofs/apps/usr/palm/applications';
 /** @type {typeof import('./fetch')} */
 var fetchLib = null;
 var cache = null;       // { apps: [...], fetchedAt, error }
@@ -31,7 +27,6 @@ function init(opts) {
   if (opts.config) config = opts.config;
   if (opts.luna) lunaFn = opts.luna;
   if (opts.fetch) fetchLib = opts.fetch;
-  if (opts.storeAppsDir) storeAppsDir = opts.storeAppsDir;
   clock = opts.now || Date.now;
   cache = null;
   attempted = 0;
@@ -160,7 +155,7 @@ function isHbc(id) {
   return SELF_UPDATING.indexOf(id) >= 0 || !!PROTECTED_APP_IDS[id];
 }
 
-function withInstalled(apps, installed) {
+function withInstalled(apps, installed, fromStore) {
   var out = [];
   for (var i = 0; i < apps.length; i++) {
     var a = {};
@@ -170,10 +165,10 @@ function withInstalled(apps, installed) {
     if (isHbc(a.id)) a.state = 'hbc';
     else if (have === undefined) a.state = 'none';
     // The LG store's own copy under the same id, as YouTube is for YouTube
-    // AdFree: its version is LG's numbering, not the catalog's, so it is
-    // offered for replacing, which the install preview confirms, rather than
-    // compared.
-    else if (fs.existsSync(path.join(storeAppsDir, a.id, 'appinfo.json'))) a.state = 'store';
+    // AdFree, is a different app with LG's version numbers: the catalog's is
+    // not installed, and installing it replaces the store's, which the
+    // install preview confirms.
+    else if (fromStore[a.id]) a.state = 'store';
     // The preview's own comparison, so the list and the preview agree: the
     // updater's stops at four parts and drops anything after a hyphen.
     else a.state = cmpVer(a.version, have) > 0 ? 'update' : 'installed';
@@ -183,14 +178,17 @@ function withInstalled(apps, installed) {
 }
 
 function listInstalled(cb) {
-  if (!lunaFn) return cb({});
+  if (!lunaFn) return cb({}, {});
   lunaFn('com.webos.applicationManager/listApps', {}, function (res) {
     var raw = (res && res.apps) || [];
-    var map = {};
+    var map = {}, fromStore = {};
     for (var i = 0; i < raw.length; i++) {
-      if (raw[i] && raw[i].id) map[raw[i].id] = String(raw[i].version || '');
+      if (!raw[i] || !raw[i].id) continue;
+      map[raw[i].id] = String(raw[i].version || '');
+      // The copy that is installed now: the LG store's lives under cryptofs.
+      if (/^\/media\/cryptofs\//.test(String(raw[i].folderPath || ''))) fromStore[raw[i].id] = true;
     }
-    cb(map);
+    cb(map, fromStore);
   });
 }
 
@@ -200,15 +198,15 @@ function listInstalled(cb) {
  * repo, and repos says how each added catalog fared.
  */
 function reply(cb) {
-  listInstalled(function (installed) {
+  listInstalled(function (installed, fromStore) {
     var repos = cache.repos || [];
     var main = repos[0] || { apps: null, error: cache.error };
-    var r = { ok: !!main.apps, apps: withInstalled(main.apps || [], installed), fetchedAt: cache.fetchedAt };
+    var r = { ok: !!main.apps, apps: withInstalled(main.apps || [], installed, fromStore), fetchedAt: cache.fetchedAt };
     if (main.error) r.error = main.error;
     r.others = [];
     r.repos = [];
     for (var i = 1; i < repos.length; i++) {
-      r.others = r.others.concat(withInstalled(repos[i].apps || [], installed));
+      r.others = r.others.concat(withInstalled(repos[i].apps || [], installed, fromStore));
       var info = { url: repos[i].url, label: repoLabel(repos[i].url), count: (repos[i].apps || []).length };
       if (repos[i].error) info.error = repos[i].error;
       r.repos.push(info);

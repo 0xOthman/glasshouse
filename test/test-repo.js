@@ -314,23 +314,17 @@ function added() {
   // LG's store copy under the same id has LG's version numbers: it is
   // offered for replacing, never shown as installed or as an update.
   function store() {
-    var os = require('os');
-    var dir = path.join(os.tmpdir(), 'repo-store-' + process.pid);
-    fs.mkdirSync(dir);
-    fs.mkdirSync(path.join(dir, 'com.example.player'));
-    fs.writeFileSync(path.join(dir, 'com.example.player', 'appinfo.json'), '{}');
     setup({ apps: { repos: [FORK] } }, extra);
-    repo.init({ storeAppsDir: dir });
-    installed = [{ id: 'com.example.player', version: '24.0.2' }];
+    installed = [{ id: 'com.example.player', version: '24.0.2', folderPath: '/media/cryptofs/apps/usr/palm/applications/com.example.player' }];
     repo.getCatalog(false, function (r) {
       assert.strictEqual(byId(r.apps)['com.example.player'].state, 'store');
       assert.strictEqual(byId(r.others)['com.example.player'].state, 'store');
-      fs.unlinkSync(path.join(dir, 'com.example.player', 'appinfo.json'));
-      fs.rmdirSync(path.join(dir, 'com.example.player'));
-      fs.rmdirSync(dir);
-      repo.init({ storeAppsDir: '/nonexistent-store' });
-      console.log('  ✓ an app the LG store installed under the same id is offered for replacing');
-      check();
+      installed = [{ id: 'com.example.player', version: '9.0.0', folderPath: '/media/developer/apps/usr/palm/applications/com.example.player' }];
+      repo.getCatalog(false, function (r2) {
+        assert.strictEqual(byId(r2.others)['com.example.player'].state, 'installed', 'once replaced, the catalog\'s is installed');
+        console.log('  ✓ an app the LG store installed under the same id is not the catalog\'s, until it is replaced');
+        check();
+      });
     });
   }
 
