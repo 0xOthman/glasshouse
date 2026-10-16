@@ -666,7 +666,7 @@ function buildEntities(opts) {
           // can tell the two apart from the TV being unreachable.
           // Read with get(): the input often lacks immersive, and Home
           // Assistant logs each field a template reads that is missing (#761).
-          value_template: '{% set i = value_json.sound.input or {} %}' +
+          value_template: '{% set i = (value_json.sound.input if value_json.sound else none) or {} %}' +
             '{{ ((i.get("codec") or "") ~ (" · " ~ i.get("immersive") if i.get("immersive") else "")) if i else "None" }}',
           json_attributes_topic: topic.telemetry,
           json_attributes_template: '{% set i = value_json.sound.input or {} %}' +
