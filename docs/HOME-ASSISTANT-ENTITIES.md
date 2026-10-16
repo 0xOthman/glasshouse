@@ -37,6 +37,8 @@ Every entity the TV publishes, by category. Which categories are published is se
 | `button` | `button.lg_tv_pause` | Pause | Pause media playback |
 | `button` | `button.lg_tv_play_pause` | Play / Pause | Toggle media playback |
 | `button` | `button.lg_tv_stop` | Stop | Stop media playback |
+| `button` | `button.lg_tv_rewind` | Rewind | Presses Rewind on the remote |
+| `button` | `button.lg_tv_fast_forward` | Fast Forward | Presses Fast Forward on the remote |
 | `switch` | `switch.lg_tv_oled_screen_shift` | OLED Screen Shift | Pixel orbiting, on OLED TVs |
 | `select` | `select.lg_tv_oled_logo_dimming` | OLED Logo Dimming | Local logo dimming: Off, Light, High |
 | `select` | `select.lg_tv_screensaver_mode` | Screen Saver | Which screen saver the TV runs: LG default, Clock, Starfield, Fireworks or Panel vitals. Brightness is set on the dashboard's Screensaver tab |

@@ -331,7 +331,16 @@ console.log('Running test-ha.js ...');
     assert.strictEqual(b.payload.payload_press, k);
     assert.ok(ha.HA_ENTITIES.some(function (e) { return e.id === 'remote_' + k && e.cat === 'controls'; }));
   });
-  console.log('  ✓ OLED Light is a slider on the live topic, and the D-pad, Back and Home are buttons');
+  [['rewind', 'rewind', 'mdi:rewind'], ['fast_forward', 'fastForward', 'mdi:fast-forward']].forEach(function (m) {
+    var b = by['button.' + m[0]];
+    assert.ok(b, m[0]);
+    assert.strictEqual(b.payload.command_topic, 'test/tv/command/playback');
+    assert.strictEqual(b.payload.payload_press, m[1]);
+    assert.strictEqual(b.payload.icon, m[2]);
+    assert.ok(require('../server/lib/controls').RCU_KEY_CODES[m[1]], 'controls knows ' + m[1]);
+    assert.ok(ha.HA_ENTITIES.some(function (e) { return e.id === m[0] && e.type === 'button' && e.cat === 'controls'; }));
+  });
+  console.log('  ✓ OLED Light is a slider on the live topic, and the D-pad, Back, Home, Rewind and Fast Forward are buttons');
 })();
 
 // LG's PHY error count is no longer published, and Home Assistant is told to
