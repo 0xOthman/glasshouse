@@ -181,9 +181,28 @@ On a C2 updated to webOS 10.3.1, adding an app on the Home screen
 (`com.webos.app.camera`) to configd's `profile.blockedAppList` left it on Home
 and sam's pid unchanged, checked from 0.01 s to 10 s after. On webOS 9.2.2 the
 same change takes the app off Home within 2 s, which is how tile hiding and
-screen savers make sam reread apps without restarting it (#366). On webOS 9.2.2
-`/usr/sbin/sam` names `profile.blockedAppList`; whether webOS 10's does is not
-yet known.
+screen savers make sam reread apps without restarting it (#366). `/usr/sbin/sam`
+names `profile.blockedAppList` on both, so webOS 10's sam has the setting and
+does not act on it.
+
+What webOS 10's sam does act on is `applicationManager/blockSystemApp` followed
+by `releaseBlockSystemApp` for one app id. On a C5 (webOS 10.3.1) with a bind
+mount over `com.webos.app.screensaver` that changed its manifest from Flutter
+to QML, the two calls returned within the same second, `getAppInfo` reported
+`type: qml` at once, sam kept its pid, and LG's
+`/var/preferences/com.webos.applicationManager/blockedSystemAppList/USA.json`
+(eight ids there) was byte-identical before and after. The block does not stop
+a running instance. The screen saver then ran under `qml-runner`, and two screen
+saver, standby and wake cycles left the picture intact (YouTube reached the
+MAIN sink with `activation: true`). The same calls have run at every boot of an
+LG Home replacement on that C5 since 2026-10-11. A reboot between the two calls
+would leave the app blocked, so they stay together and the release is retried.
+
+On that C5 a standby after about a day of uptime ends in LG's own refresh
+reboot (`PowerOnReason: rebootByOnRegular`, next to "Instant Boot Refresh
+Timeout" in `tvpowerd`), which clears tmpfs and bind mounts; and sam came back
+as the same pid after it, so a pid check alone does not show a restart there:
+`ps -o etime` and `/proc/uptime` do.
 
 ## The TV's time zone (C5, webOS 10.3.1)
 
