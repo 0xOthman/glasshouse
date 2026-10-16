@@ -75,7 +75,7 @@ The dashboard can change the broker, credentials, topic prefix and device identi
 
 Edit those in `config.json` and redeploy, or edit `/var/lib/tvweb/config.json` on the TV and restart.
 
-`apps.hosts` and `apps.repos` are file-only as well. `apps.hosts` lists the hostnames, beyond IP addresses and `localhost`, that may be used to reach the dashboard when installing apps (e.g. `"apps": { "hosts": ["lgtv.local"] }`). `apps.repos` lists further catalogs served over HTTPS in Homebrew Channel format. `apps.sideload: true` allows installing from a URL or an uploaded file without a token; with a token set or from the TV itself, it is allowed already.
+`apps.hosts` is file-only as well. `apps.hosts` lists the hostnames, beyond IP addresses and `localhost`, that may be used to reach the dashboard when installing apps (e.g. `"apps": { "hosts": ["lgtv.local"] }`). `apps.repos` lists further catalogs served over HTTPS in Homebrew Channel format, which the Apps tab's **Other app catalogs** also adds to and removes from. `apps.sideload: true` allows installing from a URL or an uploaded file without a token; with a token set or from the TV itself, it is allowed already.
 
 `fetch.ip` is file-only too: `"fetch": { "ip": "4" }` or `"6"` makes the TV's curl use that address family first. Without it, a connection that fails is retried with `-6`, then `-4`.
 

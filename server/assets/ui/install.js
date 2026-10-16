@@ -82,6 +82,7 @@ function setCatalogCategory(cat) {
 function renderCatalog() {
   const list = q('apps-catalog-list');
   if (!list || !catalogData) return;
+  renderOtherCatalogs();
   const d = catalogData;
   const apps = d.apps || [];
   const writable = !appsData || appsData.writable !== false;
@@ -103,48 +104,60 @@ function renderCatalog() {
     list.innerHTML = `<div class="sub" style="padding:16px 0">${esc(t('apps.install.noMatch', 'No apps match.'))}</div>`;
     return;
   }
-  const idle = installIdle();
-  const job = catalogJob();
-  list.innerHTML = shown.map(a => {
-    let label, cls = 'idle', off = !writable || !idle || !!uninstalling[a.id], isInstalled = false, fill = '';
-    const flash = rowFlashing(a.id);
-    if (job && job.appId === a.id) {
-      label = jobLabel(job); cls = 'busy'; off = true;
-      fill = ` style="--p:${job.state === 'awaiting-confirm' ? 0 : instProg.pct}%"`;
-    }
-    else if (uninstalling[a.id]) { label = t('apps.uninstall.working', 'Uninstalling\u2026'); cls = 'busy'; off = true; }
-    else if (flash) { label = flash.label; cls = flash.cls; off = true; }
-    else if (a.state === 'hbc') { label = t('apps.install.viaHbc', 'Updates through Homebrew Channel'); off = true; }
-    else if (a.state === 'installed') { label = t('apps.uninstall.button', 'Uninstall'); cls = 'bad'; isInstalled = true; }
-    else if (a.state === 'update') { label = t('apps.install.update', 'Update'); cls = 'warn'; }
-    else { label = t('apps.install.button', 'Install'); cls = 'good'; }
-    const icon = a.iconUri
-      ? `<img src="${esc(a.iconUri)}" width="38" height="38" loading="lazy" referrerpolicy="no-referrer" alt="" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">`
-      : '<span style="width:38px;height:38px;flex-shrink:0"></span>';
-    const meta = [a.version ? 'v' + a.version : '',
-      a.state === 'update' && a.installedVersion ? t('apps.install.have', 'installed: v{version}', { version: a.installedVersion }) : ''
-    ].filter(Boolean).join(' · ');
-    const sizeBadge = (a.size && typeof fmtSize === 'function') ? fmtSize(a.size) : '';
-    const root = a.rootRequired ? ` <span class="pill warn" style="padding:1px 8px">${esc(t('apps.install.rootBadge', 'root'))}</span>` : '';
-    const clickFn = isInstalled
-      ? `confirmUninstall('${jsq(a.id)}', '${jsq(a.title || a.id)}');`
-      : `startInstall('${jsq(a.id)}');`;
-    return `<div class="prot-row">
-      ${icon}
-      <div class="prot-main">
-        <div class="prot-title">${esc(a.title || a.id)}${root}${meta ? ` <span class="prot-sub">&middot; ${esc(meta)}</span>` : ''}</div>
-        <div class="prot-desc">${esc(a.description || a.id)}</div>
-        ${rowError[a.id] ? `<div class="prot-desc row-err">${esc(rowError[a.id])}</div>` : ''}
-      </div>
-      <div class="prot-status">
-        ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
-        <button type="button" class="pill ${cls}" data-app="${esc(a.id)}" onclick="${clickFn}"${fill} ${off ? 'disabled' : ''}>${esc(label)}</button>
-      </div>
-    </div>`;
-  }).join('');
+  list.innerHTML = shown.map(a => catalogRow(a, writable)).join('');
 }
 
-function fmtMb(n) { return t('apps.install.mb', '{n} MB', { n: Math.round(n / 1048576) }); }
+/*
+ * One app's row, in the Homebrew Channel's list or the added catalogs'. from
+ * names the catalog an app came from, in the added catalogs' list.
+ */
+function catalogRow(a, writable, from) {
+  const idle = installIdle();
+  const job = catalogJob();
+  let label, cls = 'idle', off = !writable || !idle || !!uninstalling[a.id], isInstalled = false, fill = '';
+  const flash = rowFlashing(a.id);
+  if (job && job.appId === a.id && (job.repo || '') === (a.repo || '')) {
+    label = jobLabel(job); cls = 'busy'; off = true;
+    fill = ` style="--p:${job.state === 'awaiting-confirm' ? 0 : instProg.pct}%"`;
+  }
+  else if (uninstalling[a.id]) { label = t('apps.uninstall.working', 'Uninstalling\u2026'); cls = 'busy'; off = true; }
+  else if (flash) { label = flash.label; cls = flash.cls; off = true; }
+  else if (a.state === 'hbc') { label = t('apps.install.viaHbc', 'Updates through Homebrew Channel'); off = true; }
+  else if (a.state === 'installed') { label = t('apps.uninstall.button', 'Uninstall'); cls = 'bad'; isInstalled = true; }
+  else if (a.state === 'update') { label = t('apps.install.update', 'Update'); cls = 'warn'; }
+  // state 'store': what the TV has under this id is the LG store's app, not
+  // this one, so it is offered as not installed; the preview asks before
+  // replacing the store's copy.
+  else { label = t('apps.install.button', 'Install'); cls = 'good'; }
+  const icon = a.iconUri
+    ? `<img src="${esc(a.iconUri)}" width="38" height="38" loading="lazy" referrerpolicy="no-referrer" alt="" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">`
+    : '<span style="width:38px;height:38px;flex-shrink:0"></span>';
+  const meta = [a.version ? 'v' + a.version : '', from ? from(a) : '',
+    a.state === 'update' && a.installedVersion ? t('apps.install.have', 'installed: v{version}', { version: a.installedVersion }) : ''
+  ].filter(Boolean).join(' · ');
+  const sizeBadge = (a.size && typeof fmtSize === 'function') ? fmtSize(a.size) : '';
+  const root = a.rootRequired ? ` <span class="pill warn" style="padding:1px 8px">${esc(t('apps.install.rootBadge', 'root'))}</span>` : '';
+  const clickFn = isInstalled
+    ? `confirmUninstall('${jsq(a.id)}', '${jsq(a.title || a.id)}');`
+    : `startInstall('${jsq(a.id)}', '${jsq(a.repo || '')}');`;
+  return `<div class="prot-row">
+    ${icon}
+    <div class="prot-main">
+      <div class="prot-title">${esc(a.title || a.id)}${root}${meta ? ` <span class="prot-sub">&middot; ${esc(meta)}</span>` : ''}</div>
+      <div class="prot-desc">${esc(a.description || a.id)}</div>
+      ${rowErrorNote(a.id)}
+    </div>
+    <div class="prot-status">
+      ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
+      ${a.installedVersion !== null && a.installedVersion !== undefined && a.state !== 'store' && !uninstalling[a.id] ? `<button type="button" class="pill good" onclick="sendCommand('launchApp','${jsq(a.id)}')" ${writable ? '' : 'disabled'}>${esc(t('apps.launch.button', 'Launch'))}</button>` : ''}
+      <button type="button" class="pill ${cls}" data-app="${esc(a.id)}" data-repo="${esc(a.repo || '')}" onclick="${clickFn}"${fill} ${off ? 'disabled' : ''}>${esc(label)}</button>
+    </div>
+  </div>`;
+}
+
+function fmtMb(n) {
+  return n > 0 && n < 524288 ? t('apps.install.mbUnder1', 'under 1 MB') : t('apps.install.mb', '{n} MB', { n: Math.round(n / 1048576) });
+}
 
 /* The update tab's bar, for installs: a download or upload moves it by what
    has arrived, up to 60%, and the steps after ease on towards their marks, as
@@ -163,7 +176,13 @@ const instProg = makeProgress('inst-prog', 'inst-step', 'inst-bar', null, p => {
  */
 const ROW_FLASH_MS = 2500;
 const rowFlash = {};      // id -> { label, cls, until }
-const rowError = {};      // id -> text
+const rowError = {};      // id -> { title, text }
+
+// A row's error, as the page's error banner: what did not happen, then why.
+function rowErrorNote(id) {
+  const e = rowError[id];
+  return e ? `<div class="err-note" role="alert"><b>${esc(e.title)}</b>${esc(e.text)}</div>` : '';
+}
 const uninstalling = {};  // id -> true
 
 function catalogJob() {
@@ -173,7 +192,8 @@ function catalogJob() {
 
 function jobButton() {
   const s = catalogJob();
-  return s ? Array.from(document.querySelectorAll('#apps-catalog-list [data-app]')).find(b => b.dataset.app === s.appId) : null;
+  return s ? Array.from(document.querySelectorAll('#apps-catalog-list [data-app], #apps-others-list [data-app]'))
+    .find(b => b.dataset.app === s.appId && b.dataset.repo === (s.repo || '')) : null;
 }
 
 function jobLabel(s) {
@@ -207,12 +227,15 @@ function rowFlashing(id) {
   return null;
 }
 
-// The catalog's own copy says what the TV now has, before the reload confirms it.
+// The catalog's own copy says what the TV now has, before the reload confirms
+// it, in every list the app is in.
 function setCatalogState(id, version) {
-  const a = catalogData && (catalogData.apps || []).find(x => x.id === id);
-  if (!a || a.state === 'hbc') return;
-  a.installedVersion = version;
-  a.state = version === null ? 'none' : 'installed';
+  if (!catalogData) return;
+  (catalogData.apps || []).concat(catalogData.others || []).forEach(a => {
+    if (a.id !== id || a.state === 'hbc') return;
+    a.installedVersion = version;
+    a.state = version === null ? 'none' : 'installed';
+  });
 }
 const INST_MARK = { downloading: [55, 20000], verifying: [70, 3000], installing: [92, 15000], elevating: [97, 5000] };
 let instStage = null;
@@ -274,8 +297,11 @@ function renderPreview(pv) {
   const dir = pv.direction;
   const ver = pv.version, from = pv.installedVersion;
   q('inst-title').textContent = (pv.apps && pv.apps[0] && pv.apps[0].title) || pv.package;
+  // Replacing the LG store's app: its version is the store's numbering, so
+  // the two are not compared.
   q('inst-meta').textContent = pv.package + ' · ' + (
-    dir === 'up' ? t('apps.install.dir.up', 'upgrade from v{from} to v{version}', { from, version: ver })
+    pv.storeInstalled && from ? t('apps.install.dir.store', 'v{version}, in place of the LG store\'s v{from}', { from, version: ver })
+    : dir === 'up' ? t('apps.install.dir.up', 'upgrade from v{from} to v{version}', { from, version: ver })
     : dir === 'down' ? t('apps.install.dir.down', 'downgrade from v{from} to v{version}', { from, version: ver })
     : dir === 'same' ? t('apps.install.dir.same', 'reinstall of v{version}', { version: ver })
     : t('apps.install.dir.new', 'new install of v{version}', { version: ver }));
@@ -315,6 +341,7 @@ function renderSideload() {
   if (disableBtn) disableBtn.hidden = !installSnap || installSnap.sideloadVia !== 'config';
   const cur = q('apps-sideload-summary');
   if (cur) cur.textContent = installSideload ? t('common.on', 'On') : t('common.off', 'Off');
+  renderOtherCatalogs();
 }
 
 async function toggleSideload(enable) {
@@ -341,18 +368,23 @@ async function toggleSideload(enable) {
   }
 }
 
-function prepareInstallTarget(source) {
+function isAddedCatalog(repo) {
+  return !!repo && !!catalogData && (catalogData.repos || []).some(r => r.url === repo);
+}
+
+// repo: the catalog of a catalog install.
+function prepareInstallTarget(source, repo) {
   const isSideload = source === 'url' || source === 'file';
-  const targetDisc = isSideload ? q('disc-sideload-apps') : q('disc-install-apps');
+  const other = !isSideload && isAddedCatalog(repo);
+  const targetDisc = isSideload ? q('disc-sideload-apps') : other ? q('disc-other-catalogs') : q('disc-install-apps');
   const targetAnchor = isSideload
     ? (installSideload ? q('sideload-box') : q('sideload-off'))
-    : q('apps-catalog-list');
-  const statusEl = q('install-status');
-  if (targetDisc && targetAnchor && statusEl) {
-    if (statusEl.parentElement !== targetDisc) {
-      targetDisc.insertBefore(statusEl, targetAnchor);
-    }
-  }
+    : other ? q('apps-others-list') : q('apps-catalog-list');
+  // The preview goes with the status, so it is in the section that is open.
+  ['install-status', 'install-modal'].forEach(id => {
+    const el = q(id);
+    if (targetDisc && targetAnchor && el && el.parentElement !== targetDisc) targetDisc.insertBefore(el, targetAnchor);
+  });
   return targetDisc;
 }
 
@@ -362,7 +394,7 @@ function renderInstall() {
   const modal = q('install-modal');
   renderSideload();
   if (!s) return;
-  const targetDisc = prepareInstallTarget(s.source);
+  const targetDisc = prepareInstallTarget(s.source, s.repo);
   if (s.state === 'awaiting-confirm' && s.preview) {
     if (targetDisc) targetDisc.open = true;
     if (panel.dataset.job !== s.jobId) {
@@ -396,7 +428,12 @@ function installEnded(s) {
       setCatalogState(s.appId, (s.result && s.result.version) || '');
       flashRow(s.appId, t('apps.install.installed', 'Installed'), 'good flash');
     } else if (s.state === 'error' || s.state === 'interrupted') {
-      rowError[s.appId] = sentence(s.error || t('common.unknownError', 'unknown error'));
+      const app = (catalogData ? (catalogData.apps || []).concat(catalogData.others || []) : [])
+        .find(x => x.id === s.appId && (!s.repo || x.repo === s.repo));
+      rowError[s.appId] = {
+        title: t('apps.install.notInstalled', '{name} was not installed.', { name: (app && app.title) || s.appId }),
+        text: sentence(s.error || t('common.unknownError', 'unknown error'))
+      };
       showErr(s.error || t('common.unknownError', 'unknown error'));
     }
     renderCatalog();
@@ -458,11 +495,74 @@ async function installPost(path, body) {
   return j;
 }
 
-function startInstall(appId) {
+// repo: the catalog the app is from, which an id in more than one needs.
+function startInstall(appId, repo) {
   delete rowError[appId];
-  prepareInstallTarget('catalog');
+  prepareInstallTarget('catalog', repo);
   // The server goes straight on to install unless the preview has a choice or a warning in it.
-  startJob('/api/apps/install/fetch', { id: appId, auto: true });
+  const body = { id: appId, auto: true };
+  if (repo) body.repo = repo;
+  startJob('/api/apps/install/fetch', body);
+}
+
+/* ---- Other app catalogs ---- */
+function renderOtherCatalogs() {
+  const list = q('apps-others-list');
+  if (!list || !catalogData) return;
+  const repos = catalogData.repos || [];
+  const others = catalogData.others || [];
+  const writable = !appsData || appsData.writable !== false;
+  const canChange = installSideload === true && writable;
+  q('apps-catalogs-summary').textContent = !repos.length ? t('apps.catalogs.none', 'None')
+    : repos.length === 1 ? t('apps.catalogs.one', '1 catalog')
+    : t('apps.catalogs.count', '{n} catalogs', { n: repos.length });
+  q('catalogs-off').hidden = installSideload !== false;
+  q('catalog-add-form').hidden = !canChange;
+  const labels = {};
+  repos.forEach(r => { labels[r.url] = r.label; });
+  q('apps-catalogs-repos').innerHTML = repos.map(r => `<div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" translate="no">${esc(r.label)}</div>
+        <div class="prot-desc catalog-url" translate="no">${esc(r.url)}</div>
+        ${r.error ? `<div class="err-note" role="alert"><b>${esc(t('apps.catalogs.unread', 'This catalog could not be read.'))}</b>${esc(sentence(r.error))}</div>` : ''}
+      </div>
+      <div class="prot-status">
+        <span class="app-badge">${esc(t('apps.count', '{n} apps', { n: r.count }))}</span>
+        <button type="button" class="pill bad" data-repo-url="${esc(r.url)}" onclick="removeCatalog(this.dataset.repoUrl)" ${canChange ? '' : 'disabled'}>${esc(t('apps.catalogs.remove', 'Remove'))}</button>
+      </div>
+    </div>`).join('');
+  list.innerHTML = others.map(a => catalogRow(a, writable,
+    x => t('apps.catalogs.from', 'from {catalog}', { catalog: labels[x.repo] || x.repo }))).join('');
+}
+
+async function changeCatalogs(body, btn) {
+  q('catalogs-msg').textContent = '';
+  if (btn) btn.classList.add('busy');
+  try {
+    await installPost('/api/apps/install/repos', body);
+    await loadCatalog(true);
+    return true;
+  } catch (e) {
+    q('catalogs-msg').textContent = sentence(e.message);
+    return false;
+  } finally {
+    if (btn) btn.classList.remove('busy');
+  }
+}
+
+async function addCatalog() {
+  const input = q('catalog-url');
+  const url = input.value.trim();
+  if (!url) return;
+  if (!confirm(t('apps.catalogs.add.confirm', 'Add this catalog?\n\nWhoever runs it chooses what it offers to install, and its apps are not vetted by the Homebrew Channel. Only add a catalog you trust.'))) return;
+  q('catalog-add-btn').disabled = true;
+  if (await changeCatalogs({ action: 'add', url }, q('catalog-add-btn'))) input.value = '';
+  q('catalog-add-btn').disabled = false;
+}
+
+async function removeCatalog(url) {
+  if (!confirm(t('apps.catalogs.remove.confirm', 'Remove this catalog? Apps installed from it stay on the TV.'))) return;
+  await changeCatalogs({ action: 'remove', url });
 }
 
 function startUrlInstall() {

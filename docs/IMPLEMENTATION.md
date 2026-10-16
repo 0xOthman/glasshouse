@@ -1037,7 +1037,7 @@ A custom client path can also be configured in `config.json` via `"update": { "c
 
 ## Installing apps from the catalog
 
-`server/lib/repo.js` merges the Homebrew Channel catalog with `listApps`, and `server/lib/installer.js` runs one install job at a time. The catalog is `https://repo.webosbrew.org/api/apps.json` plus any `apps.repos`, paged as `apps/<n>.json`, cached for an hour, and each entry needs an https `ipkUrl` and a 64-digit sha256 or it is dropped. Update detection reuses the updater's version compare, which reads four numeric parts.
+`server/lib/repo.js` merges the Homebrew Channel catalog with `listApps`, and `server/lib/installer.js` runs one install job at a time. The catalog is `https://repo.webosbrew.org/api/apps.json` plus any `apps.repos`, paged as `apps/<n>.json`, cached for an hour, and each entry needs an https `ipkUrl` and a 64-digit sha256 or it is dropped. `/api/apps/catalog` answers the Homebrew Channel's in `apps` and every added catalog's together in `others`, each app naming its catalog in `repo`, so an id in both is listed in each; an install names the catalog in `repo`, and the install status reports it, so the dashboard shows the job on that row. The TV app lists `apps` only. `POST /api/apps/install/repos` adds a catalog, after reading it, or removes one, rewriting `apps.repos`; a GitHub repository page given as the address means `raw.githubusercontent.com/<owner>/<repo>/HEAD/repo.json`. Update detection reuses the updater's version compare, which reads four numeric parts.
 
 ### The install service
 

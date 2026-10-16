@@ -76,8 +76,11 @@ it before exposing it more widely.
 - **`apps.repos` adds trust.** Each extra catalog listed there can offer
   packages for installation, with their hashes. Its packages are not treated
   as vetted: root for them is confirmed service by service, as for a URL, and
-  is never given back on an update. It is file-only and every entry must be
-  served over https.
+  is never given back on an update. Every entry must be served over https.
+  The Apps tab can add and remove catalogs only where an install from a URL
+  is allowed (`apps.sideload`, a token, or the TV itself), since a catalog
+  added there is trusted as a URL install is, and the server logs each one
+  added.
 - **Never port-forward this.** It is designed for a trusted LAN.
 - **Bind to `127.0.0.1` to keep the on-TV app but close the port.** With
   `"host": "127.0.0.1"` nothing on the network can connect to port 8080, while

@@ -164,7 +164,7 @@ function renderAppsPanel() {
           <div class="prot-main">
             <div class="prot-title">${title}</div>
             <div class="prot-desc">${esc(meta || t('apps.installed.app', 'Installed app'))}</div>
-            ${rowError[app.id] ? `<div class="prot-desc row-err">${esc(rowError[app.id])}</div>` : ''}
+            ${rowErrorNote(app.id)}
           </div>
           <div class="prot-status">
             ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
@@ -812,7 +812,7 @@ async function confirmUninstall(appId, appTitle) {
   }
   delete uninstalling[appId];
   if (error) {
-    rowError[appId] = sentence(error);
+    rowError[appId] = { title: t('apps.uninstall.notRemoved', '{name} was not uninstalled.', { name: appTitle }), text: sentence(error) };
     showErr(t('apps.uninstall.failed', 'Could not uninstall {name}: {error}', { name: appTitle, error }));
   } else {
     if (appsData && appsData.installed) appsData.installed = appsData.installed.filter(a => a.id !== appId);

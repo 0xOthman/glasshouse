@@ -140,20 +140,26 @@ function part3() {
   installed = [{ id: 'com.x.five', version: '1.0.0.0' }];
   repo.getCatalog(false, function (r) {
     assert.strictEqual(r.ok, true);
-    var a = byId(r.apps);
+    var a = byId(r.others);
+    var main = byId(r.apps);
     assert.ok(a['com.x.ok'] && !a['com.x.http'] && !a['com.x.shorthash']);
+    assert.ok(!main['com.x.ok'], 'an added catalog is listed apart from the Homebrew Channel\'s');
+    assert.strictEqual(a['com.x.ok'].repo, extra);
     assert.strictEqual(a['com.x.ok'].sha256, new Array(65).join('a'), 'hash is lower-cased');
     assert.strictEqual(a['io.github.rorygallagher2024.lg-webos-dashboard'].state, 'hbc');
     assert.strictEqual(a['com.tvweb.dashboard'].state, 'hbc');
-    assert.ok(a['com.example.player'], 'default repo is always included');
+    assert.ok(main['com.example.player'], 'default repo is always included');
     // Only the Homebrew Channel's catalog is vetted for root; an added one is not.
-    assert.strictEqual(a['com.example.player'].vetted, true);
+    assert.strictEqual(main['com.example.player'].vetted, true);
     assert.strictEqual(a['com.x.ok'].vetted, false);
     // Compared as the preview compares it, past four parts.
     assert.strictEqual(a['com.x.five'].state, 'update');
-    assert.ok(/no such page https:\/\/broken\.example/.test(r.error), 'a failing extra repo is reported');
+    assert.ok(!r.error, 'the Homebrew Channel catalog itself loaded');
+    assert.deepEqual(r.repos.map(function (x) { return x.url; }), [extra, 'https://broken.example/apps.json']);
+    assert.strictEqual(r.repos[0].count, 4);
+    assert.ok(/no such page https:\/\/broken\.example/.test(r.repos[1].error), 'a failing extra repo is reported');
     assert.strictEqual(fetched.filter(function (u) { return u === BASE; }).length, 1, 'a repo listed twice is read once');
-    console.log('  ✓ extra repos merge, invalid entries drop, protected ids show as hbc, a failing repo is reported');
+    console.log('  ✓ added catalogs are listed apart, invalid entries drop, protected ids show as hbc, a failing one is reported');
 
     // Everything failing: error, no apps; a later failure keeps the earlier list
     setup();
@@ -258,7 +264,7 @@ function failures() {
     start({ apps: { repos: [EXTRA] } });
     repo.getCatalog(false, function (r) {
       assert.strictEqual(r.ok, true);
-      assert.ok(/extra down/.test(r.error));
+      assert.ok(/extra down/.test(r.repos[0].error));
       var n = calls;
       clock += 5000;
       repo.getCatalog(false, function () {
@@ -267,8 +273,76 @@ function failures() {
         partial = false;
         repo.getCatalog(false, function (r2) {
           assert.ok(calls > n, 'a partly failed catalog is retried after 10 s');
-          assert.ok(!r2.error);
+          assert.ok(!r2.repos[0].error);
           console.log('  ✓ a partly failed catalog keeps its list and is retried after 10 s');
+          added();
+        });
+      });
+    });
+  }
+}
+
+// An added catalog may list an id the Homebrew Channel's does, as a fork of
+// YouTube AdFree does: each list keeps its own, and an install names which.
+function added() {
+  var FORK = 'https://raw.githubusercontent.com/someone/youtube-webos/HEAD/repo.json';
+  var hash = new Array(65).join('f');
+  var forkDoc = { paging: { maxPage: 1 }, packages: [
+    { id: 'com.example.player', title: 'Player fork', manifest: { version: '9.0.0', ipkUrl: 'https://x.example/p.ipk', ipkHash: { sha256: hash } } }] };
+  var extra = {};
+  extra[FORK] = forkDoc;
+  setup({ apps: { repos: [FORK] } }, extra);
+  repo.getCatalog(false, function (r) {
+    var main = byId(r.apps), other = byId(r.others);
+    assert.strictEqual(other['com.example.player'].state, 'none');
+    assert.ok(main['com.example.player'] && other['com.example.player']);
+    assert.notStrictEqual(main['com.example.player'].version, '9.0.0');
+    assert.strictEqual(other['com.example.player'].version, '9.0.0');
+    assert.strictEqual(r.repos[0].label, 'someone/youtube-webos');
+    repo.findPackage('com.example.player', FORK, function (err, p) {
+      assert.ifError(err);
+      assert.strictEqual(p.version, '9.0.0');
+      repo.findPackage('com.example.player', function (err2, p2) {
+        assert.ifError(err2);
+        assert.strictEqual(p2.repo, BASE, 'with no catalog named, the Homebrew Channel\'s');
+        console.log('  ✓ an app in two catalogs is listed in each, and installed from the one named');
+        store();
+      });
+    });
+  });
+
+  // LG's store copy under the same id has LG's version numbers: it is
+  // offered for replacing, never shown as installed or as an update.
+  function store() {
+    setup({ apps: { repos: [FORK] } }, extra);
+    installed = [{ id: 'com.example.player', version: '24.0.2', folderPath: '/media/cryptofs/apps/usr/palm/applications/com.example.player' }];
+    repo.getCatalog(false, function (r) {
+      assert.strictEqual(byId(r.apps)['com.example.player'].state, 'store');
+      assert.strictEqual(byId(r.others)['com.example.player'].state, 'store');
+      installed = [{ id: 'com.example.player', version: '9.0.0', folderPath: '/media/developer/apps/usr/palm/applications/com.example.player' }];
+      repo.getCatalog(false, function (r2) {
+        assert.strictEqual(byId(r2.others)['com.example.player'].state, 'installed', 'once replaced, the catalog\'s is installed');
+        console.log('  ✓ an app the LG store installed under the same id is not the catalog\'s, until it is replaced');
+        check();
+      });
+    });
+  }
+
+  function check() {
+    var seen = [];
+    repo.init({ config: {}, luna: function (x, p, cb) { cb({}); }, fetch: {
+      validateUrl: function () { return null; },
+      getJson: function (u, cb) { seen.push(u); cb(null, u === FORK ? forkDoc : { hello: 1 }); } } });
+    repo.checkCatalog('https://github.com/someone/youtube-webos', function (err, u) {
+      assert.ifError(err);
+      assert.strictEqual(u, FORK, 'a GitHub page means the repo.json it keeps');
+      repo.checkCatalog('https://example.com/not-a-catalog.json', function (err2) {
+        assert.ok(err2 && /not a package catalog/.test(err2.message));
+        repo.checkCatalog('http://example.com/apps.json', function (err3) {
+          assert.ok(err3 && /https/.test(err3.message));
+          assert.strictEqual(repo._repoLabel('https://someone.github.io/catalog/apps.json'), 'someone/catalog');
+          assert.strictEqual(repo._repoLabel('https://apps.example.net/apps.json'), 'apps.example.net');
+          console.log('  ✓ an added catalog is read before it is kept, a GitHub page finds its repo.json, and each has a short name');
           console.log('ALL test-repo.js assertions passed!\n');
         });
       });

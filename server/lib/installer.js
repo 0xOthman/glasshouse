@@ -706,6 +706,8 @@ function snapshot() {
     // Which catalog row it belongs to, so the dashboard can show it there.
     source: job.source,
     appId: job.pkg ? job.pkg.id : null,
+    // An id may be in more than one catalog; this is the one it came from.
+    repo: job.pkg ? job.pkg.repo || null : null,
     progress: job.progress,
     preview: job.preview,
     error: job.error,
@@ -751,7 +753,7 @@ function proceedVerify(j) {
           var found = info.package === j.pkg.id;
           for (var i = 0; i < info.apps.length; i++) if (info.apps[i].id === j.pkg.id) found = true;
           if (!found) {
-            return fail(j, msg('srv.install.idMismatch', 'the package is {found}, not {expected}', { found: info.package, expected: j.pkg.id }));
+            return fail(j, msg('srv.install.idMismatch', 'the catalog lists it as {expected}, but what it downloads is a different app, {found}. Whoever runs the catalog needs to correct it.', { found: info.package, expected: j.pkg.id }));
           }
         }
         j.info = info;

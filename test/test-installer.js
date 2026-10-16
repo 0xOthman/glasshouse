@@ -573,7 +573,7 @@ test('a catalog entry for another package id is refused', function (done) {
   var ctx = setup();
   startOk(ctx.pkg(makeIpk(), 'com.example.other'), function () {
     expectState('error', function (s) {
-      assert.ok(/not com.example.other/.test(s.error), s.error);
+      assert.ok(/lists it as com.example.other, but what it downloads is a different app, com.example.app/.test(s.error), s.error);
       done();
     });
   });

@@ -628,8 +628,17 @@ function createMockRes(cb) {
   var pkg = { id: 'org.example.app', title: 'Example', version: '1.0.0', ipkUrl: 'https://example.org/a.ipk', sha256: new Array(65).join('a') };
   var repoStub = {
     getCatalog: function (force, cb) { calls.push(['catalog', force]); cb({ ok: true, apps: [pkg], fetchedAt: 1 }); },
-    findPackage: function (id, cb) { calls.push(['find', id]); id === pkg.id ? cb(null, pkg) : cb(new Error('not in the catalog: ' + id)); }
+    findPackage: function (id, repo, cb) { calls.push(['find', id, repo]); id === pkg.id ? cb(null, pkg) : cb(new Error('not in the catalog: ' + id)); },
+    DEFAULT_REPO: 'https://repo.webosbrew.org/api/apps.json',
+    repoUrls: function () { return [repoStub.DEFAULT_REPO].concat((currentConf.apps && currentConf.apps.repos) || []); },
+    checkCatalog: function (u, cb) {
+      calls.push(['check', u]);
+      if (u === 'https://github.com/someone/fork') return cb(null, 'https://raw.githubusercontent.com/someone/fork/HEAD/repo.json');
+      cb(new Error('not a package catalog: ' + u));
+    },
+    forget: function () { calls.push(['forget']); }
   };
+  var currentConf = {};
   var snap = { state: 'downloading', jobId: 'j1', progress: { bytes: 0, total: null }, preview: null, error: null, result: null };
   var installerStub = {
     start: function (r, cb) { calls.push(['start', r]); cb(null, snap); },
@@ -644,6 +653,7 @@ function createMockRes(cb) {
   var cfgFile = path.join(require('os').tmpdir(), 'tvweb-routes-test-' + process.pid + '.json');
   function setup(conf) {
     calls = [];
+    currentConf = conf;
     routes.init({
       config: conf, configFile: cfgFile, repo: repoStub, installer: installerStub,
       restartSelf: function () { restarts++; return true; }
@@ -753,6 +763,41 @@ function createMockRes(cb) {
     assert.strictEqual(b.ok, true);
     assert.strictEqual(b.sideload, false);
   });
+  // Catalogs: added and removed only where a URL install is allowed, read
+  // before they are kept, and an install names the one it is from
+  var FORK = 'https://raw.githubusercontent.com/someone/fork/HEAD/repo.json';
+  call('POST', '/api/apps/install/repos', HOST, { action: 'add', url: 'https://github.com/someone/fork' }, function (r) {
+    assert.strictEqual(r.statusCode, 403, 'adding a catalog needs what a URL install needs');
+  });
+  setup({ allowControl: true, token: '', web: { enabled: false }, apps: { sideload: true } });
+  call('POST', '/api/apps/install/repos', HOST, { action: 'add', url: 'https://example.com/page' }, function (r, b) {
+    assert.strictEqual(r.statusCode, 400);
+    assert.ok(/not a package catalog/.test(b.error));
+  });
+  call('POST', '/api/apps/install/repos', HOST, { action: 'add', url: 'https://github.com/someone/fork' }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200, JSON.stringify(b));
+    assert.deepEqual(b.repos, [FORK]);
+    assert.deepEqual(JSON.parse(fs.readFileSync(cfgFile, 'utf8')).apps.repos, [FORK]);
+    assert.deepEqual(calls.pop(), ['forget']);
+  });
+  call('POST', '/api/apps/install/repos', HOST, { action: 'add', url: 'https://github.com/someone/fork' }, function (r, b) {
+    assert.strictEqual(r.statusCode, 400);
+    assert.ok(/already listed/.test(b.error));
+  });
+  call('POST', '/api/apps/install/fetch', HOST, { id: pkg.id, repo: FORK }, function (r) {
+    assert.strictEqual(r.statusCode, 200);
+    calls.pop();
+    assert.deepEqual(calls.pop(), ['find', pkg.id, FORK]);
+  });
+  call('POST', '/api/apps/install/repos', HOST, { action: 'remove', url: FORK }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.deepEqual(b.repos, []);
+    assert.deepEqual(JSON.parse(fs.readFileSync(cfgFile, 'utf8')).apps.repos, []);
+  });
+  call('POST', '/api/apps/install/repos', HOST, { action: 'remove', url: FORK }, function (r) {
+    assert.strictEqual(r.statusCode, 400);
+  });
+  setup(base);
   // An installer refusal is reported as an error, not a success
   var realStart = installerStub.start;
   installerStub.start = function (r, cb) { cb('an install is already in progress'); };
@@ -795,7 +840,7 @@ function createMockRes(cb) {
   }, '127.0.0.1');
   waiting = false;
 
-  assert.strictEqual(checks, 44, 'every callback ran');
+  assert.strictEqual(checks, 51, 'every callback ran');
   try { fs.unlinkSync(cfgFile); } catch (e) {}
   console.log('  ✓ install routes: Host check, controls switch, catalog, install flow, restart refusal');
 })();
