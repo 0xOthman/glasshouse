@@ -2739,6 +2739,10 @@
   "text": "Cerrado a la red",
   "from": "Closed to the network"
  },
+ "server.devtools.noFirewall": {
+  "text": "Abierto: esta TV no tiene cortafuegos",
+  "from": "Open: this TV has no firewall"
+ },
  "server.devtools.off": {
   "text": "No está en ejecución",
   "from": "Not running"

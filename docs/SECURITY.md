@@ -100,7 +100,9 @@ it before exposing it more widely.
   reachable over ssh with `ssh -L 9998:localhost:9998 root@<tv-ip>` and
   `http://localhost:9998`. Where the kernel has no `ip6_tables` (a C1, webOS 6)
   the rule covers IPv4 only, which leaves the port open on any IPv6 address the
-  TV has. `{ "allowNetworkDebugger": true }` in `config.json` (or toggled
+  TV has. Some kernels have no firewall at all (a 50QNED80A6A, webOS 10): there
+  the port stays open, and the Server tab says so. Turning Developer Mode off
+  closes it, but on a rooted TV it also stops the Homebrew Channel starting. `{ "allowNetworkDebugger": true }` in `config.json` (or toggled
   from the Server tab) leaves the port open for `ares-inspect`, and the server
   takes out a rule left by an earlier start. Uninstalling from the Homebrew
   Channel removes the rule too.

@@ -289,6 +289,21 @@ rebooted, through a night in standby. lginput2's luna methods include
 `enableLoggingMotion`, `getSensorData` and `enablePrintRfStatus`, none of which
 Glasshouse calls; `getConnectionStatus` and `getDeviceInfo` left it at 0%.
 
+## No firewall in the kernel (50QNED80A6A, webOS 10)
+
+A 50QNED80A6A on firmware 33.31.61 (LG's webOS 25, kernel 5.4.268, rooted
+with Dangbro) has `iptables` 1.8.7 (legacy) but no packet filtering in its
+kernel: `iptables` fails with `can't initialize iptables table 'filter'` after
+`modprobe` finds no `ip_tables` module, `/proc/net/ip_tables_names` and
+`/proc/net/netfilter` do not exist, and there is no `nft`. Developer Mode's
+debugger on port 9998 stays reachable from the network (#699).
+
+On a C2 (webOS 9.2.2), WebAppMgr is started with `--remote-debugging-port=9998`
+by `/etc/systemd/system/scripts/webapp-mgr.sh` whatever the mode, yet nothing
+listens on 9998, over IPv4 or IPv6. So something other than that switch decides
+whether the debugger opens; `/var/luna/preferences/devmode_enabled` is a
+directory there.
+
 ## Home screen (webOS 10 and 11)
 
 From layout dumps in #612 (a C2 on 10.3.1, a B4 on 10.3.2, a C4 on 11.2.0)

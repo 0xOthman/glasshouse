@@ -13,6 +13,11 @@
  * TV that loses root reverts to stock behaviour. ssh -L 9998:localhost:9998
  * still reaches the debugger.
  *
+ * Some kernels have no firewall at all: a 50QNED80A6A on webOS 10 (LG's webOS
+ * 25, kernel 5.4.268) has no ip_tables module and nothing under
+ * /proc/net/netfilter (#699). There the port cannot be closed, which is
+ * reported as such rather than as a rule that failed.
+ *
  * allowNetworkDebugger in config.json leaves the port open for ares-inspect.
  * The rule outlives a server restart, so that start takes it out again.
  *
@@ -25,9 +30,14 @@ var DEVMODE_FLAG = '/var/luna/preferences/devmode_enabled';
 var RULE = ['INPUT', '-p', 'tcp', '--dport', '9998', '!', '-i', 'lo', '-j', 'DROP'];
 var DIRS = ['/usr/sbin/', '/sbin/'];
 
+// Present once the kernel has IPv4 filtering, built in or loaded by iptables
+// on its first use, so still missing after a try means there is none.
+var FILTER_TABLES = '/proc/net/ip_tables_names';
+
 // For the dashboard: null until the first attempt ends, then 'closed', 'open'
-// (Developer Mode is on and the rule could not be added), 'allowed' (left open
-// by allowNetworkDebugger) or 'off' (Developer Mode is off, so webOS does not
+// (Developer Mode is on and the rule could not be added), 'unsupported' (open,
+// and this TV has no firewall to close it with), 'allowed' (left open by
+// allowNetworkDebugger) or 'off' (Developer Mode is off, so webOS does not
 // open the port).
 var state = null;
 
@@ -56,9 +66,17 @@ function blockFromNetwork(cb) {
   var held = [];
   (function next(i) {
     if (i >= tools.length) {
-      state = held.length ? 'closed' : 'open';
-      if (!held.length) console.error('devtools: could not close port 9998 to the network');
-      else console.log('devtools: port 9998 bound to TV only');
+      if (held.length) {
+        state = 'closed';
+        console.log('devtools: port 9998 bound to TV only');
+      } else if (!tools.length || !fs.existsSync(FILTER_TABLES)) {
+        state = 'unsupported';
+        console.error('devtools: port 9998 stays open to the network: this TV has no firewall' +
+          (tools.length ? ' (its kernel has no ip_tables)' : ' (no iptables)'));
+      } else {
+        state = 'open';
+        console.error('devtools: could not close port 9998 to the network');
+      }
       return cb(held);
     }
     blockWith(tools[i], function (ok) {

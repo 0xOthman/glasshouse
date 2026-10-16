@@ -81,14 +81,17 @@ function renderUpdate(d) {
   const dt = q('srv-devtools');
   if (dt && d.devtools !== undefined) {
     const isOff = (d.devtools === 'off');
-    const isOpen = (d.devtools === 'open' || d.devtools === 'allowed');
+    // A TV with no firewall cannot close the port, so the switch has nothing to do.
+    const noFirewall = (d.devtools === 'unsupported');
+    const isOpen = (d.devtools === 'open' || d.devtools === 'allowed' || noFirewall);
     updateToggle('srv-devtools', {
-      cls: isOff ? 'idle' : isOpen ? (d.devtools === 'open' ? 'bad' : 'warn') : 'good',
+      cls: isOff ? 'idle' : isOpen ? (d.devtools === 'allowed' ? 'warn' : 'bad') : 'good',
       label: isOff ? t('server.devtools.off', 'Not running')
+        : noFirewall ? t('server.devtools.noFirewall', 'Open: this TV has no firewall')
         : isOpen ? t('server.devtools.open', 'Open to the network')
         : t('server.devtools.closed', 'Closed to the network'),
       on: isOpen,
-      disabled: !d.writable || isOff
+      disabled: !d.writable || isOff || noFirewall
     });
   }
 
