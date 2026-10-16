@@ -33,6 +33,6 @@ After switching away from **everything**, LG's own apps, such as the Content Sto
 
 What ACR collects and what LG Ad Solutions does with it is set out in [What LG's ACR does](../ACR.md).
 
-![Privacy tab: an overview of what is still on, then the ad and telemetry blocker, advertising identifier, the data collection agreements grouped by subject with toggles, and what is running now](../screenshots/privacy.png)
+![Privacy tab: an overview of what is still on, then the ad and telemetry blocker, advertising identifier, the data collection agreements grouped by subject with toggles, what is running now, and custom ad blocking](../screenshots/privacy.png)
 
-*Privacy controls, data agreements, advertising ID and LG telemetry blocking.*
+*Privacy controls, data agreements, advertising ID, LG telemetry blocking and custom ad blocking.*

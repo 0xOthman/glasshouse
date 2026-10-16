@@ -1,6 +1,6 @@
 # Glasshouse for Android
 
-[Glasshouse for Android](https://github.com/rorygallagher2024/glasshouse-android) is an Android companion app for Glasshouse on rooted LG webOS TVs. It keeps a list of TVs on your network, shows which are online, wakes TVs with Wake-on-LAN, and opens each TV's dashboard full screen.
+[Glasshouse for Android](https://github.com/rorygallagher2024/glasshouse-android) is an Android companion app for Glasshouse on rooted LG webOS TVs. It keeps a list of TVs on your network, shows each one's state and what it is showing, turns TVs on and off (with Wake-on-LAN when they are fully off), and opens each TV's dashboard full screen.
 
 The app runs on Android 10 and later, and follows the dashboard's design: monochrome styling, Manrope typography, and light/dark theme matching.
 
@@ -34,6 +34,12 @@ TVs can be added to the app in three ways:
 * **Manual address**: Enter the TV's IP address or hostname directly. The default port `8080` is used if none is specified.
 
 Saved TVs, including their tokens, remain stored securely in private app storage and are excluded from cloud backups and device transfers.
+
+## The TV list
+
+Each TV is a card with its model number, the name given to it and its power state, and, while it is on, what is on screen and its volume, with the remote's volume steps and mute. **Turn on** or **Turn off** works from the list without opening the dashboard, and keeps saying so until the TV reports the change; **Open dashboard** opens it. The list opens on each TV's last state, shown faint until the TV answers, and pulling it down checks every TV at once.
+
+A **Quick Settings tile** turns one TV on and off: the one chosen with **Use for Quick Settings tile** in its card's menu, or the only one.
 
 ## Turning a TV on
 
