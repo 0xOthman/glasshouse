@@ -18,13 +18,13 @@ Lists the apps downloaded from the LG store or installed by hand, with their ver
 
 ![Install homebrew apps, with category filters, a search box and the Homebrew Channel catalog, each app with its size and an Install button](../screenshots/apps-install.png)
 
-Lists the Homebrew Channel catalog, with category filters (All, Media, Games, Utilities, Ambilight, Screensavers) and keyword search, and Install, Update or Uninstall for each app. Downloads are checked against the catalog before they are installed, and the dashboard asks first when something needs a decision, such as replacing a copy installed from the LG store.
+Lists the Homebrew Channel catalog, with category filters (All, Media, Games, Utilities, Ambilight, Screensavers) and keyword search, and Install, Update or Uninstall for each app, with Launch beside an installed one. Downloads are checked against the catalog before they are installed, and the dashboard asks first when something needs a decision, such as replacing a copy installed from the LG store.
 
 After a [settings backup](server.md#glasshouse) is restored, the apps it listed that this TV lacks and the catalog has are shown above the catalog. **Install all** installs them one after another, each as if picked from the catalog, so it stops for any decision; **Dismiss** forgets the list.
 
 ### Other app catalogs
 
-Catalogs other than the Homebrew Channel's, such as the one a developer keeps for a fork of an app. Pasting a catalog's address and choosing **Add catalog** lists its apps here, each with Install, Update or Uninstall and the catalog it is from, and they are checked for updates with the rest. A GitHub repository's page can be pasted in place of the address, and the dashboard reads the `repo.json` it keeps, as many such catalogs do. Each catalog shows how many apps it offers, or why it could not be read, and **Remove** takes it off the list; apps installed from it stay on the TV.
+Catalogs other than the Homebrew Channel's, such as the one a developer keeps for a fork of an app. Pasting a catalog's address and choosing **Add catalog** lists its apps here, each with Install, Update or Uninstall (and Launch, once installed) and the catalog it is from, and they are checked for updates with the rest. A GitHub repository's page can be pasted in place of the address, and the dashboard reads the `repo.json` it keeps, as many such catalogs do. Each catalog shows how many apps it offers, or why it could not be read, and **Remove** takes it off the list; apps installed from it stay on the TV.
 
 These apps are listed apart from the Homebrew Channel's, so an app both list, such as YouTube AdFree and a fork of it, shows in each, and Install or Update installs the one in that list. An app from an added catalog is never given root without asking, as for an install from a URL.
 

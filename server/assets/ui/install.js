@@ -146,6 +146,7 @@ function catalogRow(a, writable, from) {
     </div>
     <div class="prot-status">
       ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
+      ${a.installedVersion !== null && a.installedVersion !== undefined && !uninstalling[a.id] ? `<button type="button" class="pill good" onclick="sendCommand('launchApp','${jsq(a.id)}')" ${writable ? '' : 'disabled'}>${esc(t('apps.launch.button', 'Launch'))}</button>` : ''}
       <button type="button" class="pill ${cls}" data-app="${esc(a.id)}" data-repo="${esc(a.repo || '')}" onclick="${clickFn}"${fill} ${off ? 'disabled' : ''}>${esc(label)}</button>
     </div>
   </div>`;
