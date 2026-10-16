@@ -131,6 +131,23 @@ var T = Date.UTC(2026, 9, 14, 18, 50, 0);
   history.stop();
 })();
 
+// 2b. LG's screen saver
+(function () {
+  var tv = setup({ wall: T });
+  history.start();
+  tv.on('netflix');
+  tv.advance(60000);
+  tv.state.update('power', 'state', 'Screen Saver');
+  tv.advance(300000);
+  tv.state.update('power', 'state', 'Active');
+  tv.advance(30000);
+  tv.state.update('power', 'systemOn', false);
+  assert.deepEqual(file('2026-10').hours['2026-10-14T18'], { netflix: 90, screen_saver: 300 });
+  assert.ok(history.isIdle('screen_saver') && history.isIdle('screen_off') && !history.isIdle('netflix'));
+  console.log('  ✓ time with LG\'s screen saver showing is kept apart as screen_saver, and not as watched');
+  history.stop();
+})();
+
 // 3. A clock set after boot
 (function () {
   var tv = setup({ wall: Date.UTC(2020, 0, 1) });

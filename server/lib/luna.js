@@ -232,8 +232,7 @@ Subscription.prototype._spawn = function () {
   if (self.stopped || self.child) return;
 
   var args = self.appId ? ['-a', self.appId] : [];
-  // Formatted responses span several lines. Subscription responses are parsed
-  // as one compact JSON response per line instead.
+  // Prefer compact output; some services still send formatted JSON.
   args = args.concat(['-i', 'luna://' + resolveUri(self.uri), JSON.stringify(self.payload)]);
   self.buffer = '';
   self.child = spawn(LUNA_SEND, args);
@@ -260,19 +259,42 @@ Subscription.prototype._spawn = function () {
 };
 
 Subscription.prototype._consume = function (chunk) {
-  var lines, i, line, parsed;
+  var i, start = -1, depth = 0, quoted = false, escaped = false, ch, raw;
   this.buffer += chunk;
-  lines = this.buffer.split(/\r?\n/);
-  this.buffer = lines.pop();
-  for (i = 0; i < lines.length; i++) {
-    line = lines[i].replace(/^\s+|\s+$/g, '');
-    if (!line) continue;
-    try {
-      parsed = JSON.parse(line);
-      if (this.handlers.message) this.handlers.message(parsed);
-    } catch (e) {
-      if (this.handlers.error) this.handlers.error(e, line);
+  // SurfaceManager on webOS 6.4 formats its own JSON, even without -f.
+  // Frame complete objects rather than assuming one response per line.
+  for (i = 0; i < this.buffer.length; i++) {
+    ch = this.buffer.charAt(i);
+    if (start < 0) {
+      if (ch !== '{') continue;
+      start = i;
     }
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') quoted = false;
+    } else if (ch === '"') quoted = true;
+    else if (ch === '{' || ch === '[') depth++;
+    else if (ch === '}' || ch === ']') {
+      if (--depth === 0) {
+        raw = this.buffer.slice(start, i + 1);
+        try {
+          var parsed = JSON.parse(raw);
+          if (this.handlers.message) this.handlers.message(parsed);
+        } catch (e) {
+          if (this.handlers.error) this.handlers.error(e, raw);
+        }
+        this.buffer = this.buffer.slice(i + 1);
+        i = -1;
+        start = -1;
+      }
+    }
+  }
+  if (start < 0) this.buffer = '';
+  else this.buffer = this.buffer.slice(start);
+  if (this.buffer.length > 1048576) {
+    this.buffer = '';
+    if (this.handlers.error) this.handlers.error(new Error('Luna subscription response too large'));
   }
 };
 

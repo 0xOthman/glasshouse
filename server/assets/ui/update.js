@@ -123,6 +123,7 @@ function renderUpdate(d) {
   if (d.ntpSettings) {
     renderNtp(d.ntp, d.ntpSettings, d.writable);
   }
+  if (d.backupDaily) renderBackupDaily(d.backupDaily, d.writable);
 
   const ssRow = q('exp-screensaver-row');
   if (ssRow) {
@@ -541,19 +542,24 @@ function backupMessage(text) {
   m.hidden = !text;
 }
 
+// Hands a backup to the browser as a file named for its TV and day.
+function downloadBackupFile(b) {
+  const model = String((b.from && b.from.model) || 'tv').replace(/[^A-Za-z0-9_-]+/g, '-');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: 'application/json' }));
+  a.download = `glasshouse-backup-${model}-${b.created.slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 async function saveBackup() {
   try {
     const r = await fetch(api('/api/backup'), { cache: 'no-store' });
     const b = await r.json();
     if (!r.ok || b.format !== 'glasshouse-backup') throw new Error(b.error || r.status);
-    const model = String((b.from && b.from.model) || 'tv').replace(/[^A-Za-z0-9_-]+/g, '-');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: 'application/json' }));
-    a.download = `glasshouse-backup-${model}-${b.created.slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    downloadBackupFile(b);
     backupMessage(t('server.backup.saved', 'Saved {count} LG settings and Glasshouse’s own.', { count: Object.keys(b.lg || {}).length }));
   } catch (e) {
     backupMessage(t('server.backup.saveFailed', 'Could not make a backup — {error}', { error: e.message }));
@@ -566,6 +572,10 @@ async function restoreBackup(input) {
   if (!file) return;
   let b;
   try { b = JSON.parse(await file.text()); } catch (e) { b = null; }
+  restoreBackupData(b);
+}
+
+async function restoreBackupData(b) {
   if (!b || b.format !== 'glasshouse-backup') {
     return backupMessage(t('server.backup.notBackup', 'That file is not a Glasshouse backup'));
   }
@@ -592,6 +602,58 @@ async function restoreBackup(input) {
   } catch (e) {
     backupMessage(t('server.backup.restoreFailed', 'Could not restore — {error}', { error: e.message }));
   }
+}
+
+// ---- daily backups, kept on the TV ----
+function renderBackupDaily(daily, writable) {
+  updateToggle('backup-daily', {
+    cls: daily.enabled ? 'good' : 'idle',
+    label: daily.enabled ? t('common.on', 'On') : t('common.off', 'Off'),
+    on: daily.enabled,
+    disabled: !writable
+  });
+  const list = q('backup-saved');
+  list.hidden = !daily.saved.length;
+  list.innerHTML = daily.saved.map(s => {
+    const day = new Date(s.date + 'T12:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    return `<div class="bk"><span class="bk-date">${esc(day)}</span>` +
+      `<span class="bk-size">${esc(t('server.backup.kb', '{kb} KB', { kb: Math.max(1, Math.round(s.size / 1024)) }))}</span>` +
+      `<button type="button" class="link-btn" data-name="${esc(s.name)}" data-do="download">${esc(t('server.backup.download', 'Download'))}</button>` +
+      `<button type="button" class="link-btn" data-name="${esc(s.name)}" data-do="restore"${writable ? '' : ' disabled'}>${esc(t('server.backup.restoreSaved', 'Restore'))}</button></div>`;
+  }).join('');
+  for (const b of list.querySelectorAll('button')) {
+    b.onclick = () => (b.dataset.do === 'download' ? downloadSavedBackup : restoreSavedBackup)(b.dataset.name);
+  }
+}
+
+async function toggleBackupDaily() {
+  const b = q('backup-daily');
+  b.disabled = true;
+  const r = await sendCommand('setBackupDaily', !b.dataset.on);
+  if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+async function fetchSavedBackup(name) {
+  const r = await fetch(api('/api/backup/saved?name=' + encodeURIComponent(name)), { cache: 'no-store' });
+  const b = await r.json();
+  if (!r.ok || b.format !== 'glasshouse-backup') throw new Error(b.error || r.status);
+  return b;
+}
+
+async function downloadSavedBackup(name) {
+  try {
+    downloadBackupFile(await fetchSavedBackup(name));
+  } catch (e) {
+    backupMessage(t('server.backup.readFailed', 'Could not read that backup — {error}', { error: e.message }));
+  }
+}
+
+async function restoreSavedBackup(name) {
+  let b;
+  try { b = await fetchSavedBackup(name); } catch (e) {
+    return backupMessage(t('server.backup.readFailed', 'Could not read that backup — {error}', { error: e.message }));
+  }
+  restoreBackupData(b);
 }
 
 async function toggleExpScreensaver() {

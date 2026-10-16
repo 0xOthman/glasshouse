@@ -203,12 +203,6 @@
       <div class="sub" id="watch-note" hidden></div>
     </div>
 
-    <div class="grp-sec" id="uptimeblock" data-col="1">
-      <div class="grp" data-t="metrics.uptime">TV uptime</div>
-      <div class="lbl" data-t="metrics.uptime.sinceBoot">Time since boot</div>
-      <div class="uptime-val num" id="tv-uptime">&mdash;</div>
-    </div>
-
     <div class="grp-sec" id="advblock" data-col="1">
       <div class="grp" data-t="tab.advanced">Advanced</div>
       <details class="disc" id="disc-hwinfo" hidden style="border-top:0;margin-top:0">
@@ -579,6 +573,64 @@
     </div>
   </div>
 
+  <div class="pv-sec adv-sec" id="adv-screentime" data-t="adv.screenTime">Screen time</div>
+  <div class="prot-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.limits">Screen-time limits</div>
+        <div class="prot-desc" data-t="adv.screenTime.desc">Limits how long the screen is on each day, in all and per app or
+          input, and keeps it off at bedtime. The TV shows a warning five minutes before a limit, and another when it is
+          reached, then does what is chosen below a minute later.</div>
+        <div class="prot-desc st-note" id="st-note" hidden></div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="st-enabled" onclick="toggleScreenTime()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.daily">Daily limit</div>
+        <div class="prot-desc" data-t="adv.screenTime.daily.desc">The screen time allowed each day, counted from midnight on the TV’s clock.</div>
+        <div class="prot-desc" id="st-today" hidden></div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-daily" aria-label="Daily limit" data-t-aria-label="adv.screenTime.daily"
+        onchange="saveScreenTime({ dailyMinutes: Number(this.value) })"></select></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.bedtime">Bedtime</div>
+        <div class="prot-desc" data-t="adv.screenTime.bedtime.desc">Between these two times, the TV does what is chosen below. Clearing either time turns bedtime off.</div>
+      </div>
+      <div class="prot-status timer-ctl">
+        <input type="time" class="pill-sel" id="st-bed-from" aria-label="Bedtime starts" data-t-aria-label="adv.screenTime.bedtime.from"
+          onchange="saveScreenTime({ bedtimeStart: this.value })">
+        <input type="time" class="pill-sel" id="st-bed-to" aria-label="Bedtime ends" data-t-aria-label="adv.screenTime.bedtime.to"
+          onchange="saveScreenTime({ bedtimeEnd: this.value })">
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.action">At the daily limit or bedtime</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-action" aria-label="At the daily limit or bedtime" data-t-aria-label="adv.screenTime.action"
+        onchange="saveScreenTime({ action: this.value })"></select></div>
+    </div>
+    <div class="prot-row" id="st-apps-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.apps">App and input limits</div>
+        <div class="prot-desc" data-t="adv.screenTime.apps.desc">Minutes a day for one app or input. Those watched in the last 30 days can be picked.</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-add" aria-label="Add a limit" data-t-aria-label="adv.screenTime.add"
+        onchange="addScreenTimeApp(this.value)"></select></div>
+      <div class="st-apps" id="st-apps"></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.appAction">At an app or input’s limit</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-app-action" aria-label="At an app or input’s limit" data-t-aria-label="adv.screenTime.appAction"
+        onchange="saveScreenTime({ appAction: this.value })"></select></div>
+    </div>
+  </div>
+
   <div class="pv-sec adv-sec" id="adv-updates" data-t="adv.systemUpdates">System updates</div>
   <div class="prot-table">
     <div class="prot-row">
@@ -897,9 +949,9 @@
       </div>
       <div class="sub" id="adblock-detail" style="margin-top:12px">&mdash;</div>
       <div class="pv-note" id="adblock-reconnect" hidden data-t="pv.adblock.reconnect">LG's apps, such as the Content Store and LG Channels, can take about a minute to connect again. If one shows an error, exit it and open it again after a minute.</div>
-      <div class="pv-note" id="adblock-help" hidden data-t="pv.adblock.troubleshoot">If an app or one of LG's
+      <div class="pv-note warn" id="adblock-help" hidden data-t="pv.adblock.troubleshoot">If an app or one of LG's
         services stops working while the blocker is on, switch it off to check whether it is the cause.</div>
-      <div class="pv-note"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
+      <div class="pv-note warn"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
         the LG ThinQ app can no longer control the TV, and the app store, software updates and LG
         Channels may stop working.</b> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
         updates in the Advanced tab.</span></div>
@@ -944,6 +996,45 @@
     <div class="pv-grp"><div class="pv-g"><span data-t="pv.diagnostics">Diagnostics services</span></div><div id="pv-daemons"></div></div>
   </div>
   <div class="pv-note" id="pv-running-note"></div>
+  </details>
+  <details class="pv-d" id="disc-adblock-custom">
+  <summary><span data-t="pv.adblock.custom">Custom ad blocking</span> <span class="cur" id="abc-summary"></span></summary>
+  <div class="pv-sub" data-t="pv.adblock.custom.desc">Use your own hosts file to customise what the ad blocker blocks.
+    The TV keeps the list, so it is not uploaded again after a Glasshouse update.</div>
+  <div class="oled-warn abc-warn" data-t="pv.adblock.custom.warn">Depending on what it blocks, a list can stop apps, LG's
+    services or software updates working. If something stops working, switch Block its names off to check.</div>
+  <div class="prot-table abc-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.file">Hosts file</div>
+        <div class="prot-desc" id="abc-list">&mdash;</div>
+      </div>
+      <div class="prot-status abc-list-btns">
+        <button type="button" class="pill idle" id="abc-upload" onclick="q('abc-file').click()">&mdash;</button>
+        <button type="button" class="pill idle" id="abc-clear" onclick="clearCustomHosts()" hidden data-t="pv.adblock.custom.delete">Delete</button>
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.use">Block its names</div>
+        <div class="prot-desc" data-t="pv.adblock.custom.use.desc">Off keeps the file on the TV but blocks nothing in it.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="abc-enabled" onclick="toggleCustomHosts()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.how">What is blocked</div>
+        <div class="prot-desc" data-t="pv.adblock.custom.how.desc">Glasshouse's list is the one the ad blocker uses on its own.</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="abc-mode" onchange="setCustomHostsMode(this.value)"
+        aria-label="What is blocked" data-t-aria-label="pv.adblock.custom.how">
+        <option value="add" data-t="pv.adblock.custom.add">Your file and Glasshouse's list</option>
+        <option value="replace" data-t="pv.adblock.custom.replace">Only your file</option>
+      </select></div>
+    </div>
+  </div>
+  <input type="file" id="abc-file" accept=".txt,.hosts,text/plain" hidden onchange="uploadCustomHosts(this)">
+  <div class="sub" id="abc-detail" role="status" aria-live="polite"></div>
   </details>
   </details>
 </section>
@@ -1070,6 +1161,19 @@
     </div>
   </div>
 
+  <div class="pv-h" data-t="mqtt.icons">App icons</div>
+  <div class="pv-table">
+    <div class="pv-row">
+      <div>
+        <div class="n" data-t="mqtt.icons.toggle">Share app icons</div>
+        <div class="d" data-t="mqtt.icons.desc">Lets a launcher or dashboard on another device show this TV's apps with their own
+          icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can
+          fetch the icons, and so tell which apps are installed.</div>
+      </div>
+      <button type="button" class="pill idle" id="cfg-icons" onclick="cfgToggleIcons()">&mdash;</button>
+    </div>
+  </div>
+
   <div class="pv-h" data-t="mqtt.entities">Home Assistant entities</div>
   <div class="pv-sub" data-t="mqtt.entities.desc">Choose which entity categories are published over MQTT Discovery.
     Disabling an entity removes it cleanly from Home Assistant without leaving an orphaned state.</div>
@@ -1151,6 +1255,14 @@
           <div class="sub" id="backup-msg" hidden></div>
         </div>
       </div>
+      <div class="prot-row" id="backup-daily-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.backup.daily">Daily backup</div>
+          <div class="prot-desc" data-t="server.backup.daily.desc">Saves the same backup on the TV once a day, and keeps the last 7. Each can be downloaded or restored here.</div>
+        </div>
+        <div class="prot-status"><button type="button" class="pill idle" id="backup-daily" onclick="toggleBackupDaily()">&mdash;</button></div>
+        <div class="backup-saved" id="backup-saved" hidden></div>
+      </div>
       <!-- Hidden where the TV will not take the app; renderTvApp shows it. -->
       <div class="prot-row" id="tvapp-row" hidden>
         <div class="prot-main">
@@ -1192,6 +1304,27 @@
             <div class="prot-desc" data-t="server.devtools.short">In Developer Mode, lets developer tools on the network inspect the TV's web apps without an SSH tunnel. webOS leaves it open with no password, so keep it closed unless it is needed.</div>
           </div>
           <div class="prot-status"><button type="button" class="pill idle" id="srv-devtools" onclick="toggleNetworkDebugger()">&mdash;</button></div>
+        </div>
+        <div class="prot-row" id="ssh-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.ssh.title">SSH keys</div>
+            <div class="prot-desc" data-t="server.ssh.desc">The public keys that can log in to the TV as root over SSH. While any key file is there, the Homebrew Channel leaves root without a password, so only these keys get in.</div>
+            <div class="prot-desc" id="ssh-state"></div>
+            <div class="prot-desc" id="ssh-token" hidden data-t="server.ssh.needsToken">Changing these needs a token set in config.json. Without one, anyone on the network could add their own key.</div>
+          </div>
+          <div class="ssh-body">
+            <div id="ssh-keys"></div>
+            <form class="toast-form" onsubmit="event.preventDefault();addSshKey();">
+              <input type="text" id="ssh-new" placeholder="ssh-ed25519 AAAA… user@host" translate="no" maxlength="16384" autocomplete="off" spellcheck="false"
+                aria-label="Public key to add" data-t-aria-label="server.ssh.newKey">
+              <button type="submit" id="ssh-add" data-t="server.ssh.add">Add key</button>
+            </form>
+            <div class="btns ssh-btns">
+              <button type="button" id="ssh-reboot" hidden onclick="powerAction('reboot')" data-t="server.ssh.reboot">Reboot now</button>
+              <button type="button" class="link-btn" id="ssh-delete" hidden onclick="deleteSshKeys()" data-t="server.ssh.delete">Delete the key file</button>
+            </div>
+            <div class="sub" id="ssh-msg" hidden></div>
+          </div>
         </div>
       </div>
 
@@ -1315,6 +1448,8 @@
 <script src="/assets/ui/game.js"></script>
 <script src="/assets/ui/system.js"></script>
 <script src="/assets/ui/history.js"></script>
+<script src="/assets/ui/ssh.js"></script>
+<script src="/assets/ui/screentime.js"></script>
 <script src="/assets/ui/apps.js"></script>
 <script src="/assets/ui/install.js"></script>
 <script src="/assets/ui/tabs.js"></script>

@@ -42,7 +42,7 @@ function check(name, opts, expectLevel, expectCalls) {
   pending++;
   var luna = fakeLuna(opts);
   var heard = [];
-  rb.init({ luna: luna, discoverMs: 0, onLevel: function (l) { heard.push(l); } });
+  rb.init({ luna: luna, webosVersion: '10.3.1', discoverMs: 0, onLevel: function (l) { heard.push(l); } });
   rb.read(function (level) {
     assert.strictEqual(level, expectLevel, name + ': level');
     assert.deepEqual(luna.calls, expectCalls, name + ': calls');
@@ -71,7 +71,7 @@ steps.push(function () {
   pending++;
   var luna = fakeLuna();
   var on = true;
-  rb.init({ luna: luna, discoverMs: 0, settleMs: 0 });
+  rb.init({ luna: luna, webosVersion: '10.3.1', discoverMs: 0, settleMs: 0 });
   var awake = { returnValue: true, connected: true, isBleRemocon: true };
   function reads() { return luna.calls.filter(function (c) { return c === 'bluetooth2/gatt/readCharacteristicValue'; }).length; }
   function after(fn) { setTimeout(fn, 20); }
@@ -99,7 +99,7 @@ steps.push(function () {
   pending++;
   var status = { returnValue: true, connected: false };
   var luna = fakeLuna({ status: status });
-  rb.init({ luna: luna, discoverMs: 0, settleMs: 0 });
+  rb.init({ luna: luna, webosVersion: '10.3.1', discoverMs: 0, settleMs: 0 });
   rb.read(function (level) {
     assert.strictEqual(level, null);
     // The remote wakes: no connection was tried before, so it is still due.
@@ -126,7 +126,7 @@ steps.push(function () {
   pending++;
   util.unlinkQuiet(tmpFile);
   var luna = fakeLuna({ read: { returnValue: true, value: { value: { bytes: [88] } } } });
-  rb.init({ luna: luna, discoverMs: 0, settleMs: 0, stateFile: tmpFile });
+  rb.init({ luna: luna, webosVersion: '10.3.1', discoverMs: 0, settleMs: 0, stateFile: tmpFile });
   rb.read(function (level) {
     assert.strictEqual(level, 88);
     var saved = util.readJson(tmpFile, null);
@@ -141,7 +141,7 @@ steps.push(function () {
 steps.push(function () {
   pending++;
   var luna = fakeLuna({ deviceInfo: { returnValue: true, batteryLevel: 63, bdAddress: REMOTE.address } });
-  rb.init({ luna: luna, discoverMs: 0, settleMs: 0 });
+  rb.init({ luna: luna, webosVersion: '10.3.1', discoverMs: 0, settleMs: 0 });
   rb.read(function (level) {
     assert.strictEqual(level, 63, 'read from getDeviceInfo');
     assert.deepEqual(luna.calls, ['mrcu/getConnectionStatus', 'mrcu/getDeviceInfo'], 'no Bluetooth connection');
@@ -154,7 +154,7 @@ steps.push(function () {
 steps.push(function () {
   pending++;
   var luna = fakeLuna({ status: { returnValue: true, connected: true, isBleRemocon: false } });
-  rb.init({ luna: luna, discoverMs: 0, settleMs: 0 });
+  rb.init({ luna: luna, webosVersion: '10.3.1', discoverMs: 0, settleMs: 0 });
   rb.connectionChanged({ returnValue: true, connected: true, isBleRemocon: true });
   setTimeout(function () {
     assert.ok(luna.calls.indexOf('bluetooth2/gatt/readCharacteristicValue') !== -1, 'read at the wake');
@@ -188,6 +188,22 @@ steps.push(function () {
   assert.strictEqual(rb.lowStrength(), true);
   util.unlinkQuiet(tmpFile);
   console.log('  ✓ tracks remote signal strength and state persistence');
+});
+
+// Bluetooth only where it has been tried: a webOS 5 TV's remote lost its
+// pointer after the read began in v0.97.0.
+steps.push(function () {
+  ['5.6.2', '6.4.0', '11.0.0', null].forEach(function (version) {
+    pending++;
+    var luna = fakeLuna();
+    rb.init({ luna: luna, webosVersion: version, discoverMs: 0, settleMs: 0 });
+    rb.read(function (level) {
+      assert.strictEqual(level, null, String(version));
+      assert.deepEqual(luna.calls, ['mrcu/getConnectionStatus', 'mrcu/getDeviceInfo'], 'no Bluetooth on ' + version);
+      pending--;
+    });
+  });
+  console.log('  ✓ the remote is read over Bluetooth only on webOS 9 and 10');
 });
 
 (function next(i) {

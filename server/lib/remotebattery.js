@@ -30,6 +30,13 @@ var SETTLE_MS = 3000;
 var DISCOVER_MS = 2000;
 var discoverMs = DISCOVER_MS;
 var settleMs = SETTLE_MS;
+/*
+ * The Bluetooth read connects to the remote alongside lginput2's own
+ * connection. It has been tried on webOS 9 (C2) and 10 (C4); on a webOS 5 TV
+ * the remote lost its pointer and some buttons after waking, until a reboot,
+ * once v0.97.0 began reading. Elsewhere only LG's remote service is asked.
+ */
+var gattTested = false;
 
 /** @type {function(string, Object, function(any): void): void} */
 var luna = null;
@@ -141,6 +148,10 @@ function read(done) {
         tried = true;
         return finish(dl);
       }
+      if (!gattTested) {
+        tried = true;
+        return finish(null);
+      }
       readGatt();
     });
   });
@@ -249,12 +260,14 @@ function level(mac) {
  * @param {number} [opts.settleMs] the wait after the remote connects, for tests
  * @param {string} [opts.stateDir] where to save the last known level
  * @param {string} [opts.stateFile] override file path for tests
+ * @param {?string} [opts.webosVersion] as the TV reports it; Bluetooth is read only on 9 and 10
  */
 function init(opts) {
   opts = opts || {};
   luna = opts.luna;
   discoverMs = opts.discoverMs !== undefined ? opts.discoverMs : DISCOVER_MS;
   settleMs = opts.settleMs !== undefined ? opts.settleMs : SETTLE_MS;
+  gattTested = /^(9|10)\./.test(String(opts.webosVersion || ''));
   onLevel = opts.onLevel || null;
   busy = false;
   dueAt = 0;

@@ -585,8 +585,8 @@ telemetry.refreshInstalledApps(function (apps) {
   mockEnv.luna['com.webos.applicationManager/listApps'] = {
     returnValue: true,
     launchPoints: [
-      { id: 'netflix', title: 'Netflix' },
-      { id: 'com.webos.app.discovery', title: 'Apps' },
+      { id: 'netflix', title: 'Netflix', iconColor: '#E50914' },
+      { id: 'com.webos.app.discovery', title: 'Apps', iconColor: 'red' },
       { id: 'com.webos.app.container', title: 'Container' },
       { id: 'hidden.app', title: 'Hidden', visible: false }
     ]
@@ -597,6 +597,9 @@ telemetry.refreshInstalledApps(function (apps) {
     assert.strictEqual(lpApps[0].id, 'com.webos.app.discovery');
     assert.strictEqual(lpApps[1].id, 'netflix');
     console.log('  ✓ refreshInstalledApps parses launchPoints array (webOS 6+ / issue #145)');
+    assert.strictEqual(lpApps[1].iconColor, '#e50914');
+    assert.strictEqual('iconColor' in lpApps[0], false);
+    console.log('  ✓ refreshInstalledApps keeps a valid iconColor and drops anything else');
 
     // A live event expires the stats but keeps the app list: the next read
     // does not scan the apps again.

@@ -56,7 +56,7 @@ Measured with `scripts/footprint.sh` on 2026-10-03, over a minute each, with MQT
 | OLED65B8SLC (webOS 4) | 1.4–1.7% | 29–42 MB | 5, 6 MB | 432–445 of 1976 MB |
 | OLED42C24LA (webOS 9.2) | 1.2–1.3% | 35–38 MB | 5, 10 MB | 525–535 of 1996 MB |
 
-The children are the five subscriptions held open for live state. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
+The children are the five subscriptions held open for live state, to which a TV whose SurfaceManager reports its windows adds two while the MQTT bridge is enabled. These two are started explicitly by the bridge; a TV without MQTT runs neither. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
 
 ---
 
@@ -261,7 +261,7 @@ proved everything that matters. Certificate verification is never disabled: what
 comes back runs as root on the next restart.
 
 **The directory is updated in place, not swapped.** `/var/lib/tvweb` holds more
-than code — `config.json`, `adblock_hosts`, the staged screen saver the boot hook
+than code — `config.json`, `adblock_hosts`, `adblock_custom.json`, the staged screen saver the boot hook
 bind-mounts, `services_stopped` — and a wholesale swap has to carry every one of
 them across or silently lose it. Replacing only the files the release ships
 cannot lose state it never touches.
@@ -646,6 +646,31 @@ To prevent this while preserving full platform blocking:
   entirely, and `nextlgsdp.com` is blocked immediately.
 * With an [NTP server](#setting-the-clock-from-ntp) configured, the first answer it
   gives sets the time as `sdp`, which ends the wait at once.
+* An owner's hosts list that names `nextlgsdp.com` or a name under it gets the same wait,
+  on either tier.
+
+### The owner's hosts list
+
+`POST /api/adblock/custom` takes `{mode, text}` to upload a list, `{mode}` to
+change how the kept one is used, and `{clear: true}` to remove it, where `mode`
+is `add` or `replace`. It is held to what `/api/control` is (controls allowed,
+JSON, same origin) but takes up to 1 MB, where `/api/control` takes 4 KB.
+`parseCustomHosts` in `privacy.js` keeps the names a hosts file blackholes, or
+a plain list's names, lower-cased and once each, and counts redirects and
+anything that is not a host name as skipped. More than 10,000 names is refused:
+a hosts file is read line by line on every lookup.
+
+Only the names are saved, in `/var/lib/tvweb/adblock_custom.json`, never the
+table built from them. `adBlockList` puts them together with the tier's names
+from the running version each time the table is written: `add` takes the
+tier's names and then the owner's not already among them, `replace` the
+owner's alone. The table is rewritten at every start (`checkBootAdBlock`), so
+after an update the new version's names are in it without the file being sent
+again. The updater replaces only the files a release ships, so the saved list
+survives it, as `adblock_hosts` does. `/api/privacy` gives `adblock.custom`:
+`mode`, `count`, `updated`, `shared` (names on both lists), `ownCount` (the
+tier's own) and `blocked` (the table's total), for the tier in use, or
+`ads` while the blocker is off.
 
 ## Entity state must come from the TV, not from the command
 
@@ -813,7 +838,9 @@ change of error state.
 is on with each app or input in front. It follows the live `power` and
 `application` subscriptions, and starts the `application` one itself, which the
 MQTT bridge otherwise starts only with a broker. Off, or on with the panel off,
-is counted as nothing and as `screen_off`.
+is counted as nothing and as `screen_off`, and LG's screen saver as
+`screen_saver`, from tvpower's Screen Saver state: the foreground app stays
+the one it draws over. Home Assistant's watch-time sensors leave both out.
 
 Each change closes a segment measured on the monotonic clock. The wall clock
 places it: it is often wrong for a while after boot, until the broadcast time
@@ -830,6 +857,33 @@ The dashboard groups the hours into the browser's days. Home Assistant's
 `utc` that `com.webos.service.systemservice/time/getSystemTime` reports
 together, read hourly. With no reading it is UTC.
 
+## Screen-time limits
+
+`server/lib/screentime.js` reads today's time per app and input from watch
+time, so it needs `history.js` running and the TV's offset from UTC read: the
+day starts at the TV's local midnight, to the whole UTC hour, as Home
+Assistant's "today" does. It checks every 30 seconds and at each change of
+power, screen or app, after `history.js` has counted it. The whole TV's limits
+come before an app's. At a limit it shows a toast through
+`com.webos.notification/createToast` and acts a minute later only if the same
+limit is still due, so turning the screen off or leaving the app in that
+minute cancels it. Each warning is shown once per local day.
+
+A toast sent as the screen comes on is not shown while the panel wakes (C4,
+webOS 10.3.1), so after the screen comes on the check waits 5 seconds. The TV
+reports itself on before its screen does, so a TV switched back on after the
+daily limit or bedtime switched it off gets its toast once the screen is on,
+the screen off 10 seconds later, and the TV off after 5 minutes, unless the
+limit has been changed by then. That the limit switched it off is kept in
+`/var/lib/tvweb/screentime.json` until the limit no longer applies or the
+settings are changed, as a C5 (webOS 10.3.1) shuts down fully and starts the
+server again when switched on.
+
+Turning the screen off over LG's screen saver does not hold, so when it is
+showing, Back dismisses it first and the screen goes off 1.5 seconds later.
+Either way, a screen back on 3 seconds after is turned off once more. Checks
+wait meanwhile, as the screen saver closing reports the screen on.
+
 ## Reading the Magic Remote's battery
 
 LG's pairing file has only the remote model's battery thresholds, so
@@ -843,7 +897,10 @@ awake. The subscription's updates are trusted for whether the remote is a
 Bluetooth one: asked once, the same method says it is not. On webOS 4,
 `com.webos.service.mrcu/getDeviceInfo` has the charge in `batteryLevel`, so it
 is asked first, and no Bluetooth connection is made where it answers; webOS 9
-and later answer `"-"`. lginput2 holds the remote's own connection, and the
+and later answer `"-"`. The Bluetooth read is made only on webOS 9 and 10, where
+it has been tried: on a webOS 5 TV the remote lost its pointer and some buttons
+after waking once it began, until a reboot. Elsewhere the remote's battery is
+not shown. lginput2 holds the remote's own connection, and the
 Bluetooth service reads the service only over a GATT connection of its own, so
 each read there is
 `gatt/connect`, `gatt/discoverServices`, `gatt/readCharacteristicValue` by the
@@ -910,7 +967,7 @@ A custom client path can also be configured in `config.json` via `"update": { "c
 
 ### Safe In-Place Staging & Rollback
 1. **Extraction & Validation**: The tarball is decompressed via Node's `zlib.gunzipSync` and unpacked into `/var/lib/tvweb/.update/`. It validates that the downloaded package contains a valid `server/tvweb.js` declaring the expected release version.
-2. **Non-Destructive Upgrade**: Files are copied over `/var/lib/tvweb/`. `config.json`, the ad blocker's hosts file (`adblock_hosts`), staged screensavers, and stopped service lists are strictly preserved.
+2. **Non-Destructive Upgrade**: Files are copied over `/var/lib/tvweb/`. `config.json`, the ad blocker's hosts file (`adblock_hosts`) and the owner's hosts list (`adblock_custom.json`), staged screensavers, and stopped service lists are strictly preserved.
 3. **Rollback Backup**: A complete copy of the replaced version is retained in `/var/lib/tvweb/.previous/`. Running `tvwebctl rollback` (or manually copying `.previous/.` back to `/var/lib/tvweb/`) restores the previous version without redeploying.
 
 ---

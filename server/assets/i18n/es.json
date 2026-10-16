@@ -115,6 +115,110 @@
   "text": "Al apagar, la TV entra en un sueño ligero en lugar de apagarse del todo, así que vuelve a encenderse más rápido. LG lo llama Quick Start+.",
   "from": "Switching off puts the TV into a light sleep rather than shutting it down, so it comes back on faster. LG calls this Quick Start+."
  },
+ "adv.screenTime": {
+  "text": "Tiempo de pantalla",
+  "from": "Screen time"
+ },
+ "adv.screenTime.action": {
+  "text": "Al llegar al límite diario o a la hora de dormir",
+  "from": "At the daily limit or bedtime"
+ },
+ "adv.screenTime.add": {
+  "text": "Añadir un límite",
+  "from": "Add a limit"
+ },
+ "adv.screenTime.appAction": {
+  "text": "Al llegar al límite de una app o entrada",
+  "from": "At an app or input’s limit"
+ },
+ "adv.screenTime.apps": {
+  "text": "Límites por app y entrada",
+  "from": "App and input limits"
+ },
+ "adv.screenTime.apps.desc": {
+  "text": "Minutos al día para una app o entrada. Se pueden elegir las vistas en los últimos 30 días.",
+  "from": "Minutes a day for one app or input. Those watched in the last 30 days can be picked."
+ },
+ "adv.screenTime.bedtime": {
+  "text": "Hora de dormir",
+  "from": "Bedtime"
+ },
+ "adv.screenTime.bedtime.desc": {
+  "text": "Entre estas dos horas, el televisor hace lo elegido abajo. Al borrar cualquiera de las dos, se desactiva la hora de dormir.",
+  "from": "Between these two times, the TV does what is chosen below. Clearing either time turns bedtime off."
+ },
+ "adv.screenTime.bedtime.from": {
+  "text": "Empieza la hora de dormir",
+  "from": "Bedtime starts"
+ },
+ "adv.screenTime.bedtime.to": {
+  "text": "Termina la hora de dormir",
+  "from": "Bedtime ends"
+ },
+ "adv.screenTime.clockUnset": {
+  "text": "El reloj del televisor aún no está en hora. Los límites se aplican cuando lo esté.",
+  "from": "The TV’s clock is not set yet. The limits apply once it is."
+ },
+ "adv.screenTime.daily": {
+  "text": "Límite diario",
+  "from": "Daily limit"
+ },
+ "adv.screenTime.daily.desc": {
+  "text": "El tiempo de pantalla permitido cada día, contado desde la medianoche según el reloj del televisor.",
+  "from": "The screen time allowed each day, counted from midnight on the TV’s clock."
+ },
+ "adv.screenTime.desc": {
+  "text": "Limita cuánto tiempo está encendida la pantalla cada día, en total y por app o entrada, y la mantiene apagada a la hora de dormir. El televisor muestra un aviso cinco minutos antes de un límite y otro al alcanzarlo, y un minuto después hace lo elegido abajo.",
+  "from": "Limits how long the screen is on each day, in all and per app or input, and keeps it off at bedtime. The TV shows a warning five minutes before a limit, and another when it is reached, then does what is chosen below a minute later."
+ },
+ "adv.screenTime.do.home": {
+  "text": "Ir a Inicio",
+  "from": "Go to Home"
+ },
+ "adv.screenTime.do.off": {
+  "text": "Apagar el televisor",
+  "from": "Switch the TV off"
+ },
+ "adv.screenTime.do.screenOff": {
+  "text": "Apagar la pantalla",
+  "from": "Turn the screen off"
+ },
+ "adv.screenTime.do.warn": {
+  "text": "Solo avisar",
+  "from": "Only warn"
+ },
+ "adv.screenTime.limits": {
+  "text": "Límites de tiempo de pantalla",
+  "from": "Screen-time limits"
+ },
+ "adv.screenTime.minutes": {
+  "text": "Minutos al día",
+  "from": "Minutes a day"
+ },
+ "adv.screenTime.needsWatch": {
+  "text": "Se cuenta con el tiempo de visionado, que está desactivado. Se activa en la pestaña Servidor.",
+  "from": "Counted by watch time, which is off. It is turned on in the Server tab."
+ },
+ "adv.screenTime.noLimit": {
+  "text": "Sin límite",
+  "from": "No limit"
+ },
+ "adv.screenTime.noPower": {
+  "text": "Las acciones de encendido están desactivadas en la configuración del servidor, así que el televisor no se puede apagar.",
+  "from": "Power actions are turned off in the server’s config, so the TV cannot be switched off."
+ },
+ "adv.screenTime.remove": {
+  "text": "Quitar",
+  "from": "Remove"
+ },
+ "adv.screenTime.today": {
+  "text": "Hoy hasta ahora: {time}",
+  "from": "Today so far: {time}"
+ },
+ "adv.screenTime.used": {
+  "text": "{time} hoy",
+  "from": "{time} today"
+ },
  "adv.sound": {
   "text": "Sonido",
   "from": "Sound"
@@ -1543,10 +1647,6 @@
   "text": "Temperatura",
   "from": "Temperature"
  },
- "metrics.uptime": {
-  "text": "Tiempo de actividad de la TV",
-  "from": "TV uptime"
- },
  "metrics.uptime.days": {
   "text": "{d}d {h}h {m}m",
   "from": "{d}d {h}h {m}m"
@@ -1558,10 +1658,6 @@
  "metrics.uptime.mins": {
   "text": "{m}m",
   "from": "{m}m"
- },
- "metrics.uptime.sinceBoot": {
-  "text": "Tiempo desde el encendido",
-  "from": "Time since boot"
  },
  "metrics.watch": {
   "text": "Tiempo de visionado",
@@ -1602,6 +1698,10 @@
  "metrics.watch.screenOff": {
   "text": "Pantalla apagada",
   "from": "Screen off"
+ },
+ "metrics.watch.screenSaver": {
+  "text": "Salvapantallas",
+  "from": "Screen saver"
  },
  "metrics.watch.today": {
   "text": "Hoy",
@@ -1726,6 +1826,18 @@
  "mqtt.host.hint": {
   "text": "Nombre de host o IP del broker MQTT.",
   "from": "Hostname or IP of the MQTT broker."
+ },
+ "mqtt.icons": {
+  "text": "Iconos de apps",
+  "from": "App icons"
+ },
+ "mqtt.icons.desc": {
+  "text": "Permite que un lanzador o panel en otro dispositivo muestre las apps de esta TV con sus propios iconos. Launch App en Home Assistant indica entonces la dirección de cada icono. Cualquiera en la red puede descargar los iconos y saber así qué apps están instaladas.",
+  "from": "Lets a launcher or dashboard on another device show this TV's apps with their own icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can fetch the icons, and so tell which apps are installed."
+ },
+ "mqtt.icons.toggle": {
+  "text": "Compartir iconos de apps",
+  "from": "Share app icons"
  },
  "mqtt.interval": {
   "text": "Intervalo de telemetría",
@@ -2095,6 +2207,122 @@
   "text": "Bloquea direcciones de publicidad, seguimiento y diagnóstico de LG. La app store y las actualizaciones de software siguen funcionando.",
   "from": "Blocks advertising, tracking and diagnostics addresses. LG's app store and software updates still work."
  },
+ "pv.adblock.custom": {
+  "text": "Bloqueo de anuncios personalizado",
+  "from": "Custom ad blocking"
+ },
+ "pv.adblock.custom.add": {
+  "text": "Tu fichero y la lista de Glasshouse",
+  "from": "Your file and Glasshouse's list"
+ },
+ "pv.adblock.custom.addDetail": {
+  "text": "Los {n} nombres del fichero se bloquean además de los {own} de Glasshouse para este nivel. En ambos: {shared}.",
+  "from": "The file’s {n} names are blocked as well as Glasshouse’s {own} for this tier. In both: {shared}."
+ },
+ "pv.adblock.custom.big": {
+  "text": "Ese fichero supera 1 MB.",
+  "from": "That file is over 1 MB."
+ },
+ "pv.adblock.custom.delete": {
+  "text": "Borrar",
+  "from": "Delete"
+ },
+ "pv.adblock.custom.desc": {
+  "text": "Usa tu propio fichero hosts para personalizar lo que bloquea el bloqueador de anuncios. La TV guarda la lista, así que no hay que volver a subirla tras una actualización de Glasshouse.",
+  "from": "Use your own hosts file to customise what the ad blocker blocks. The TV keeps the list, so it is not uploaded again after a Glasshouse update."
+ },
+ "pv.adblock.custom.file": {
+  "text": "Fichero hosts",
+  "from": "Hosts file"
+ },
+ "pv.adblock.custom.how": {
+  "text": "Qué se bloquea",
+  "from": "What is blocked"
+ },
+ "pv.adblock.custom.how.desc": {
+  "text": "La lista de Glasshouse es la que usa el bloqueador de anuncios por sí solo.",
+  "from": "Glasshouse's list is the one the ad blocker uses on its own."
+ },
+ "pv.adblock.custom.isOff": {
+  "text": "Desactivado: no se bloquea nada del fichero.",
+  "from": "Off: nothing in the file is blocked."
+ },
+ "pv.adblock.custom.leftOut": {
+  "text": "Omitidas: {n}, por ser redirecciones o no ser nombres de host.",
+  "from": "Left out: {n}, as redirects or not host names."
+ },
+ "pv.adblock.custom.noList": {
+  "text": "Ninguno subido todavía.",
+  "from": "None uploaded yet."
+ },
+ "pv.adblock.custom.notUsed": {
+  "text": "Ninguna",
+  "from": "None"
+ },
+ "pv.adblock.custom.offNote": {
+  "text": "No se bloquea nada mientras el bloqueador está desactivado.",
+  "from": "Nothing is blocked while the blocker is off."
+ },
+ "pv.adblock.custom.onCount": {
+  "text": "Activada · {n} nombres",
+  "from": "On · {n} names"
+ },
+ "pv.adblock.custom.removeConfirm": {
+  "text": "¿Borrar el fichero hosts de la TV?",
+  "from": "Delete the hosts file from the TV?"
+ },
+ "pv.adblock.custom.replace": {
+  "text": "Solo tu fichero",
+  "from": "Only your file"
+ },
+ "pv.adblock.custom.replaceDetail": {
+  "text": "Solo se bloquean los {n} nombres del fichero, no los {own} de Glasshouse para este nivel. En ambos: {shared}.",
+  "from": "Only the file’s {n} names are blocked, not Glasshouse’s {own} for this tier. In both: {shared}."
+ },
+ "pv.adblock.custom.replacing": {
+  "text": "Bloquea los nombres de tu fichero hosts y ninguno de los de Glasshouse, en cualquier nivel.",
+  "from": "Blocks the names in your hosts file and none of Glasshouse’s, on either tier."
+ },
+ "pv.adblock.custom.saved": {
+  "text": "Guardado {file}: {n} nombres.",
+  "from": "Saved {file}: {n} names."
+ },
+ "pv.adblock.custom.summary": {
+  "text": "{n} nombres",
+  "from": "{n} names"
+ },
+ "pv.adblock.custom.total": {
+  "text": "El bloqueador de anuncios bloquea {n} nombres.",
+  "from": "The ad blocker blocks {n} names."
+ },
+ "pv.adblock.custom.upload": {
+  "text": "Subir un fichero",
+  "from": "Upload a file"
+ },
+ "pv.adblock.custom.uploadNew": {
+  "text": "Subir un fichero nuevo",
+  "from": "Upload a new file"
+ },
+ "pv.adblock.custom.uploaded": {
+  "text": "subida el {date}",
+  "from": "uploaded {date}"
+ },
+ "pv.adblock.custom.uploading": {
+  "text": "Subiendo {file}…",
+  "from": "Uploading {file}…"
+ },
+ "pv.adblock.custom.use": {
+  "text": "Bloquear sus nombres",
+  "from": "Block its names"
+ },
+ "pv.adblock.custom.use.desc": {
+  "text": "Desactivado, el fichero se queda en la TV pero no bloquea nada.",
+  "from": "Off keeps the file on the TV but blocks nothing in it."
+ },
+ "pv.adblock.custom.warn": {
+  "text": "Según lo que bloquee, una lista puede hacer que dejen de funcionar apps, servicios de LG o las actualizaciones de software. Si algo deja de funcionar, desactiva Bloquear sus nombres para comprobarlo.",
+  "from": "Depending on what it blocks, a list can stop apps, LG's services or software updates working. If something stops working, switch Block its names off to check."
+ },
  "pv.adblock.desc": {
   "text": "Impide que la TV llegue a los servidores de anuncios, seguimiento y diagnóstico de LG.",
   "from": "Stops the TV reaching LG's ad, tracking and diagnostics servers."
@@ -2415,17 +2643,37 @@
   "text": "¿Restaurar los ajustes guardados de {tv} el {date}? Esto cambia los ajustes de LG en esta TV.",
   "from": "Restore the settings saved from {tv} on {date}? This changes LG’s settings on this TV."
  },
+ "server.backup.daily": {
+  "text": "Copia de seguridad diaria",
+  "from": "Daily backup"
+ },
+ "server.backup.daily.desc": {
+  "text": "Guarda la misma copia de seguridad en el televisor una vez al día y conserva las 7 últimas. Cada una se puede descargar o restaurar aquí.",
+  "from": "Saves the same backup on the TV once a day, and keeps the last 7. Each can be downloaded or restored here."
+ },
  "server.backup.desc": {
   "text": "Guarda en un archivo los ajustes de sonido, dispositivos, HDMI y anuncios de LG, y los de Glasshouse. Al restaurarlo, en esta TV u otra, se aplican los que la TV tenga. No incluye el acceso por red, MQTT ni los ajustes de juego.",
   "from": "Saves LG's sound, device, HDMI and ad settings, and Glasshouse's own, to a file. Restoring it, on this TV or another, sets those the TV has. Network access, MQTT and game settings are not included."
+ },
+ "server.backup.download": {
+  "text": "Descargar",
+  "from": "Download"
  },
  "server.backup.failedSome": {
   "text": "{count} no se pudieron aplicar.",
   "from": "{count} could not be set."
  },
+ "server.backup.kb": {
+  "text": "{kb} KB",
+  "from": "{kb} KB"
+ },
  "server.backup.notBackup": {
   "text": "Ese archivo no es una copia de seguridad de Glasshouse",
   "from": "That file is not a Glasshouse backup"
+ },
+ "server.backup.readFailed": {
+  "text": "No se pudo leer esa copia de seguridad — {error}",
+  "from": "Could not read that backup — {error}"
  },
  "server.backup.restarting": {
   "text": "Glasshouse se reinicia para aplicar sus propios ajustes.",
@@ -2438,6 +2686,10 @@
  "server.backup.restoreFailed": {
   "text": "No se pudo restaurar — {error}",
   "from": "Could not restore — {error}"
+ },
+ "server.backup.restoreSaved": {
+  "text": "Restaurar",
+  "from": "Restore"
  },
  "server.backup.restored": {
   "text": "Se cambiaron {changed} ajustes de LG, {same} ya estaban así y {skipped} se omitieron porque esta TV no los tiene o no están disponibles ahora.",
@@ -3006,6 +3258,26 @@
  "sound.tvSpeaker": {
   "text": "Altavoz de la TV",
   "from": "TV Speaker"
+ },
+ "srv.adblock.custom.badMode": {
+  "text": "el modo debe ser add o replace",
+  "from": "mode must be add or replace"
+ },
+ "srv.adblock.custom.empty": {
+  "text": "No se encontraron nombres de host en el fichero. Un fichero hosts tiene líneas como 0.0.0.0 ads.example.com, y una lista simple tiene un nombre en cada línea.",
+  "from": "No host names found in the file. A hosts file has lines such as 0.0.0.0 ads.example.com, and a plain list has one name on each line."
+ },
+ "srv.adblock.custom.none": {
+  "text": "no se ha subido ninguna lista de hosts",
+  "from": "no hosts list has been uploaded"
+ },
+ "srv.adblock.custom.saveFailed": {
+  "text": "no se pudo guardar tu lista de hosts: {error}",
+  "from": "could not save your hosts list: {error}"
+ },
+ "srv.adblock.custom.tooMany": {
+  "text": "el fichero tiene {n} nombres; la TV admite como máximo {max}",
+  "from": "the file has {n} names; the most the TV takes is {max}"
  },
  "srv.adblock.saveFailed": {
   "text": "no se pudo guardar el ajuste de bloqueo de publicidad: {error}",
@@ -5719,6 +5991,22 @@
   "text": "Los controles están desactivados en la configuración de este tablero.",
   "from": "Controls are switched off in this dashboard’s config."
  },
+ "tv.privacy.custom.add": {
+  "text": "{n} nombres, junto a los de Glasshouse",
+  "from": "{n} names, with Glasshouse’s"
+ },
+ "tv.privacy.custom.hint": {
+  "text": "Se cambia o se quita en el panel del navegador: Privacidad, luego Avanzado.",
+  "from": "Changed or removed in the browser dashboard: Privacy, then Advanced."
+ },
+ "tv.privacy.custom.off": {
+  "text": "Desactivada, {n} nombres guardados",
+  "from": "Off, {n} names kept"
+ },
+ "tv.privacy.custom.replace": {
+  "text": "{n} nombres, en lugar de los de Glasshouse",
+  "from": "{n} names, instead of Glasshouse’s"
+ },
  "tv.privacy.everything.hint": {
   "text": "También bloquea los servicios de la plataforma de LG. La app LG ThinQ ya no puede controlar la TV, y la tienda de apps, las actualizaciones de software y LG Channels pueden dejar de funcionar.",
   "from": "Also blocks LG’s platform services. The LG ThinQ app can no longer control the TV, and the app store, software updates and LG Channels may stop working."
@@ -6111,10 +6399,6 @@
   "text": "El sensor del procesador principal (SoC), no del panel. Sube con la decodificación de vídeo y la carga de CPU.",
   "from": "The main processor (SoC) sensor, not the panel. It climbs with video decoding and CPU workload."
  },
- "tv.system.uptime": {
-  "text": "Tiempo en marcha",
-  "from": "Uptime"
- },
  "tv.system.wiFi": {
   "text": "Wi-Fi",
   "from": "Wi-Fi"
@@ -6347,6 +6631,74 @@
   "text": "Notas completas de la versión",
   "from": "Full release notes"
  },
+ "server.ssh.add": {
+  "text": "Añadir clave",
+  "from": "Add key"
+ },
+ "server.ssh.delete": {
+  "text": "Borrar el archivo de claves",
+  "from": "Delete the key file"
+ },
+ "server.ssh.deleteConfirm": {
+  "text": "¿Borrar el archivo de claves? Desde ahora ninguna clave podrá entrar, y desde el próximo reinicio root entrará con la contraseña alpine, que todo el mundo conoce. Hasta ese reinicio nada podrá entrar por SSH.",
+  "from": "Delete the key file? No key will log in from now on, and from the next reboot root logs in with the password alpine, which everyone knows. Until that reboot nothing can log in over SSH."
+ },
+ "server.ssh.desc": {
+  "text": "Las claves públicas que pueden entrar en el televisor como root por SSH. Mientras exista el archivo de claves, el Homebrew Channel deja a root sin contraseña, así que solo entran estas claves.",
+  "from": "The public keys that can log in to the TV as root over SSH. While any key file is there, the Homebrew Channel leaves root without a password, so only these keys get in."
+ },
+ "server.ssh.failed": {
+  "text": "No se pudieron leer las claves SSH — {error}",
+  "from": "Could not read the SSH keys — {error}"
+ },
+ "server.ssh.needsToken": {
+  "text": "Para cambiarlas hace falta un token en config.json. Sin él, cualquiera en la red podría añadir su propia clave.",
+  "from": "Changing these needs a token set in config.json. Without one, anyone on the network could add their own key."
+ },
+ "server.ssh.newKey": {
+  "text": "Clave pública que añadir",
+  "from": "Public key to add"
+ },
+ "server.ssh.noKeys": {
+  "text": "El archivo de claves no tiene ninguna, así que nada podrá entrar por SSH hasta que se añada una.",
+  "from": "The key file has no keys, so nothing can log in over SSH until one is added."
+ },
+ "server.ssh.notRunning": {
+  "text": "SSH está desactivado en el Homebrew Channel, así que nada de esto se aplica hasta activarlo allí y reiniciar el televisor.",
+  "from": "SSH is off in the Homebrew Channel, so none of this applies until it is turned on there and the TV restarted."
+ },
+ "server.ssh.password": {
+  "text": "No hay archivo de claves, así que root entra con la contraseña alpine, que todo el mundo conoce. Añadir una clave lo termina desde el próximo reinicio.",
+  "from": "There is no key file, so root logs in with the password alpine, which everyone knows. Adding a key ends that from the next reboot."
+ },
+ "server.ssh.passwordAfterReboot": {
+  "text": "El archivo de claves está borrado. Desde el próximo reinicio root entrará con la contraseña alpine, que todo el mundo conoce. Hasta entonces nada podrá entrar por SSH.",
+  "from": "The key file is deleted. From the next reboot root logs in with the password alpine, which everyone knows. Until then nothing can log in over SSH."
+ },
+ "server.ssh.passwordUntilReboot": {
+  "text": "La contraseña alpine sigue funcionando hasta el próximo reinicio.",
+  "from": "The password alpine still works until the next reboot."
+ },
+ "server.ssh.reboot": {
+  "text": "Reiniciar ahora",
+  "from": "Reboot now"
+ },
+ "server.ssh.remove": {
+  "text": "Quitar",
+  "from": "Remove"
+ },
+ "server.ssh.removeConfirm": {
+  "text": "¿Quitar esta clave? Ya no podrá entrar.",
+  "from": "Remove this key? It will no longer be able to log in."
+ },
+ "server.ssh.removeLastConfirm": {
+  "text": "¿Quitar la última clave? Nada podrá entrar por SSH hasta que se añada una.",
+  "from": "Remove the last key? Nothing will be able to log in over SSH until a key is added."
+ },
+ "server.ssh.title": {
+  "text": "Claves SSH",
+  "from": "SSH keys"
+ },
  "server.watch.clear": {
   "text": "Borrar historial",
   "from": "Clear history"
@@ -6374,6 +6726,42 @@
  "server.whatsNew.moreOne": {
   "text": "Y 1 versión más",
   "from": "And 1 more release"
+ },
+ "srv.ssh.already": {
+  "text": "Esa clave ya está.",
+  "from": "That key is already there."
+ },
+ "srv.ssh.deleteFailed": {
+  "text": "No se pudo borrar {file}: {error}",
+  "from": "Could not delete {file}: {error}"
+ },
+ "srv.ssh.needsToken": {
+  "text": "Cambiar las claves SSH requiere un token en config.json.",
+  "from": "Changing SSH keys needs a token in config.json."
+ },
+ "srv.ssh.noSuchKey": {
+  "text": "Esa clave no está.",
+  "from": "That key is not there."
+ },
+ "srv.ssh.notKey": {
+  "text": "Eso no es una clave pública SSH.",
+  "from": "That is not an SSH public key."
+ },
+ "srv.ssh.oneKey": {
+  "text": "Pega una sola clave pública, en una línea.",
+  "from": "Paste one public key, on one line."
+ },
+ "srv.ssh.private": {
+  "text": "Eso es una clave privada. Pega la clave pública, del archivo .pub.",
+  "from": "That is a private key. Paste the public key, from the .pub file."
+ },
+ "srv.ssh.tooMany": {
+  "text": "Ya hay 50 claves.",
+  "from": "There are already 50 keys."
+ },
+ "srv.ssh.writeFailed": {
+  "text": "No se pudo escribir {file}: {error}",
+  "from": "Could not write {file}: {error}"
  },
  "tv.update.whatsNew.more.hint": {
   "text": "Sus notas están en GitHub, en las versiones de Glasshouse.",

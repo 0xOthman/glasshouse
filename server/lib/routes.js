@@ -10,6 +10,7 @@ var http = require('http');
 var say = require('./say');
 var lanAddress = require('./util').lanAddress;
 var listenDualStack = require('./util').listenDualStack;
+var sendIconFile = require('./iconserver').sendIconFile;
 var writeJsonAtomic = require('./util').writeJsonAtomic;
 var unlinkQuiet = require('./util').unlinkQuiet;
 var existsQuiet = require('./util').existsQuiet;
@@ -91,6 +92,10 @@ var syslogModule = null;
 var ntpModule = null;
 /** @type {typeof import('./history')} */
 var historyModule = null;
+/** @type {typeof import('./sshkeys')} */
+var sshKeysModule = null;
+/** @type {typeof import('./screentime')} */
+var screentimeModule = null;
 /** @type {typeof import('./backup')} */
 var backupModule = null;
 var fromHbcFn = null;
@@ -186,7 +191,8 @@ function setupPending() {
  * own exposure defeats the point of setting them. The one exception is host,
  * from the TV itself during setup - see setNetworkAccess. Experimental feature
  * toggles (allowTileHiding, allowOnWebos10), allowNetworkDebugger and
- * prometheus.enabled are writable from the Server tab.
+ * prometheus.enabled are writable from the Server tab, and iconServer from the
+ * MQTT tab: its port answers nothing but the icons the dashboard serves.
  */
 function readConfigFile() {
   try {
@@ -264,6 +270,8 @@ function validateSettings(j) {
   if (!/^[a-z0-9_]{1,64}$/.test(out.device.id)) e.push('device id must be 1-64 characters of a-z, 0-9 or _');
   out.device.name = trimmedString(d.name);
 
+  // Saved with the MQTT form, whose Launch App select lists the icons' addresses.
+  if (j && typeof j.iconServer === 'boolean') out.iconServer = j.iconServer;
 
   return { errors: e, value: out };
 }
@@ -595,6 +603,7 @@ function updateSummary() {
   s.isWebos10 = !!(screensaversModule && screensaversModule.slowSwitch && screensaversModule.slowSwitch());
   s.prometheusEnabled = prometheusEnabled();
   s.watchHistory = historyModule ? historyModule.status() : null;
+  s.backupDaily = backupModule ? backupModule.dailyStatus() : null;
   s.ntp = ntpModule ? ntpModule.getStatus() : null;
   // What is saved, on or off, so the switch can show a server kept while off.
   var ntpConf = (config && config.ntp) || {};
@@ -934,6 +943,7 @@ function getSettingsPayload() {
     ok: true,
     writable: config.allowControl,
     configFile: configFilePath,
+    iconServer: config.iconServer === true,
     mqtt: {
       enabled: !!mc.enabled,
       host: mc.host || '',
@@ -1242,6 +1252,69 @@ function handleRequest(req, res) {
     return send(res, 200, JSON.stringify(historyReply));
   }
 
+  /*
+   * The keys that may log in as root over SSH: GET lists them, POST adds one,
+   * removes one or deletes the file. A key is a way in that outlasts this
+   * server, so changing them needs a token, which every /api/ request has
+   * then been checked for. A request from the TV itself is not enough: a page
+   * in its browser reached through a rebinding name, or any app on the TV,
+   * comes from 127.0.0.1 too, and a key added that way is root.
+   */
+  if (pathname === '/api/ssh' && sshKeysModule) {
+    var sshNeedsToken = !config.token;
+    if (req.method !== 'POST') {
+      return sshKeysModule.status(function (r) {
+        r.writable = !!config.allowControl && !sshNeedsToken;
+        r.needsToken = !!config.allowControl && sshNeedsToken;
+        // A key's comment is often its owner's address: only for whoever could change the keys.
+        if (sshNeedsToken) {
+          (r.keys || []).forEach(function (k) { delete k.comment; delete k.options; });
+        }
+        send(res, 200, JSON.stringify(r));
+      });
+    }
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (sshNeedsToken) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.ssh.needsToken', 'Changing SSH keys needs a token in config.json.') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      var sshReply = function (r) {
+        if (r.ok) r.writable = true;
+        send(res, r.ok ? 200 : 400, JSON.stringify(r));
+      };
+      if (body.action === 'add') return sshKeysModule.add(body.key, sshReply);
+      if (body.action === 'remove') return sshKeysModule.remove(String(body.fingerprint || ''), sshReply);
+      if (body.action === 'deleteFile') return sshKeysModule.deleteFile(sshReply);
+      send(res, 400, JSON.stringify({ ok: false, error: 'unknown action' }));
+    });
+  }
+  // Screen-time limits: GET for the Advanced tab, POST to change any of the settings.
+  if (pathname === '/api/screentime' && screentimeModule) {
+    if (req.method !== 'POST') {
+      var stReply = screentimeModule.status(Date.now());
+      stReply.ok = true;
+      stReply.writable = !!config.allowControl;
+      return send(res, 200, JSON.stringify(stReply));
+    }
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      var st = screentimeModule.validate(body);
+      if (st.error) return send(res, 400, JSON.stringify({ ok: false, error: st.error }));
+      writeSettings({ screenTime: st.value }, function (err) {
+        if (err) return send(res, 500, JSON.stringify({ ok: false, error: 'could not save setting: ' + err.message }));
+        screentimeModule.apply(st.value);
+        var stSaved = screentimeModule.status(Date.now());
+        stSaved.ok = true;
+        stSaved.writable = true;
+        send(res, 200, JSON.stringify(stSaved));
+      });
+    });
+  }
+
   if (pathname === '/api/cpu') {
     return telemetryModule.collectCpuProcesses(function (r) { send(res, 200, JSON.stringify(r)); });
   }
@@ -1288,6 +1361,36 @@ function handleRequest(req, res) {
     });
   }
 
+  /*
+   * The owner's own hosts list for the ad blocker: { mode, text } uploads one,
+   * { mode } changes how it is used, { clear: true } removes it. Larger than
+   * /api/control takes, so a route of its own, held to the same rules.
+   */
+  if (pathname === '/api/adblock/custom' && req.method === 'POST') {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (!postGuard(req, res, 'application/json', false)) return;
+    var cbody = '';
+    var ctoo = false;
+    req.on('data', function (d) {
+      cbody += d;
+      if (cbody.length > 1048576) { ctoo = true; req.destroy(); }
+    });
+    req.on('end', function () {
+      if (ctoo) return;
+      var cj = null;
+      try { cj = JSON.parse(cbody); } catch (e) {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      if (!cj || typeof cj !== 'object') {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      privacyModule.setCustomHosts(cj, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
+    });
+    return;
+  }
+
   if (pathname === '/api/privacy') {
     return privacyModule.collectPrivacy(function (pv) { send(res, 200, JSON.stringify(pv)); });
   }
@@ -1323,28 +1426,8 @@ function handleRequest(req, res) {
     var iconAppId = u.query && u.query.id;
     return appsModule.getIconPath(iconAppId, function (iconPath) {
       if (!iconPath) return send(res, 404, JSON.stringify({ ok: false, error: 'icon not found' }));
-      fs.stat(iconPath, function (err, st) {
-        if (err || !st) return send(res, 404, JSON.stringify({ ok: false, error: 'icon read failed' }));
-        var etag = '"' + st.size.toString(16) + '-' + Number(st.mtime).toString(16) + '"';
-        var headers = {
-          'Content-Type': 'image/png',
-          'Content-Length': st.size,
-          'Cache-Control': 'public, max-age=86400',
-          'ETag': etag
-        };
-        if (req.headers && req.headers['if-none-match'] === etag) {
-          res.writeHead(304, { 'ETag': etag, 'Cache-Control': headers['Cache-Control'] });
-          return res.end();
-        }
-        if (req.method === 'HEAD') {
-          res.writeHead(200, headers);
-          return res.end();
-        }
-        fs.readFile(iconPath, function (readErr, buf) {
-          if (readErr || !buf) return send(res, 500, JSON.stringify({ ok: false, error: 'icon read failed' }));
-          res.writeHead(200, headers);
-          res.end(buf);
-        });
+      sendIconFile(req, res, iconPath, function (status, error) {
+        send(res, status, JSON.stringify({ ok: false, error: error }));
       });
     });
   }
@@ -1522,6 +1605,13 @@ function handleRequest(req, res) {
     return send(res, 200, JSON.stringify({ ok: true, apps: [] }));
   }
 
+  // A daily backup kept on the TV, by name, saved by the browser as a file.
+  if (pathname === '/api/backup/saved' && req.method === 'GET' && backupModule) {
+    var savedBackup = backupModule.readSaved(String(u.query.name || ''));
+    if (savedBackup === null) return send(res, 404, JSON.stringify({ ok: false, error: 'no such backup' }));
+    return send(res, 200, savedBackup);
+  }
+
   // A backup of the TV's settings, saved by the browser as a file.
   if (pathname === '/api/backup' && req.method === 'GET' && backupModule) {
     return backupModule.create(function (b) { send(res, 200, JSON.stringify(b)); });
@@ -1664,6 +1754,8 @@ function init(opts) {
   if (opts.syslog) syslogModule = opts.syslog;
   if (opts.ntp) ntpModule = opts.ntp;
   if (opts.history) historyModule = opts.history;
+  if (opts.sshKeys) sshKeysModule = opts.sshKeys;
+  if (opts.screentime) screentimeModule = opts.screentime;
   if (opts.backup) backupModule = opts.backup;
   if (opts.fromHomebrewChannel) fromHbcFn = opts.fromHomebrewChannel;
   if (opts.tileHidingOff) tileHidingOffMsg = opts.tileHidingOff;

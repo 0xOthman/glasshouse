@@ -10,6 +10,8 @@ var msg = require('./say').msg;
 var SS = require('./screensavers').SCREENSAVERS;
 var topics = require('./topics');
 var names = require('./names');
+var hexColor = require('./util').hexColor;
+var APP_ID_RE = require('./iconserver').APP_ID_RE;
 var SS_IDS = Object.keys(SS);
 function ssMap(byLabel) {
   var m = {};
@@ -271,6 +273,33 @@ function appNames(installed) {
 }
 
 /*
+ * The Launch App select's attributes: each option's app id, and for a
+ * launcher showing the apps as tiles, each app's icon on the LAN icon server
+ * (iconBaseUrl, when it is listening) and its appinfo.json iconColor.
+ */
+function appAttributes(toId, byId, installed, iconBaseUrl) {
+  var attrs = { app_ids: toId };
+  var id;
+  if (iconBaseUrl) {
+    var icons = {};
+    for (id in byId) {
+      if (APP_ID_RE.test(id)) icons[id] = iconBaseUrl + id + '.png';
+    }
+    attrs.app_icons = icons;
+  }
+  var colors = {}, anyColor = false;
+  for (var i = 0; i < (installed || []).length; i++) {
+    var color = hexColor(installed[i].iconColor);
+    if (color && byId[installed[i].id]) {
+      colors[installed[i].id] = color;
+      anyColor = true;
+    }
+  }
+  if (anyColor) attrs.app_colors = colors;
+  return attrs;
+}
+
+/*
  * A select that shows names but sends and reads ids. Where two ids share a
  * name (optical and external_optical are both "Optical"), the first id is the
  * one sent. A value sent that is not a listed name goes through as written,
@@ -498,8 +527,8 @@ function buildEntities(opts) {
           value_template: '{{ value_json.display_title or value_json.app_name or value_json.app }}',
           // The title changes when an app is renamed; the id does not. A
           // remote that only acts in certain apps checks the id.
-          json_attributes_topic: topic.telemetry,
-          json_attributes_template: '{{ {"app_id": value_json.app_id or ""} | tojson }}',
+          json_attributes_topic: topic.state('application/remote'),
+          json_attributes_template: '{{ value_json | tojson }}',
           icon: 'mdi:television-play'
         }
       },
@@ -1043,7 +1072,7 @@ function buildEntities(opts) {
             // Each option's app id, for a client that keeps a chosen app by id:
             // a title can change while the id stays.
             json_attributes_topic: topic.telemetry,
-            json_attributes_template: '{{ ' + JSON.stringify({ app_ids: toId }) + ' | tojson }}',
+            json_attributes_template: '{{ ' + JSON.stringify(appAttributes(toId, byId, installedApps, opts.iconBaseUrl)) + ' | tojson }}',
             options: Object.keys(toId),
             icon: 'mdi:apps'
           };
