@@ -38,6 +38,7 @@ global.setTimeout = function (fn) { process.nextTick(fn); return 0; };
 // sam: reports the type it read last; a block followed by a release makes it
 // read the manifest at the path again. configd: records any write.
 var samType = 'flutter';
+var samStuck = false;     // sam keeps the type it has, whatever is asked
 var samCalls = [];
 var configWrites = 0;
 var closes = 0;
@@ -54,7 +55,7 @@ var env = mockEnv.createMockEnv({
     'com.webos.applicationManager/releaseBlockSystemApp': function (p) {
       samCalls.push('release ' + p.id);
       var info = JSON.parse(env.files[path.join(APP, 'appinfo.json')]);
-      samType = info.type;
+      if (!samStuck) samType = info.type;
       return { returnValue: true };
     },
     'com.webos.service.config/getConfigs': function () {
@@ -111,8 +112,20 @@ process.nextTick(function () {
       assert.strictEqual(configWrites, 0);
       assert.strictEqual(restarts.length, 0);
       console.log('  ✓ switching back to the LG default rereads it the same way');
-      console.log('ALL test-screensaver-reread.js assertions passed!\n');
-      env.restore();
+
+      // 3. sam does not take it: even with allowOnWebos10 set, sam is not
+      // restarted (#366); the switch is undone and LG's kept.
+      samStuck = true;
+      screensavers.setScreensaver('clock', 'dim', function (u) {
+        assert.strictEqual(u.ok, false);
+        assert.ok(/LG's screen saver is kept/.test(u.error), u.error);
+        assert.strictEqual(u.current, 'stock');
+        assert.ok(!mounted, 'ours is taken off again');
+        assert.strictEqual(restarts.length, 0, 'sam is never restarted');
+        console.log('  ✓ a switch sam does not take is undone, and sam is not restarted, even with allowOnWebos10');
+        console.log('ALL test-screensaver-reread.js assertions passed!\n');
+        env.restore();
+      });
     });
   });
 });
