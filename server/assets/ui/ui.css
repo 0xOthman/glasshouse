@@ -1335,3 +1335,37 @@ button.tools-jump:active{background:var(--w80)}
 /* Quick Access: the key's number before what it opens. */
 .qa-key{display:inline-block;min-width:1.4em;font-family:'Outfit';font-weight:300;font-size:20px;color:var(--w100);margin-right:6px}
 .qa-sel{max-width:240px}
+
+/* ---- Remote keys (apps.js): a tile per key, grouped as on the remote ---- */
+#apps-rk-list{margin-top:4px}
+.rk-grp{font:600 11px 'Manrope';letter-spacing:.14em;text-transform:uppercase;color:var(--w60);margin:22px 0 10px}
+.rk-more>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+.rk-more>summary::-webkit-details-marker{display:none}
+.rk-more>summary::before{content:'▸';font-size:12px;transition:transform .15s}
+.rk-more[open]>summary::before{transform:rotate(90deg)}
+.rk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:820px){.rk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rk-key{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-height:84px;padding:14px 16px;
+  text-align:left;text-transform:none;letter-spacing:0;font-weight:400;border:1px solid var(--w12);color:var(--w80)}
+.rk-key:hover:not(:disabled){border-color:var(--w40)}
+.rk-key.rk-changed{border-color:var(--w60)}
+.rk-key.rk-open{border-color:var(--w100);background:var(--w06)}
+.rk-name{display:flex;align-items:center;gap:8px;font:500 11px 'Manrope';letter-spacing:.16em;text-transform:uppercase;color:var(--w60)}
+.rk-key.rk-changed .rk-name{color:var(--w80)}
+.rk-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.rk-does{display:flex;align-items:center;gap:10px;min-width:0;font:400 15px 'Manrope';color:var(--w100)}
+.rk-does span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-lg{color:var(--w50)}
+.rk-none{font-size:17px;line-height:1}
+.rk-ico{width:24px;height:24px;border-radius:6px;object-fit:contain;background:var(--w06);flex:none}
+.rk-pick{grid-column:1/-1;position:relative;border:1px solid var(--w100);padding:16px 18px 18px;margin-top:2px}
+.rk-pick::before{content:'';position:absolute;top:-9px;left:calc(var(--rk-arrow, 40px) - 8px);
+  border:8px solid transparent;border-top:0;border-bottom-color:var(--w100)}
+.rk-pick-head{display:flex;justify-content:space-between;align-items:center;gap:16px;
+  font:500 12px 'Manrope';letter-spacing:.14em;text-transform:uppercase;color:var(--w100)}
+.rk-close{min-height:0;padding:6px 10px;border:0;font-size:11px;color:var(--w60)}
+.rk-sub{font:600 10px 'Manrope';letter-spacing:.14em;text-transform:uppercase;color:var(--w60);margin-top:14px}
+.rk-opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.rk-opt{display:flex;align-items:center;gap:10px;min-height:42px;padding:8px 14px}
+.rk-opt .rk-ico{width:22px;height:22px;border-radius:5px}
+.rk-opt.on{color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100)}

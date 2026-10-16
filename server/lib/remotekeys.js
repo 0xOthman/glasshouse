@@ -59,16 +59,21 @@ var APP_PREFIX = 'com.webos.app.';
  * compositor's filters match on; the title is what the remote prints. The
  * Amazon button is Alexa on some remotes, and the Prime Video button on most.
  */
+/*
+ * regions: the countries (smartServiceCountryCode2) whose remotes have the
+ * key. LG ships one filter set to many regions, so a UK C2 names Hulu and Sling
+ * TV too; the dashboard keeps a key from elsewhere out of the way.
+ */
 var KEYS = [
   { key: 'netflix', symbol: 'WebOS.Key_webOS_Netflix', title: 'Netflix' },
   { key: 'amazon', symbol: 'WebOS.Key_webOS_Amazon', title: 'Prime Video' },
   { key: 'disneyplus', symbol: 'WebOS.Key_webOS_Disneyplus', title: 'Disney+' },
   { key: 'lgchannels', symbol: 'WebOS.Key_webOS_LGChannels', title: 'LG Channels' },
   { key: 'rakutentv', symbol: 'WebOS.Key_webOS_RakutenTV', title: 'Rakuten TV' },
-  { key: 'hulu', symbol: 'WebOS.Key_webOS_Hulu', title: 'Hulu' },
-  { key: 'iplayer', symbol: 'WebOS.Key_webOS_IPlayer', title: 'BBC iPlayer' },
-  { key: 'freeviewplay', symbol: 'WebOS.Key_webOS_FreeviewPlay', title: 'Freeview Play' },
-  { key: 'slingtv', symbol: 'WebOS.Key_webOS_SlingTV', title: 'Sling TV' },
+  { key: 'hulu', symbol: 'WebOS.Key_webOS_Hulu', title: 'Hulu', regions: ['us'] },
+  { key: 'iplayer', symbol: 'WebOS.Key_webOS_IPlayer', title: 'BBC iPlayer', regions: ['gb'] },
+  { key: 'freeviewplay', symbol: 'WebOS.Key_webOS_FreeviewPlay', title: 'Freeview Play', regions: ['gb'] },
+  { key: 'slingtv', symbol: 'WebOS.Key_webOS_SlingTV', title: 'Sling TV', regions: ['us'] },
   { key: 'apps', symbol: 'WebOS.Key_webOS_Apps', title: 'Apps' },
   { key: 'guide', symbol: 'WebOS.Key_webOS_TVGuide', title: 'Guide' },
   { key: 'input', symbol: 'WebOS.Key_webOS_InputSource', title: 'Input' },
@@ -95,6 +100,11 @@ function init(opts) {
   if (opts.stateDir) stateDir = opts.stateDir;
   filtersDir = opts.filtersDir || LG_FILTERS_DIR;
   tvKeys = null;
+}
+
+// The TV's country as privacy.js learns it, or '' before it has.
+function country() {
+  try { return fs.readFileSync(path.join(stateDir, 'country'), 'utf8').trim().toLowerCase(); } catch (e) { return ''; }
 }
 
 function mapFile() { return path.join(stateDir, 'remotekeys.json'); }
@@ -337,6 +347,7 @@ function getRemoteKeys(cb) {
       var titles = {};
       (apps || []).forEach(function (a) { if (a && a.id) titles[a.id] = a.title || a.id; });
       var inputs = inputChoices();
+      var cc = country();
       inputs.forEach(function (c) { titles[c.id] = c.title; });
       var out = keys.map(function (k) {
         var set = Object.prototype.hasOwnProperty.call(map, k.key);
@@ -346,7 +357,8 @@ function getRemoteKeys(cb) {
           title: k.title,
           action: !set ? 'lg' : (id ? 'open' : 'nothing'),
           id: id || '',
-          opens: id ? (titles[id] || id) : ''
+          opens: id ? (titles[id] || id) : '',
+          elsewhere: !!(cc && k.regions && k.regions.indexOf(cc) === -1)
         };
       });
       cb({
@@ -360,8 +372,8 @@ function getRemoteKeys(cb) {
 
 /*
  * Sets a key: action 'lg' puts it back as LG has it, 'nothing' makes it do
- * nothing, 'open' opens id, an input or an app on the Home screen. The chain
- * is rewritten at once. cb({ ok, error }).
+ * nothing, 'open' opens id, an input or an app on the Home screen. It takes
+ * effect at once, through the filter's configd subscription. cb({ ok, error }).
  */
 function setRemoteKey(key, action, id, cb) {
   if (!lunaFn) return cb({ ok: false, error: 'no luna wrapper' });
