@@ -54,7 +54,11 @@ The worker itself stays Python 2.7 compatible for the TV.
 runs each through Home Assistant's own validation, then checks that the volume
 entities are available exactly when the TV lets their volume be changed. Home
 Assistant creates no entity for a config it rejects, and says so only in its
-own log, which is how Volume and Mute went missing in 0.78.0.
+own log, which is how Volume and Mute went missing in 0.78.0. It also renders
+every template that reads telemetry against the stats each fixture TV reported
+and fails on any warning Home Assistant logs: a field missing from the payload
+is logged on every message, which was tens of thousands of lines an hour with
+a few TVs (#761).
 
 It runs when the server or the check changes, not for documentation, and
 weekly, since Home Assistant is not pinned: a release that starts rejecting a

@@ -9,7 +9,11 @@ Mute, Volume Up and Volume Down (#437), which carried an availability list
 and the flat availability_topic together, and no check here asked it. This
 runs each config from scripts/discovery-configs.js through Home Assistant's
 own MQTT discovery schemas, then renders the volume entities' availability
-templates in each case of telemetry's volume_control.
+templates in each case of telemetry's volume_control, and every template that
+reads telemetry against the stats each fixture TV reported, failing on any
+warning Home Assistant logs: a field missing from the payload is logged as a
+Template variable warning on every message, tens of thousands an hour with a
+few TVs (#761).
 
 Needs the homeassistant package (Python 3.13), which CI installs:
 
@@ -19,6 +23,7 @@ Needs the homeassistant package (Python 3.13), which CI installs:
 import asyncio
 import importlib
 import json
+import logging
 import pathlib
 import subprocess
 import sys
@@ -84,6 +89,41 @@ async def main():
             got = render(hass, own[0]['value_template'], json.dumps(payload))
             if got != want:
                 problems.append('%s with volume_control %s is %s, not %s' % (eid, control, got, want))
+
+    # Every template that reads the telemetry, rendered as each fixture TV
+    # reported it: Home Assistant logs each field one reads that is missing.
+    logged = []
+
+    class Catch(logging.Handler):
+        def emit(self, record):
+            logged.append(record.getMessage())
+
+    catch = Catch(logging.WARNING)
+    template_log = logging.getLogger('homeassistant.helpers.template')
+    template_log.addHandler(catch)
+    fixtures = sorted((ROOT / 'test' / 'fixtures').glob('stats-*.json'))
+    checked = 0
+    for c in configs:
+        conf = c['conf']
+        reads = []
+        if conf.get('state_topic') == 'tv/telemetry' and 'value_template' in conf:
+            reads.append(('value_template', conf['value_template']))
+        if conf.get('json_attributes_topic') == 'tv/telemetry' and 'json_attributes_template' in conf:
+            reads.append(('json_attributes_template', conf['json_attributes_template']))
+        reads += [('availability', a['value_template']) for a in conf.get('availability', [])
+                  if a.get('topic') == 'tv/telemetry' and 'value_template' in a]
+        checked += len(reads)
+        for key, template in reads:
+            for fixture in fixtures:
+                del logged[:]
+                try:
+                    render(hass, template, fixture.read_text(encoding='utf-8'))
+                except Exception as e:  # noqa: BLE001 - any failure is the finding
+                    logged.append('%s: %s' % (type(e).__name__, e))
+                for message in sorted(set(logged)):
+                    problems.append('%s.%s %s with %s: %s' % (c['type'], c['id'], key, fixture.name, message))
+    template_log.removeHandler(catch)
+    print('%d telemetry templates rendered against %d fixture TVs' % (checked, len(fixtures)))
 
     await hass.async_stop(force=True)
     for p in problems:
