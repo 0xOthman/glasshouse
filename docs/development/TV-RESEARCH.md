@@ -328,6 +328,19 @@ app in front. Remote Keys puts its own filter first.
   `com.webos.service.networkinput/test/sendKeyCode` with a Linux key code (the
   `IR_KEY_*` value in `/usr/share/X11/xkb/keycodes/lg` less 8: Blue 401, TV 377)
   reached a mapped key's filter like the remote's own press.
+- **A rebuild re-runs LG's `init()`s.** In Game mode each write of the key
+  opened the Game Dashboard (`NL_GAMEDASHBOARD_ENTERED`,
+  `"entered_by":"HotKey"` in `/var/log/messages`) on the C2. Launching an app
+  the same way does not.
+- **Filters can subscribe over luna.** LG's use the global `lunaCall.subscribe(
+  service, method, payload, callback, true)`. A filter subscribed to
+  `com.webos.service.config/getConfigs` gets a changed value about 0.1 s after
+  `setConfigs`, on the B8 and the C2, so its behaviour can change with no
+  rebuild.
+- **configd takes any name and cannot forget one.** `setConfigs` stores a key
+  it has never heard of (`glasshouse.remoteKeys`) in
+  `/mnt/lg/cmn_data/var/preferences/configd_factory_db.json`, kept across
+  reboots. There is no delete method, and setting `null` is ignored.
 
 ## Home screen (webOS 10 and 11)
 

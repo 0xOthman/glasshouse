@@ -565,15 +565,26 @@ filter, reloads the files from disk and builds the chain again
 once with nothing restarted. configd keeps a set value across reboots, as it
 does for the preload list.
 
-`remotekeys.js` uses that and nothing else. The keys set on the Apps tab are
-kept in `/var/lib/tvweb/remotekeys.json`; from them it writes
-`remotekeys-filter.js` beside it, one `case` per key, and sets the configd key
-to that entry followed by whatever the list held, less any earlier entry of its
-own. A key it names is consumed on press and release, the press opening what
-was chosen with `applicationManager.launch(id, "{}")` or nothing; every other
-key returns `NextPolicy`. LG's files are never written, and with no key set the
-entry is taken out and the file deleted, so **As LG has it** on every key is
-LG's chain, byte for byte.
+`remotekeys.js` uses that, but writes the chain as little as it can, because
+a reload is not free: it runs every LG filter's `init()` again, and with the
+TV in Game mode that opens the Game Dashboard (`com.webos.app.quicksettings`,
+logged as `NL_GAMEDASHBOARD_ENTERED` with `"entered_by":"HotKey"`) on every
+write. So the filter, `remotekeys-filter.js` in `/var/lib/tvweb/`, is the same
+file whatever is mapped, and it is put first in the chain once, when the first
+key is set. The mappings go in a configd value of Glasshouse's own,
+`glasshouse.remoteKeys` (`{ "keys": { "blue": "com.webos.app.hdmi2" } }`, an
+empty string for nothing), which the filter subscribes to in `init()` with
+`lunaCall.subscribe`, as LG's filters do; a change reaches it within a second,
+with no reload. configd keeps the value across reboots, so the mappings work
+before the server has started. The Apps tab's copy is kept in
+`/var/lib/tvweb/remotekeys.json`.
+
+A key it names is consumed on press and release, the press opening what was
+chosen with `applicationManager.launch(id, "{}")` or nothing; every other key
+returns `NextPolicy`. LG's files are never written. configd has no way to
+delete a value, so **As LG has it** on every key leaves the filter in the
+chain, passing every key on, and `tvwebctl restore-keys` takes it out, deletes
+the file and leaves `glasshouse.remoteKeys` as an empty map.
 
 Only keys this TV's own filter files name are offered, found by searching them
 for the symbol (`WebOS.Key_webOS_Disneyplus` is in a C5's `appLaunch.js` and
@@ -584,11 +595,9 @@ mute, channel and power are handled by the microcontroller before any filter
 sees them, so there is nothing to change.
 
 The compositor reloads only on a change of the key's value: configd says
-nothing to a subscriber when the same list is written again. A CX kept running
-the first filter through two rewrites of the file whose chain writes were
-identical, and took the new file the moment the entry went out and came back.
-So a change made while the entry is already in the chain is written as two
-lists, LG's alone and then the full one, each a reload.
+nothing to a subscriber when the same list is written again. When an update
+changes the filter file, the entry is taken out and put back, two writes, the
+only time the chain is written while a key is set.
 
 A file with a syntax error costs only its own entry: the loader catches the
 exception and logs it, and LG's filters still load. The filter's own console
