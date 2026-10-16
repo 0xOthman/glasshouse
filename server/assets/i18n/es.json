@@ -4691,6 +4691,14 @@
   "text": "Estallidos de color sobre negro, cada pocos segundos.",
   "from": "Bursts of colour on black, a few seconds apart."
  },
+ "srv.saver.harmonograph": {
+  "text": "Harmonógrafo",
+  "from": "Harmonograph"
+ },
+ "srv.saver.harmonograph.desc": {
+  "text": "Cintas de luz pendulares que se entrelazan y desvanecen sobre negro.",
+  "from": "Pendulum ribbons of light weaving and fading on black."
+ },
  "srv.saver.held": {
   "text": "Los salvapantallas personalizados están desactivados en esta TV por ahora, ya que no se han probado en su versión de webOS. Antes de la 0.98.1, en webOS 10, podían dejar la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV. Uno que ya esté en uso sigue hasta que la TV se reinicie por completo.",
   "from": "Custom screen savers are turned off on this TV for now, as they have not been tried on its webOS version. Before 0.98.1, on webOS 10, they could leave the picture, the sound and HDMI control off until the TV was unplugged. One already in use stays until the TV is next fully restarted."
