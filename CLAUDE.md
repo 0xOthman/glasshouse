@@ -66,7 +66,9 @@ use modern JavaScript.
 
 Before pushing, run what CI runs: `node test/run-all.js`, `npx tsc`, and
 `scripts/check-es5.py`, `check-module-calls.py`, `check-ui-ids.py`,
-`check-strings.py`, `check-screensavers.py` and `check-drift.py`, and
+`check-strings.py`, `check-screensavers.py`, `check-drift.py`,
+`check-entity-stability.py` and
+`check-entities.py --stats test/fixtures/stats-b8-webos4.json`, and
 `node scripts/check-upgrade.js`. A module
 handed to another through init() is typed with
 `/** @type {typeof import('./x')} */`, so check-module-calls.py follows it.

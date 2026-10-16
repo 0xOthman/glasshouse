@@ -253,7 +253,8 @@ console.log('Running test-ha.js ...');
   assert.strictEqual(by.balance.payload.enabled_by_default, false);
   assert.strictEqual(by.balance.payload.entity_category, 'config');
   assert.strictEqual(by.balance.payload.min, -50);
-  assert.ok(/lgs \| default/.test(by.bluetooth_speaker_mode.payload.value_template));
+  // A retained message from before the settings were published has no lgs.
+  assert.ok(by.bluetooth_speaker_mode.payload.value_template.indexOf("(value_json.get('lgs') or {})") !== -1);
   var none = ha.buildEntities({ pfx: 'test/tv' }).filter(function (e) { return e.id === 'sound_mode'; });
   assert.strictEqual(none.length, 0);
   console.log('  ✓ LG settings become entities only where the TV has them');
@@ -396,6 +397,25 @@ console.log('Running test-ha.js ...');
   var plain = launchAttrs({ installedApps: [{ id: 'no.colour', title: 'None' }] });
   assert.strictEqual('app_colors' in plain, false, 'no app_colors when no app has a valid colour');
   console.log('  ✓ app_colors carries only valid hex colours, as #rrggbb');
+})();
+
+// A field missing from the telemetry is logged by Home Assistant each time a
+// template reads it (#761), so every read goes through get().
+(function testTemplatesReadSafely() {
+  var ents = ha.buildEntities({ allowControl: true, allowPower: true, isOled: true,
+    installedApps: [{ id: 'netflix', title: 'Netflix' }] });
+  var unsafe = [];
+  JSON.stringify(ents, function (k, v) {
+    if (typeof v === 'string' && /template$/.test(k) && /value_json\.(?!get\()/.test(v)) unsafe.push(k + ': ' + v);
+    return v;
+  });
+  assert.deepEqual(unsafe, [], 'a template reads value_json.<field> directly');
+  assert.strictEqual(ha.safeFields('{{ value_json.a.b }}'), "{{ (value_json.get('a') or {}).get('b') }}");
+  assert.strictEqual(ha.safeFields('{{ value_json.get("x") }}'), '{{ value_json.get("x") }}', 'get() is left');
+  assert.strictEqual(ha.safeFields('{{ value_json.a.get("b") }}'), "{{ (value_json.get('a') or {}).get(\"b\") }}");
+  var retired = ha.RETIRED_ENTITIES.map(function (e) { return e.type + '.' + e.id; });
+  assert.ok(retired.indexOf('sensor.soc_current') !== -1 && retired.indexOf('binary_sensor.standby_stuck') !== -1);
+  console.log('  ✓ every template reads telemetry fields with get(), and the removed SoC current and standby sensors are cleared');
 })();
 
 console.log('ALL test-ha.js assertions passed!\n');

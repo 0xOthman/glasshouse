@@ -191,7 +191,7 @@ function lgSettingEntities(rows, topic) {
     var r = byRow[e.row];
     if (!r) return;
     // A retained message from before the settings were published has no lgs.
-    var state = '(value_json.lgs | default({})).get("' + e.row + '")';
+    var state = '(value_json.lgs or {}).get("' + e.row + '")';
     var payload = {
       name: e.name,
       command_topic: topic.command('lgs/' + e.row),
@@ -350,7 +350,11 @@ var RETIRED_ENTITIES = [
     { type: 'sensor', id: 'oled_light' },
     // LG's PHY error count: a 0-15 counter that wraps, mostly of errors the
     // HDMI 2.1 link corrects itself, so it said nothing anyone could act on.
-    { type: 'sensor', id: 'hdmi_cable_errors' }
+    { type: 'sensor', id: 'hdmi_cable_errors' },
+    // The SoC current, a fixed factory figure (#477), read value_json.power.
+    { type: 'sensor', id: 'soc_current' },
+    // A test build's sensor for a TV that does not sleep when off (#296, not merged).
+    { type: 'binary_sensor', id: 'standby_stuck' }
   ];
 
 var HDMI_DIAG_ONLY = {
@@ -388,11 +392,12 @@ function powerTimerPayload(topic, which, name, icon) {
     command_topic: topic.command('powerTimer/' + which),
     state_topic: topic.telemetry,
     json_attributes_topic: topic.telemetry,
-    value_template: '{{ "ON" if ' + timer + ' and ' + timer + '.enabled else "OFF" }}',
+    // Read with get(): a field missing from the timer would be logged by Home Assistant (#761).
+    value_template: '{{ "ON" if (' + timer + ' or {}).get("enabled") else "OFF" }}',
     json_attributes_template: '{% set t = ' + timer + ' %}' +
       '{% set names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] %}' +
-      '{% set ns = namespace(days=[]) %}{% for d in (t.days if t else []) %}{% set ns.days = ns.days + [names[d]] %}{% endfor %}' +
-      '{{ {"time": t.time, "days": ns.days} | tojson if t else "{}" }}',
+      '{% set ns = namespace(days=[]) %}{% for d in ((t.get("days") or []) if t else []) %}{% set ns.days = ns.days + [names[d]] %}{% endfor %}' +
+      '{{ {"time": t.get("time"), "days": ns.days} | tojson if t else "{}" }}',
     payload_on: 'on',
     payload_off: 'off',
     state_on: 'ON',
@@ -413,7 +418,7 @@ function buildEntities(opts) {
   // available in the first two.
   var volumeLevelAvailability = [{
     topic: topic.telemetry,
-    value_template: '{{ "online" if (value_json.volume_control | default("level")) == "level" else "offline" }}'
+    value_template: '{{ "online" if (value_json.volume_control or "level") == "level" else "offline" }}'
   }];
   var volumeStepAvailability = [{
     topic: topic.telemetry,
@@ -659,11 +664,13 @@ function buildEntities(opts) {
           // The format of what is playing, as the dashboard's Sound panel shows
           // it; None while nothing plays, rather than unknown, so automations
           // can tell the two apart from the TV being unreachable.
-          value_template: '{% set i = value_json.sound.input if value_json.sound and value_json.sound.input else none %}' +
-            '{{ (i.codec ~ (" · " ~ i.immersive if i.immersive else "")) if i else "None" }}',
+          // Read with get(): the input often lacks immersive, and Home
+          // Assistant logs each field a template reads that is missing (#761).
+          value_template: '{% set i = (value_json.sound.input if value_json.sound else none) or {} %}' +
+            '{{ ((i.get("codec") or "") ~ (" · " ~ i.get("immersive") if i.get("immersive") else "")) if i else "None" }}',
           json_attributes_topic: topic.telemetry,
-          json_attributes_template: '{% set i = value_json.sound.input if value_json.sound and value_json.sound.input else {} %}' +
-            '{{ {"codec": i.codec_raw if i.codec_raw else none, "immersive": i.immersive_raw if i.immersive_raw else none} | tojson }}',
+          json_attributes_template: '{% set i = value_json.sound.input or {} %}' +
+            '{{ {"codec": i.get("codec_raw") or none, "immersive": i.get("immersive_raw") or none} | tojson }}',
           icon: 'mdi:surround-sound'
         }
       },
@@ -1418,7 +1425,7 @@ function buildEntities(opts) {
 
   entities = entities.concat(lgSettingEntities(opts.lgRows, topic));
 
-  return withOffStates(entities);
+  return withSafeFields(withOffStates(entities));
 }
 
 /*
@@ -1488,6 +1495,37 @@ function withOffStates(entities) {
     var m = t && when.hasOwnProperty(e.id) && /^\{\{([\s\S]*)\}\}$/.exec(t.trim());
     if (m) e.payload.value_template = '{{ ' + when[e.id] + ' if value_json.tvOff else (' + m[1].trim() + ') }}';
   });
+  return entities;
+}
+
+/*
+ * A field the telemetry leaves out, as most are with the TV off or nothing
+ * playing, makes Home Assistant log a "Template variable warning" each time
+ * a template reads it: 45,736 in four hours from four TVs (#761). So every
+ * value_json.a.b in a template is read as (value_json.get('a') or {}).get('b'),
+ * which gives none quietly instead. A segment called like a method, as in
+ * value_json.get('x'), is left as it is.
+ */
+function safeFields(template) {
+  return template.replace(/value_json((?:\.[A-Za-z_][A-Za-z0-9_]*)+)(\s*\()?/g, function (all, chain, call) {
+    var segs = chain.slice(1).split('.');
+    var method = call ? segs.pop() : null;
+    var expr = 'value_json';
+    segs.forEach(function (seg, i) {
+      expr = i === 0 ? expr + ".get('" + seg + "')" : '(' + expr + " or {}).get('" + seg + "')";
+    });
+    return method ? (segs.length ? '(' + expr + ' or {})' : expr) + '.' + method + call : expr;
+  });
+}
+
+function withSafeFields(entities) {
+  (function walk(o) {
+    if (!o || typeof o !== 'object') return;
+    for (var k in o) {
+      if (typeof o[k] === 'string' && /template$/.test(k)) o[k] = safeFields(o[k]);
+      else walk(o[k]);
+    }
+  })(entities);
   return entities;
 }
 
@@ -1600,6 +1638,7 @@ module.exports = {
   selectState: selectState,
   appNames: appNames,
   RETIRED_ENTITIES: RETIRED_ENTITIES,
+  safeFields: safeFields,
   HDMI_DIAG_ONLY: HDMI_DIAG_ONLY,
   OLED_ONLY: OLED_ONLY,
   clearRetired: clearRetired,
