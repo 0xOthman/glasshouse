@@ -28,6 +28,24 @@ const TAB_DOCS = {
   mqtt: 'HOME-ASSISTANT/', server: 'dashboard/server/', tools: 'dashboard/tools/'
 };
 let activeTab = null;
+
+/*
+ * The Android app puts the menu button in its own top bar, beside its back
+ * button, and the page's menu bar hides. The app names itself in the user
+ * agent and passes a bridge with navState; an older app has the bridge without
+ * navState, and keeps the page's own bar.
+ */
+const appBridge = /Glasshouse-Android\//.test(navigator.userAgent) && window.GlasshouseApp &&
+  typeof window.GlasshouseApp.navState === 'function' ? window.GlasshouseApp : null;
+if (appBridge) document.documentElement.classList.add('in-app');
+
+// Tells the app whether the tabs are a drawer here, the tab's name, and whether the drawer is open.
+function reportNav() {
+  if (!appBridge) return;
+  const cur = q('nav-current');
+  const nav = q('sidenav');
+  appBridge.navState(navIsDrawer(), cur ? cur.textContent : '', !!nav && nav.classList.contains('open'));
+}
 // null until the first telemetry says either way.
 let isOledSet = null;
 
@@ -110,10 +128,15 @@ function showNavCurrent() {
   const sel = document.querySelector('#tabs button[aria-selected="true"] span');
   const cur = q('nav-current');
   if (sel && cur) cur.textContent = sel.textContent;
+  reportNav();
 }
 document.addEventListener('DOMContentLoaded', showNavCurrent);
 
 function navIsDrawer() {
+  // In the app the bar is always hidden, so the bar's own rules are asked directly.
+  if (appBridge) {
+    return matchMedia('(max-width:1023px)').matches || document.documentElement.classList.contains('nav-hidden');
+  }
   const bar = document.querySelector('.nav-bar');
   return !!bar && getComputedStyle(bar).display !== 'none';
 }
@@ -127,6 +150,7 @@ function openNav() {
   document.body.classList.add('nav-open');
   const sel = nav.querySelector('button[aria-selected="true"]') || nav.querySelector('.tabs button:not([hidden])');
   if (sel) sel.focus();
+  reportNav();
 }
 
 function closeNav() {
@@ -137,6 +161,7 @@ function closeNav() {
   q('nav-toggle').setAttribute('aria-expanded', 'false');
   document.body.classList.remove('nav-open');
   q('nav-toggle').focus();
+  reportNav();
 }
 
 // Whether a wide screen lists the tabs down the left, kept per browser.
@@ -150,6 +175,7 @@ function setSidebar(mode) {
     b.classList.toggle('on', on);
     b.setAttribute('aria-pressed', String(on));
   });
+  reportNav();
 }
 document.querySelectorAll('[data-sidebar-set]').forEach(b =>
   b.addEventListener('click', () => setSidebar(b.dataset.sidebarSet)));
@@ -161,4 +187,4 @@ document.querySelectorAll('[data-sidebar-set]').forEach(b =>
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
 // Widened past the drawer while it was open: the sidebar is simply there.
-window.addEventListener('resize', () => { if (!navIsDrawer()) closeNav(); });
+window.addEventListener('resize', () => { if (!navIsDrawer()) closeNav(); reportNav(); });

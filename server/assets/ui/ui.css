@@ -366,6 +366,8 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
 html.nav-hidden .nav-bar{display:block;margin-top:clamp(20px,3vw,30px);border-bottom:1px solid var(--w12)}
 html.nav-hidden .nav-toggle{display:flex;align-items:center;gap:14px;min-height:0;height:46px;padding:0 4px;margin-left:var(--nav-toggle-pull);background:transparent;border:0;color:var(--w100);cursor:pointer;font:500 13px 'Manrope';letter-spacing:.10em;text-transform:uppercase}
 html.nav-hidden .nav-toggle:focus-visible{outline:2px solid var(--w80);outline-offset:2px}
+/* In the Android app the menu button is in the app's own top bar: see tabs.js. */
+html.in-app .nav-bar{display:none}
 html.nav-hidden .sidenav{width:min(300px,84vw);padding-top:max(16px,env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-100%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;box-shadow:0 0 40px rgba(0,0,0,.5)}
 html.nav-hidden .sidenav.open{transform:none;visibility:visible;transition:transform .22s ease}
 html.nav-hidden .sidenav-head{height:auto;padding-bottom:6px}
