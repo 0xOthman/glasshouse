@@ -342,6 +342,7 @@ function added() {
           assert.ok(err3 && /https/.test(err3.message));
           assert.strictEqual(repo._repoLabel('https://someone.github.io/catalog/apps.json'), 'someone/catalog');
           assert.strictEqual(repo._repoLabel('https://apps.example.net/apps.json'), 'apps.example.net');
+          assert.strictEqual(repo._repoLabel('https://raw.githubusercontent.com/someone/someone.github.io/HEAD/repo.json'), 'someone.github.io');
           console.log('  ✓ an added catalog is read before it is kept, a GitHub page finds its repo.json, and each has a short name');
           console.log('ALL test-repo.js assertions passed!\n');
         });

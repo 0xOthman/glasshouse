@@ -825,6 +825,10 @@
       </form>
       <div class="sub page-add-msg" id="catalogs-msg" role="alert"></div>
       <div class="prot-table" id="apps-catalogs-repos"></div>
+      <form class="toast-form" id="others-search-form" hidden onsubmit="event.preventDefault();">
+        <input type="search" id="others-search" placeholder="Search apps" data-t-placeholder="apps.install.search" maxlength="60"
+          autocomplete="off" spellcheck="false" oninput="renderOtherCatalogs()">
+      </form>
       <div class="prot-table" id="apps-others-list"></div>
     </details>
     <details class="pv-d" id="disc-sideload-apps">
