@@ -79,6 +79,43 @@ function setCatalogCategory(cat) {
   renderCatalog();
 }
 
+function matchesSearch(a, term) {
+  if (!term) return true;
+  return (a.title || '').toLowerCase().includes(term) || (a.id || '').toLowerCase().includes(term) ||
+    (a.description || '').toLowerCase().includes(term);
+}
+
+/*
+ * A long list shows CATALOG_PAGE apps and a button for more, rather than
+ * pages, so a list rebuilt after an install keeps what was opened. A new
+ * search or category starts again from the first. A row that is installing,
+ * waiting for its preview, failed or flashing its outcome is always shown,
+ * so its progress or error is not hidden with it.
+ */
+const CATALOG_PAGE = 10;
+const catalogShown = { main: { limit: CATALOG_PAGE, key: '' }, others: { limit: CATALOG_PAGE, key: '' } };
+
+function pagedRows(which, key, apps, row) {
+  const st = catalogShown[which];
+  if (st.key !== key) { st.key = key; st.limit = CATALOG_PAGE; }
+  const job = catalogJob();
+  const keep = a => (job && job.appId === a.id && (job.repo || '') === (a.repo || '')) ||
+    !!rowError[a.id] || !!uninstalling[a.id] || !!rowFlashing(a.id);
+  const visible = apps.filter((a, i) => i < st.limit || keep(a));
+  const more = apps.length - visible.length;
+  const footer = more > 0 ? `<div class="catalog-more">
+      <span class="sub">${esc(t('apps.install.shownOf', '{shown} of {total}', { shown: visible.length, total: apps.length }))}</span>
+      <button type="button" class="pill idle" onclick="showMoreCatalog('${which}')">${esc(t('apps.install.showMore', 'Show {n} more', { n: Math.min(CATALOG_PAGE, more) }))}</button>
+    </div>` : '';
+  return visible.map(row).join('') + footer;
+}
+
+function showMoreCatalog(which) {
+  catalogShown[which].limit += CATALOG_PAGE;
+  if (which === 'main') renderCatalog();
+  else renderOtherCatalogs();
+}
+
 function renderCatalog() {
   const list = q('apps-catalog-list');
   if (!list || !catalogData) return;
@@ -94,17 +131,12 @@ function renderCatalog() {
     return;
   }
   const term = q('catalog-search').value.trim().toLowerCase();
-  const shown = apps.filter(a => {
-    if (catalogCategory !== 'all' && appCategory(a) !== catalogCategory) return false;
-    if (!term) return true;
-    return (a.title || '').toLowerCase().includes(term) || (a.id || '').toLowerCase().includes(term) ||
-      (a.description || '').toLowerCase().includes(term);
-  });
+  const shown = apps.filter(a => (catalogCategory === 'all' || appCategory(a) === catalogCategory) && matchesSearch(a, term));
   if (!shown.length) {
     list.innerHTML = `<div class="sub" style="padding:16px 0">${esc(t('apps.install.noMatch', 'No apps match.'))}</div>`;
     return;
   }
-  list.innerHTML = shown.map(a => catalogRow(a, writable)).join('');
+  list.innerHTML = pagedRows('main', catalogCategory + '|' + term, shown, a => catalogRow(a, writable));
 }
 
 /*
@@ -531,8 +563,18 @@ function renderOtherCatalogs() {
         <button type="button" class="pill bad" data-repo-url="${esc(r.url)}" onclick="removeCatalog(this.dataset.repoUrl)" ${canChange ? '' : 'disabled'}>${esc(t('apps.catalogs.remove', 'Remove'))}</button>
       </div>
     </div>`).join('');
-  list.innerHTML = others.map(a => catalogRow(a, writable,
-    x => t('apps.catalogs.from', 'from {catalog}', { catalog: labels[x.repo] || x.repo }))).join('');
+  // A search box once there are more apps than one screenful.
+  const search = q('others-search');
+  q('others-search-form').hidden = others.length <= CATALOG_PAGE && !search.value;
+  const term = search.value.trim().toLowerCase();
+  const shown = others.filter(a => matchesSearch(a, term) ||
+    (labels[a.repo] || '').toLowerCase().includes(term));
+  if (!shown.length && others.length) {
+    list.innerHTML = `<div class="sub" style="padding:16px 0">${esc(t('apps.install.noMatch', 'No apps match.'))}</div>`;
+    return;
+  }
+  list.innerHTML = pagedRows('others', term, shown, a => catalogRow(a, writable,
+    x => t('apps.catalogs.from', 'from {catalog}', { catalog: labels[x.repo] || x.repo })));
 }
 
 async function changeCatalogs(body, btn) {

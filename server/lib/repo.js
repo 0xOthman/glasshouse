@@ -144,7 +144,8 @@ function fetchAll(cb) {
 function repoLabel(u) {
   var m = /^https:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\//i.exec(u) ||
           /^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\//i.exec(u);
-  if (m) return m[1] + '/' + m[2];
+  // A GitHub Pages repository is named for its owner: its name alone says both.
+  if (m) return m[2].toLowerCase() === m[1].toLowerCase() + '.github.io' ? m[2] : m[1] + '/' + m[2];
   m = /^https:\/\/([^\/.]+)\.github\.io\/([^\/]+)\//i.exec(u);
   if (m) return m[1] + '/' + m[2];
   m = /^https?:\/\/([^\/?#:]+)/i.exec(u);

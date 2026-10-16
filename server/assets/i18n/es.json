@@ -6998,5 +6998,13 @@
  "apps.install.mbUnder1": {
   "text": "menos de 1 MB",
   "from": "under 1 MB"
+ },
+ "apps.install.shownOf": {
+  "text": "{shown} de {total}",
+  "from": "{shown} of {total}"
+ },
+ "apps.install.showMore": {
+  "text": "Mostrar {n} más",
+  "from": "Show {n} more"
  }
 }
