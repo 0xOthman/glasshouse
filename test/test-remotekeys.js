@@ -67,15 +67,20 @@ function checked(fn) {
 function exists(p) { try { fs.statSync(p); return true; } catch (e) { return false; } }
 
 // Runs the written filter as the compositor would, with the symbols it names.
-function loadFilter() {
+// broken: 'launch' makes the launch throw, 'symbols' leaves WebOS undefined.
+function loadFilter(broken) {
   var launched = [];
   var ctx = {
     WebOS: { Key_webOS_Netflix: 1001, Key_webOS_Amazon: 1002, Key_webOS_TVGuide: 1003, Key_webOS_Red: 1004 },
     Qt: { Key_Super_L: 2001 },
     KeyPolicy: { NextPolicy: 'next', Accepted: 'accepted', NotAccepted: 'notAccepted' },
-    applicationManager: { launch: function (id, params) { launched.push({ id: id, params: params }); } },
-    console: { info: function () {} }
+    applicationManager: { launch: function (id, params) {
+      if (broken === 'launch') throw new Error('no such app');
+      launched.push({ id: id, params: params });
+    } },
+    console: { info: function () {}, warn: function () {} }
   };
+  if (broken === 'symbols') delete ctx.WebOS;
   vm.runInNewContext(fs.readFileSync(FILTER, 'utf8') + '\nthis.handler = ' + rk.HANDLER + '; this.init = init;', ctx);
   ctx.init();
   return { handle: ctx.handler, launched: launched };
@@ -121,6 +126,15 @@ rk.getRemoteKeys(checked(function (r) {
       assert.strictEqual(f2.handle(1001, true, false), 'accepted');
       assert.strictEqual(f2.launched.length, 1);
       console.log('  ✓ a key set to nothing is consumed without a launch; a second change takes the entry out and puts it back so the compositor reloads');
+
+      // First in the chain, the filter sees every key: an error in it must
+      // pass the key on, never stop LG's filters seeing it.
+      var f3 = loadFilter('launch');
+      assert.strictEqual(f3.handle(1001, true, false), 'next');
+      var f4 = loadFilter('symbols');
+      assert.strictEqual(f4.handle(1001, true, false), 'next');
+      assert.strictEqual(f4.handle(2001, true, false), 'next');
+      console.log('  ✓ an error in the filter, a failed launch or a key name the firmware lacks, passes the key on to LG\'s filters');
 
       rk.getRemoteKeys(checked(function (r2) {
         assert.deepEqual(r2.keys.map(function (k) { return k.action + ':' + k.opens; }), ['open:YouTube', 'lg:', 'nothing:', 'lg:']);

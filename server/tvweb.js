@@ -716,11 +716,14 @@ function checkHomebrewChannelApp() {
     console.log('uninstall: the Homebrew Channel app is gone, removing the server');
     // Inline rather than a script, since the files it deletes include every
     // script there is. 20-services.sh holds down the services switched off in
-    // the dashboard, and they come back once it goes.
+    // the dashboard, and they come back once it goes. restore-keys runs first:
+    // the compositor's key filter chain is kept by configd, and would go on
+    // naming a filter file deleted here.
     var rule = devtools.RULE.join(' ');
     forgetHomeAssistant(function () {
       child_process.spawn('/bin/sh', ['-c',
-        '/var/lib/tvweb/tvwebctl stop >/dev/null 2>&1; rm -rf /var/lib/tvweb /media/developer/temp/glasshouse-install; ' +
+        '/var/lib/tvweb/tvwebctl stop >/dev/null 2>&1; /var/lib/tvweb/tvwebctl restore-keys >/dev/null 2>&1; ' +
+        'rm -rf /var/lib/tvweb /media/developer/temp/glasshouse-install; ' +
         'PATH=/usr/sbin:/sbin:$PATH; iptables -D ' + rule + ' 2>/dev/null; ip6tables -D ' + rule + ' 2>/dev/null; ' +
         'cd /var/lib/webosbrew/init.d && rm -f 50-tvweb 20-services.sh 20-tvweb-services; ' +
         'rm -f /var/lib/webosbrew/tvweb-boot.log /var/lib/webosbrew/tvweb-boot.log.old'

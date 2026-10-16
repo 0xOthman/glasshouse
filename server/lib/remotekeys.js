@@ -148,22 +148,29 @@ function filterSource(map) {
     ' * First in com.webos.surfacemanager.keyFilters; a key here never reaches LG\'s filters. */',
     'function init() {}',
     'function ' + HANDLER + '(key, pressed, autoRepeat) {',
-    '    var id = null;',
-    '    switch (key) {'
+    // First in the chain, it sees every key, the arrows and OK included: an
+    // error here must hand the key on to LG's filters, never stop the chain.
+    '    try {',
+    '        var id = null;',
+    '        switch (key) {'
   ];
   Object.keys(map).forEach(function (k) {
     var def = keyByName(k);
     if (!def) return;
-    lines.push('    case ' + def.symbol + ': id = ' + JSON.stringify(map[k]) + '; break;');
+    lines.push('        case ' + def.symbol + ': id = ' + JSON.stringify(map[k]) + '; break;');
   });
   lines.push(
-    '    default: return KeyPolicy.NextPolicy;',
+    '        default: return KeyPolicy.NextPolicy;',
+    '        }',
+    '        if (pressed && !autoRepeat && id) {',
+    '            console.info("glasshouse keyfilter: key", key, "opens", id);',
+    '            applicationManager.launch(id, "{}");',
+    '        }',
+    '        return KeyPolicy.Accepted;',
+    '    } catch (e) {',
+    '        console.warn("glasshouse keyfilter: " + e + "; key passed on");',
+    '        return KeyPolicy.NextPolicy;',
     '    }',
-    '    if (pressed && !autoRepeat && id) {',
-    '        console.info("glasshouse keyfilter: key", key, "opens", id);',
-    '        applicationManager.launch(id, "{}");',
-    '    }',
-    '    return KeyPolicy.Accepted;',
     '}',
     ''
   );

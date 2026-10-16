@@ -304,6 +304,31 @@ listens on 9998, over IPv4 or IPv6. So something other than that switch decides
 whether the debugger opens; `/var/luna/preferences/devmode_enabled` is a
 directory there.
 
+## The compositor's key filters (webOS 4.4.3, B8; webOS 9.2.2, C2)
+
+The compositor (surface-manager) runs every remote key through a chain of
+JavaScript filters named in the configd key
+`com.webos.surfacemanager.keyFilters`: `{ file, handler }` pairs, LG's from
+`/usr/lib/qt5/qml/KeyFilters/` (`appLaunch.js`, `systemUi.js` and others; 12
+entries on a B8, 18 on a C2). Each handler returns `KeyPolicy.NextPolicy` to
+hand the key on, `Accepted` to consume it, or `NotAccepted` to pass it to the
+app in front. Remote Keys puts its own filter first.
+
+- **Rebuilt on a change.** Writing a new value to the key makes the compositor
+  load its filters again at once. configd does not report a value written
+  unchanged, so a filter file changed in place needs the entry taken out and
+  put back.
+- **Read at boot.** configd keeps the value, and the compositor loads the chain
+  before Glasshouse starts: after a reboot, a key mapped there opened its app
+  35 s (C2) and 40 s (B8) in, with the server not yet running.
+- **A missing file is skipped.** With the first entry naming a deleted file,
+  after a reboot the next filters still ran: the TV key opened Live TV through
+  LG's filter on both TVs.
+- **Keys sent over the network go through it.**
+  `com.webos.service.networkinput/test/sendKeyCode` with a Linux key code (the
+  `IR_KEY_*` value in `/usr/share/X11/xkb/keycodes/lg` less 8: Blue 401, TV 377)
+  reached a mapped key's filter like the remote's own press.
+
 ## Home screen (webOS 10 and 11)
 
 From layout dumps in #612 (a C2 on 10.3.1, a B4 on 10.3.2, a C4 on 11.2.0)
