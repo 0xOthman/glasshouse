@@ -314,6 +314,11 @@ and others' work on webOS 10
   `globalline` to 0 by 0, placed after `herobanner`. Taking `globalline` out
   left the screen black. Icon size is in `libapp.so` and the clock item works
   only in the senior layout.
+- **Rows are stacked from their heights.** With `qcardList` and
+  `recommendedShelf` only taken out, the apps row sat in the middle of the
+  screen on a C2 (webOS 10). mareklarek's layout keeps it at the bottom by
+  growing `container` and `herobanner` to 1803 (from 900), so the removed
+  height has to go to the banner.
 - **An overlay mount is enough.** The kernel has overlayfs: LG's folder as
   `lowerdir` and a small folder with the changed files as `upperdir` applied
   in 0.08 s on a G5 (10.3.1), against 0.54 s for copying the whole folder

@@ -75,6 +75,42 @@ function checked(fn) {
   };
 }
 
+// Rows are stacked from their heights: whatever is hidden, the rows add up to
+// LG's total and the apps row keeps its distance from the bottom.
+function rows(xml) {
+  var depth = 0, list = [];
+  xml.split('\n').forEach(function (l) {
+    if (/<\/item>/.test(l)) { depth--; return; }
+    var m = /<item id="(\w+)"[^>]*itemHeight="(\d+)"/.exec(l);
+    if (m && depth === 0) list.push({ id: m[1], h: Number(m[2]) });
+    if (/hasChildren="true"/.test(l)) depth++;
+  });
+  return list;
+}
+function belowApps(list) {
+  var after = false, sum = 0;
+  list.forEach(function (r) { if (after) sum += r.h; if (r.id === 'appList') after = true; });
+  return sum;
+}
+function total(list) { return list.reduce(function (a, r) { return a + r.h; }, 0); }
+var lgRows = rows(LG);
+[['quickCards'], ['recommended'], ['quickCards', 'recommended'], ['sideIcons', 'quickCards', 'recommended']].forEach(function (hidden) {
+  var xml = home10.buildLayout(LG, hidden);
+  var r = rows(xml);
+  assert.strictEqual(total(r), total(lgRows), hidden.join('+') + ': same total height');
+  var lgBelow = belowApps(lgRows) - (hidden.indexOf('recommended') !== -1 ? 531 : 0);
+  assert.strictEqual(belowApps(r), lgBelow, hidden.join('+') + ': apps row stays at the bottom');
+  var banner = /<item id="herobanner"[^>]*itemHeight="(\d+)"/.exec(xml)[1];
+  var box = /<item id="container"[^>]*itemHeight="(\d+)"/.exec(xml)[1];
+  assert.strictEqual(banner, box, 'banner fills the taller container');
+  var side = /<item id="globalline"[^>]*itemHeight="(\d+)"/.exec(xml)[1];
+  assert.strictEqual(side, hidden.indexOf('sideIcons') !== -1 ? '0' : box, 'side buttons grow with it unless hidden');
+});
+var both = home10.buildLayout(LG, ['quickCards', 'recommended']);
+assert.ok(/id="container"[^>]*itemHeight="1685"/.test(both), '900 + 74 + 180 + 531');
+assert.deepEqual(rows(both).map(function (r) { return r.id; }), ['margin', 'container', 'margin', 'appList', 'margin', 'quickGuide']);
+console.log('  ✓ the banner takes the height of hidden rows, so the apps row stays at the bottom');
+
 setup('9.2.2');
 assert.strictEqual(home10.supported(), false, 'webOS 9 has its own module');
 setup('11.2.0');

@@ -140,13 +140,29 @@ function partDesc(id) {
 
 // LG's layout with the hidden parts taken out, or the side icons shrunk to
 // nothing and moved after the banner.
+function itemHeight(l) {
+  var m = /itemHeight="(\d+)"/.exec(l);
+  return m ? Number(m[1]) : 0;
+}
+
+// The home app lays the rows out top to bottom from their heights, so a row
+// that is only removed pulls the apps row up to the middle of the screen
+// (#612). The banner takes over the height of each removed row and the gap
+// above it, keeping the apps row where LG puts it.
 function buildLayout(lg, hidden) {
   var lines = lg.split('\n');
   var sideLine = null;
+  var freed = 0;
   var out = [];
   lines.forEach(function (l) {
-    if (hidden.indexOf('quickCards') !== -1 && l.indexOf('id="qcardList"') !== -1) return;
-    if (hidden.indexOf('recommended') !== -1 && l.indexOf('id="recommendedShelf"') !== -1) return;
+    if ((hidden.indexOf('quickCards') !== -1 && l.indexOf('id="qcardList"') !== -1) ||
+        (hidden.indexOf('recommended') !== -1 && l.indexOf('id="recommendedShelf"') !== -1)) {
+      freed += itemHeight(l);
+      // The gap after the apps row stays: it keeps the row off the bottom edge.
+      var prev = out[out.length - 1];
+      if (l.indexOf('qcardList') !== -1 && prev && prev.indexOf('id="margin"') !== -1) freed += itemHeight(out.pop());
+      return;
+    }
     if (hidden.indexOf('sideIcons') !== -1 && l.indexOf('id="globalline"') !== -1) {
       sideLine = l.replace(/itemWidth="\d+"/, 'itemWidth="0"').replace(/itemHeight="\d+"/, 'itemHeight="0"');
       return;
@@ -157,6 +173,12 @@ function buildLayout(lg, hidden) {
       sideLine = null;
     }
   });
+  if (freed) {
+    out = out.map(function (l) {
+      if (!/id="(container|herobanner|globalline)"/.test(l) || !itemHeight(l)) return l;
+      return l.replace(/itemHeight="\d+"/, 'itemHeight="' + (itemHeight(l) + freed) + '"');
+    });
+  }
   return out.join('\n');
 }
 
