@@ -257,6 +257,11 @@ threshold. Its `mrcu1.info` (in `/mnt/lg/cmn_data/btsvc`) has no battery line.
 Its `gatt/connect` answers `appId` and no `clientId`. The C2 answers
 `batteryLevel` `"-"`.
 
+A user's webOS 5 TV, on v0.97.0, the first release whose read reached
+`gatt/connect`, had a remote with no pointer and some buttons ignored after the
+TV woke from standby, until a reboot. Not yet confirmed from its log; the read
+over Bluetooth is held to webOS 9 and 10 meanwhile.
+
 On the B8, lginput2 once started a diagnostic capture, a
 `/tmp/var/log/<date>_MRCU.log` with columns for motion, RSSI, voltage,
 temperature and gyro, beside a `ManualDevice-<remote MAC>-rawInput.dsf`. A new

@@ -897,7 +897,10 @@ awake. The subscription's updates are trusted for whether the remote is a
 Bluetooth one: asked once, the same method says it is not. On webOS 4,
 `com.webos.service.mrcu/getDeviceInfo` has the charge in `batteryLevel`, so it
 is asked first, and no Bluetooth connection is made where it answers; webOS 9
-and later answer `"-"`. lginput2 holds the remote's own connection, and the
+and later answer `"-"`. The Bluetooth read is made only on webOS 9 and 10, where
+it has been tried: on a webOS 5 TV the remote lost its pointer and some buttons
+after waking once it began, until a reboot. Elsewhere the remote's battery is
+not shown. lginput2 holds the remote's own connection, and the
 Bluetooth service reads the service only over a GATT connection of its own, so
 each read there is
 `gatt/connect`, `gatt/discoverServices`, `gatt/readCharacteristicValue` by the
