@@ -139,7 +139,8 @@ console.log('Running test-screensavers.js ...');
   assert.ok(ids.indexOf('fireworks') !== -1, 'catalog must include fireworks');
   assert.ok(ids.indexOf('vitals') !== -1, 'catalog must include vitals');
   assert.ok(ids.indexOf('bokeh') !== -1, 'catalog must include bokeh');
-  assert.strictEqual(ids.length, 6, 'catalog must have exactly 6 entries');
+  assert.ok(ids.indexOf('harmonograph') !== -1, 'catalog must include harmonograph');
+  assert.strictEqual(ids.length, 7, 'catalog must have exactly 7 entries');
 
   // Each non-stock entry must have a qml path
   for (var i = 0; i < ids.length; i++) {
@@ -147,7 +148,7 @@ console.log('Running test-screensavers.js ...');
     assert.ok(screensavers.SCREENSAVERS[ids[i]].qml, ids[i] + ' must have a qml path');
   }
 
-  console.log('  ✓ SCREENSAVERS catalog has 5 expected entries with QML paths');
+  console.log('  ✓ SCREENSAVERS catalog has 6 expected entries with QML paths');
 })();
 
 // 8. trigger returns error when luna is not available
