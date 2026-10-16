@@ -42,21 +42,23 @@ This project is intended to give a rooted webOS TV a useful local control surfac
 
 3. **[App management, debloating and home screen cleanup](dashboard/apps.md).** Install apps from the Homebrew Channel catalog, permanently uninstall apps to reclaim internal flash storage, disable unnecessary background system services to free up RAM and CPU cycles, stop LG keeping apps loaded in the background that are never used, and hide non-removable built-in LG system apps from the home launcher.
 
-4. **[Replacing the screen saver](dashboard/screen-savers.md).** A clock, a starfield, fireworks, or the TV's own readings, each dim or bright, in place of LG's.
+4. **[Remapping the remote's buttons](dashboard/apps.md#remote-keys).** Point Netflix, Prime Video, Guide, the color keys and the TV's other shortcut buttons at any installed app, an HDMI input or Live TV, or turn them off. The change applies straight away and lasts across reboots, without waiting for the dashboard to start.
 
-5. **[Integrating the TV with a smart home](HOME-ASSISTANT.md).** The MQTT bridge exposes the TV as a single device with its controls and telemetry, with Home Assistant support through MQTT Discovery and the same underlying interface available to other MQTT clients.
+5. **[Replacing the screen saver](dashboard/screen-savers.md).** A clock, a starfield, fireworks, or the TV's own readings, each dim or bright, in place of LG's.
 
-6. **[Seeing what the TV is actually doing](dashboard/metrics.md).** SoC temperature, per-core CPU load, memory, swap, Wi-Fi signal and throughput.
+6. **[Integrating the TV with a smart home](HOME-ASSISTANT.md).** The MQTT bridge exposes the TV as a single device with its controls and telemetry, with Home Assistant support through MQTT Discovery and the same underlying interface available to other MQTT clients.
 
-7. **[Observing OLED panel wear](dashboard/oled-care.md).** Cumulative panel hours, compensation cycle progress, Pixel Refresher countdown with scheduling, completed cycle counters and refresher failure alerts.
+7. **[Seeing what the TV is actually doing](dashboard/metrics.md).** SoC temperature, per-core CPU load, memory, swap, Wi-Fi signal and throughput.
 
-8. **[Controlling the OLED burn-in protections](dashboard/oled-care.md).** What each one does and a switch for it: screen shift and logo dimming on any OLED, and on TVs that expose them, ASBL and Global Stress Reduction (normally reachable only from the TV's service menu, with a service remote and a PIN).
+8. **[Observing OLED panel wear](dashboard/oled-care.md).** Cumulative panel hours, compensation cycle progress, Pixel Refresher countdown with scheduling, completed cycle counters and refresher failure alerts.
 
-9. **[Opening the service menu, and unlocking it where it is locked](dashboard/service-menu.md).** LG's own engineering menu, put on the TV screen from a browser which means no service remote is needed. Newer firmware shows a cut-down version of it until it is unlocked, which the dashboard can do as well.
+9. **[Controlling the OLED burn-in protections](dashboard/oled-care.md).** What each one does and a switch for it: screen shift and logo dimming on any OLED, and on TVs that expose them, ASBL and Global Stress Reduction (normally reachable only from the TV's service menu, with a service remote and a PIN).
 
-10. **[Reading all of it on the TV itself](apps/tv-app.md).** An optional app on the home screen puts the same readings and controls on the TV, driven by the remote, for when there is no phone or laptop to hand.
+10. **[Opening the service menu, and unlocking it where it is locked](dashboard/service-menu.md).** LG's own engineering menu, put on the TV screen from a browser which means no service remote is needed. Newer firmware shows a cut-down version of it until it is unlocked, which the dashboard can do as well.
 
-11. **[Managing TVs from Android](apps/android.md).** A phone app that keeps a list of TVs, shows which are online, wakes them with Wake-on-LAN, and opens each one's dashboard full screen.
+11. **[Reading all of it on the TV itself](apps/tv-app.md).** An optional app on the home screen puts the same readings and controls on the TV, driven by the remote, for when there is no phone or laptop to hand.
+
+12. **[Managing TVs from Android](apps/android.md).** A phone app that keeps a list of TVs, shows which are online, wakes them with Wake-on-LAN, and opens each one's dashboard full screen.
 
 ---
 
