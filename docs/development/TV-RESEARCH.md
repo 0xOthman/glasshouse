@@ -289,6 +289,49 @@ rebooted, through a night in standby. lginput2's luna methods include
 `enableLoggingMotion`, `getSensorData` and `enablePrintRfStatus`, none of which
 Glasshouse calls; `getConnectionStatus` and `getDeviceInfo` left it at 0%.
 
+## Home screen (webOS 10 and 11)
+
+From layout dumps in #612 (a C2 on 10.3.1, a B4 on 10.3.2, a C4 on 11.2.0)
+and others' work on webOS 10
+(github.com/mareklarek/webos10-homescreen-customization and its issue 2).
+
+- **The home app is Flutter.** Its layout is
+  `/usr/palm/applications/com.webos.app.home/data/flutter_assets/assets/home.xml`,
+  a vertical list of items by `id`: `margin` (spacing, with a height),
+  `container` holding `globalline` (the side buttons) and `herobanner`,
+  `qcardList`, `appList` and `recommendedShelf`. The files were identical on
+  the two webOS 10 TVs, US and EU.
+- **webOS 11 differs**: `home.xml` has two pages, the first a `mypage` item
+  (with a new `home_widget_template.xml`), drops `globalline`, and the folder
+  has `img_background.webp`.
+- **No writable layout path.** On the 11.2.0 C4, `lib/libapp.so` names
+  `home.xml`, `home_layoutShelfView.xml` and `home_wee.xml`, and the only
+  `/mnt/lg/` path in it is the Gallery's AI Art folder. So unlike webOS 9 the
+  layout can only be changed by mounting over the folder.
+- **What works, from others on webOS 10:** taking out `qcardList` and
+  `recommendedShelf`; replacing the banner image (`images/{hd,2k,4k}/bg_banner_img.png`)
+  and its text (in `i18n`, a symlink to `/mnt/lg/wee/ui_l10n/...`); shrinking
+  `globalline` to 0 by 0, placed after `herobanner`. Taking `globalline` out
+  left the screen black. Icon size is in `libapp.so` and the clock item works
+  only in the senior layout.
+- **The home app runs as `flutter-client`.** On a C2 (webOS 10.3.1) its
+  command line is `/usr/bin/flutter-client -i com.webos.app.home`, so
+  `pidof com.webos.app.home` finds nothing. Other Flutter apps run as
+  `flutter-client` too; the `-i` argument names the app. Killed with SIGTERM,
+  the TV started it again with the changed layout.
+- **Rows are stacked from their heights.** With `qcardList` and
+  `recommendedShelf` only taken out, the apps row sat in the middle of the
+  screen on a C2 (webOS 10). mareklarek's layout keeps it at the bottom by
+  growing `container` and `herobanner` to 1803 (from 900), so the removed
+  height has to go to the banner.
+- **An overlay mount is enough.** The kernel has overlayfs: LG's folder as
+  `lowerdir` and a small folder with the changed files as `upperdir` applied
+  in 0.08 s on a G5 (10.3.1), against 0.54 s for copying the whole folder
+  (28.7 MB, 525 files) and bind-mounting the copy. Restarting the home app
+  (killing it) reads the new layout; no black picture was reported from it.
+  Mounted from a webosbrew `init.d` hook, the home app was running with the
+  changed layout about 29 s after power-on.
+
 ## Boot and app state (webOS 9.2.2, C2)
 
 - The kernel command line has `snapshot resume=/dev/mmcblk0p51 criu_enabled`.

@@ -498,7 +498,9 @@ iconServer.init({ config: CONFIG, apps: appsModule });
 servicesModule.init({ stateDir: __dirname });
 preload.init({ luna: luna, stateDir: __dirname });
 quickAccess.init({ luna: luna, inputNames: telemetry.inputNameMap });
-homeScreen.init({ luna: luna, inputNames: telemetry.inputNameMap, stateDir: __dirname, webosVersion: telemetry.detectWebosVersion() });
+homeScreen.init({ luna: luna, config: CONFIG, inputNames: telemetry.inputNameMap, stateDir: __dirname, webosVersion: telemetry.detectWebosVersion() });
+// webOS 10's layout is an overlay mount, gone after a restart of the TV.
+homeScreen.reapply();
 screensavers.init({
   luna: luna,
   assetPath: assetPath,

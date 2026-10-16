@@ -1049,6 +1049,43 @@ Home screen bloatware tile hiding allows built-in or preloaded system apps (whic
 
 ---
 
+## Home Screen Layout
+
+The Apps tab's **Home screen layout** switches parts of LG's Home screen off by
+changing the home app's own layout file, which the app reads only when it
+starts. `lib/homescreen.js` lists one module per home app and uses the first
+whose `supported()` says yes; a TV with none has no Home screen section.
+
+**webOS 9** (`lib/homescreen-webos9.js`). The QML home app reads
+`home_layoutShelfView.xml` from `/mnt/lg/cmn_data/manifest/` before its built-in
+copy. A copy of LG's layout without the parts switched off is written there, and
+the home app restarted. Killed, the TV restores the app from its CRIU checkpoint
+with the old layout, so the checkpoints in `/tmp/checkpoint` and
+`/mnt/lg/cmn_data/checkpoint` are deleted first and the TV makes new ones. The
+file survives a restart and a power cut; deleting it puts LG's layout back.
+
+**webOS 10** (`lib/homescreen-webos10.js`, experimental). The Flutter home app
+reads `home.xml` from its assets folder on the read-only system and nowhere
+else, so an overlay mount lays a changed `home.xml` from `/tmp/glasshouse-home`
+over that folder, leaving every other file LG's. The parts are the side buttons
+(`globalline`, shrunk to 0 by 0 after the banner: taking it out left the screen
+black), the Quick Cards (`qcardList`) and the recommended shelf
+(`recommendedShelf`); the banner takes the height of the rows taken out, so the
+apps row stays at the bottom. The home app runs as
+`flutter-client -i com.webos.app.home`, so it is found by that argument pair in
+`/proc/<pid>/cmdline`, checked again just before it is sent SIGTERM, and other
+Flutter apps are left alone; a failed restart is reported to the dashboard. The
+mount goes with a restart of the TV, so `reapply()` mounts it again when the
+server starts, and does nothing while it is still mounted. The choices and a
+copy of LG's `home.xml`, which cannot be read while the overlay covers it, are
+kept in `/var/lib/tvweb`. Offered only on 10.x, where `/proc/filesystems` lists
+overlay and the layout is one recognised from #612's dumps, and only once
+`allowHomeLayout` is set.
+
+**Putting it back.** **Put back LG's Home screen**, switching the experimental
+feature off, or `tvwebctl restore-home` before uninstalling, deletes the webOS
+9 file or takes the webOS 10 overlay away, and restarts the home app.
+
 ## Apps kept ready in the background
 
 webOS's preload manager keeps apps loaded so they open quickly, including ones
