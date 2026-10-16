@@ -315,7 +315,8 @@ function added() {
   // offered for replacing, never shown as installed or as an update.
   function store() {
     var os = require('os');
-    var dir = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-store-'));
+    var dir = path.join(os.tmpdir(), 'repo-store-' + process.pid);
+    fs.mkdirSync(dir);
     fs.mkdirSync(path.join(dir, 'com.example.player'));
     fs.writeFileSync(path.join(dir, 'com.example.player', 'appinfo.json'), '{}');
     setup({ apps: { repos: [FORK] } }, extra);
