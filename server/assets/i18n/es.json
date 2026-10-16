@@ -6978,5 +6978,9 @@
  "srv.repo.unreachable": {
   "text": "no se pudo leer {url}: {error}",
   "from": "could not read {url}: {error}"
+ },
+ "apps.install.replaceStore": {
+  "text": "Sustituir app de la tienda",
+  "from": "Replace store app"
  }
 }

@@ -1168,12 +1168,12 @@ footer{margin-top:38px;font-size:13px;letter-spacing:.08em;text-transform:upperc
 .st-app .st-used{color:var(--w60);font-size:13px;white-space:nowrap}
 .st-app .pill-sel{min-width:0;width:96px}
 .st-note{color:var(--warn,#e5534b)}
-#apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row, #server-health-row{flex-wrap:wrap}
-#apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main, #server-health-row .prot-main{flex:1 1 160px}
-#apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status, #server-health-status{
+#apps-catalog-list .prot-row, #apps-others-list .prot-row, #apps-catalogs-repos .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row, #server-health-row{flex-wrap:wrap}
+#apps-catalog-list .prot-main, #apps-others-list .prot-main, #apps-catalogs-repos .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main, #server-health-row .prot-main{flex:1 1 160px}
+#apps-catalog-list .prot-status, #apps-others-list .prot-status, #apps-catalogs-repos .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status, #server-health-status{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%;
 }
-#apps-catalog-list .prot-status button{max-width:100%;white-space:normal}
+#apps-catalog-list .prot-status button, #apps-others-list .prot-status button{max-width:100%;white-space:normal}
 .app-badge, .app-storage-badge{
   display:inline-flex;align-items:center;
   font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;letter-spacing:.04em;

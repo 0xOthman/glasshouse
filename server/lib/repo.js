@@ -1,5 +1,7 @@
 // Strict ES5 - node v0.12.2 on webOS 4 (LG OLED B8) has no ES6 support.
 // The Homebrew Channel catalog, merged with what is installed on the TV.
+var fs = require('fs');
+var path = require('path');
 var url = require('url');
 var msg = require('./say').msg;
 var PROTECTED_APP_IDS = require('./apps').PROTECTED_APP_IDS;
@@ -15,6 +17,8 @@ var CACHE_MS = 3600000;
 var RETRY_MS = 10000;
 var config = {};
 var lunaFn = null;
+// Where the LG store installs apps; a copy here is the store's, not a catalog's.
+var storeAppsDir = '/media/cryptofs/apps/usr/palm/applications';
 /** @type {typeof import('./fetch')} */
 var fetchLib = null;
 var cache = null;       // { apps: [...], fetchedAt, error }
@@ -27,6 +31,7 @@ function init(opts) {
   if (opts.config) config = opts.config;
   if (opts.luna) lunaFn = opts.luna;
   if (opts.fetch) fetchLib = opts.fetch;
+  if (opts.storeAppsDir) storeAppsDir = opts.storeAppsDir;
   clock = opts.now || Date.now;
   cache = null;
   attempted = 0;
@@ -164,6 +169,11 @@ function withInstalled(apps, installed) {
     a.installedVersion = have === undefined ? null : have;
     if (isHbc(a.id)) a.state = 'hbc';
     else if (have === undefined) a.state = 'none';
+    // The LG store's own copy under the same id, as YouTube is for YouTube
+    // AdFree: its version is LG's numbering, not the catalog's, so it is
+    // offered for replacing, which the install preview confirms, rather than
+    // compared.
+    else if (fs.existsSync(path.join(storeAppsDir, a.id, 'appinfo.json'))) a.state = 'store';
     // The preview's own comparison, so the list and the preview agree: the
     // updater's stops at four parts and drops anything after a hyphen.
     else a.state = cmpVer(a.version, have) > 0 ? 'update' : 'installed';

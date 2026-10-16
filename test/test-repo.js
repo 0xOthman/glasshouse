@@ -294,6 +294,7 @@ function added() {
   setup({ apps: { repos: [FORK] } }, extra);
   repo.getCatalog(false, function (r) {
     var main = byId(r.apps), other = byId(r.others);
+    assert.strictEqual(other['com.example.player'].state, 'none');
     assert.ok(main['com.example.player'] && other['com.example.player']);
     assert.notStrictEqual(main['com.example.player'].version, '9.0.0');
     assert.strictEqual(other['com.example.player'].version, '9.0.0');
@@ -305,10 +306,32 @@ function added() {
         assert.ifError(err2);
         assert.strictEqual(p2.repo, BASE, 'with no catalog named, the Homebrew Channel\'s');
         console.log('  ✓ an app in two catalogs is listed in each, and installed from the one named');
-        check();
+        store();
       });
     });
   });
+
+  // LG's store copy under the same id has LG's version numbers: it is
+  // offered for replacing, never shown as installed or as an update.
+  function store() {
+    var os = require('os');
+    var dir = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-store-'));
+    fs.mkdirSync(path.join(dir, 'com.example.player'));
+    fs.writeFileSync(path.join(dir, 'com.example.player', 'appinfo.json'), '{}');
+    setup({ apps: { repos: [FORK] } }, extra);
+    repo.init({ storeAppsDir: dir });
+    installed = [{ id: 'com.example.player', version: '24.0.2' }];
+    repo.getCatalog(false, function (r) {
+      assert.strictEqual(byId(r.apps)['com.example.player'].state, 'store');
+      assert.strictEqual(byId(r.others)['com.example.player'].state, 'store');
+      fs.unlinkSync(path.join(dir, 'com.example.player', 'appinfo.json'));
+      fs.rmdirSync(path.join(dir, 'com.example.player'));
+      fs.rmdirSync(dir);
+      repo.init({ storeAppsDir: '/nonexistent-store' });
+      console.log('  ✓ an app the LG store installed under the same id is offered for replacing');
+      check();
+    });
+  }
 
   function check() {
     var seen = [];

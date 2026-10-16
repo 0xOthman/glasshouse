@@ -124,6 +124,7 @@ function catalogRow(a, writable, from) {
   else if (flash) { label = flash.label; cls = flash.cls; off = true; }
   else if (a.state === 'hbc') { label = t('apps.install.viaHbc', 'Updates through Homebrew Channel'); off = true; }
   else if (a.state === 'installed') { label = t('apps.uninstall.button', 'Uninstall'); cls = 'bad'; isInstalled = true; }
+  else if (a.state === 'store') { label = t('apps.install.replaceStore', 'Replace store app'); cls = 'warn'; }
   else if (a.state === 'update') { label = t('apps.install.update', 'Update'); cls = 'warn'; }
   else { label = t('apps.install.button', 'Install'); cls = 'good'; }
   const icon = a.iconUri
