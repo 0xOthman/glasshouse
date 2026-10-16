@@ -2740,8 +2740,8 @@
   "from": "Closed to the network"
  },
  "server.devtools.noFirewall": {
-  "text": "Abierto: esta TV no tiene cortafuegos",
-  "from": "Open: this TV has no firewall"
+  "text": "Esta TV no tiene cortafuegos, así que el depurador sigue abierto a la red mientras el modo desarrollador esté activado.",
+  "from": "This TV has no firewall, so the debugger stays open to the network while Developer Mode is on."
  },
  "server.devtools.off": {
   "text": "No está en ejecución",
