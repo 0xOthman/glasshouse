@@ -18,6 +18,8 @@ This is useful both for monitoring and for troubleshooting. It shows whether a h
 
 ## Watch time
 
+![Watch time: today, 7 days and 30 days, a bar for each of the last 14 days, and the time per app and input](../screenshots/metrics-watch-time.png)
+
 Shown while **Watch time** is on in the [Server tab](server.md#glasshouse). It
 is off until then, as it records what the household watches. While on, the
 server counts how long the screen is on with each app or input in front, and
