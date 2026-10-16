@@ -151,9 +151,10 @@ function samCall(method, appId, cb) {
   });
 }
 
-function release(appId, tries, cb) {
+function release(appId, tries, cb, quiet) {
   samCall('releaseBlockSystemApp', appId, function (ok) {
     if (ok) return cb(true);
+    if (quiet) return cb(false);
     if (tries <= 1) {
       console.error('samrescan: could not release ' + appId + '; it stays blocked in '
                     + '/var/preferences/com.webos.applicationManager/blockedSystemAppList until released');
@@ -174,8 +175,11 @@ function rereadApp(appId, check, cb) {
   if (!lunaFn) return cb(false);
   samCall('blockSystemApp', appId, function (blocked) {
     if (!blocked) {
+      // An answer that timed out may still have been a block sam made, so it
+      // is released all the same, as the boot hook does; once and quietly,
+      // as on a TV without the call (webOS 4) it is refused too.
       console.log('samrescan: sam did not take blockSystemApp for ' + appId);
-      return cb(false);
+      return release(appId, 1, function () { cb(false); }, true);
     }
     release(appId, 3, function (released) {
       if (!released) return cb(false);

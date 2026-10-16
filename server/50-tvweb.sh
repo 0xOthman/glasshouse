@@ -107,6 +107,13 @@ sam_reports() {
 ssapp=/usr/palm/applications/com.webos.app.screensaver
 stock_type=$(sed -n 's/.*"type"[^"]*"\([^"]*\)".*/\1/p' "$ssapp/appinfo.json" 2>/dev/null)
 [ -n "$stock_type" ] && echo "$stock_type" > /var/lib/tvweb/screensaver-stock-type
+# A block and release cut short, by a crash or a power cut between the two,
+# leaves LG's screen saver blocked, and the block is kept across boots. Only
+# TVs whose stock screen saver is not QML ever block it, so there it is
+# released once at every boot; with nothing blocked sam just refuses.
+if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ]; then
+  luna-send -n 1 luna://com.webos.applicationManager/releaseBlockSystemApp '{"id":"com.webos.app.screensaver"}' >/dev/null 2>&1 || true
+fi
 held=0
 if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ]; then
   if grep -q '"allowOnWebos10"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then

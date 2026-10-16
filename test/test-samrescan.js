@@ -21,7 +21,7 @@ function fakeTV(list, opts) {
              // sam's block and release: the calls made, in order, and whether
              // sam has the call at all (webOS 4 answers neither).
              samCalls: [], hasBlock: opts.hasBlock !== false, failReleases: opts.failReleases || 0,
-             blocked: {} };
+             blockAnswerLost: !!opts.blockAnswerLost, blocked: {} };
   tv.luna = function (uri, payload, cb) {
     var r;
     if (uri === 'com.webos.applicationManager/blockSystemApp' || uri === 'com.webos.applicationManager/releaseBlockSystemApp') {
@@ -29,7 +29,11 @@ function fakeTV(list, opts) {
       tv.samCalls.push(m + ' ' + payload.id);
       if (!tv.hasBlock) r = { returnValue: false, errorText: 'Unknown method' };
       else if (m === 'releaseBlockSystemApp' && tv.failReleases > 0) { tv.failReleases--; r = { returnValue: false }; }
-      else { tv.blocked[payload.id] = m === 'blockSystemApp'; r = { returnValue: true }; }
+      else {
+        tv.blocked[payload.id] = m === 'blockSystemApp';
+        // A block sam made but whose answer never came back, as when the call times out.
+        r = m === 'blockSystemApp' && tv.blockAnswerLost ? null : { returnValue: true };
+      }
     } else if (uri === 'com.webos.service.config/getConfigs') {
       var configs = {};
       if (tv.list) configs[KEY] = tv.list.slice();
@@ -160,15 +164,27 @@ step(function () {
   }));
 });
 
-// 8. sam without the call (webOS 4): the block is refused, no release goes out,
-//    and the caller falls back.
+// 8. sam without the call (webOS 4): the block is refused, one release goes out
+//    quietly in case it was not, and the caller falls back.
 step(function () {
   var tv = fakeTV(null, { hasBlock: false });
   samrescan.init({ luna: tv.luna, nudgeMs: 5, pollMs: 5 });
   samrescan.rereadApp('com.webos.app.screensaver', null, checked(function (ok) {
     assert.strictEqual(ok, false);
-    assert.deepEqual(tv.samCalls, ['blockSystemApp com.webos.app.screensaver']);
-    console.log('  ✓ where sam has no block call the caller falls back, with nothing released');
+    assert.deepEqual(tv.samCalls, ['blockSystemApp com.webos.app.screensaver', 'releaseBlockSystemApp com.webos.app.screensaver']);
+    console.log('  ✓ where sam has no block call the caller falls back, after one release');
+    next();
+  }));
+});
+
+// 8b. A block sam made whose answer was lost is released all the same.
+step(function () {
+  var tv = fakeTV([], { blockAnswerLost: true });
+  samrescan.init({ luna: tv.luna, nudgeMs: 5, pollMs: 5 });
+  samrescan.rereadApp('com.webos.app.screensaver', null, checked(function (ok) {
+    assert.strictEqual(ok, false, 'the caller falls back');
+    assert.strictEqual(tv.blocked['com.webos.app.screensaver'], false, 'not left blocked');
+    console.log('  ✓ a block whose answer was lost is released all the same');
     next();
   }));
 });
