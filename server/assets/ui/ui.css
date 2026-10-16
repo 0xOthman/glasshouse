@@ -1369,3 +1369,5 @@ button.tools-jump:active{background:var(--w80)}
 .rk-opt{display:flex;align-items:center;gap:10px;min-height:42px;padding:8px 14px}
 .rk-opt .rk-ico{width:22px;height:22px;border-radius:5px}
 .rk-opt.on{color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100)}
+/* A catalog's address is one long word. */
+.catalog-url{overflow-wrap:anywhere}

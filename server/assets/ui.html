@@ -812,6 +812,21 @@
       </div>
     </details>
 
+    <details class="pv-d" id="disc-other-catalogs">
+      <summary><span data-t="apps.catalogs">Other app catalogs</span> <span class="cur" id="apps-catalogs-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.catalogs.desc">Catalogs other than the Homebrew Channel's, such as one a developer keeps for their own app. Their apps are listed here and checked for updates, as the Homebrew Channel's are.</div>
+      <div class="pv-note" id="catalogs-off" hidden>
+        <div class="prot-desc" data-t="apps.catalogs.off">Adding a catalog needs Install app from a URL or file turned on, or a token, since whoever runs a catalog chooses what it offers to install.</div>
+      </div>
+      <form class="toast-form page-add" id="catalog-add-form" hidden onsubmit="event.preventDefault();addCatalog();">
+        <input type="text" id="catalog-url" placeholder="Catalog address, or its GitHub page" data-t-placeholder="apps.catalogs.placeholder" maxlength="2048"
+          autocomplete="off" spellcheck="false">
+        <button type="submit" id="catalog-add-btn" data-t="apps.catalogs.add">Add catalog</button>
+      </form>
+      <div class="sub page-add-msg" id="catalogs-msg" role="alert"></div>
+      <div class="prot-table" id="apps-catalogs-repos"></div>
+      <div class="prot-table" id="apps-others-list"></div>
+    </details>
     <details class="pv-d" id="disc-sideload-apps">
       <summary><span data-t="apps.sideload.heading">Install app from a URL or file</span> <span class="cur" id="apps-sideload-summary"></span></summary>
       <div class="pv-sub" data-t="apps.sideload.desc">Install an application package (.ipk) directly from a download link or by uploading a file from your computer.</div>

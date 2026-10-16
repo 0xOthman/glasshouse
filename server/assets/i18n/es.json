@@ -6910,5 +6910,73 @@
  "tv.apps.home.exp.hint": {
   "text": "Actívalo desde el panel en un navegador, en Apps, donde está su advertencia.",
   "from": "Switch it on from the dashboard in a browser, under Apps, where its warning is."
+ },
+ "apps.catalogs": {
+  "text": "Otros catálogos de apps",
+  "from": "Other app catalogs"
+ },
+ "apps.catalogs.desc": {
+  "text": "Catálogos distintos del de Homebrew Channel, como el que un desarrollador mantiene para su propia app. Sus apps se muestran aquí y se comprueba si tienen actualizaciones, como las de Homebrew Channel.",
+  "from": "Catalogs other than the Homebrew Channel's, such as one a developer keeps for their own app. Their apps are listed here and checked for updates, as the Homebrew Channel's are."
+ },
+ "apps.catalogs.off": {
+  "text": "Para añadir un catálogo hay que activar Instalar app desde una URL o un archivo, o fijar un token, ya que quien gestiona un catálogo decide qué ofrece instalar.",
+  "from": "Adding a catalog needs Install app from a URL or file turned on, or a token, since whoever runs a catalog chooses what it offers to install."
+ },
+ "apps.catalogs.placeholder": {
+  "text": "Dirección del catálogo, o su página de GitHub",
+  "from": "Catalog address, or its GitHub page"
+ },
+ "apps.catalogs.add": {
+  "text": "Añadir catálogo",
+  "from": "Add catalog"
+ },
+ "apps.catalogs.none": {
+  "text": "Ninguno",
+  "from": "None"
+ },
+ "apps.catalogs.one": {
+  "text": "1 catálogo",
+  "from": "1 catalog"
+ },
+ "apps.catalogs.count": {
+  "text": "{n} catálogos",
+  "from": "{n} catalogs"
+ },
+ "apps.catalogs.remove": {
+  "text": "Quitar",
+  "from": "Remove"
+ },
+ "apps.catalogs.from": {
+  "text": "de {catalog}",
+  "from": "from {catalog}"
+ },
+ "apps.catalogs.add.confirm": {
+  "text": "¿Añadir este catálogo?\n\nQuien lo gestiona decide qué ofrece instalar, y Homebrew Channel no ha revisado sus apps. Añade solo catálogos de confianza.",
+  "from": "Add this catalog?\n\nWhoever runs it chooses what it offers to install, and its apps are not vetted by the Homebrew Channel. Only add a catalog you trust."
+ },
+ "apps.catalogs.remove.confirm": {
+  "text": "¿Quitar este catálogo? Las apps instaladas desde él se quedan en la TV.",
+  "from": "Remove this catalog? Apps installed from it stay on the TV."
+ },
+ "srv.repo.notAdded": {
+  "text": "ese catálogo no es uno añadido aquí",
+  "from": "that catalog is not one added here"
+ },
+ "srv.repo.badAction": {
+  "text": "la acción debe ser add o remove",
+  "from": "action must be add or remove"
+ },
+ "srv.repo.tooMany": {
+  "text": "se pueden añadir como máximo {n} catálogos",
+  "from": "at most {n} catalogs can be added"
+ },
+ "srv.repo.already": {
+  "text": "ese catálogo ya está en la lista",
+  "from": "that catalog is already listed"
+ },
+ "srv.repo.unreachable": {
+  "text": "no se pudo leer {url}: {error}",
+  "from": "could not read {url}: {error}"
  }
 }

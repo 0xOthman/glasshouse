@@ -760,6 +760,9 @@ function hostAllowed(req) {
   return false;
 }
 
+// Catalogs that can be added from the dashboard, beside the Homebrew Channel's.
+var MAX_REPOS = 10;
+
 function isInstallRoute(pathname) {
   return pathname === '/api/apps/catalog' || pathname.indexOf('/api/apps/install/') === 0;
 }
@@ -882,7 +885,8 @@ function handleInstallRoute(req, res, u, pathname) {
   if (pathname === '/api/apps/install/fetch') {
     return readJsonBody(req, res, function (body) {
       if (typeof body.id !== 'string' || !body.id) return installError(res, msg('srv.install.idRequired', 'an app id is required'));
-      repoModule.findPackage(body.id, function (err, pkg) {
+      var from = typeof body.repo === 'string' && body.repo ? body.repo : null;
+      repoModule.findPackage(body.id, from, function (err, pkg) {
         if (err) return installError(res, err.message);
         installerModule.start({ source: 'catalog', pkg: pkg, auto: body.auto === true }, installReply(res));
       });
@@ -917,6 +921,43 @@ function handleInstallRoute(req, res, u, pathname) {
       installerModule.cancel(body.jobId, function (err) {
         if (err) return installError(res, String(err));
         send(res, 200, JSON.stringify({ ok: true }));
+      });
+    });
+  }
+  if (pathname === '/api/apps/install/repos') {
+    // A catalog is trusted to offer packages, as a URL install is, so adding
+    // or removing one needs what a URL install needs.
+    if (!sideloadVia(req)) return sideloadRefused(res);
+    return readJsonBody(req, res, function (body) {
+      var list = repoModule.repoUrls().slice(1);
+      function save(next) {
+        config.apps = config.apps || {};
+        config.apps.repos = next;
+        writeSettings({ apps: { repos: next } }, function (err) {
+          if (err) return installError(res, err.message);
+          repoModule.forget();
+          send(res, 200, JSON.stringify({ ok: true, repos: next }));
+        });
+      }
+      if (body.action === 'remove') {
+        var at = list.indexOf(body.url);
+        if (at < 0) return installError(res, msg('srv.repo.notAdded', 'that catalog is not one added here'));
+        list.splice(at, 1);
+        console.log('apps: catalog removed: ' + body.url);
+        return save(list);
+      }
+      if (body.action !== 'add') return installError(res, msg('srv.repo.badAction', 'action must be add or remove'));
+      if (list.length >= MAX_REPOS) {
+        return installError(res, msg('srv.repo.tooMany', 'at most {n} catalogs can be added', { n: MAX_REPOS }));
+      }
+      repoModule.checkCatalog(body.url, function (err, found) {
+        if (err) return installError(res, err.message);
+        if (found === repoModule.DEFAULT_REPO || list.indexOf(found) >= 0) {
+          return installError(res, msg('srv.repo.already', 'that catalog is already listed'));
+        }
+        list.push(found);
+        console.warn('security: catalog added from dashboard: ' + found);
+        save(list);
       });
     });
   }

@@ -706,6 +706,8 @@ function snapshot() {
     // Which catalog row it belongs to, so the dashboard can show it there.
     source: job.source,
     appId: job.pkg ? job.pkg.id : null,
+    // An id may be in more than one catalog; this is the one it came from.
+    repo: job.pkg ? job.pkg.repo || null : null,
     progress: job.progress,
     preview: job.preview,
     error: job.error,
