@@ -33,7 +33,10 @@ var SWITCH_POLL_MS = 3000;
 var SWITCH_SETTLE_MS = 5000;
 var SWITCH_TIMEOUT_MS = 150000;
 var SWITCHING_ERROR = msg('srv.saver.switching', 'The TV is still switching screen savers. Try again in a minute.');
-var HELD_ERROR = msg('srv.saver.held', 'Custom screen savers are turned off on this TV for now. On webOS 10 and later they can leave the picture, the sound and HDMI control off until the TV is unplugged. One already in use stays until the TV is next fully restarted.');
+var HELD_ERROR = msg('srv.saver.held', 'Custom screen savers are turned off on this TV for now, as they have not been tried on its webOS version. Before 0.98.1, on webOS 10, they could leave the picture, the sound and HDMI control off until the TV was unplugged. One already in use stays until the TV is next fully restarted.');
+// The switch is undone rather than sam restarted, the step behind #366.
+var NOT_TAKEN_ERROR = msg('srv.saver.notTaken', 'The TV did not take the new screen saver without restarting its app manager, which has left the picture or sound off on some TVs, so LG\'s screen saver is kept.');
+var STOCK_LATER_ERROR = msg('srv.saver.stockLater', 'LG\'s screen saver is set, and the TV uses it from its next restart: it did not take the change without restarting its app manager, which has left the picture or sound off on some TVs.');
 
 var SCREENSAVERS = {
   stock: {
@@ -67,6 +70,7 @@ var SCREENSAVERS = {
   }
 };
 
+var webosVersion = null;  // as the TV reports it
 var lunaFn = null;
 var assetPathFn = null;
 var configObj = null;
@@ -112,6 +116,7 @@ function init(opts) {
   lunaFn = opts.luna;
   assetPathFn = opts.assetPath;
   configObj = opts.config;
+  webosVersion = opts.webosVersion || null;
   injectKeyFn = opts.injectKey;
   keyBackVal = opts.KEY_BACK;
   if (opts.inputKey) inputKeyFn = opts.inputKey;
@@ -147,14 +152,25 @@ function slowSwitch() {
 }
 
 // Where the stock screen saver is not QML (Flutter on webOS 10 and 11), custom
-// screen savers have been followed by the picture muted, HDMI-CEC and ARC dead
-// and sound on the TV speakers only, until a power cut (#366). Held back there
-// until the cause is found: the boot hook stops applying them, and nothing here
-// restarts sam to undo one already in use. "allowOnWebos10": true in config.json,
-// file-only, turns them back on. With it on, the switch now asks sam to reread
-// the one app (ensureScreensaverRunner) and restarts it only if that fails.
+// screen savers were followed by the picture muted, HDMI-CEC and ARC dead and
+// sound on the TV speakers only, until a power cut (#366), when switching to
+// one restarted sam. Since 0.98.1 the switch asks sam to reread the one app
+// instead (ensureScreensaverRunner), which has held on a C5 (webOS 10.3.1) and
+// a C2 (webOS 10.3), so they are on there by default (#768). webOS 11 and later
+// are untried and stay held back: the boot hook does not apply them and nothing
+// here restarts sam. "allowOnWebos10": true in config.json turns them on
+// anywhere, with sam restarted if the reread fails.
 function heldBack() {
-  return slowSwitch() && !allowedAnyway();
+  return slowSwitch() && !onByDefault() && !allowedAnyway();
+}
+
+function onByDefault() {
+  return slowSwitch() && /^10\./.test(String(webosVersion || ''));
+}
+
+// Where custom screen savers are experimental: held back, or turned on anyway.
+function experimental() {
+  return slowSwitch() && !onByDefault();
 }
 
 function allowedAnyway() {
@@ -163,7 +179,7 @@ function allowedAnyway() {
 
 // Held back but turned back on, so the dashboards can say so.
 function heldOverridden() {
-  return slowSwitch() && allowedAnyway();
+  return experimental() && allowedAnyway();
 }
 
 function switching() {
@@ -288,6 +304,8 @@ function stageScreensaverAppinfo() {
   fs.writeFileSync(path.join(SCREENSAVER_DIR, 'appinfo.json'), out);
 }
 
+// cb(samRestarted, notTaken): notTaken where sam still holds the other type
+// and was not restarted, which only allowOnWebos10 permits.
 function ensureScreensaverRunner(cb) {
   var staged;
   try {
@@ -322,6 +340,10 @@ function ensureScreensaverRunner(cb) {
           console.log('screensaver: sam read the manifest again, without a restart');
           return cb(false);
         }
+        if (!allowedAnyway()) {
+          console.log('screensaver: sam did not read the manifest again, and is not restarted (#366)');
+          return cb(false, true);
+        }
         execFile('/bin/systemctl', ['restart', '--no-block', 'sam'], { timeout: 10000 }, function (e) {
           if (e) console.error('screensaver: could not restart sam: ' + e.message);
           else waitForRunner(staged);
@@ -332,10 +354,11 @@ function ensureScreensaverRunner(cb) {
   });
 }
 
+// cb(notTaken), as ensureScreensaverRunner gives it.
 function settleScreensaverApp(cb) {
-  ensureScreensaverRunner(function (samRestarted) {
-    if (samRestarted) return cb();
-    restartScreensaverApp(cb);
+  ensureScreensaverRunner(function (samRestarted, notTaken) {
+    if (samRestarted || notTaken) return cb(!!notTaken);
+    restartScreensaverApp(function () { cb(false); });
   });
 }
 
@@ -372,9 +395,9 @@ function setScreensaver(mode, level, cb) {
   unmountScreensaver(function () {
     if (mode === 'stock') {
       clearStagedScreensaver();
-      return settleScreensaverApp(function () {
-        cb({ ok: screensaverMode() === 'stock', current: screensaverMode(), level: screensaverLevel(),
-             switching: switching() });
+      return settleScreensaverApp(function (notTaken) {
+        cb({ ok: !notTaken && screensaverMode() === 'stock', current: screensaverMode(), level: screensaverLevel(),
+             switching: switching(), error: notTaken ? STOCK_LATER_ERROR : undefined });
       });
     }
 
@@ -391,7 +414,14 @@ function setScreensaver(mode, level, cb) {
     }
 
     execFile('/bin/mount', ['--bind', SCREENSAVER_DIR, SCREENSAVER_APP_DIR], { timeout: 4000 }, function (err) {
-      settleScreensaverApp(function () {
+      settleScreensaverApp(function (notTaken) {
+        if (notTaken) {
+          // sam still runs LG's: put LG's files back under it, so they agree.
+          return unmountScreensaver(function () {
+            clearStagedScreensaver();
+            cb({ ok: false, current: screensaverMode(), level: screensaverLevel(), switching: switching(), error: NOT_TAKEN_ERROR });
+          });
+        }
         var now = screensaverMode();
         cb({
           ok: !err && now === mode,
@@ -503,6 +533,8 @@ module.exports = {
   detectExternal: detectExternal,
   heldBack: heldBack,
   heldOverridden: heldOverridden,
+  experimental: experimental,
+  onByDefault: onByDefault,
   slowSwitch: slowSwitch,
   allowedAnyway: allowedAnyway,
   setScreensaver: setScreensaver,

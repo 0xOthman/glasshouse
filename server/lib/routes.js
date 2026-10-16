@@ -602,7 +602,8 @@ function updateSummary() {
   s.allowNetworkDebugger = !!(config && config.allowNetworkDebugger);
   s.allowTileHiding = !!(appsModule && appsModule.tileHidingAllowed && appsModule.tileHidingAllowed());
   s.allowOnWebos10 = !!(screensaversModule && screensaversModule.allowedAnyway && screensaversModule.allowedAnyway());
-  s.isWebos10 = !!(screensaversModule && screensaversModule.slowSwitch && screensaversModule.slowSwitch());
+  // Where the Server tab offers the switch: custom screen savers are experimental there.
+  s.isWebos10 = !!(screensaversModule && screensaversModule.experimental && screensaversModule.experimental());
   s.homeLayout = homeScreenModule ? homeScreenModule.experimental() : null;
   s.prometheusEnabled = prometheusEnabled();
   s.watchHistory = historyModule ? historyModule.status() : null;

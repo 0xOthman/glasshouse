@@ -505,6 +505,7 @@ homeScreen.init({ luna: luna, config: CONFIG, inputNames: telemetry.inputNameMap
 homeScreen.reapply();
 screensavers.init({
   luna: luna,
+  webosVersion: telemetry.detectWebosVersion(),
   assetPath: assetPath,
   config: CONFIG,
   injectKey: controls.injectKey,

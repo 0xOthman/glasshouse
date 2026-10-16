@@ -161,7 +161,8 @@ apps.setTileHidingEnabled(true, function (res) {
               var controls = require('../server/lib/controls');
               var mockScreensavers = {
                 allowedAnyway: function () { return !!config.allowOnWebos10; },
-                slowSwitch: function () { return true; }
+                slowSwitch: function () { return true; },
+                experimental: function () { return true; }
               };
               routes.init({
                 config: config,

@@ -98,12 +98,14 @@ sam_reports() {
 }
 
 # LG's screen saver ships as QML up to webOS 9 and as Flutter from webOS 10.
-# On the Flutter TVs, custom screen savers making sam reread its manifests
-# have been followed by the picture muted, HDMI-CEC and ARC dead and sound on
-# the TV speakers only, until a power cut (#366). Held back there until the
-# cause is found, unless config.json has "allowOnWebos10": true. The type is
-# recorded for the server, which cannot read the stock manifest while one of
-# ours is mounted over it.
+# On the Flutter TVs, custom screen savers were followed by the picture muted,
+# HDMI-CEC and ARC dead and sound on the TV speakers only, until a power cut,
+# when switching to one restarted sam (#366). A block and release of the one
+# app has replaced the restart, and has held on webOS 10 (#768), so they are
+# applied there; webOS 11 and later are untried and held back, unless
+# config.json has "allowOnWebos10": true, which alone lets sam be restarted
+# when the reread fails. The type is recorded for the server, which cannot
+# read the stock manifest while one of ours is mounted over it.
 ssapp=/usr/palm/applications/com.webos.app.screensaver
 stock_type=$(sed -n 's/.*"type"[^"]*"\([^"]*\)".*/\1/p' "$ssapp/appinfo.json" 2>/dev/null)
 [ -n "$stock_type" ] && echo "$stock_type" > /var/lib/tvweb/screensaver-stock-type
@@ -115,8 +117,13 @@ if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ]; then
   luna-send -n 1 luna://com.webos.applicationManager/releaseBlockSystemApp '{"id":"com.webos.app.screensaver"}' >/dev/null 2>&1 || true
 fi
 held=0
-if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ]; then
-  if grep -q '"allowOnWebos10"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then
+allow_restart=0
+webos_major=$(sed -n 's/.*webOS[^0-9]*\([0-9][0-9]*\)\..*/\1/p' /etc/issue 2>/dev/null | head -n 1)
+if grep -q '"allowOnWebos10"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then
+  allow_restart=1
+fi
+if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ] && [ "$webos_major" != "10" ]; then
+  if [ "$allow_restart" -eq 1 ]; then
     echo "$(date): allowOnWebos10 set - custom screen saver not held back"
   else
     held=1
@@ -142,8 +149,12 @@ if [ -f /var/lib/tvweb/screensaver/.tvweb-screensaver ]; then
         echo "$(date): sam read the screen saver again after a block and release, without a restart"
       elif sam_nudge && sam_reports com.webos.app.screensaver "\"type\": *\"$staged_type\""; then
         echo "$(date): sam read the screen saver again, without a restart"
-      else
+      elif [ "$allow_restart" -eq 1 ]; then
         systemctl restart --no-block sam >/dev/null 2>&1 || true
+      else
+        # sam still runs LG's: put LG's files back under it rather than restart it.
+        umount "$ssapp" 2>/dev/null || true
+        echo "$(date): sam did not read the custom screen saver again - LG's kept, sam not restarted (#366)"
       fi
     fi
   fi
