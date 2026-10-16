@@ -10,6 +10,8 @@ var msg = require('./say').msg;
 var SS = require('./screensavers').SCREENSAVERS;
 var topics = require('./topics');
 var names = require('./names');
+var hexColor = require('./util').hexColor;
+var APP_ID_RE = require('./iconserver').APP_ID_RE;
 var SS_IDS = Object.keys(SS);
 function ssMap(byLabel) {
   var m = {};
@@ -67,6 +69,8 @@ var HA_ENTITIES = [
   { id: 'pause', type: 'button', name: 'Pause', cat: 'controls' },
   { id: 'play_pause', type: 'button', name: 'Play / Pause', cat: 'controls' },
   { id: 'stop', type: 'button', name: 'Stop', cat: 'controls' },
+  { id: 'rewind', type: 'button', name: 'Rewind', cat: 'controls' },
+  { id: 'fast_forward', type: 'button', name: 'Fast Forward', cat: 'controls' },
   { id: 'screensaver', type: 'button', name: 'Screen Saver', cat: 'controls' },
   { id: 'screen_saver_active', type: 'binary_sensor', name: 'Screen Saver Active', cat: 'controls' },
   { id: 'screensaver_mode', type: 'select', name: 'Screen Saver Mode', cat: 'controls' },
@@ -122,6 +126,9 @@ var HA_ENTITIES = [
   { id: 'app_storage_free', type: 'sensor', name: 'App Storage Available', cat: 'system' },
   { id: 'mac_address', type: 'sensor', name: 'MAC Address', cat: 'system' },
   { id: 'uptime', type: 'sensor', name: 'Uptime', cat: 'system' },
+  { id: 'watch_time_today', type: 'sensor', name: 'Watch Time Today', cat: 'system' },
+  { id: 'watch_time_week', type: 'sensor', name: 'Watch Time, Last 7 Days', cat: 'system' },
+  { id: 'watch_top_app_today', type: 'sensor', name: 'Most Watched Today', cat: 'system' },
 
   // Diagnostics & Settings
   { id: 'audio_output', type: 'sensor', name: 'Audio Output', cat: 'diagnostics' },
@@ -186,7 +193,7 @@ function lgSettingEntities(rows, topic) {
     var r = byRow[e.row];
     if (!r) return;
     // A retained message from before the settings were published has no lgs.
-    var state = '(value_json.lgs | default({})).get("' + e.row + '")';
+    var state = '(value_json.lgs or {}).get("' + e.row + '")';
     var payload = {
       name: e.name,
       command_topic: topic.command('lgs/' + e.row),
@@ -231,6 +238,8 @@ function entityCategory(e) {
   return ENTITY_CATEGORIES[e.type + '.' + e.id] || ENTITY_CATEGORIES[e.id] || 'diagnostics';
 }
 
+var SETTINGS_APP_ID = 'com.palm.app.settings';
+
 /*
  * Launch App options by name. Before the app list has loaded, the common apps
  * stand in so the select is not empty. A name two apps share gets the id of
@@ -259,7 +268,37 @@ function appNames(installed) {
   } else {
     for (var i = 0; i < installed.length; i++) add(installed[i].id, installed[i].title);
   }
+  // LG's Settings is a system app the installed list leaves out, but it
+  // launches like any other: offered so a non-admin client can open it.
+  add(SETTINGS_APP_ID, 'Settings');
   return byId;
+}
+
+/*
+ * The Launch App select's attributes: each option's app id, and for a
+ * launcher showing the apps as tiles, each app's icon on the LAN icon server
+ * (iconBaseUrl, when it is listening) and its appinfo.json iconColor.
+ */
+function appAttributes(toId, byId, installed, iconBaseUrl) {
+  var attrs = { app_ids: toId };
+  var id;
+  if (iconBaseUrl) {
+    var icons = {};
+    for (id in byId) {
+      if (APP_ID_RE.test(id)) icons[id] = iconBaseUrl + id + '.png';
+    }
+    attrs.app_icons = icons;
+  }
+  var colors = {}, anyColor = false;
+  for (var i = 0; i < (installed || []).length; i++) {
+    var color = hexColor(installed[i].iconColor);
+    if (color && byId[installed[i].id]) {
+      colors[installed[i].id] = color;
+      anyColor = true;
+    }
+  }
+  if (anyColor) attrs.app_colors = colors;
+  return attrs;
 }
 
 /*
@@ -313,7 +352,11 @@ var RETIRED_ENTITIES = [
     { type: 'sensor', id: 'oled_light' },
     // LG's PHY error count: a 0-15 counter that wraps, mostly of errors the
     // HDMI 2.1 link corrects itself, so it said nothing anyone could act on.
-    { type: 'sensor', id: 'hdmi_cable_errors' }
+    { type: 'sensor', id: 'hdmi_cable_errors' },
+    // The SoC current, a fixed factory figure (#477), read value_json.power.
+    { type: 'sensor', id: 'soc_current' },
+    // A test build's sensor for a TV that does not sleep when off (#296, not merged).
+    { type: 'binary_sensor', id: 'standby_stuck' }
   ];
 
 var HDMI_DIAG_ONLY = {
@@ -351,11 +394,12 @@ function powerTimerPayload(topic, which, name, icon) {
     command_topic: topic.command('powerTimer/' + which),
     state_topic: topic.telemetry,
     json_attributes_topic: topic.telemetry,
-    value_template: '{{ "ON" if ' + timer + ' and ' + timer + '.enabled else "OFF" }}',
+    // Read with get(): a field missing from the timer would be logged by Home Assistant (#761).
+    value_template: '{{ "ON" if (' + timer + ' or {}).get("enabled") else "OFF" }}',
     json_attributes_template: '{% set t = ' + timer + ' %}' +
       '{% set names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] %}' +
-      '{% set ns = namespace(days=[]) %}{% for d in (t.days if t else []) %}{% set ns.days = ns.days + [names[d]] %}{% endfor %}' +
-      '{{ {"time": t.time, "days": ns.days} | tojson if t else "{}" }}',
+      '{% set ns = namespace(days=[]) %}{% for d in ((t.get("days") or []) if t else []) %}{% set ns.days = ns.days + [names[d]] %}{% endfor %}' +
+      '{{ {"time": t.get("time"), "days": ns.days} | tojson if t else "{}" }}',
     payload_on: 'on',
     payload_off: 'off',
     state_on: 'ON',
@@ -376,7 +420,7 @@ function buildEntities(opts) {
   // available in the first two.
   var volumeLevelAvailability = [{
     topic: topic.telemetry,
-    value_template: '{{ "online" if (value_json.volume_control | default("level")) == "level" else "offline" }}'
+    value_template: '{{ "online" if (value_json.volume_control or "level") == "level" else "offline" }}'
   }];
   var volumeStepAvailability = [{
     topic: topic.telemetry,
@@ -488,6 +532,10 @@ function buildEntities(opts) {
           name: 'Active App',
           state_topic: topic.telemetry,
           value_template: '{{ value_json.display_title or value_json.app_name or value_json.app }}',
+          // The title changes when an app is renamed; the id does not. A
+          // remote that only acts in certain apps checks the id.
+          json_attributes_topic: topic.state('application/remote'),
+          json_attributes_template: '{{ value_json | tojson }}',
           icon: 'mdi:television-play'
         }
       },
@@ -618,11 +666,13 @@ function buildEntities(opts) {
           // The format of what is playing, as the dashboard's Sound panel shows
           // it; None while nothing plays, rather than unknown, so automations
           // can tell the two apart from the TV being unreachable.
-          value_template: '{% set i = value_json.sound.input if value_json.sound and value_json.sound.input else none %}' +
-            '{{ (i.codec ~ (" · " ~ i.immersive if i.immersive else "")) if i else "None" }}',
+          // Read with get(): the input often lacks immersive, and Home
+          // Assistant logs each field a template reads that is missing (#761).
+          value_template: '{% set i = (value_json.sound.input if value_json.sound else none) or {} %}' +
+            '{{ ((i.get("codec") or "") ~ (" · " ~ i.get("immersive") if i.get("immersive") else "")) if i else "None" }}',
           json_attributes_topic: topic.telemetry,
-          json_attributes_template: '{% set i = value_json.sound.input if value_json.sound and value_json.sound.input else {} %}' +
-            '{{ {"codec": i.codec_raw if i.codec_raw else none, "immersive": i.immersive_raw if i.immersive_raw else none} | tojson }}',
+          json_attributes_template: '{% set i = value_json.sound.input or {} %}' +
+            '{{ {"codec": i.get("codec_raw") or none, "immersive": i.get("immersive_raw") or none} | tojson }}',
           icon: 'mdi:surround-sound'
         }
       },
@@ -644,6 +694,44 @@ function buildEntities(opts) {
           device_class: 'timestamp',
           entity_category: 'diagnostic',
           icon: 'mdi:clock-start'
+        }
+      },
+      /*
+       * Watch time, from the history the dashboard turns on: today's resets
+       * at the TV's local midnight, which total_increasing takes as a new
+       * cycle. Screen-off time is not in either.
+       */
+      {
+        type: 'sensor', id: 'watch_time_today',
+        payload: {
+          name: 'Watch Time Today',
+          state_topic: topic.telemetry,
+          value_template: '{{ value_json.watch.today_h if value_json.watch else none }}',
+          unit_of_measurement: 'h',
+          device_class: 'duration',
+          state_class: 'total_increasing',
+          icon: 'mdi:television-classic'
+        }
+      },
+      {
+        type: 'sensor', id: 'watch_time_week',
+        payload: {
+          name: 'Watch Time, Last 7 Days',
+          state_topic: topic.telemetry,
+          value_template: '{{ value_json.watch.week_h if value_json.watch else none }}',
+          unit_of_measurement: 'h',
+          device_class: 'duration',
+          state_class: 'measurement',
+          icon: 'mdi:calendar-week'
+        }
+      },
+      {
+        type: 'sensor', id: 'watch_top_app_today',
+        payload: {
+          name: 'Most Watched Today',
+          state_topic: topic.telemetry,
+          value_template: '{{ value_json.watch.top_today if value_json.watch and value_json.watch.top_today else none }}',
+          icon: 'mdi:trophy-outline'
         }
       },
       {
@@ -990,6 +1078,10 @@ function buildEntities(opts) {
             command_template: '{{ ' + JSON.stringify(toId) + '.get(value, value) }}',
             state_topic: topic.telemetry,
             value_template: '{{ ' + JSON.stringify(byId) + '.get(value_json.app_id, "None") }}',
+            // Each option's app id, for a client that keeps a chosen app by id:
+            // a title can change while the id stays.
+            json_attributes_topic: topic.telemetry,
+            json_attributes_template: '{{ ' + JSON.stringify(appAttributes(toId, byId, installedApps, opts.iconBaseUrl)) + ' | tojson }}',
             options: Object.keys(toId),
             icon: 'mdi:apps'
           };
@@ -1261,6 +1353,24 @@ function buildEntities(opts) {
           payload_press: 'stop',
           icon: 'mdi:stop'
         }
+      },
+      {
+        type: 'button', id: 'rewind',
+        payload: {
+          name: 'Rewind',
+          command_topic: topic.command('playback'),
+          payload_press: 'rewind',
+          icon: 'mdi:rewind'
+        }
+      },
+      {
+        type: 'button', id: 'fast_forward',
+        payload: {
+          name: 'Fast Forward',
+          command_topic: topic.command('playback'),
+          payload_press: 'fastForward',
+          icon: 'mdi:fast-forward'
+        }
       }
     ];
 
@@ -1335,7 +1445,7 @@ function buildEntities(opts) {
 
   entities = entities.concat(lgSettingEntities(opts.lgRows, topic));
 
-  return withOffStates(entities);
+  return withSafeFields(withOffStates(entities));
 }
 
 /*
@@ -1405,6 +1515,37 @@ function withOffStates(entities) {
     var m = t && when.hasOwnProperty(e.id) && /^\{\{([\s\S]*)\}\}$/.exec(t.trim());
     if (m) e.payload.value_template = '{{ ' + when[e.id] + ' if value_json.tvOff else (' + m[1].trim() + ') }}';
   });
+  return entities;
+}
+
+/*
+ * A field the telemetry leaves out, as most are with the TV off or nothing
+ * playing, makes Home Assistant log a "Template variable warning" each time
+ * a template reads it: 45,736 in four hours from four TVs (#761). So every
+ * value_json.a.b in a template is read as (value_json.get('a') or {}).get('b'),
+ * which gives none quietly instead. A segment called like a method, as in
+ * value_json.get('x'), is left as it is.
+ */
+function safeFields(template) {
+  return template.replace(/value_json((?:\.[A-Za-z_][A-Za-z0-9_]*)+)(\s*\()?/g, function (all, chain, call) {
+    var segs = chain.slice(1).split('.');
+    var method = call ? segs.pop() : null;
+    var expr = 'value_json';
+    segs.forEach(function (seg, i) {
+      expr = i === 0 ? expr + ".get('" + seg + "')" : '(' + expr + " or {}).get('" + seg + "')";
+    });
+    return method ? (segs.length ? '(' + expr + ' or {})' : expr) + '.' + method + call : expr;
+  });
+}
+
+function withSafeFields(entities) {
+  (function walk(o) {
+    if (!o || typeof o !== 'object') return;
+    for (var k in o) {
+      if (typeof o[k] === 'string' && /template$/.test(k)) o[k] = safeFields(o[k]);
+      else walk(o[k]);
+    }
+  })(entities);
   return entities;
 }
 
@@ -1480,6 +1621,8 @@ function filterWithholds(entities, opts) {
 
   if (!caps.hasGpuClock) withhold(byId('gpu_clock'));
 
+  if (!caps.watchHistory) withhold(byId('watch_time_today', 'watch_time_week', 'watch_top_app_today'));
+
   if (caps.isOled === true) withhold(byId('panel_dimming'));
 
   if (caps.isOled === false) {
@@ -1515,6 +1658,7 @@ module.exports = {
   selectState: selectState,
   appNames: appNames,
   RETIRED_ENTITIES: RETIRED_ENTITIES,
+  safeFields: safeFields,
   HDMI_DIAG_ONLY: HDMI_DIAG_ONLY,
   OLED_ONLY: OLED_ONLY,
   clearRetired: clearRetired,

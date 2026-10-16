@@ -9,6 +9,7 @@
   "token": "",
   "allowOnWebos10": false,
   "allowTileHiding": false,
+  "iconServer": false,
   "piccap": {
     "pollIntervalMs": 30000
   },

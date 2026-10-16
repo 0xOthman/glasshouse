@@ -111,7 +111,16 @@ preload.getPreload(checked(function (r) {
             assert.deepEqual(tv.live, ['netflix=false']);
             preload.reapply(checked(function () {
               assert.strictEqual(tv.writes, 1, 'nothing to write a second time');
+              assert.deepEqual(tv.live, ['netflix=false', 'netflix=false'], 'the preload manager is told at every start');
               console.log('  ✓ at start, an app switched off is switched off again if the list lost it');
+
+              // A C5 (webOS 10.3) enables every app again at each switch-on,
+              // with the list unchanged.
+              tv.live = [];
+              preload.resend(checked(function () {
+                assert.deepEqual(tv.live, ['netflix=false']);
+                assert.strictEqual(tv.writes, 1);
+                console.log('  ✓ at switch-on, the preload manager is told again without the list being written');
 
               // 6. Back on: the app has LG's setting again, and the entry the
               // update added stays.
@@ -134,6 +143,7 @@ preload.getPreload(checked(function (r) {
                       console.log('ALL test-preload.js assertions passed!\n');
                     }));
                   }));
+              }));
               }));
             }));
           }));

@@ -49,6 +49,10 @@ util.writeJsonAtomic(secret, { token: 'x' }, parseInt('600', 8));
 assert.strictEqual(fs.statSync(secret).mode & parseInt('777', 8), parseInt('600', 8));
 console.log('  ✓ writeJsonAtomic sets the mode when given one');
 
+util.writeJsonAtomic(file, { a: 1, b: [2] }, undefined, true);
+assert.strictEqual(fs.readFileSync(file, 'utf8'), '{"a":1,"b":[2]}');
+console.log('  ✓ writeJsonAtomic writes compact JSON when asked');
+
 assert.throws(function () { util.writeJsonAtomic(path.join(dir, 'missing', 'x.json'), {}); });
 console.log('  ✓ writeJsonAtomic throws when it cannot write');
 
@@ -76,6 +80,13 @@ fs.rmdirSync(dir);
 assert.strictEqual(util.hostPort('::', 8080), '[::]:8080');
 assert.strictEqual(util.hostPort('0.0.0.0', 8080), '0.0.0.0:8080');
 console.log('  ✓ hostPort brackets an IPv6 address');
+
+assert.strictEqual(util.hexColor('#E50914'), '#e50914');
+assert.strictEqual(util.hexColor('#fA0'), '#ffaa00');
+assert.strictEqual(util.hexColor('red'), null);
+assert.strictEqual(util.hexColor('#12345'), null);
+assert.strictEqual(util.hexColor(null), null);
+console.log('  ✓ hexColor takes #rgb or #rrggbb and spells it out as #rrggbb');
 
 var tvwebSrc = fs.readFileSync(path.join(__dirname, '..', 'server', 'tvweb.js'), 'utf8');
 assert.ok(/^\s*host: '::',/m.test(tvwebSrc), 'the server listens on :: by default');

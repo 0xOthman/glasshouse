@@ -21,7 +21,7 @@ webOS 10's home app keeps its layout on the TV's read-only system and looks nowh
 To apply either one, the TV's app manager has to read its apps again. Up to now that meant restarting it when the TV starts up, and on some TVs that restart has been followed by a black picture or lost sound that only a full reboot clears ([#366](https://github.com/rorygallagher2024/glasshouse/issues/366)):
 
 * On a B8 (webOS 4), live TV and HDMI went black. The TV's kernel log showed its video pipeline crashing and locking up during start-up, at the same moment as the restart, while a source on HDMI was changing its picture mode.
-* On webOS 10 and 11, picture, sound to a soundbar over ARC, and HDMI-CEC have been lost.
+* On webOS 10 and 11, picture, sound to a soundbar over ARC, and HDMI-CEC have been lost, alongside reports of a black screen and stuck picture settings.
 
 It doesn't happen on every start-up, or on every TV. A TV that already used either feature before it became experimental keeps it after updating.
 

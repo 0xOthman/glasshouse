@@ -16,7 +16,7 @@ on:
       - 'scripts/discovery-configs.js'
       - 'scripts/check-ha-discovery.py'
       - 'test/fixtures/lgsettings-c2-webos22.json'
-      - 'test/fixtures/stats-g4-webos9.json'
+      - 'test/fixtures/stats-*.json'
       - '.github/workflows/home-assistant.yml'
   pull_request:
     paths:
@@ -25,7 +25,7 @@ on:
       - 'scripts/discovery-configs.js'
       - 'scripts/check-ha-discovery.py'
       - 'test/fixtures/lgsettings-c2-webos22.json'
-      - 'test/fixtures/stats-g4-webos9.json'
+      - 'test/fixtures/stats-*.json'
       - '.github/workflows/home-assistant.yml'
   schedule:
     - cron: '41 5 * * 1'

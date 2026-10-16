@@ -22,6 +22,7 @@
 @font-face{font-family:'Manrope';src:url('/assets/fonts/Manrope.ttf') format('truetype');font-weight:200 800;font-display:swap}
 
 :root{
+  color-scheme:dark;
   --bg:#000; --fg:255,255,255;
   --w06:rgba(var(--fg),.06); --w10:rgba(var(--fg),.10);
   --w12:rgba(var(--fg),.12); --w25:rgba(var(--fg),.25);
@@ -62,6 +63,7 @@
    Swap the foreground channel to black and the background to white.
    Accent hues darken slightly for legibility on a light surface. */
 [data-theme="light"]{
+  color-scheme:light;
   --bg:#f5f5f5; --fg:0,0,0;
   --edge:rgba(var(--fg),.45);
   /* Green and amber are also small text (pills, statuses): #1a9e44 and #c27a1e
@@ -76,17 +78,48 @@ html{background:var(--bg)}
 body{
   background:var(--bg);color:var(--w80);
   font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  font-weight:400;font-size:15px;line-height:1.5;
+  font-weight:400;font-size:16px;line-height:1.5;
   padding:var(--gut) var(--gut) calc(var(--gut) * 2);
   max-width:1440px;margin:0 auto;
   -webkit-font-smoothing:antialiased;
+}
+/* ---- scrollbars ----
+   Thin, with a translucent thumb on a transparent track so scrollbars
+   recede on both dark and light surfaces. */
+html, .sidenav, .tools-term-body, .modal-box{
+  scrollbar-width:thin;
+  scrollbar-color:var(--w25) transparent;
+}
+html::-webkit-scrollbar,
+.sidenav::-webkit-scrollbar,
+.tools-term-body::-webkit-scrollbar,
+.modal-box::-webkit-scrollbar{
+  width:6px;height:6px;
+}
+html::-webkit-scrollbar-track,
+.sidenav::-webkit-scrollbar-track,
+.tools-term-body::-webkit-scrollbar-track,
+.modal-box::-webkit-scrollbar-track{
+  background:transparent;
+}
+html::-webkit-scrollbar-thumb,
+.sidenav::-webkit-scrollbar-thumb,
+.tools-term-body::-webkit-scrollbar-thumb,
+.modal-box::-webkit-scrollbar-thumb{
+  background:var(--w25);border-radius:3px;
+}
+html::-webkit-scrollbar-thumb:hover,
+.sidenav::-webkit-scrollbar-thumb:hover,
+.tools-term-body::-webkit-scrollbar-thumb:hover,
+.modal-box::-webkit-scrollbar-thumb:hover{
+  background:var(--w40);
 }
 /* Live numerals sit in tabular figures. A proportional digit set makes a
    live readout twitch sideways on every update, which is far more
    distracting than the numbers themselves. */
 .num{font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1}
 
-.lbl{font-weight:500;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--w60)}
+.lbl{font-weight:500;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w60)}
 .rule{height:1px;background:var(--w10);border:0}
 /* `hidden` loses to any author display rule - .cols and .r are grids - so
    restate it with priority. Without this, hiding those blocks silently fails. */
@@ -100,7 +133,7 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
    Glasshouse mark is in the sidebar's head. */
 .mark{display:flex;align-items:center}
 .mark-tv{display:flex;flex-direction:column;gap:7px}
-.mark-tv #brand{font-family:'Manrope';font-weight:500;font-size:12px;letter-spacing:.2em;
+.mark-tv #brand{font-family:'Manrope';font-weight:500;font-size:13px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--w60)}
 .mark-tv #model{font-family:'Outfit';font-weight:200;font-size:var(--mh-model);line-height:1;
   letter-spacing:.01em;color:var(--w100)}
@@ -129,13 +162,18 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
 .src.standby .t,.src.standby .stream-info{visibility:hidden}
 /* Panel state. A blanked screen is a normal state, not a fault, so it is
    carried by weight rather than by an alarm colour. */
-.st{font-size:12px;letter-spacing:.10em;text-transform:uppercase;color:var(--w60);
+.st{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--w60);
     display:flex;align-items:center;gap:7px;justify-content:flex-end;margin-bottom:4px}
 .st i{width:7px;height:7px;border-radius:50%;background:var(--w100);flex:none}
+.st.on i{background:var(--green);box-shadow:0 0 6px rgba(48,222,97,.6)}
+.st.standby i{background:var(--cand);box-shadow:0 0 6px rgba(255,176,79,.6)}
+.st.standby{color:var(--w60)}
 .st.off i{background:transparent;box-shadow:inset 0 0 0 1px var(--w50)}
 .st.off{color:var(--w60)}
 .st.comp i{background:var(--cand);box-shadow:0 0 6px var(--cand)}
 .st.comp{color:var(--cand)}
+[data-theme="light"] .st.on i{box-shadow:0 0 4px rgba(21,127,55,.4)}
+[data-theme="light"] .st.standby i{box-shadow:0 0 4px rgba(156,98,24,.4)}
 
 /* Tiered stream diagnostics */
 .stream-info{margin-top:3px}
@@ -148,15 +186,15 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
   min-height:1.5em;
 }
 .stream-tag{
-  font-family:'Manrope',sans-serif;font-size:11px;font-weight:600;
-  letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;
+  font-family:'Manrope',sans-serif;font-size:11.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;
   border-radius:2px;line-height:1.2;
 }
 .stream-tag.dv{color:var(--purple-t);border:1px solid rgba(181,123,255,.4);background:rgba(143,48,255,.1)}
 .stream-tag.hdr{color:var(--cand);border:1px solid rgba(255,176,79,.4);background:rgba(255,176,79,.1)}
 .stream-tag.sdr{color:var(--w80);border:1px solid var(--w25);background:var(--w06)}
 .stream-mode{
-  font-family:'Manrope',sans-serif;font-size:12px;font-weight:400;
+  font-family:'Manrope',sans-serif;font-size:13px;font-weight:400;
   color:var(--w70);letter-spacing:.02em;
 }
 @media (max-width:620px){
@@ -178,19 +216,19 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
 .trace i.warm{background:color-mix(in srgb,var(--hot,var(--w100)) 45%,transparent)}
 .trace i.now{background:var(--hot,var(--w100))}
 .trace i.void{background:transparent}
-.meta{display:flex;justify-content:space-between;font-size:13px;color:var(--w60);letter-spacing:.02em}
+.meta{display:flex;justify-content:space-between;font-size:14px;color:var(--w60);letter-spacing:.02em}
 
 /* ---- readouts ---- */
 .readouts{margin-top:0;border-top:1px solid var(--w06)}
-.r{display:grid;grid-template-columns:clamp(118px,15%,176px) 1fr 84px;gap:14px;align-items:center;
+.r{display:grid;grid-template-columns:clamp(124px,16%,184px) 1fr 92px;gap:14px;align-items:center;
    padding:15px 0;border-bottom:1px solid var(--w06)}
 .r .v{font-family:'Outfit';font-weight:200;font-size:26px;color:var(--w100);text-align:right;line-height:1}
-.r .v small{font-size:13px;color:var(--w60);margin-left:4px;font-family:'Manrope';font-weight:400}
+.r .v small{font-size:14px;color:var(--w60);margin-left:4px;font-family:'Manrope';font-weight:400}
 .track{height:2px;background:var(--w06);position:relative;overflow:hidden}
 .track b{position:absolute;inset:0 auto 0 0;background:var(--w60);transition:width .45s cubic-bezier(.4,0,.2,1),background .5s ease}
 
 .r.hi .lbl{color:var(--w80)}
-.sub{font-size:13px;color:var(--w60);letter-spacing:.02em;margin-top:6px;white-space:normal;line-height:1.35}
+.sub{font-size:14px;color:var(--w60);letter-spacing:.02em;margin-top:6px;white-space:normal;line-height:1.4}
 /* Network carries the most in its sub - signal, upload rate and two lifetime
    totals - and the column is capped at 176px. Wrapping keeps the totals
    readable on a Wi-Fi set, where the dBm prefix would otherwise push them
@@ -206,6 +244,7 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:26px;margin-top:26px}
 .cols .v{font-family:'Outfit';font-weight:300;font-size:24px;color:var(--w100);margin-top:6px}
 .cols .sub{overflow:visible;text-overflow:clip}
+.uptime-val{font-family:'Outfit';font-weight:200;font-size:clamp(34px,4.5vw,48px);color:var(--w100);line-height:1;letter-spacing:-.02em;margin-top:10px}
 /* Flash wear changes over years, so it sits small under the free space. */
 .flash-row{display:flex;flex-wrap:wrap;gap:16px 44px;margin-top:20px;padding-top:16px;border-top:1px solid var(--w06)}
 .flash-v{display:flex;align-items:center;gap:12px;height:28px;margin-top:6px;
@@ -249,8 +288,8 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
 .tabs{display:flex;flex-direction:column;gap:2px;padding:0 12px}
 .tabs button{appearance:none;display:flex;align-items:center;gap:14px;width:100%;min-height:0;
   background:transparent;border:0;border-radius:2px;text-align:left;
-  font-family:'Manrope';font-weight:500;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--w60);padding:11px 12px;cursor:pointer;white-space:nowrap;position:relative;transition:background .12s ease,color .12s ease}
+  font-family:'Manrope';font-weight:500;font-size:13.5px;letter-spacing:.10em;text-transform:uppercase;
+  color:var(--w60);padding:10px 12px;cursor:pointer;white-space:nowrap;position:relative;transition:background .12s ease,color .12s ease}
 .tabs button[hidden]{display:none}
 .tabs button:hover{color:var(--w90);background:var(--w06)}
 .tabs button:focus-visible{outline:2px solid var(--w80);outline-offset:-2px}
@@ -264,8 +303,25 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
    the baseline. */
 .sidenav-foot{margin-top:auto;padding-top:24px}
 .sidenav-foot .nav-rule{margin:0 24px 10px}
-.nav-help{display:flex;align-items:center;gap:14px;margin:0 12px;padding:11px 12px;border-radius:2px;
-  font:500 12px 'Manrope';letter-spacing:.14em;text-transform:uppercase;color:var(--w50);text-decoration:none;
+.nav-pref{margin:0 12px 2px}
+.nav-pref>summary{list-style:none;display:flex;align-items:center;gap:14px;padding:10px 12px;border-radius:2px;
+  font:500 13.5px 'Manrope';letter-spacing:.10em;text-transform:uppercase;color:var(--w50);cursor:pointer;user-select:none;
+  transition:background .12s ease,color .12s ease}
+.nav-pref>summary::-webkit-details-marker{display:none}
+.nav-pref>summary:hover{color:var(--w90);background:var(--w06)}
+.nav-pref>summary:focus-visible{outline:2px solid var(--w80);outline-offset:-2px}
+.nav-pref[open]>summary{color:var(--w100)}
+.nav-pref-arrow{width:12px;height:12px;margin-left:auto;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.7;transition:transform .15s ease}
+.nav-pref[open] .nav-pref-arrow{transform:rotate(180deg)}
+.nav-pref-body{display:flex;flex-direction:column;gap:10px;padding:4px 12px 14px}
+.nav-pref-grp{display:flex;flex-direction:column;gap:5px}
+.nav-pref-lbl{font:500 12px 'Manrope';letter-spacing:.08em;text-transform:uppercase;color:var(--w40)}
+.nav-pref .theme-seg{display:flex;gap:4px;width:100%}
+.nav-pref .theme-seg button{flex:1;min-width:0;height:32px;min-height:0;padding:0 4px;font-size:12px;
+  letter-spacing:.06em;text-transform:uppercase;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-help{display:flex;align-items:center;gap:14px;margin:0 12px;padding:10px 12px;border-radius:2px;
+  font:500 13.5px 'Manrope';letter-spacing:.10em;text-transform:uppercase;color:var(--w50);text-decoration:none;
   transition:background .12s ease,color .12s ease}
 .nav-help:hover{color:var(--w90);background:var(--w06)}
 .nav-help:focus-visible{outline:2px solid var(--w80);outline-offset:-2px}
@@ -293,20 +349,22 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:24p
   html:not(.nav-hidden) .tabs button{padding-top:9px;padding-bottom:9px}
 }
 /* The drawer: below 1024px, and on a wide screen whose sidebar is hidden
-   (Server tab, kept per browser). */
+   (Preferences, kept per browser). */
 @media (max-width:1023px){
   .nav-bar{display:block;margin-top:clamp(20px,3vw,30px);border-bottom:1px solid var(--w12)}
-  .nav-toggle{display:flex;align-items:center;gap:14px;min-height:0;height:46px;padding:0 4px;margin-left:var(--nav-toggle-pull);background:transparent;border:0;color:var(--w100);cursor:pointer;font:500 12px 'Manrope';letter-spacing:.14em;text-transform:uppercase}
+  .nav-toggle{display:flex;align-items:center;gap:14px;min-height:0;height:46px;padding:0 4px;margin-left:var(--nav-toggle-pull);background:transparent;border:0;color:var(--w100);cursor:pointer;font:500 13px 'Manrope';letter-spacing:.10em;text-transform:uppercase}
   .nav-toggle:focus-visible{outline:2px solid var(--w80);outline-offset:2px}
   .sidenav{width:min(300px,84vw);padding-top:max(16px,env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-100%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;box-shadow:0 0 40px rgba(0,0,0,.5)}
   .sidenav.open{transform:none;visibility:visible;transition:transform .22s ease}
   .sidenav-head{height:auto;padding-bottom:6px}
   .sidenav .tabs{margin-top:12px}
+  .nav-pref-sidebar{display:none}
+  .nav-pref .theme-seg button{height:32px;font-size:12px}
   .nav-close{display:block}
   body.nav-open{overflow:hidden}
 }
 html.nav-hidden .nav-bar{display:block;margin-top:clamp(20px,3vw,30px);border-bottom:1px solid var(--w12)}
-html.nav-hidden .nav-toggle{display:flex;align-items:center;gap:14px;min-height:0;height:46px;padding:0 4px;margin-left:var(--nav-toggle-pull);background:transparent;border:0;color:var(--w100);cursor:pointer;font:500 12px 'Manrope';letter-spacing:.14em;text-transform:uppercase}
+html.nav-hidden .nav-toggle{display:flex;align-items:center;gap:14px;min-height:0;height:46px;padding:0 4px;margin-left:var(--nav-toggle-pull);background:transparent;border:0;color:var(--w100);cursor:pointer;font:500 13px 'Manrope';letter-spacing:.10em;text-transform:uppercase}
 html.nav-hidden .nav-toggle:focus-visible{outline:2px solid var(--w80);outline-offset:2px}
 html.nav-hidden .sidenav{width:min(300px,84vw);padding-top:max(16px,env(safe-area-inset-top));padding-bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-100%);visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s;box-shadow:0 0 40px rgba(0,0,0,.5)}
 html.nav-hidden .sidenav.open{transform:none;visibility:visible;transition:transform .22s ease}
@@ -314,7 +372,10 @@ html.nav-hidden .sidenav-head{height:auto;padding-bottom:6px}
 html.nav-hidden .sidenav .tabs{margin-top:12px}
 html.nav-hidden .nav-close{display:block}
 html.nav-hidden body.nav-open{overflow:hidden}
-@media (prefers-reduced-motion:reduce){ .sidenav,.sidenav.open{transition:none} }
+@media (prefers-reduced-motion:reduce){
+  .sidenav,.sidenav.open,.nav-pref-arrow{transition:none}
+  button.busy, button.btn-busy{animation:none}
+}
 #panels{margin-top:var(--panels-gap)}
 /* A panel is the whole width now, so the columns come from the panel itself
    rather than from the page splitting in two. */
@@ -353,6 +414,12 @@ html.nav-hidden body.nav-open{overflow:hidden}
 .grp-sec{margin-top:clamp(30px,5vw,46px);padding-top:clamp(20px,3vw,28px);
   border-top:1px solid var(--w12)}
 .grp-sec.first, #tempblock[hidden] + .grp-sec{margin-top:0;padding-top:0;border-top:0}
+#remoteblock .grp{display:flex;align-items:center;justify-content:space-between}
+#remote-pill.idle::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--w40);flex:none}
+.remote-meta{margin-top:14px;font-size:12.5px;line-height:1.6;color:var(--w60)}
+.remote-meta-row{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:baseline}
+.remote-meta-lbl{color:var(--w50);font-weight:400;flex-shrink:0}
+.remote-meta-val{color:var(--w80);font-weight:400;word-break:break-word}
 .col-sec-hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   padding-bottom:12px;border-bottom:1px solid var(--w25);margin-bottom:22px}
 .col-sec-hdr .col-sec{padding-bottom:0;border-bottom:0;margin-bottom:0}
@@ -396,33 +463,78 @@ html.nav-hidden body.nav-open{overflow:hidden}
 .vol-steps button{min-height:48px;font-size:22px;font-weight:300;line-height:1}
 #picmodes,#energysteps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
 #picmodes button,#energysteps button{
-  font-size:11.5px;letter-spacing:.06em;padding:12px 6px;line-height:1.25;
+  font-size:12.5px;letter-spacing:.04em;padding:12px 6px;line-height:1.25;
   text-align:center;display:flex;align-items:center;justify-content:center;
 }
 @media (max-width:380px){
   #picmodes,#energysteps{grid-template-columns:repeat(2,1fr)}
 }
+#soundouts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:11px}
+#soundouts button,#soundouts select.so-more{
+  font-family:'Manrope';font-weight:500;font-size:13px;letter-spacing:.05em;text-indent:.05em;
+  text-transform:uppercase;color:var(--w80);background:transparent;border:1px solid var(--edge);
+  border-radius:0;padding:10px 8px;min-height:48px;cursor:pointer;box-sizing:border-box;
+  text-align:center;display:flex;align-items:center;justify-content:center;line-height:1.25;
+  transition:border-color .16s ease,color .16s ease,background-color .16s ease;
+}
+#soundouts select.so-more{
+  appearance:none;-webkit-appearance:none;text-align:center;text-align-last:center;
+  -webkit-text-align-last:center;padding:0 8px;height:100%;
+}
+#soundouts select.so-more option{color:initial;background:initial;text-transform:none;letter-spacing:normal;text-indent:0}
+#soundouts button.on{
+  color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100);font-weight:500;
+}
+#soundouts button:hover,#soundouts select.so-more:hover{color:var(--w100);border-color:var(--w70)}
+#soundouts button.on:hover{color:var(--btn-on-fg);border-color:var(--w100)}
+#soundouts .span-full{grid-column:1 / -1}
+#soundouts .span-center{grid-column:1 / -1;justify-self:center;width:calc(50% - 4px)}
+#inputs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:11px}
+#inputs button{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  gap:8px;padding:12px 14px;min-height:48px;line-height:1.25;box-sizing:border-box;
+  font-family:'Manrope';font-weight:500;font-size:13.5px;letter-spacing:.05em;
+  transition:border-color .16s ease,color .16s ease,background-color .16s ease;
+  min-width:0;overflow:hidden;
+}
+#inputs button .lbl{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+}
+#inputs button.on{
+  color:var(--w100);background:var(--w06);border-color:var(--w80);font-weight:600;
+}
+#inputs button.on:hover{color:var(--w100);border-color:var(--w100)}
+#inputs button.on::before{
+  content:'';width:6px;height:6px;border-radius:50%;flex:none;
+  background:var(--green);
+  box-shadow:0 0 6px rgba(48,222,97,.7);
+}
+[data-theme="light"] #inputs button.on::before{
+  box-shadow:0 0 4px rgba(21,127,55,.4);
+}
+#inputs .span-full{grid-column:1 / -1}
+#inputs .span-center{grid-column:1 / -1;justify-self:center;width:calc(50% - 4px)}
 /* Collapsed groups. Picture mode, sound output and the app list are
    set-and-forget: they were taking the majority of the column's height for
    the things you would least often reach for from a phone. */
 .disc{border-top:1px solid var(--w06);margin-top:20px}
 .disc>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;
-  align-items:center;font-family:'Manrope';font-weight:500;font-size:12px;letter-spacing:.14em;
+  align-items:center;font-family:'Manrope';font-weight:500;font-size:13.5px;letter-spacing:.10em;
   text-transform:uppercase;color:var(--w60);padding:14px 0 4px;min-height:44px;box-sizing:border-box}
 .disc>summary::-webkit-details-marker{display:none}
 .disc>summary::after{content:'+';font-size:17px;line-height:1;color:var(--w60)}
 .disc[open]>summary::after{content:'\2212'}
 .disc>summary:hover{color:var(--w80)}
-.disc>summary .cur{font-size:13px;font-weight:400;letter-spacing:.02em;text-transform:none;color:var(--w60);margin-left:auto;margin-right:12px}
+.disc>summary .cur{font-size:14px;font-weight:400;letter-spacing:.02em;text-transform:none;color:var(--w60);margin-left:auto;margin-right:12px}
 .disc .set{margin-top:12px}
 .playback-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:11px}
 .app-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:7px;margin-top:11px}
 .app-grid button{
-  padding:11px 8px;min-height:42px;font-size:11px;letter-spacing:.08em;
+  padding:11px 8px;min-height:42px;font-size:12px;letter-spacing:.06em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;
 }
 .sub-btn{
-  font-family:'Manrope';font-weight:500;font-size:11px;letter-spacing:.10em;text-transform:uppercase;
+  font-family:'Manrope';font-weight:500;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
   color:var(--w60);background:transparent;border:1px dashed var(--edge);
   padding:10px 12px;min-height:38px;width:100%;cursor:pointer;transition:.16s ease;
 }
@@ -430,7 +542,7 @@ html.nav-hidden body.nav-open{overflow:hidden}
 .toast-form{display:flex;gap:8px;margin-top:11px}
 .toast-form input{
   flex:1;min-width:0;
-  font-family:'Manrope';font-weight:400;font-size:13px;letter-spacing:.03em;
+  font-family:'Manrope';font-weight:400;font-size:14px;letter-spacing:.03em;
   color:var(--w100);background:transparent;
   border:1px solid var(--edge);padding:14px 12px;
   min-height:48px;border-radius:0;outline:none;
@@ -440,7 +552,7 @@ html.nav-hidden body.nav-open{overflow:hidden}
 .toast-form input::placeholder{color:var(--w60)}
 .toast-form button{flex-shrink:0;padding:0 22px;min-height:48px}
 button{
-  font-family:'Manrope';font-weight:500;font-size:13px;letter-spacing:.10em;text-transform:uppercase;
+  font-family:'Manrope';font-weight:500;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
   color:var(--w80);background:transparent;border:1px solid var(--edge);
   padding:16px 10px;min-height:48px;cursor:pointer;transition:.16s ease;
 }
@@ -450,12 +562,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 /* Selected, not "good". Green means healthy headroom elsewhere in this UI, so
    selection is shown by inversion instead of by borrowing that meaning. */
 button.on{color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100);font-weight:500}
-/* The sound outputs that have no button: a list that reads as one more button. */
-.so-more{appearance:none;font:500 13px 'Manrope';letter-spacing:.10em;text-transform:uppercase;text-align:center;
-  color:var(--w80);background:transparent;border:1px solid var(--edge);border-radius:0;
-  padding:0 10px;min-height:48px;cursor:pointer;transition:.16s ease}
-.so-more:hover{color:var(--w100);border-color:var(--w70)}
-.so-more option{color:initial;background:initial;text-transform:none;letter-spacing:normal}
+
 button.on:hover{color:var(--btn-on-fg);border-color:var(--w100)}
 button[disabled]{opacity:.28;cursor:not-allowed}
 button[disabled]:hover{color:var(--w60);border-color:var(--w12)}
@@ -464,13 +571,34 @@ button[disabled]:hover{color:var(--w60);border-color:var(--w12)}
    what someone hovering it wants. */
 button.btn-off{opacity:.28;cursor:not-allowed}
 button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transparent}
+
+/* Micro-loading / busy state: an action is executing in the background.
+   Keeps the button legible and active with a breathing pulse and subtle shimmer,
+   preventing duplicate clicks while acknowledging the interaction immediately. */
+@keyframes btnPulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes btnShimmer{0%{background-position:-160px 0}100%{background-position:160px 0}}
+button.busy, button.btn-busy{
+  color:var(--w100) !important;border-color:var(--w60) !important;
+  cursor:wait !important;pointer-events:none;
+}
+button.busy:not(.pill), button.btn-busy:not(.pill){
+  background:linear-gradient(90deg,transparent 0%,var(--w12) 50%,transparent 100%) !important;
+  background-size:160px 100% !important;
+  animation:btnShimmer 1.5s infinite linear, btnPulse 1.2s ease-in-out infinite;
+}
+button.busy[disabled], button.btn-busy[disabled]{
+  opacity:1 !important;cursor:wait !important;
+}
+button.pill.busy:not([style*="--p"]){
+  animation:btnPulse 1.2s ease-in-out infinite;
+}
 .dpad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,auto);
       gap:8px;max-width:260px;margin:0 auto 14px}
 /* The arrows are glyphs, not words: the button voice everywhere else is
    uppercase and letter-spaced, which pushes a single glyph off centre. */
 .dpad .dp{min-height:0;height:62px;padding:0;font-size:15px;letter-spacing:0;
           text-transform:none;display:flex;align-items:center;justify-content:center}
-.dpad .dp-ok{font-size:12px;letter-spacing:.1em}
+.dpad .dp-ok{font-size:13px;letter-spacing:.08em}
 .dp-up{grid-column:2;grid-row:1}
 .dp-left{grid-column:1;grid-row:2}
 .dp-ok{grid-column:2;grid-row:2}
@@ -480,16 +608,16 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
           padding:18px 0;border-bottom:1px solid var(--w12)}
 .oled-row:last-child{border-bottom:0}
 .oled-main{max-width:56ch}
-.oled-name{font-size:15px}
-.oled-sub{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--w60);
+.oled-name{font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;letter-spacing:.02em;color:var(--w90)}
+.oled-sub{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--w60);
           margin-left:8px}
-.oled-desc{font-size:13px;color:var(--w60);margin-top:7px;line-height:1.5}
+.oled-desc{font-size:14px;color:var(--w60);margin-top:7px;line-height:1.5}
 .oled-ctl{flex:0 0 auto;display:flex;gap:8px;align-items:center}
 /* The service-menu ones are set apart: they are the reason the warning below
    the list is there. */
 .oled-row.guarded .oled-name{color:var(--cand)}
 .oled-warn{margin-top:24px;border-left:2px solid var(--cand);padding:12px 0 12px 14px;
-           font-size:13px;color:var(--w60);max-width:64ch;line-height:1.55}
+           font-size:14px;color:var(--w60);max-width:64ch;line-height:1.55}
 /* The wear figures and the switches that decide how hard the panel is worked,
    side by side - they are two halves of the same question. */
 .oled-split{display:grid;grid-template-columns:1fr;gap:38px}
@@ -511,25 +639,29 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
 .hdmi-in .pv-sub{max-width:78ch;margin-bottom:18px}
 .hdmi-grid{display:grid;column-gap:24px;max-width:760px}
 .hdmi-grid>div{padding:14px 0;border-top:1px solid var(--w12);display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
-.hdmi-grid .hh{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--w50);border-top:0;padding-top:0}
+.hdmi-grid .hh{font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--w50);border-top:0;padding-top:0}
 .hdmi-grid .in b{font-weight:400;font-size:15px;color:var(--w100)}
-.hdmi-grid .in span{display:block;font-size:12px;color:var(--w50);margin-top:3px}
+.hdmi-grid .in span{display:block;font-size:13px;color:var(--w50);margin-top:3px}
 .hdmi-grid .na{color:var(--w40)}
 /* A setting the TV has greyed out: dimmed, as a disabled pill already is. */
 .pill-sel:disabled,.lgs-range input:disabled{opacity:.35;cursor:default}
 @media(min-width:1020px){.oled-split{grid-template-columns:minmax(280px,0.8fr) 1.6fr;gap:52px}}
 .oled-split .grp{margin-bottom:18px}
 .oled-split .oled-row:first-child{padding-top:0}
+.oc-track{height:3px;margin:10px 0 6px;border-radius:2px}
+.oc-track b{border-radius:2px}
+.oc-track b.ready{background:var(--green)}
 /* The counters are read the way the protections are: a name, then what the
    number means. Older TVs report none of them, and the group goes too. */
 .oc-counts{margin-top:clamp(30px,4vw,40px)}
 .oc-counts .grp{margin-bottom:4px}
 .oc-count{padding:14px 0;border-bottom:1px solid var(--w12)}
 .oc-count:last-child{border-bottom:0}
-.oc-count-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;font-size:15px}
+.oc-count-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;letter-spacing:.02em;color:var(--w90)}
 .oc-count-top b{font-family:'Outfit';font-weight:300;font-size:22px;color:var(--w100);white-space:nowrap}
-.oc-count-desc{font-size:13px;color:var(--w60);margin-top:5px;line-height:1.5;max-width:46ch}
-.oled-none{font-size:12px;letter-spacing:.06em;color:var(--w60);white-space:nowrap}
+.oc-count-desc{font-size:14px;color:var(--w60);margin-top:5px;line-height:1.5;max-width:46ch}
+.oled-none{font-size:13px;letter-spacing:.06em;color:var(--w60);white-space:nowrap}
 /* A protection this TV will not talk about is still worth describing, but it
    should not compete with the ones that answer: its name steps down to the
    description's shade, the dimmest that still reads at AA. */
@@ -544,7 +676,8 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
    and full width left the pill stranded from the label it belongs to. */
 .pv-top{display:grid;grid-template-columns:1fr;gap:0 clamp(30px,4vw,52px);
   padding-bottom:clamp(24px,3vw,36px)}
-@media (min-width:900px){ .pv-top{grid-template-columns:repeat(2,1fr);align-items:start} }
+/* Side by side only where each column fits the blocker's three tiers on one line. */
+@media (min-width:1100px){ .pv-top{grid-template-columns:repeat(2,1fr);align-items:start} }
 .pv-top .pv-h:first-child{margin-top:0}
 /* The long lists stay one column - a consent row is a sentence, not a tile -
    but capped so the pill stays near what it describes on a wide screen. */
@@ -564,11 +697,11 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
    so it should read as the strongest thing on the panel. */
 .ss-card.on,.ss-card.on:hover{background:transparent;color:inherit;font-weight:400;
          border-color:var(--green);cursor:default;opacity:1}
-.ss-name{font-size:15px;letter-spacing:.02em;display:flex;align-items:center;
-         justify-content:space-between;gap:12px}
-.ss-desc{font-size:13px;color:var(--w60);margin-top:7px;max-width:46ch}
+.ss-name{font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;letter-spacing:.02em;
+         display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ss-desc{font-size:14px;color:var(--w60);margin-top:7px;line-height:1.45;max-width:46ch}
 .ss-card.on .ss-name{color:var(--green)}
-.ss-tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
+.ss-tag{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--green)}
 .ss-level-row{margin-top:22px;max-width:760px}
 /* The choice on the left, and what to do with it - brightness, starting it,
    the firmware note - beside it on a wide screen rather than below the list. */
@@ -579,7 +712,7 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
   .ss-side{margin-top:22px;display:flex;flex-direction:column;gap:22px}
   #sspane .ss-side>*{margin-top:0}
 }
-.ss-level-lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--w60);
+.ss-level-lbl{font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w60);
               margin-bottom:8px}
 .ss-level-row .btns{display:flex;gap:10px;max-width:340px}
 .ss-level-row .btns button{flex:1}
@@ -589,13 +722,15 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
 .upd-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 /* What each release since the installed one brings, from its notes' summary. */
 .upd-new{margin-top:12px;max-width:62ch}
-.upd-new-h{font-weight:500;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--w60);margin-bottom:6px}
-.upd-new-r{margin-bottom:10px;font-size:13px;color:var(--w80);line-height:1.5}
+.upd-new-h{font-weight:500;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w60);margin-bottom:6px}
+.upd-new-r{margin-bottom:10px;font-size:14px;color:var(--w80);line-height:1.5}
 .upd-new-r p{margin:0 0 4px;white-space:pre-line}
 .upd-new-v{font-weight:600;color:var(--w100);margin-right:8px}
-.upd-new a{color:var(--w60);text-decoration:underline;text-underline-offset:2px;font-size:12px}
+.upd-new a{color:var(--w60);text-decoration:underline;text-underline-offset:2px;font-size:13px}
+.backup-btns{max-width:420px}
+.restore-apps{margin-bottom:16px}
 .link-btn{background:none;border:0;padding:0;min-height:0;margin-top:10px;cursor:pointer;
-  font:400 12px 'Manrope';letter-spacing:.02em;text-transform:none;color:var(--w60);
+  font:400 13px 'Manrope';letter-spacing:.02em;text-transform:none;color:var(--w60);
   text-decoration:underline;text-underline-offset:2px}
 .link-btn:hover:not([disabled]){color:var(--w100);border:0}
 .link-btn[disabled]{opacity:.45;cursor:default}
@@ -604,10 +739,10 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
 .srv-adv>summary{border-top:0;border-bottom:1px solid var(--w25);padding:0 0 12px;margin-bottom:16px}
 .srv-adv>summary span:first-child{font-size:clamp(20px,2.2vw,25px)}
 .theme-seg{display:flex;gap:6px}
-.theme-seg button{height:28px;min-height:0;padding:0 12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.theme-seg button{height:32px;min-height:0;padding:0 12px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .upd #upd-msg{margin-top:12px}
 .upd-prog{margin-top:22px;max-width:520px}
-.upd-step{font-size:13px;color:var(--w80);letter-spacing:.02em;margin-bottom:12px}
+.upd-step{font-size:14px;color:var(--w80);letter-spacing:.02em;margin-bottom:12px}
 .upd-prog .track{height:4px}
 .upd-prog .track b{width:0;background:var(--w80);transition:width .3s linear,background .5s ease}
 .upd-prog.done .track b{background:var(--green)}
@@ -627,16 +762,17 @@ button.btn-off:hover{color:var(--w60);border-color:var(--w12);background:transpa
 .pv-grp .pv-g{margin-top:0}
 .pv-grp+.pv-grp .pv-g{margin-top:22px}
 .pv-h{font-family:'Outfit';font-weight:300;font-size:clamp(20px,2.4vw,26px);color:var(--w100);margin:22px 0 4px}
-.pv-sub{font-size:13px;color:var(--w60);max-width:62ch;margin-bottom:16px}
+.pv-sub{font-size:14px;color:var(--w60);max-width:62ch;margin-bottom:16px}
 .pv-sub a{color:var(--w80);text-decoration:underline;text-underline-offset:2px}
 .pv-sub a:hover{color:var(--w100)}
 .pv-row{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;
         padding:13px 0;border-bottom:1px solid var(--w06)}
-.pv-row .n{font-size:15px;color:var(--w100)}
-.pv-row .d{font-size:13px;color:var(--w60);margin-top:3px;max-width:58ch}
-.pill, .pill-toggle{font-family:'Manrope';font-weight:500;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+.pv-row .n{font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;
+        letter-spacing:.02em;color:var(--w90)}
+.pv-row .d{font-size:14px;color:var(--w60);margin-top:3px;line-height:1.45;max-width:58ch}
+.pill, .pill-toggle{font-family:'Manrope';font-weight:500;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
       display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;
-      min-width:112px;height:28px;padding:0 12px;line-height:1;
+      min-width:116px;height:32px;padding:0 12px;line-height:1;
       border:1px solid;border-radius:2px;white-space:nowrap}
 button.pill, button.pill-toggle{min-height:0;color:inherit}
 .pill.good, .pill-toggle.good{color:var(--green);border-color:var(--green)}
@@ -650,7 +786,7 @@ span.pill,span.pill.good,span.pill.warn,span.pill.bad,span.pill.idle{border-colo
 span.pill{min-width:0;padding:0;gap:8px}
 span.pill.good::before,span.pill.warn::before,span.pill.bad::before{
   content:'';width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
-.pill-sel{font:500 11px 'Manrope';letter-spacing:.1em;height:28px;min-width:112px;padding:0 8px;
+.pill-sel{font:500 12.5px 'Manrope';letter-spacing:.08em;height:32px;min-width:116px;padding:0 8px;
           color:var(--w100);background:transparent;border:1px solid var(--edge);border-radius:2px;cursor:pointer}
 .pill-sel option{color:initial}
 /* A settable flag keeps the pill vocabulary of the read-only rows: the row
@@ -675,15 +811,15 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 /* Read-only: a dashed edge says it cannot be pressed. It was 45% opacity,
    which took an amber pill to 2.9:1 on black and 1.8:1 on the light theme. */
 .pill.fixed, .pill-toggle.fixed{border-style:dashed}
-.pv-g{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--w60);
+.pv-g{font-family:'Manrope',sans-serif;font-weight:500;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w60);
       margin:22px 0 2px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .pv-g:first-child{margin-top:4px}
-.pv-g .c{letter-spacing:0;text-transform:none;color:var(--w60);font-size:12px;white-space:nowrap}
-.pv-gn{font-size:13px;color:var(--w60);max-width:58ch;margin:4px 0 2px}
+.pv-g .c{letter-spacing:0;text-transform:none;color:var(--w60);font-size:13px;white-space:nowrap}
+.pv-gn{font-size:14px;color:var(--w60);max-width:58ch;margin:4px 0 2px}
 /* The raw flag name, kept visible on rows that now show a friendlier one: it is
    what the API, the TV and the issue tracker all call it. */
 .pv-row .k{color:var(--w35)}
-.pv-row .cnt{color:var(--w60);font-size:13px;font-weight:400}
+.pv-row .cnt{color:var(--w60);font-size:14px;font-weight:400}
 /* Collapsible privacy sections. The consent list alone runs to 21 rows, so the
    long sections fold. The summary keeps the pv-h size rather than borrowing the
    control column's small caps, so folding a section does not demote it. */
@@ -701,8 +837,8 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .pv-d>summary::-webkit-details-marker{display:none}
 .pv-d>summary::after{content:'+';font-family:'Manrope';font-size:20px;line-height:1;color:var(--w60)}
 .pv-d[open]>summary::after{content:'\2212'}
-.pv-d>summary .cur{margin-left:auto;font-family:'Manrope';font-weight:500;font-size:12px;
-  letter-spacing:.12em;text-transform:uppercase;color:var(--w60);white-space:nowrap}
+.pv-d>summary .cur{margin-left:auto;font-family:'Manrope';font-weight:500;font-size:13px;
+  letter-spacing:.10em;text-transform:uppercase;color:var(--w60);white-space:nowrap}
 .ps{margin:0}
 /* Three areas side by side where they fit, rather than the two-column flow
    the long lists use, which split a row's "still on" line from its row. */
@@ -712,14 +848,14 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
    beside the outlined toggles further down. The dot repeats the headline's. */
 .ps-area{padding:18px 0 20px;border-top:1px solid var(--w12)}
 .ps-st{display:inline-flex;align-items:center;gap:10px;font-family:'Manrope';font-weight:600;
-  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--green)}
+  font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--green)}
 .ps-st::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;
   box-shadow:0 0 0 4px color-mix(in srgb,currentColor 20%,transparent)}
 .ps-st.warn{color:var(--cand)}
 .ps-area .n{font-family:'Outfit';font-weight:300;font-size:clamp(19px,2vw,22px);color:var(--w100);
   line-height:1.2;margin:12px 0 6px}
-.ps-area .d{font-size:13px;line-height:1.5;color:var(--w60);max-width:38ch}
-.ps-area .on{font-size:13px;line-height:1.5;color:var(--w80);margin-top:10px;max-width:38ch}
+.ps-area .d{font-size:14px;line-height:1.5;color:var(--w60);max-width:38ch}
+.ps-area .on{font-size:14px;line-height:1.5;color:var(--w80);margin-top:10px;max-width:38ch}
 .ps-area .on b{font-weight:500;color:var(--cand)}
 .ps-state{display:flex;gap:16px;align-items:center;margin-bottom:10px}
 .ps-dot{width:14px;height:14px;border-radius:50%;flex:none;background:var(--w25);
@@ -738,7 +874,7 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
    keep their larger titles. A group whose sections this TV has none of goes. */
 .apps-grp+.apps-grp{margin-top:clamp(34px,4.5vw,48px)}
 .apps-grp:not(:has(>details:not([hidden]))){display:none}
-.apps-grp-h{font-weight:500;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--w80);margin:0 0 6px}
+.apps-grp-h{font-weight:500;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w80);margin:0 0 6px}
 .apps-grp-d{margin-bottom:6px}
 /* The Advanced tab's settings, side by side in at most two columns where
    they fit, so a description sits beside its switch instead of running the
@@ -750,19 +886,21 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 /* The Server tab keeps one column, so every control lines up down the right. */
 #serverpane .prot-table{display:grid;grid-template-columns:1fr}
 #advpane .prot-row,#serverpane .prot-row{align-items:flex-start;padding:16px 0}
-#advpane .prot-title,#serverpane .prot-title{font-size:15px;font-weight:500;letter-spacing:0;color:var(--w100)}
-#advpane .prot-desc,#serverpane .prot-desc{font-size:13px;line-height:1.5;margin-top:4px;max-width:none}
+#advpane .prot-title,#serverpane .prot-title{font-size:14px;font-weight:600;letter-spacing:.02em;color:var(--w90)}
+#advpane .prot-desc,#serverpane .prot-desc{font-size:14px;line-height:1.5;margin-top:4px;max-width:none}
 #advpane .prot-status,#serverpane .prot-status{padding-top:2px}
 #pv-adv{margin-top:clamp(36px,5vw,56px)}
 #pv-adv>summary{border-top:0;min-height:0;align-items:center}
 #pv-adv[open]>summary{margin-bottom:22px}
-.pv-note{font-size:13px;color:var(--w60);border-left:2px solid var(--w25);padding:10px 14px;margin:16px 0;max-width:64ch}
+.pv-note{font-size:14px;color:var(--w60);border-left:2px solid var(--w25);padding:10px 14px;margin:16px 0;max-width:64ch}
+/* A note that warns: the yellow accent of the OLED and service menu warnings. */
+.pv-note.warn{border-left-color:var(--cand)}
 .cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(232px,100%),1fr));
   gap:18px 20px;max-width:840px;margin-top:4px}
 .cfg-f{display:flex;flex-direction:column;gap:7px;min-width:0}
-.cfg-f>label{font-weight:500;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--w60)}
+.cfg-f>label{font-weight:500;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--w60)}
 .cfg-f input{
-  font-family:'Manrope';font-weight:400;font-size:13px;letter-spacing:.03em;
+  font-family:'Manrope';font-weight:400;font-size:14px;letter-spacing:.03em;
   color:var(--w100);background:transparent;
   border:1px solid var(--edge);padding:14px 12px;
   min-height:48px;border-radius:0;outline:none;
@@ -770,7 +908,7 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 }
 .cfg-f input:focus{border-color:var(--w100)}
 .cfg-f input::placeholder{color:var(--w60)}
-.cfg-f .hint{font-size:13px;color:var(--w60);line-height:1.45}
+.cfg-f .hint{font-size:14px;color:var(--w60);line-height:1.45}
 .cfg-toggles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));
   gap:8px;max-width:840px;margin-top:14px}
 /* State and switch to one side, the form it describes to the other. The left
@@ -781,12 +919,29 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 }
 .cfg-side .pv-row{border-bottom:0;padding-top:0}
 /* One switch does not need the width of the column it sits in. */
-.cfg-side .cfg-toggles{max-width:320px}
-.pv-top .btns button{white-space:nowrap}
+.cfg-side .cfg-toggles{max-width:380px}
+/* The blocker's tiers and the advertising ID's actions: a label wraps rather than
+   spilling out, a button too narrow for its longest word moves to the next line,
+   and one left on a line of its own takes the line. */
+.pv-top .btns{display:flex;flex-wrap:wrap}
+.pv-top .btns button{flex:1 1 120px}
+/* Custom ad blocking: Upload and Delete side by side in the row's status column. */
+/* The warnings' yellow accent, closer to the text it follows. */
+.abc-warn{margin-top:16px}
+.abc-table{margin-top:14px}
+/* On a phone the controls go under their text rather than squeezing it to a word a line. */
+.abc-table .prot-row{flex-wrap:wrap}
+.abc-table .prot-main{flex:1 1 240px}
+.abc-table .prot-status{max-width:100%}
+.abc-list-btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#abc-detail{margin:12px 0 18px}
+#abc-detail:empty{display:none}
+/* Refusals look like the page's own error banner (#offline). */
+#abc-detail.bad{font-size:14px;border-left:2px solid var(--red);padding:9px 13px;background:var(--w06);color:var(--w90)}
 .cfg-cols>*{min-width:0}
 .cfg-save{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:22px;max-width:840px}
 .cfg-save button{min-height:48px;padding:0 30px}
-.cfg-msg{font-size:13px;color:var(--w60)}
+.cfg-msg{font-size:14px;color:var(--w60)}
 .cfg-msg.bad{color:var(--warn,#e5534b)}
 .cfg-msg.good{color:var(--w100)}
 .cfg-toggles button[disabled].on{background:transparent;color:var(--w60);border-color:var(--w12);font-weight:400}
@@ -798,44 +953,127 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .cfg-ent-chk input[type="checkbox"]{width:16px;height:16px;margin:0;cursor:pointer;flex-shrink:0;accent-color:var(--w100)}
 .cfg-ent-chk.dis input[type="checkbox"]{cursor:default}
 .cfg-ent-chk .ent-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cfg-ent-chk .ent-type{font-size:12px;color:var(--w60);margin-left:5px;font-weight:400}
+.cfg-ent-chk .ent-type{font-size:13px;color:var(--w60);margin-left:5px;font-weight:400}
+/* ---- MQTT network flow diagram ---- */
+.mqtt-net{max-width:380px;margin-top:22px;border:1px solid var(--w06);
+  background:rgba(var(--fg),.02);border-radius:6px;padding:16px 16px 14px}
+.mqtt-net.off .mqtt-net-node{opacity:.6}
+.mqtt-net.off .mqtt-net-link{opacity:.4}
+.mqtt-net.off .mqtt-dot{background:var(--w20)!important;border-color:var(--edge)!important;box-shadow:none!important}
+.mqtt-net-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mqtt-net-title{font-family:'Manrope';font-size:13px;font-weight:600;letter-spacing:.10em;
+  text-transform:uppercase;color:var(--w70)}
+.mqtt-net-flow{display:flex;flex-direction:column}
+.mqtt-net-node{display:flex;align-items:center;gap:13px;padding:11px 14px;
+  border-radius:6px;background:rgba(var(--fg),.03);border:1px solid var(--w06);min-width:0}
+.mqtt-net-ico{width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;color:var(--w70)}
+.mqtt-net-ico svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+.mqtt-net-body{flex:1;min-width:0;overflow:hidden}
+.mqtt-net-name{font-size:15px;font-weight:600;color:var(--w100);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.mqtt-net-sub{font-size:14px;color:var(--w70);line-height:1.35;display:flex;align-items:center;
+  gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mqtt-tls-tag{font-size:12px;font-family:'Manrope';font-weight:600;letter-spacing:.06em;
+  padding:1px 6px;border-radius:2px;border:1px solid var(--w20);color:var(--w80);line-height:1.2}
+.mqtt-net-state{flex-shrink:0;display:flex;align-items:center}
+.mqtt-dot{width:10px;height:10px;border-radius:50%;background:var(--w20);border:1px solid var(--edge);
+  transition:background .25s ease,border-color .25s ease,box-shadow .25s ease}
+.mqtt-dot.good{background:var(--green);border-color:var(--green);box-shadow:0 0 6px rgba(48,222,97,.4)}
+.mqtt-dot.warn{background:var(--cand);border-color:var(--cand);box-shadow:0 0 6px rgba(255,176,79,.4)}
+.mqtt-dot.bad{background:var(--red);border-color:var(--red);box-shadow:0 0 6px rgba(255,48,48,.4)}
+.mqtt-dot.idle{background:var(--w20);border-color:var(--edge)}
+.mqtt-net-link{display:flex;align-items:center;min-height:32px;padding:6px 0 6px 39px;position:relative}
+.mqtt-net-track{position:absolute;left:25px;top:0;bottom:0;width:2px;background:var(--w12);border-radius:1px}
+.mqtt-packet{position:absolute;left:-2px;top:0;width:6px;height:6px;border-radius:50%;
+  background:var(--green);opacity:0;pointer-events:none}
+.mqtt-packet.pulse{animation:mqttPacketTravel .85s cubic-bezier(.4,0,.2,1) forwards}
+.mqtt-packet.ping{background:var(--cool);animation:mqttPacketTravel .6s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes mqttPacketTravel{
+  0%{top:0%;opacity:0}
+  20%{opacity:1}
+  80%{opacity:1}
+  100%{top:calc(100% - 6px);opacity:0}
+}
+.mqtt-net-meta{font-size:14px;color:var(--w70);display:flex;align-items:center;
+  gap:6px;line-height:1.4;word-break:break-word;overflow-wrap:anywhere}
+.mqtt-net-metric{font-variant-numeric:tabular-nums;color:var(--w90);word-break:break-word;overflow-wrap:anywhere}
+.mqtt-net.error .mqtt-net-track{background:rgba(255,48,48,.45)}
+.mqtt-net.error .mqtt-net-metric{color:var(--red)}
 .proc{display:grid;grid-template-columns:1fr auto;gap:14px;padding:9px 0;
   border-bottom:1px solid var(--w06);font-size:14px}
 .proc .p-name{color:var(--w80);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .proc .p-mb{color:var(--w100);font-variant-numeric:tabular-nums}
-.proc .p-pid{color:var(--w50);margin-left:6px;font-size:12px;font-variant-numeric:tabular-nums}
+.proc .p-pid{color:var(--w50);margin-left:6px;font-size:13px;font-variant-numeric:tabular-nums}
+/* ---- Watch time ----
+   Shades of the foreground rather than colours: the five most watched over
+   30 days, then Other. Each day's bar stacks them from the bottom. */
+.watch-totals{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.watch-totals .uptime-val{font-size:clamp(22px,2.4vw,30px);white-space:nowrap}
+.watch-bars{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;height:96px;margin:22px 0 8px}
+.wb{display:flex;flex-direction:column;min-width:0}
+.wb-stack{flex:1;display:flex;flex-direction:column-reverse;background:var(--w06);border-radius:2px;overflow:hidden}
+.wb-day{font-size:12px;color:var(--w50);text-align:center;margin-top:5px}
+.ws0{background:var(--w90)} .ws1{background:var(--w70)} .ws2{background:var(--w50)}
+.ws3{background:var(--w35)} .ws4{background:var(--w25)} .ws5{background:var(--w12)}
+.wb-stack b{display:block;flex:none}
+.w-sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:9px;vertical-align:0}
+.w-sw.ws-off{border:1px solid var(--w40)}
+.w-sw.ws-saver{border:1px dashed var(--w40)}
 /* ---- HDMI port grid ----
-   Four tiles, always all four: a port that vanished when nothing was plugged
-   into it would read as a missing port rather than an empty one. State is
-   carried by fill and weight, the same way the selected controls are - the
-   live port is the bright one. */
-.ports{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:9px;margin-top:14px}
-.port{border:1px solid var(--w06);border-radius:4px;padding:13px 14px 14px;
-  display:flex;flex-direction:column;min-height:112px}
-.port .ptop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.port .pn{font-family:'Outfit';font-weight:200;font-size:38px;line-height:.9;
+   Four tiles representing the TV's physical HDMI port bay. State is
+   carried by line weight, opacity, and port jack silhouette on true black. */
+.ports{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:14px}
+.port{border:1px solid var(--w06);border-radius:4px;padding:12px 14px 13px;
+  display:flex;flex-direction:column;min-height:120px;background:transparent;
+  transition:border-color .16s ease}
+.port .ptop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.port .pn{font-family:'Outfit';font-weight:200;font-size:36px;line-height:1;
   color:var(--w50);font-variant-numeric:tabular-nums}
-.port .pst{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--w60);
-  padding-top:4px;white-space:nowrap}
-.port .pl{font-size:14px;color:var(--w50);margin-top:auto;
+.port .pstatus-wrap{display:flex;align-items:center;gap:6px;padding-top:4px}
+.port .port-cap{display:inline-flex;align-items:center;font-size:11px;font-weight:700;letter-spacing:.08em;
+  padding:2px 6px;border-radius:2px;border:1px solid var(--w12);background:transparent;color:var(--w70);line-height:1}
+.port .port-jack{flex:none;color:var(--w40);transition:color .16s ease}
+.port .pst{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--w60);
+  white-space:nowrap}
+.port .pl{font-size:14px;color:var(--w70);font-weight:500;margin-top:10px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.port .pd{font-size:12px;color:var(--w60);margin-top:2px;
+.port .pd{font-size:13px;color:var(--w50);margin-top:4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Nothing plugged in: the number alone. The dashed edge carries "empty", so
-   the numeral keeps its normal weight - it is the only thing in the tile, and
-   dimming it further would make the one piece of information unreadable. */
-.port.empty{border-color:var(--w06);border-style:dashed}
-.port.seen{border-color:var(--w10)}
+
+.pbadges{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.hdmi-badge{display:inline-flex;align-items:center;font-size:11.5px;letter-spacing:.03em;
+  padding:3px 7px;border-radius:2px;border:1px solid var(--w12);background:transparent;color:var(--w80);white-space:nowrap}
+.hdmi-badge.res{font-weight:600;border-color:var(--w25);color:var(--w100)}
+.hdmi-badge.feat{font-weight:600;letter-spacing:.08em}
+.hdmi-badge.feat.green{color:var(--green);border-color:rgba(48,222,97,.35);background:transparent}
+
+/* Empty port state */
+.port.empty{border-color:var(--w06);border-style:dashed;background:transparent}
+.port.empty .pn{color:var(--w25)}
+.port.empty .port-jack{color:var(--w25);stroke-dasharray:2 1.5}
+.port.empty .port-cap{color:var(--w40);border-color:var(--w06);border-style:dashed}
+.port.empty .pst{color:var(--w35)}
+.port.empty .pl{color:var(--w35);font-weight:400}
+
+/* Seen / Idle state */
+.port.seen{border-color:var(--w12);background:transparent}
 .port.seen .pn{color:var(--w80)}
-.port.seen .pl{color:var(--w80)}
-.port.live{border-color:var(--w25);background:var(--w06)}
+.port.seen .port-jack{color:var(--w70)}
+.port.seen .pl{color:var(--w90)}
+
+/* Live / Active state */
+.port.live{border-color:var(--w35);background:transparent}
 .port.live .pn{color:var(--w100)}
-.port.live .pst{color:var(--w80)}
-.port.live .pl{color:var(--w100)}
-.port.live .pd{color:var(--w60)}
-@media (max-width:420px){.ports{grid-template-columns:1fr}}
+.port.live .port-cap{color:var(--w100);border-color:var(--w35)}
+.port.live .port-jack{color:var(--w100)}
+.port.live .pst{color:var(--w100);font-weight:600}
+.port.live .pl{color:var(--w100);font-weight:600}
+
+@media (max-width:480px){.ports{grid-template-columns:1fr}}
 @media (max-width:620px){.src{text-align:left}.hero{gap:22px}}
-footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:uppercase;color:var(--w60);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer{margin-top:38px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--w60);display:flex;justify-content:flex-end;gap:16px;flex-wrap:wrap}
 /* The separator rides on the link so both appear only once a version is known. */
 #version{text-transform:none;color:inherit;text-decoration:none}
 #version{margin-left:.55em}
@@ -873,11 +1111,11 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
 }
 .spec-item{display:flex;flex-direction:column;gap:3px}
 .spec-k{
-  font-family:'Manrope',sans-serif;font-weight:500;font-size:11px;
-  letter-spacing:.12em;text-transform:uppercase;color:var(--w60);
+  font-family:'Manrope',sans-serif;font-weight:500;font-size:12px;
+  letter-spacing:.10em;text-transform:uppercase;color:var(--w60);
 }
 .spec-v{
-  font-family:'Manrope',sans-serif;font-weight:400;font-size:13.5px;
+  font-family:'Manrope',sans-serif;font-weight:400;font-size:14px;
   color:var(--w90);letter-spacing:.02em;
 }
 
@@ -891,12 +1129,12 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
 }
 .prot-main{flex:1;min-width:0}
 .prot-title{
-  font-family:'Manrope',sans-serif;font-weight:600;font-size:13px;
+  font-family:'Manrope',sans-serif;font-weight:600;font-size:14px;
   color:var(--w90);letter-spacing:.02em;
 }
-.prot-title .prot-sub{font-weight:400;color:var(--w60);font-size:12px}
+.prot-title .prot-sub{font-weight:400;color:var(--w60);font-size:13px}
 .prot-desc{
-  font-size:13px;color:var(--w60);margin-top:3px;line-height:1.45;
+  font-size:14px;color:var(--w60);margin-top:3px;line-height:1.45;
   max-width:62ch;
 }
 .prot-status{flex-shrink:0}
@@ -905,19 +1143,46 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
 /* The days take the row's full width, under the title and the time, so all
    seven fit on one line. */
 #row-ontimer,#row-offtimer{flex-wrap:wrap}
+#ssh-row{flex-wrap:wrap}
+.ssh-body{flex-basis:100%;margin-top:-4px}
+.ssh-key{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--edge)}
+.ssh-key .ssh-k{flex:1;min-width:0}
+.ssh-key .ssh-print{color:var(--w60);font-size:12px;overflow-wrap:anywhere}
+.ssh-btns{margin-top:10px}
+#ssh-state.warn{color:var(--warn,#e5534b)}
+#backup-daily-row{flex-wrap:wrap}
+.backup-saved{flex-basis:100%;margin-top:-4px}
+.backup-saved .bk{display:flex;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--edge)}
+.backup-saved .bk-date{flex:1;min-width:0}
+.backup-saved .bk-size{color:var(--w60);font-size:13px}
 .timer-days{display:flex;flex-wrap:wrap;gap:6px;flex-basis:100%;margin-top:-4px}
-.timer-days button{min-width:42px;height:28px;padding:0 8px;font:500 11px 'Manrope';letter-spacing:.06em;
+.timer-days button{min-width:44px;height:32px;padding:0 8px;font:500 12px 'Manrope';letter-spacing:.06em;
   color:var(--w60);background:transparent;border:1px solid var(--edge);border-radius:2px;cursor:pointer}
 .timer-days button.on{color:var(--green);border-color:var(--green)}
-/* The disabled "Updates through Homebrew Channel" button is wider than a phone's spare width. */
-#apps-catalog-list .prot-row{flex-wrap:wrap}
-#apps-catalog-list .prot-main{flex:1 1 160px}
-#apps-catalog-list .prot-status{max-width:100%}
+#st-apps-row{flex-wrap:wrap}
+.st-apps{flex-basis:100%;margin-top:-4px}
+.st-app{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--edge)}
+.st-app .st-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-app .st-used{color:var(--w60);font-size:13px;white-space:nowrap}
+.st-app .pill-sel{min-width:0;width:96px}
+.st-note{color:var(--warn,#e5534b)}
+#apps-catalog-list .prot-row, #apps-installed-list .prot-row, #apps-services-list .prot-row, #server-health-row{flex-wrap:wrap}
+#apps-catalog-list .prot-main, #apps-installed-list .prot-main, #apps-services-list .prot-main, #server-health-row .prot-main{flex:1 1 160px}
+#apps-catalog-list .prot-status, #apps-installed-list .prot-status, #apps-services-list .prot-status, #server-health-status{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:100%;
+}
 #apps-catalog-list .prot-status button{max-width:100%;white-space:normal}
+.app-badge, .app-storage-badge{
+  display:inline-flex;align-items:center;
+  font-family:'Manrope',sans-serif;font-size:12px;font-weight:600;letter-spacing:.04em;
+  padding:3px 8px;border-radius:6px;background:var(--w06);color:var(--w80);
+  border:1px solid var(--edge);white-space:nowrap;font-variant-numeric:tabular-nums;
+  line-height:normal;
+}
 /* Renaming a saved page happens in its own row: the name becomes the field. */
 .page-edit{display:flex;gap:8px;margin:0}
 .page-edit{flex-wrap:wrap}
-.page-edit input{font-size:13px;padding:10px 12px;min-height:38px}
+.page-edit input{font-size:14px;padding:10px 12px;min-height:38px}
 .page-edit input[id^="page-url-"]{flex:2 1 240px}
 .page-edit input[id^="page-name-"]{flex:1 1 150px}
 .page-edit button{min-height:38px;padding:0 16px}
@@ -939,19 +1204,20 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
    --------------------------------------------------------------- */
 .tools-toolbar{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;margin:20px 0 14px}
 .tools-toolbar-grp{display:flex;align-items:center;gap:10px;min-width:0}
-.tools-toolbar-lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--w60);font-weight:500}
+.tools-toolbar-lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--w60);font-weight:500}
 .tools-seg{display:inline-flex;flex-wrap:wrap;gap:6px}
 .tools-cnt{font-variant-numeric:tabular-nums;color:var(--w50);margin-left:2px}
 .tools-cnt:empty{display:none}
 .tools-cnt.has-err{color:var(--red)}
 .tools-cnt.has-warn{color:var(--cand)}
 .tools-seg button.on .tools-cnt{color:inherit}
-.tools-seg button{background:transparent;border:1px solid var(--edge);border-radius:2px;color:var(--w80);
-  font:500 11px 'Manrope';letter-spacing:.1em;text-transform:uppercase;padding:0 12px;height:28px;min-height:0;
+.tools-seg button, .catalog-seg button{background:transparent;border:1px solid var(--edge);border-radius:2px;color:var(--w80);
+  font:500 12px 'Manrope';letter-spacing:.08em;text-transform:uppercase;padding:0 12px;height:32px;min-height:0;
   cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.16s ease}
-.tools-seg button:hover{color:var(--w100);border-color:var(--w70)}
-.tools-seg button.active,.tools-seg button.on{color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100);font-weight:500}
-.tools-seg button.active:hover,.tools-seg button.on:hover{color:var(--btn-on-fg);border-color:var(--w100)}
+.tools-seg button:hover, .catalog-seg button:hover{color:var(--w100);border-color:var(--w70)}
+.tools-seg button.active, .tools-seg button.on, .catalog-seg button.on{color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100);font-weight:500}
+.tools-seg button.active:hover, .tools-seg button.on:hover, .catalog-seg button.on:hover{color:var(--btn-on-fg);border-color:var(--w100)}
+.catalog-seg{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
 
 .src-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
 .src-dot.src-system{background:#3061FF}
@@ -961,23 +1227,23 @@ footer{margin-top:38px;font-size:12px;letter-spacing:.10em;text-transform:upperc
 .tools-subbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px}
 .tools-search-wrap{position:relative;flex:1 1 240px;display:flex;align-items:center}
 .tools-search-icon{position:absolute;left:10px;color:var(--w50);pointer-events:none}
-.tools-search-input{width:100%;height:28px;padding:0 28px 0 28px;background:transparent;border:1px solid var(--edge);
-  border-radius:2px;color:var(--w100);font:12px 'Manrope';box-sizing:border-box;transition:border-color .16s ease}
+.tools-search-input{width:100%;height:32px;padding:0 28px 0 28px;background:transparent;border:1px solid var(--edge);
+  border-radius:2px;color:var(--w100);font:13px 'Manrope';box-sizing:border-box;transition:border-color .16s ease}
 .tools-search-input:focus{outline:0;border-color:var(--w100)}
 .tools-search-input::placeholder{color:var(--w60)}
 .tools-search-clear{position:absolute;right:6px;background:transparent;border:0;color:var(--w60);font-size:16px;
   cursor:pointer;padding:2px 6px;line-height:1}
 .tools-search-clear:hover{color:var(--w100)}
-.tools-search-count{margin-left:auto;padding-left:12px;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.tools-search-count{margin-left:auto;padding-left:12px;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:.04em;font-size:13px}
 .tools-actions{display:flex;gap:8px 16px;flex-wrap:wrap;align-items:center;margin-left:auto}
 .tools-switches,.tools-buttons{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.tools-check{display:inline-flex;align-items:center;gap:8px;margin-right:8px;font:500 11px 'Manrope';letter-spacing:.1em;
+.tools-check{display:inline-flex;align-items:center;gap:8px;margin-right:8px;font:500 12px 'Manrope';letter-spacing:.08em;
   text-transform:uppercase;color:var(--w70);cursor:pointer;user-select:none}
 .tools-check input{width:14px;height:14px;margin:0;accent-color:var(--w100);cursor:pointer}
 
 /* Live is a state, not an action: a quiet toggle with its own indicator. */
-button.tools-switch{display:inline-flex;align-items:center;gap:8px;height:28px;min-height:0;padding:0 10px;background:transparent;
-  border:1px solid transparent;border-radius:2px;color:var(--w60);font:500 11px 'Manrope';letter-spacing:.1em;
+button.tools-switch{display:inline-flex;align-items:center;gap:8px;height:32px;min-height:0;padding:0 10px;background:transparent;
+  border:1px solid transparent;border-radius:2px;color:var(--w60);font:500 12px 'Manrope';letter-spacing:.08em;
   text-transform:uppercase;cursor:pointer;transition:.16s ease}
 button.tools-switch:hover{color:var(--w100);border-color:var(--edge)}
 button.tools-switch.on{color:var(--w100);background:transparent;border-color:transparent}
@@ -986,19 +1252,19 @@ button.tools-switch.on:hover{border-color:var(--edge)}
   box-shadow:0 0 6px rgba(48,222,97,.6);animation:livePulse 2s infinite}
 .live-dot.paused{background:var(--w40);box-shadow:none;animation:none}
 @keyframes livePulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
-
-
 /* Terminal View */
 .tools-terminal{position:relative;background:var(--bg);border:1px solid var(--edge);border-radius:2px;overflow:hidden;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;line-height:1.55}
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:13px;line-height:1.55}
 .tools-term-header{display:flex;background:transparent;border-bottom:1px solid var(--edge);padding:9px 14px;
-  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--w60);font-weight:500;user-select:none}
+  font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--w60);font-weight:500;user-select:none}
 .tools-term-body{max-height:clamp(400px,65vh,800px);overflow-y:auto;overflow-x:hidden}
 /* Under the column headings rather than at the foot of the box, which is
    below the fold on a laptop screen. */
-.tools-jump{position:absolute;left:50%;transform:translateX(-50%);top:46px;z-index:1;height:28px;padding:0 14px;border-radius:14px;border:0;
-  background:var(--w100);color:var(--btn-on-fg);font:600 11px 'Manrope';letter-spacing:.08em;text-transform:uppercase;
+.tools-jump{position:absolute;left:50%;transform:translateX(-50%);top:46px;z-index:1;height:32px;padding:0 16px;border-radius:16px;border:0;
+  background:var(--w100);color:var(--btn-on-fg);font:600 12px 'Manrope';letter-spacing:.06em;text-transform:uppercase;
   cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+button.tools-jump:hover{color:var(--btn-on-fg);background:var(--w90)}
+button.tools-jump:active{background:var(--w80)}
 .tools-jump[hidden]{display:none}
 .tools-term-empty{padding:48px 20px;text-align:center;color:var(--w50);font-family:'Manrope';font-size:14px}
 
@@ -1009,18 +1275,18 @@ button.tools-switch.on:hover{border-color:var(--edge)}
 .log-row.lvl-error{border-left:3px solid var(--red);background:rgba(255,48,48,.05)}
 .log-row.lvl-warning{border-left:3px solid var(--cand);background:rgba(255,176,79,.04)}
 
-.term-col-time{flex:0 0 102px;color:var(--w60);font-variant-numeric:tabular-nums;white-space:nowrap}
-.term-col-src{flex:0 0 88px;white-space:nowrap}
-.term-col-lvl{flex:0 0 54px;white-space:nowrap}
-.term-col-proc{flex:0 0 115px;color:var(--w80);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
+.term-col-time{flex:0 0 108px;color:var(--w60);font-variant-numeric:tabular-nums;white-space:nowrap}
+.term-col-src{flex:0 0 92px;white-space:nowrap}
+.term-col-lvl{flex:0 0 58px;white-space:nowrap}
+.term-col-proc{flex:0 0 120px;color:var(--w80);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
 .term-col-msg{flex:1 1 auto;color:var(--w90);word-break:break-word;min-width:0}
 
-.log-src{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em}
+.log-src{font-size:11px;font-weight:600;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em}
 .log-src.src-system{background:rgba(48,97,255,.18);color:#80a0ff}
 .log-src.src-glasshouse{background:rgba(143,48,255,.22);color:#c090ff}
 .log-src.src-kernel{background:rgba(255,176,79,.18);color:#ffb04f}
 
-.log-lvl{font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px;letter-spacing:.04em}
+.log-lvl{font-size:11px;font-weight:700;padding:2px 5px;border-radius:3px;letter-spacing:.04em}
 .log-lvl.lvl-ERR{color:var(--red);background:rgba(255,48,48,.18)}
 .log-lvl.lvl-WARN{color:var(--cand);background:rgba(255,176,79,.18)}
 .log-lvl.lvl-INFO{color:var(--w50);background:var(--w10)}
@@ -1032,15 +1298,15 @@ button.tools-switch.on:hover{border-color:var(--edge)}
 .log-detail{background:rgba(var(--fg),.04);border-bottom:1px solid var(--w25);padding:14px 18px;
   cursor:default;font-family:'Manrope'}
 .log-detail-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 16px;
-  font-size:12px;margin-bottom:14px;color:var(--w70)}
-.log-detail-meta .lbl{color:var(--w40);text-transform:uppercase;font-size:10px;letter-spacing:.06em;margin-right:6px}
+  font-size:13px;margin-bottom:14px;color:var(--w70)}
+.log-detail-meta .lbl{color:var(--w40);text-transform:uppercase;font-size:12px;letter-spacing:.06em;margin-right:6px}
 .log-detail-meta code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--w90)}
 .log-detail-sec{margin-top:12px}
-.log-detail-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;
+.log-detail-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;
   letter-spacing:.06em;text-transform:uppercase;color:var(--w50);margin-bottom:6px;font-weight:600}
-.log-detail-head .pill{padding:3px 10px;font-size:11px}
+.log-detail-head .pill{padding:3px 10px;font-size:12px}
 .log-raw-box,.log-json-box{background:var(--bg);border:1px solid var(--edge);border-radius:2px;padding:12px;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;overflow-x:auto;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5;overflow-x:auto;
   margin:0;color:var(--w90)}
 .json-key{color:#80a0ff;font-weight:600}
 .json-str{color:#30DE61}
@@ -1054,14 +1320,14 @@ button.tools-switch.on:hover{border-color:var(--edge)}
   .tools-term-header .term-col{display:none}
   .tools-search-count{margin-left:0;padding-left:0}
   .log-row{flex-wrap:wrap;gap:2px 8px;align-items:center;padding:8px 12px}
-  .term-col-time{flex:0 0 auto;font-size:11px}
+  .term-col-time{flex:0 0 auto;font-size:12px}
   .term-col-src,.term-col-lvl{flex:0 0 auto}
-  .term-col-proc{flex:1 1 0;font-size:11px;color:var(--w60)}
+  .term-col-proc{flex:1 1 0;font-size:12px;color:var(--w60)}
   .term-col-msg{flex:0 0 100%}
   .tools-actions{width:100%;justify-content:space-between;margin-left:0}
   .tools-buttons{width:100%}
   .tools-check{flex:0 0 100%;margin:0 0 4px}
-  .tools-buttons .pill{flex:1 1 0}
+  .tools-buttons .pill{flex:1 1 0;min-width:0;padding:0 6px}
   .tools-toolbar-grp{flex-direction:column;align-items:flex-start;gap:6px}
 }
 /* Quick Access: the key's number before what it opens. */

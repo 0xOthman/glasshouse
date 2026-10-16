@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#000000">
 <title>Glasshouse</title>
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
@@ -74,6 +75,38 @@
   </nav>
   <div class="sidenav-foot">
     <div class="nav-rule" role="presentation"></div>
+    <details class="nav-pref" id="nav-pref">
+      <summary class="nav-pref-summary">
+        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span data-t="nav.pref">Preferences</span>
+        <svg class="nav-pref-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <div class="nav-pref-body">
+        <div class="nav-pref-grp">
+          <div class="nav-pref-lbl" data-t="server.theme.title">Theme</div>
+          <div class="theme-seg" role="group" aria-label="Theme" data-t-aria-label="theme">
+            <button type="button" data-theme-set="auto" data-t="theme.auto">Auto</button><button type="button"
+              data-theme-set="dark" data-t="theme.dark">Dark</button><button type="button" data-theme-set="light"
+              data-t="theme.light">Light</button>
+          </div>
+        </div>
+        <div class="nav-pref-grp nav-pref-sidebar">
+          <div class="nav-pref-lbl" data-t="server.sidebar.title">Sidebar</div>
+          <div class="theme-seg" role="group" aria-label="Sidebar" data-t-aria-label="server.sidebar.group">
+            <button type="button" data-sidebar-set="show" data-t="server.sidebar.show">Show</button><button type="button"
+              data-sidebar-set="hide" data-t="server.sidebar.hide">Hide</button>
+          </div>
+        </div>
+        <div class="nav-pref-grp">
+          <div class="nav-pref-lbl" data-t="server.language.title">Language</div>
+          <div class="theme-seg" role="group" aria-label="Language" data-t-aria-label="server.language.group">
+            <button type="button" data-lang-set="auto" data-t="theme.auto">Auto</button><button type="button"
+              data-lang-set="en" data-t="lang.en">EN</button><button type="button" data-lang-set="es"
+              data-t="lang.es">ES</button>
+          </div>
+        </div>
+      </div>
+    </details>
     <a class="nav-help" id="nav-help" href="https://rorygallagher2024.github.io/glasshouse/dashboard/" target="_blank" rel="noopener">
       <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.9.6c0 1.7-2.5 2.2-2.5 3.8M12 17h.01"/></svg>
       <span data-t="nav.help">Help</span>
@@ -139,17 +172,35 @@
     </div>
 
     <div class="grp-sec" id="remoteblock" data-col="2" hidden>
-      <div class="grp" data-t="metrics.remote">Magic remote</div>
-      <div class="lbl" data-t="metrics.battery">Battery</div>
-      <div class="n num" style="margin-top:10px"><span id="remote-pct">&mdash;</span><em>%</em></div>
-      <div class="track" style="margin-top:16px;max-width:220px"><b id="remote-gauge-fill" style="width:0%"></b></div>
-      <div class="sub" id="remote-model-sub"></div>
+      <div class="grp"><span data-t="metrics.remote">Magic remote</span><span class="pill idle" id="remote-pill" data-t="metrics.remote.standby">Standby</span></div>
+      <div id="remote-battery">
+        <div class="lbl" data-t="metrics.battery">Battery</div>
+        <div class="n num" style="margin-top:10px"><span id="remote-pct">&mdash;</span><em>%</em></div>
+        <div class="track" style="margin-top:16px;margin-bottom:14px;max-width:220px"><b id="remote-gauge-fill" style="width:0%"></b></div>
+      </div>
+      <div class="remote-meta" id="remote-meta">
+        <div class="remote-meta-row" id="remote-model-row"><span class="remote-meta-lbl" data-t="metrics.remote.modelLabel">Model:</span> <span class="remote-meta-val" id="remote-model-val"></span></div>
+        <div class="remote-meta-row" id="remote-fw-row"><span class="remote-meta-lbl" data-t="metrics.remote.firmwareLabel">Firmware:</span> <span class="remote-meta-val" id="remote-fw-val"></span></div>
+        <div class="remote-meta-row" id="remote-signal-row"><span class="remote-meta-lbl" data-t="metrics.remote.signalLabel">Signal Strength:</span> <span class="remote-meta-val" id="remote-signal-val"></span></div>
+      </div>
     </div>
 
     <div class="grp-sec" id="hdmiblock" data-col="2">
       <div class="grp"><span translate="no">HDMI</span><span class="cur" id="hdmi-cur"></span></div>
       <div class="ports" id="hdmi-grid"></div>
       <div class="sub" id="hdmi-diag-row" hidden style="margin-top:12px;line-height:1.5"></div>
+    </div>
+
+    <div class="grp-sec" id="watchblock" data-col="1" hidden>
+      <div class="grp" data-t="metrics.watch">Watch time</div>
+      <div class="watch-totals">
+        <div><div class="lbl" data-t="metrics.watch.today">Today</div><div class="uptime-val num" id="watch-today">&mdash;</div></div>
+        <div><div class="lbl" data-t="metrics.watch.week">7 days</div><div class="uptime-val num" id="watch-week">&mdash;</div></div>
+        <div><div class="lbl" data-t="metrics.watch.month">30 days</div><div class="uptime-val num" id="watch-month">&mdash;</div></div>
+      </div>
+      <div class="watch-bars" id="watch-bars" role="img" aria-label="Hours watched each day for the last 14 days" data-t-aria-label="metrics.watch.bars"></div>
+      <div id="watch-list"></div>
+      <div class="sub" id="watch-note" hidden></div>
     </div>
 
     <div class="grp-sec" id="advblock" data-col="1">
@@ -344,19 +395,23 @@
       </div>
     </details>
 
-    <div class="set"><div class="lbl"><span data-t="ctl.toast">Screen notification</span> <span class="sub" id="toast-count" translate="no" style="float:right;margin:0">0/120</span></div>
-      <form class="toast-form" onsubmit="event.preventDefault();sendToast();">
-        <input type="text" id="toast-input" placeholder="Message to display on TV screen..." data-t-placeholder="ctl.toast.placeholder" maxlength="120" autocomplete="off">
-        <button type="submit" id="btn-toast" data-t="ctl.toast.send">Send</button>
-      </form>
-    </div>
+    <details class="disc" id="disc-remote-tools">
+      <summary><span data-t="ctl.remoteTools">Remote tools &amp; utilities</span> <span class="cur" data-t="ctl.remoteTools.sub">Notification and web page</span></summary>
 
-    <div class="set"><div class="lbl" data-t="ctl.openUrl">Open a web page</div>
-      <form class="toast-form" onsubmit="event.preventDefault();openUrl();">
-        <input type="text" id="url-input" placeholder="https://example.com" translate="no" maxlength="2048" autocomplete="off" spellcheck="false">
-        <button type="submit" id="btn-url" data-t="ctl.openUrl.open">Open</button>
-      </form>
-    </div>
+      <div class="set"><div class="lbl"><span data-t="ctl.toast">Screen notification</span> <span class="sub" id="toast-count" translate="no" style="float:right;margin:0">0/120</span></div>
+        <form class="toast-form" onsubmit="event.preventDefault();sendToast();">
+          <input type="text" id="toast-input" placeholder="Message to display on TV screen..." data-t-placeholder="ctl.toast.placeholder" maxlength="120" autocomplete="off">
+          <button type="submit" id="btn-toast" data-t="ctl.toast.send">Send</button>
+        </form>
+      </div>
+
+      <div class="set"><div class="lbl" data-t="ctl.openUrl">Open a web page</div>
+        <form class="toast-form" onsubmit="event.preventDefault();openUrl();">
+          <input type="text" id="url-input" placeholder="https://example.com" translate="no" maxlength="2048" autocomplete="off" spellcheck="false">
+          <button type="submit" id="btn-url" data-t="ctl.openUrl.open">Open</button>
+        </form>
+      </div>
+    </details>
 
     <div class="set" id="pwset"><div class="lbl" data-t="adv.power">Power</div>
       <div class="btns">
@@ -385,8 +440,18 @@
       <div class="lbl" data-t="oled.hours">Total power on hours</div>
       <div class="n num" style="margin-top:10px"><span id="oc-hours">&mdash;</span><em data-t="oled.hoursUnit">hours</em></div>
       <div class="cols" style="margin-top:22px">
-        <div><div class="lbl" data-t="oled.compIn">Panel maintenance in</div><div class="v num" id="oc-comp">&mdash;</div><div class="sub" id="oc-comp-sub">&mdash;</div></div>
-        <div><div class="lbl" data-t="oled.refresherIn">Pixel refresher in</div><div class="v num" id="oc-refr">&mdash;</div><div class="sub" id="oc-refr-sub">&mdash;</div></div>
+        <div>
+          <div class="lbl" data-t="oled.compIn">Panel maintenance in</div>
+          <div class="v num" id="oc-comp">&mdash;</div>
+          <div class="track oc-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><b id="oc-comp-bar" style="width:0%"></b></div>
+          <div class="sub" id="oc-comp-sub">&mdash;</div>
+        </div>
+        <div>
+          <div class="lbl" data-t="oled.refresherIn">Pixel refresher in</div>
+          <div class="v num" id="oc-refr">&mdash;</div>
+          <div class="track oc-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><b id="oc-refr-bar" style="width:0%"></b></div>
+          <div class="sub" id="oc-refr-sub">&mdash;</div>
+        </div>
       </div>
       <div class="oc-counts" id="oc-counts" hidden>
         <div class="grp" data-t="oled.counts">Lifetime counts</div>
@@ -429,7 +494,7 @@
 
 <section class="priv panel" id="advpane" role="tabpanel" hidden>
   <div class="lbl" data-t="tab.advanced">Advanced</div>
-  <div class="pv-sec" data-t="adv.power">Power</div>
+  <div class="pv-sec" data-t="adv.powerStandby">Power &amp; standby</div>
   <div class="prot-table">
     <div class="prot-row" id="row-quickboot" hidden>
       <div class="prot-main">
@@ -472,10 +537,14 @@
       <div class="prot-main">
         <div class="prot-title" data-t="adv.wol">Wake-on-LAN</div>
         <div class="prot-desc" data-t="adv.wol.desc">Lets Home Assistant, a phone or another device on the network switch the TV on
-          from standby. The Home Assistant guide shows how to set it up. LG calls this Mobile TV On.</div>
+          from standby. Requires Quick Boot (Quick Start+) to keep the network connection responsive while off. The Home Assistant guide shows how to set it up. LG calls this Mobile TV On.</div>
       </div>
       <div class="prot-status"><button type="button" class="pill idle" id="btn_wol" onclick="toggleWol()">&mdash;</button></div>
     </div>
+  </div>
+
+  <div class="pv-sec adv-sec" id="adv-timers" hidden data-t="adv.timers">Timers</div>
+  <div class="prot-table">
     <div class="prot-row" id="row-ontimer" hidden>
       <div class="prot-main">
         <div class="prot-title" data-t="adv.onTimer">On Timer</div>
@@ -501,6 +570,77 @@
         <button type="button" class="pill idle" id="btn_offtimer" onclick="togglePowerTimer('off')">&mdash;</button>
       </div>
       <div class="timer-days" id="days_offtimer"></div>
+    </div>
+  </div>
+
+  <div class="pv-sec adv-sec" id="adv-screentime" data-t="adv.screenTime">Screen time</div>
+  <div class="prot-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.limits">Screen-time limits</div>
+        <div class="prot-desc" data-t="adv.screenTime.desc">Limits how long the screen is on each day, in all and per app or
+          input, and keeps it off at bedtime. The TV shows a warning five minutes before a limit, and another when it is
+          reached, then does what is chosen below a minute later.</div>
+        <div class="prot-desc st-note" id="st-note" hidden></div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="st-enabled" onclick="toggleScreenTime()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.daily">Daily limit</div>
+        <div class="prot-desc" data-t="adv.screenTime.daily.desc">The screen time allowed each day, counted from midnight on the TV’s clock.</div>
+        <div class="prot-desc" id="st-today" hidden></div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-daily" aria-label="Daily limit" data-t-aria-label="adv.screenTime.daily"
+        onchange="saveScreenTime({ dailyMinutes: Number(this.value) })"></select></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.bedtime">Bedtime</div>
+        <div class="prot-desc" data-t="adv.screenTime.bedtime.desc">Between these two times, the TV does what is chosen below. Clearing either time turns bedtime off.</div>
+      </div>
+      <div class="prot-status timer-ctl">
+        <input type="time" class="pill-sel" id="st-bed-from" aria-label="Bedtime starts" data-t-aria-label="adv.screenTime.bedtime.from"
+          onchange="saveScreenTime({ bedtimeStart: this.value })">
+        <input type="time" class="pill-sel" id="st-bed-to" aria-label="Bedtime ends" data-t-aria-label="adv.screenTime.bedtime.to"
+          onchange="saveScreenTime({ bedtimeEnd: this.value })">
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.action">At the daily limit or bedtime</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-action" aria-label="At the daily limit or bedtime" data-t-aria-label="adv.screenTime.action"
+        onchange="saveScreenTime({ action: this.value })"></select></div>
+    </div>
+    <div class="prot-row" id="st-apps-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.apps">App and input limits</div>
+        <div class="prot-desc" data-t="adv.screenTime.apps.desc">Minutes a day for one app or input. Those watched in the last 30 days can be picked.</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-add" aria-label="Add a limit" data-t-aria-label="adv.screenTime.add"
+        onchange="addScreenTimeApp(this.value)"></select></div>
+      <div class="st-apps" id="st-apps"></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="adv.screenTime.appAction">At an app or input’s limit</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="st-app-action" aria-label="At an app or input’s limit" data-t-aria-label="adv.screenTime.appAction"
+        onchange="saveScreenTime({ appAction: this.value })"></select></div>
+    </div>
+  </div>
+
+  <div class="pv-sec adv-sec" id="adv-updates" data-t="adv.systemUpdates">System updates</div>
+  <div class="prot-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="server.tvUpdates.block">Block TV software updates</div>
+        <div class="prot-desc" data-t="server.tvUpdates.block.desc">Stops the TV installing LG's system
+          updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are
+          unaffected.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="upd-tvblock" onclick="toggleTvUpdates()">&mdash;</button></div>
     </div>
   </div>
 
@@ -549,7 +689,7 @@
     </div>
   </div>
 
-  <div class="pv-sec adv-sec" data-t="adv.frontLights">Front lights</div>
+  <div class="pv-sec adv-sec" id="adv-lights" hidden data-t="adv.frontLights">Front lights</div>
   <div class="prot-table">
     <div class="prot-row" id="row-standby" hidden>
       <div class="prot-main">
@@ -606,9 +746,32 @@
     <div class="apps-grp-h" data-t="apps.group.apps">Apps</div>
     <div class="pv-sub apps-grp-d" data-t="apps.group.apps.desc">The apps and web pages on the TV: adding them and removing them.</div>
 
+    <details class="pv-d" id="disc-installed-apps">
+      <summary><span data-t="apps.manage">Manage applications</span> <span class="cur" id="apps-installed-summary"></span></summary>
+      <div class="pv-sub" data-t="apps.manage.desc">Store downloads and user-installed applications. Launch opens the application on the TV, or click Uninstall to permanently remove it and free up internal eMMC flash storage space.</div>
+      <div class="prot-table" id="apps-installed-list">
+        <div class="sub" style="padding:16px 0" data-t="apps.loadingInstalled">Loading installed apps&hellip;</div>
+      </div>
+    </details>
+
+    <div class="pv-note restore-apps" id="restore-apps" hidden>
+      <div class="pv-sub" id="restore-apps-text"></div>
+      <div class="btns backup-btns">
+        <button type="button" id="restore-apps-install" onclick="installRestoredApps()" data-t="apps.restore.installAll">Install all</button>
+        <button type="button" id="restore-apps-dismiss" onclick="dismissRestoredApps()" data-t="apps.restore.dismiss">Dismiss</button>
+      </div>
+    </div>
     <details class="pv-d" id="disc-install-apps">
       <summary><span data-t="apps.install">Install homebrew apps</span> <span class="cur" id="apps-catalog-summary"></span></summary>
       <div class="pv-sub" data-t="apps.install.desc">Apps from the Homebrew Channel catalog.</div>
+      <div class="catalog-seg" id="catalog-categories" role="group" aria-label="Category" data-t-aria-label="apps.catalog.categories">
+        <button type="button" class="catalog-cat-btn on" data-cat="all" onclick="setCatalogCategory('all')" data-t="apps.cat.all">All</button>
+        <button type="button" class="catalog-cat-btn" data-cat="multimedia" onclick="setCatalogCategory('multimedia')" data-t="apps.cat.media">Media</button>
+        <button type="button" class="catalog-cat-btn" data-cat="game" onclick="setCatalogCategory('game')" data-t="apps.cat.games">Games</button>
+        <button type="button" class="catalog-cat-btn" data-cat="utility" onclick="setCatalogCategory('utility')" data-t="apps.cat.utilities">Utilities</button>
+        <button type="button" class="catalog-cat-btn" data-cat="amblight" onclick="setCatalogCategory('amblight')" data-t="apps.cat.amblight">Ambilight</button>
+        <button type="button" class="catalog-cat-btn" data-cat="screensaver" onclick="setCatalogCategory('screensaver')" data-t="apps.cat.screensavers">Screensavers</button>
+      </div>
       <form class="toast-form" onsubmit="event.preventDefault();">
         <input type="search" id="catalog-search" placeholder="Search apps" data-t-placeholder="apps.install.search" maxlength="60"
           autocomplete="off" spellcheck="false" oninput="renderCatalog()">
@@ -672,14 +835,6 @@
           <button type="submit" id="sl-file-btn" data-t="apps.sideload.file.go">Upload and check</button>
         </form>
         <div style="margin-top:12px"><button type="button" class="pill idle" id="btn-sideload-disable" onclick="toggleSideload(false)" data-t="apps.sideload.disable">Turn off install from URL or file</button></div>
-      </div>
-    </details>
-
-    <details class="pv-d" id="disc-installed-apps">
-      <summary><span data-t="apps.uninstall">Uninstall applications</span> <span class="cur" id="apps-installed-summary"></span></summary>
-      <div class="pv-sub" data-t="apps.uninstall.desc">Store downloads and user-installed applications. Click Uninstall to permanently remove the application and free up internal eMMC flash storage space.</div>
-      <div class="prot-table" id="apps-installed-list">
-        <div class="sub" style="padding:16px 0" data-t="apps.loadingInstalled">Loading installed apps&hellip;</div>
       </div>
     </details>
 
@@ -803,12 +958,12 @@
       </div>
       <div class="sub" id="adblock-detail" style="margin-top:12px">&mdash;</div>
       <div class="pv-note" id="adblock-reconnect" hidden data-t="pv.adblock.reconnect">LG's apps, such as the Content Store and LG Channels, can take about a minute to connect again. If one shows an error, exit it and open it again after a minute.</div>
-      <div class="pv-note" id="adblock-help" hidden data-t="pv.adblock.troubleshoot">If an app or one of LG's
+      <div class="pv-note warn" id="adblock-help" hidden data-t="pv.adblock.troubleshoot">If an app or one of LG's
         services stops working while the blocker is on, switch it off to check whether it is the cause.</div>
-      <div class="pv-note"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
+      <div class="pv-note warn"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
         the LG ThinQ app can no longer control the TV, and the app store, software updates and LG
         Channels may stop working.</b> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
-        updates in the Server tab.</span></div>
+        updates in the Advanced tab.</span></div>
     </div>
 
     <div>
@@ -851,6 +1006,45 @@
   </div>
   <div class="pv-note" id="pv-running-note"></div>
   </details>
+  <details class="pv-d" id="disc-adblock-custom">
+  <summary><span data-t="pv.adblock.custom">Custom ad blocking</span> <span class="cur" id="abc-summary"></span></summary>
+  <div class="pv-sub" data-t="pv.adblock.custom.desc">Use your own hosts file to customise what the ad blocker blocks.
+    The TV keeps the list, so it is not uploaded again after a Glasshouse update.</div>
+  <div class="oled-warn abc-warn" data-t="pv.adblock.custom.warn">Depending on what it blocks, a list can stop apps, LG's
+    services or software updates working. If something stops working, switch Block its names off to check.</div>
+  <div class="prot-table abc-table">
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.file">Hosts file</div>
+        <div class="prot-desc" id="abc-list">&mdash;</div>
+      </div>
+      <div class="prot-status abc-list-btns">
+        <button type="button" class="pill idle" id="abc-upload" onclick="q('abc-file').click()">&mdash;</button>
+        <button type="button" class="pill idle" id="abc-clear" onclick="clearCustomHosts()" hidden data-t="pv.adblock.custom.delete">Delete</button>
+      </div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.use">Block its names</div>
+        <div class="prot-desc" data-t="pv.adblock.custom.use.desc">Off keeps the file on the TV but blocks nothing in it.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="abc-enabled" onclick="toggleCustomHosts()">&mdash;</button></div>
+    </div>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="pv.adblock.custom.how">What is blocked</div>
+        <div class="prot-desc" data-t="pv.adblock.custom.how.desc">Glasshouse's list is the one the ad blocker uses on its own.</div>
+      </div>
+      <div class="prot-status"><select class="pill-sel" id="abc-mode" onchange="setCustomHostsMode(this.value)"
+        aria-label="What is blocked" data-t-aria-label="pv.adblock.custom.how">
+        <option value="add" data-t="pv.adblock.custom.add">Your file and Glasshouse's list</option>
+        <option value="replace" data-t="pv.adblock.custom.replace">Only your file</option>
+      </select></div>
+    </div>
+  </div>
+  <input type="file" id="abc-file" accept=".txt,.hosts,text/plain" hidden onchange="uploadCustomHosts(this)">
+  <div class="sub" id="abc-detail" role="status" aria-live="polite"></div>
+  </details>
   </details>
 </section>
 
@@ -859,18 +1053,53 @@
 
   <div class="cfg-cols">
   <div class="cfg-side">
-    <div class="pv-row" style="margin-top:0">
-      <div>
-        <div class="n" data-t="mqtt.status">Bridge status</div>
-        <div class="d" id="cfg-status-detail">&mdash;</div>
-      </div>
-      <div><span class="pill idle" id="cfg-status-pill">&mdash;</span></div>
-    </div>
-
-    <div class="cfg-toggles" style="margin-top:18px">
+    <div class="cfg-toggles" style="margin-top:0">
       <button id="cfg-enabled" onclick="cfgToggle('cfg-enabled')" data-t="mqtt.bridge">MQTT bridge</button>
     </div>
     <div class="sub" id="cfg-enabled-note" style="margin-top:8px"></div>
+
+    <div class="mqtt-net" id="mqtt-net">
+      <div class="mqtt-net-header">
+        <span class="mqtt-net-title" data-t="mqtt.net.title">Connection</span>
+      </div>
+
+      <div class="mqtt-net-flow">
+        <div class="mqtt-net-node" id="mqtt-node-tv">
+          <div class="mqtt-net-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 20h8M12 17v3"/></svg>
+          </div>
+          <div class="mqtt-net-body">
+            <div class="mqtt-net-name" id="mqtt-node-tv-name">&mdash;</div>
+            <div class="mqtt-net-sub" translate="no">Glasshouse</div>
+          </div>
+          <div class="mqtt-net-state">
+            <span class="mqtt-dot good" id="mqtt-dot-tv"></span>
+          </div>
+        </div>
+
+        <div class="mqtt-net-link" id="mqtt-link-tv-broker">
+          <div class="mqtt-net-track">
+            <div class="mqtt-packet" id="mqtt-packet-pub"></div>
+          </div>
+          <div class="mqtt-net-meta">
+            <span class="mqtt-net-metric" id="mqtt-net-last-pub">&mdash;</span>
+          </div>
+        </div>
+
+        <div class="mqtt-net-node" id="mqtt-node-broker">
+          <div class="mqtt-net-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M8 11l8-4M8 13l8 4"/></svg>
+          </div>
+          <div class="mqtt-net-body">
+            <div class="mqtt-net-name" id="mqtt-node-broker-name">&mdash;</div>
+            <div class="mqtt-net-sub"><span id="mqtt-node-broker-sub">&mdash;</span><span class="mqtt-tls-tag" id="mqtt-node-broker-tls" hidden translate="no">TLS</span></div>
+          </div>
+          <div class="mqtt-net-state">
+            <span class="mqtt-dot idle" id="mqtt-dot-broker"></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="cfg-main">
@@ -941,6 +1170,19 @@
     </div>
   </div>
 
+  <div class="pv-h" data-t="mqtt.icons">App icons</div>
+  <div class="pv-table">
+    <div class="pv-row">
+      <div>
+        <div class="n" data-t="mqtt.icons.toggle">Share app icons</div>
+        <div class="d" data-t="mqtt.icons.desc">Lets a launcher or dashboard on another device show this TV's apps with their own
+          icons. Launch App in Home Assistant then lists each icon's address. Anyone on the network can
+          fetch the icons, and so tell which apps are installed.</div>
+      </div>
+      <button type="button" class="pill idle" id="cfg-icons" onclick="cfgToggleIcons()">&mdash;</button>
+    </div>
+  </div>
+
   <div class="pv-h" data-t="mqtt.entities">Home Assistant entities</div>
   <div class="pv-sub" data-t="mqtt.entities.desc">Choose which entity categories are published over MQTT Discovery.
     Disabling an entity removes it cleanly from Home Assistant without leaving an orphaned state.</div>
@@ -985,12 +1227,50 @@
         </div>
         <div class="prot-status"><span class="pill idle" id="upd-pill">&mdash;</span></div>
       </div>
+      <div class="prot-row" id="server-health-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.health.title">Server health</div>
+          <div class="prot-desc" data-t="server.health.desc">Memory footprint and uptime of the Glasshouse background process on this TV.</div>
+        </div>
+        <div class="prot-status" id="server-health-status">
+          <span class="app-badge" id="server-badge-mem" hidden></span>
+          <span class="app-badge" id="server-badge-uptime" hidden></span>
+        </div>
+      </div>
       <div class="prot-row">
         <div class="prot-main">
           <div class="prot-title" data-t="server.checkDaily">Check for updates daily</div>
           <div class="prot-desc" data-t="server.checkDaily.desc">Looks for a new release once a day.</div>
         </div>
         <div class="prot-status"><button type="button" class="pill idle" id="upd-auto" onclick="toggleAutoCheck()">&mdash;</button></div>
+      </div>
+      <div class="prot-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.watch.title">Watch time</div>
+          <div class="prot-desc" data-t="server.watch.desc">Counts how long the screen is on, per app and input, for the Metrics tab and Home Assistant. Kept on the TV for 13 months. It records what the household watches, so it stays off until turned on here.</div>
+          <button type="button" class="link-btn" id="srv-watch-clear" hidden onclick="clearWatchTime()" data-t="server.watch.clear">Clear history</button>
+        </div>
+        <div class="prot-status"><button type="button" class="pill idle" id="srv-watch" onclick="toggleWatchTime()">&mdash;</button></div>
+      </div>
+      <div class="prot-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.backup.title">Settings backup</div>
+          <div class="prot-desc" data-t="server.backup.desc">Saves LG's sound, device, HDMI and ad settings, and Glasshouse's own, to a file. Restoring it, on this TV or another, sets those the TV has. Network access, MQTT and game settings are not included.</div>
+          <div class="btns backup-btns">
+            <button type="button" id="backup-save" onclick="saveBackup()" data-t="server.backup.save">Download backup</button>
+            <button type="button" id="backup-restore" onclick="q('backup-file').click()" data-t="server.backup.restore">Restore from file</button>
+          </div>
+          <input type="file" id="backup-file" accept=".json,application/json" hidden onchange="restoreBackup(this)">
+          <div class="sub" id="backup-msg" hidden></div>
+        </div>
+      </div>
+      <div class="prot-row" id="backup-daily-row">
+        <div class="prot-main">
+          <div class="prot-title" data-t="server.backup.daily">Daily backup</div>
+          <div class="prot-desc" data-t="server.backup.daily.desc">Saves the same backup on the TV once a day, and keeps the last 7. Each can be downloaded or restored here.</div>
+        </div>
+        <div class="prot-status"><button type="button" class="pill idle" id="backup-daily" onclick="toggleBackupDaily()">&mdash;</button></div>
+        <div class="backup-saved" id="backup-saved" hidden></div>
       </div>
       <!-- Hidden where the TV will not take the app; renderTvApp shows it. -->
       <div class="prot-row" id="tvapp-row" hidden>
@@ -999,56 +1279,6 @@
           <div class="prot-desc" id="tvapp-desc"></div>
         </div>
         <div class="prot-status"><button type="button" class="pill idle" id="tvapp-btn" onclick="toggleTvApp()">&mdash;</button></div>
-      </div>
-    </div>
-
-    <div class="pv-sec adv-sec" data-t="server.tv">The TV</div>
-    <div class="prot-table">
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.tvUpdates.block">Block TV software updates</div>
-          <div class="prot-desc" data-t="server.tvUpdates.block.desc">Stops the TV installing LG's system
-            updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are
-            unaffected.</div>
-        </div>
-        <div class="prot-status"><button type="button" class="pill idle" id="upd-tvblock" onclick="toggleTvUpdates()">&mdash;</button></div>
-      </div>
-    </div>
-
-    <div class="pv-sec adv-sec" data-t="server.thisBrowser">This browser</div>
-    <div class="pv-sub" data-t="server.thisBrowser.desc">Kept in this browser only: other phones and computers keep their own.</div>
-    <div class="prot-table">
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.theme.title">Theme</div>
-          <div class="prot-desc" data-t="server.theme.short">Auto follows this device's light or dark setting. The button at the end of the footer changes it too.</div>
-        </div>
-        <div class="prot-status"><div class="theme-seg" role="group" aria-label="Theme" data-t-aria-label="theme">
-          <button type="button" data-theme-set="auto" data-t="theme.auto">Auto</button><button type="button"
-            data-theme-set="dark" data-t="theme.dark">Dark</button><button type="button" data-theme-set="light"
-            data-t="theme.light">Light</button>
-        </div></div>
-      </div>
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.sidebar.title">Sidebar</div>
-          <div class="prot-desc" data-t="server.sidebar.short">On a wide screen the tabs are listed down the left. Hidden, they are behind the menu button, as on a phone.</div>
-        </div>
-        <div class="prot-status"><div class="theme-seg" role="group" aria-label="Sidebar" data-t-aria-label="server.sidebar.group">
-          <button type="button" data-sidebar-set="show" data-t="server.sidebar.show">Show</button><button type="button"
-            data-sidebar-set="hide" data-t="server.sidebar.hide">Hide</button>
-        </div></div>
-      </div>
-      <div class="prot-row">
-        <div class="prot-main">
-          <div class="prot-title" data-t="server.language.title">Language</div>
-          <div class="prot-desc" data-t="server.language.short">Auto follows this device's language, and shows English where there is no translation.</div>
-        </div>
-        <div class="prot-status"><div class="theme-seg" role="group" aria-label="Language" data-t-aria-label="server.language.group">
-          <button type="button" data-lang-set="auto" data-t="theme.auto">Auto</button><button type="button"
-            data-lang-set="en" data-t="lang.en">English</button><button type="button" data-lang-set="es"
-            data-t="lang.es">Español</button>
-        </div></div>
       </div>
     </div>
 
@@ -1084,15 +1314,36 @@
           </div>
           <div class="prot-status"><button type="button" class="pill idle" id="srv-devtools" onclick="toggleNetworkDebugger()">&mdash;</button></div>
         </div>
+        <div class="prot-row" id="ssh-row">
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.ssh.title">SSH keys</div>
+            <div class="prot-desc" data-t="server.ssh.desc">The public keys that can log in to the TV as root over SSH. While any key file is there, the Homebrew Channel leaves root without a password, so only these keys get in.</div>
+            <div class="prot-desc" id="ssh-state"></div>
+            <div class="prot-desc" id="ssh-token" hidden data-t="server.ssh.needsToken">Changing these needs a token set in config.json. Without one, anyone on the network could add their own key.</div>
+          </div>
+          <div class="ssh-body">
+            <div id="ssh-keys"></div>
+            <form class="toast-form" onsubmit="event.preventDefault();addSshKey();">
+              <input type="text" id="ssh-new" placeholder="ssh-ed25519 AAAA… user@host" translate="no" maxlength="16384" autocomplete="off" spellcheck="false"
+                aria-label="Public key to add" data-t-aria-label="server.ssh.newKey">
+              <button type="submit" id="ssh-add" data-t="server.ssh.add">Add key</button>
+            </form>
+            <div class="btns ssh-btns">
+              <button type="button" id="ssh-reboot" hidden onclick="powerAction('reboot')" data-t="server.ssh.reboot">Reboot now</button>
+              <button type="button" class="link-btn" id="ssh-delete" hidden onclick="deleteSshKeys()" data-t="server.ssh.delete">Delete the key file</button>
+            </div>
+            <div class="sub" id="ssh-msg" hidden></div>
+          </div>
+        </div>
       </div>
 
       <div class="pv-g" data-t="server.experimental">Experimental features</div>
-      <div class="pv-gn" data-t="server.experimental.desc">On some TVs these have left the picture or sound off until the TV was unplugged.</div>
       <div class="prot-table">
         <div class="prot-row">
           <div class="prot-main">
             <div class="prot-title" data-t="server.experimental.tileHiding">Home screen tile hiding</div>
             <div class="prot-desc" data-t="server.experimental.tileHiding.short">Allows hiding built-in apps from the Home screen, on the Apps tab.</div>
+            <div class="prot-desc" data-t="server.experimental.tileHiding.warn">On some TVs this has left the picture or sound off until the TV was unplugged. On webOS 10 and later, multiple issues have been reported including black screen and stuck picture settings.</div>
           </div>
           <div class="prot-status"><button type="button" class="pill idle" id="exp-tilehiding" onclick="toggleExpTileHiding()">&mdash;</button></div>
         </div>
@@ -1172,6 +1423,7 @@
       <div class="tools-buttons">
         <button type="button" class="pill" id="tools-refresh-btn" onclick="loadLogs(false)" data-t="tools.refresh" hidden>Refresh</button>
         <label class="tools-check"><input type="checkbox" id="tools-redact" checked onchange="setToolsRedact(this.checked)"><span data-t="tools.hidePrivate">Hide private details</span></label>
+        <button type="button" class="pill on" id="tools-autoscroll-btn" aria-pressed="true" onclick="toggleToolsAutoScroll()" data-t="tools.autoScroll">Auto-scroll</button>
         <button type="button" class="pill" id="tools-copy-btn" onclick="copyToolsLogs()" data-t="tools.copy">Copy</button>
         <button type="button" class="pill" id="tools-download-btn" onclick="downloadToolsLogs()" data-t="tools.download">Export</button>
       </div>
@@ -1196,7 +1448,6 @@
 </main>
 
 <footer>
-  <span id="uptime">&mdash;</span>
   <span class="foot-end"><span id="activity-txrx" class="activity-txrx" aria-hidden="true"><span id="act-tx" class="txrx-pip"></span><span id="act-rx" class="txrx-pip"></span></span><a id="version" hidden target="_blank" rel="noopener noreferrer"></a><a id="version-new" hidden target="_blank" rel="noopener noreferrer"></a><button type="button" class="theme-toggle" id="theme-toggle">☾</button></span>
 </footer>
 
@@ -1212,6 +1463,9 @@
 <script src="/assets/ui/lgsettings.js"></script>
 <script src="/assets/ui/game.js"></script>
 <script src="/assets/ui/system.js"></script>
+<script src="/assets/ui/history.js"></script>
+<script src="/assets/ui/ssh.js"></script>
+<script src="/assets/ui/screentime.js"></script>
 <script src="/assets/ui/apps.js"></script>
 <script src="/assets/ui/install.js"></script>
 <script src="/assets/ui/tabs.js"></script>

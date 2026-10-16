@@ -240,7 +240,7 @@ if (require.main === module && process.argv[2] === '--restore') {
     LAYOUTS.forEach(function (l) { if (l !== layout) l.init({ luna: call }); });
     var i = 0;
     (function next() {
-      if (i >= LAYOUTS.length) { console.log('Home screen put back'); return process.exit(0); }
+      if (i >= LAYOUTS.length) { console.log('homescreen: default layout restored'); return process.exit(0); }
       var l = LAYOUTS[i++];
       if (l === layout) return next();
       l.restore(function () { next(); });

@@ -151,7 +151,8 @@ function slowSwitch() {
 // and sound on the TV speakers only, until a power cut (#366). Held back there
 // until the cause is found: the boot hook stops applying them, and nothing here
 // restarts sam to undo one already in use. "allowOnWebos10": true in config.json,
-// file-only, turns them back on.
+// file-only, turns them back on. With it on, the switch now asks sam to reread
+// the one app (ensureScreensaverRunner) and restarts it only if that fails.
 function heldBack() {
   return slowSwitch() && !allowedAnyway();
 }
@@ -302,21 +303,30 @@ function ensureScreensaverRunner(cb) {
     if (!cached || cached === staged) return cb(false);
     console.log('screensaver: sam holds the app as "' + cached + '" and it is now "'
                 + staged + '" - making sam read the manifest again');
-    // A nudge where the TV has one (lib/samrescan, #366). It leaves a running
-    // screen saver as it is, so cb(false) has the caller restart the app.
-    samrescan.refresh(function (done) {
+    // A block and release of this one app first (webOS 10 and later), then
+    // the nudge where the TV has one, then the restart (lib/samrescan, #366).
+    // Neither of the first two stops a running screen saver, so cb(false) has
+    // the caller restart the app.
+    function samHasIt(done) {
       lunaFn('com.webos.applicationManager/getAppInfo', { id: 'com.webos.app.screensaver' }, function (a) {
         done(!!(a && a.appInfo && a.appInfo.type === staged));
       });
-    }, function (reread) {
+    }
+    samrescan.rereadApp('com.webos.app.screensaver', samHasIt, function (reread) {
       if (reread) {
-        console.log('screensaver: sam read the manifest again, without a restart');
+        console.log('screensaver: sam read the manifest again after a block and release, without a restart');
         return cb(false);
       }
-      execFile('/bin/systemctl', ['restart', '--no-block', 'sam'], { timeout: 10000 }, function (e) {
-        if (e) console.error('screensaver: could not restart sam: ' + e.message);
-        else waitForRunner(staged);
-        cb(!e);
+      samrescan.refresh(samHasIt, function (nudged) {
+        if (nudged) {
+          console.log('screensaver: sam read the manifest again, without a restart');
+          return cb(false);
+        }
+        execFile('/bin/systemctl', ['restart', '--no-block', 'sam'], { timeout: 10000 }, function (e) {
+          if (e) console.error('screensaver: could not restart sam: ' + e.message);
+          else waitForRunner(staged);
+          cb(!e);
+        });
       });
     });
   });

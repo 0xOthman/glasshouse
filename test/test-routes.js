@@ -205,6 +205,13 @@ function createMockRes(cb) {
   assert.ok(v7.errors.length > 0);
 
   console.log('  ✓ validateSettings strictly validates broker, ports, topics, and device IDs');
+
+  // The MQTT form's icon switch: saved when given as a boolean, else left alone.
+  assert.strictEqual(routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: true }).value.iconServer, true);
+  assert.strictEqual(routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: false }).value.iconServer, false);
+  assert.strictEqual('iconServer' in v1.value, false, 'absent, config.json keeps what it had');
+  assert.strictEqual('iconServer' in routes.validateSettings({ mqtt: validBase.mqtt, device: validBase.device, iconServer: 'yes' }).value, false);
+  console.log('  ✓ the icon server switch is saved from the MQTT form only as true or false');
 })();
 
 // 4b. Settings Persistence (writeSettings) and Update Summary (updateSummary)
@@ -233,6 +240,10 @@ function createMockRes(cb) {
   assert.strictEqual(summary.allowTileHiding, true);
   assert.strictEqual(summary.allowOnWebos10, true);
   assert.strictEqual(summary.isWebos10, true);
+  assert.ok(summary.daemon, 'has daemon health info');
+  assert.strictEqual(typeof summary.daemon.port, 'number');
+  assert.strictEqual(typeof summary.daemon.uptime, 'number');
+  assert.strictEqual(typeof summary.daemon.pid, 'number');
 
   // Write top-level primitive values along with section updates
   routes.writeSettings({ allowTileHiding: false, allowOnWebos10: true, mqtt: { port: 1883 } }, function (err) {
@@ -433,20 +444,58 @@ function createMockRes(cb) {
   routes.handleRequest(reqUnauth, resUnauth);
 
   // The Authorization header alone authenticates /api/ requests
+  var mockMqttStatus = {
+    state: 'disabled',
+    broker: '',
+    tls: false,
+    detail: '',
+    since: Date.now(),
+    lastPublish: 0,
+    latencyMs: null
+  };
   routes.init({
     telemetry: { collectStats: function (cb) { cb({ ok: true }); } },
     piccapStatus: function (cb) { cb(null); },
-    getMqttStatus: function () { return {}; }
+    getMqttStatus: function () { return mockMqttStatus; }
   });
   var bearer = { authorization: 'Bearer test-token' };
   routes.handleRequest(
     createMockReq({ url: '/api/stats', remoteAddress: '192.168.1.50', headers: bearer }),
     createMockRes(function (res) { assert.strictEqual(res.statusCode, 200); }));
+  // GET /api/settings reports unconfigured/disabled state with null latency
   routes.handleRequest(
     createMockReq({ url: '/api/settings', remoteAddress: '192.168.1.50', headers: bearer }),
     createMockRes(function (res) {
       assert.strictEqual(res.statusCode, 200);
-      assert.strictEqual(JSON.parse(res.body).ok, true);
+      var b = JSON.parse(res.body);
+      assert.strictEqual(b.ok, true);
+      assert.strictEqual(b.mqtt.enabled, false);
+      assert.strictEqual(b.mqtt.host, '');
+      assert.strictEqual(b.status.state, 'disabled');
+      assert.strictEqual(b.status.broker, '');
+      assert.strictEqual(b.status.latencyMs, null);
+      assert.strictEqual(b.status.lastPublishMs, null);
+    }));
+  // GET /api/settings surfaces active connection details and latency
+  mockMqttStatus = {
+    state: 'connected',
+    broker: '10.0.0.1:1883',
+    tls: false,
+    detail: '',
+    since: Date.now() - 10000,
+    lastPublish: Date.now() - 1200,
+    latencyMs: 14
+  };
+  routes.handleRequest(
+    createMockReq({ url: '/api/settings', remoteAddress: '192.168.1.50', headers: bearer }),
+    createMockRes(function (res) {
+      assert.strictEqual(res.statusCode, 200);
+      var b = JSON.parse(res.body);
+      assert.strictEqual(b.ok, true);
+      assert.strictEqual(b.status.state, 'connected');
+      assert.strictEqual(b.status.broker, '10.0.0.1:1883');
+      assert.strictEqual(b.status.latencyMs, 14);
+      assert.strictEqual(typeof b.status.lastPublishMs, 'number');
     }));
   routes.handleRequest(
     createMockReq({ url: '/api/stats', remoteAddress: '192.168.1.50', headers: { authorization: 'Bearer wrong' } }),
@@ -842,15 +891,33 @@ function createMockRes(cb) {
     req.resumed = 0;
     req.pause = function () { req.paused++; };
     req.resume = function () { req.resumed++; };
-    routes.handleRequest(req, createMockRes(function (r) { cb(r, r.body ? JSON.parse(r.body) : null, req); }));
+    var answered = false;
+    routes.handleRequest(req, createMockRes(function (r) {
+      answered = true;
+      cb(r, r.body ? JSON.parse(r.body) : null, req);
+    }));
     var chunks = o.chunks || [];
+    var retries = 0;
     (function next(i) {
       setTimeout(function () {
-        if (req.destroyed) return;
-        if (i < chunks.length) { req.emit('data', chunks[i]); return next(i + 1); }
+        if (req.destroyed || answered) return;
+        if (i < chunks.length) {
+          if (req.listeners('data').length === 0) {
+            if (++retries > 100) return;
+            return setTimeout(function () { next(i); }, 10);
+          }
+          req.emit('data', chunks[i]);
+          return next(i + 1);
+        }
         if (o.then === 'abort') { req.emit('aborted'); req.emit('close'); return cb(null, null, req); }
         if (o.then === 'close') { req.emit('close'); return cb(null, null, req); }
-        if (o.then !== 'none') req.emit('end');
+        if (o.then !== 'none') {
+          if (req.listeners('end').length === 0) {
+            if (++retries > 100) return;
+            return setTimeout(function () { next(i); }, 10);
+          }
+          req.emit('end');
+        }
       }, 15);
     })(0);
   }
@@ -1099,6 +1166,36 @@ function createMockRes(cb) {
   }
 })();
 
+// /api/adblock/custom takes a body larger than /api/control's, under the
+// same rules: controls on, JSON, same origin
+(function testAdblockCustomRoute() {
+  var seen = [];
+  function post(conf, body, headers) {
+    var out = null;
+    routes.init({
+      config: conf,
+      privacy: { setCustomHosts: function (o, cb) { seen.push(o); cb({ ok: true }); } }
+    });
+    var h = { 'content-type': 'application/json', host: '127.0.0.1:8080' };
+    for (var k in headers || {}) h[k] = headers[k];
+    var req = createMockReq({ url: '/api/adblock/custom', method: 'POST', remoteAddress: '127.0.0.1', headers: h });
+    routes.handleRequest(req, createMockRes(function (r) { out = r; }));
+    req.emit('data', typeof body === 'string' ? body : JSON.stringify(body));
+    req.emit('end');
+    return out;
+  }
+  var on = { web: { enabled: false }, allowControl: true, token: '' };
+  var big = new Array(20001).join('0.0.0.0 h.example.com\n');
+  assert.ok(big.length > 4096 * 50, 'well past /api/control\'s limit');
+  assert.strictEqual(post(on, { mode: 'add', text: big }).statusCode, 200);
+  assert.strictEqual(seen[0].text.length, big.length, 'the whole file reaches privacy.js');
+  assert.strictEqual(post({ web: { enabled: false }, allowControl: false, token: '' }, { clear: true }).statusCode, 403);
+  assert.strictEqual(post(on, { clear: true }, { 'content-type': 'text/plain' }).statusCode, 415);
+  assert.strictEqual(post(on, { clear: true }, { origin: 'http://evil.example' }).statusCode, 403);
+  assert.strictEqual(post(on, 'not json').statusCode, 400);
+  assert.strictEqual(seen.length, 1, 'refused requests reach nothing');
+})();
+
 // /api/oledcare says whether the TV has an OLED panel, so the TV app drops its
 // OLED Care tab on an LCD TV as the web dashboard does
 (function testOledCareAvailable() {
@@ -1120,6 +1217,8 @@ function createMockRes(cb) {
   var oled = oledCare({ oled: { panel_hours: 4200, gsr_enabled: true, tpc_enabled: false, gsr_stress_count: 3 } });
   assert.strictEqual(oled.available, true);
   assert.strictEqual(oled.panelHours, 4200);
+  assert.strictEqual(oled.compInterval, 4);
+  assert.strictEqual(oled.refresherInterval, 2000);
   // The protections as the stats have them, with the precedence oled.js applies.
   assert.strictEqual(oled.gsr, true);
   assert.strictEqual(oled.tpc, false);
@@ -1132,6 +1231,57 @@ function createMockRes(cb) {
   assert.strictEqual(lcd.available, false);
   assert.strictEqual(lcd.isOled, false);
   console.log('  ✓ /api/oledcare is unavailable on a TV without an OLED panel');
+})();
+
+// SSH keys are a way in that outlasts the server: changing them needs a
+// token, even from the TV itself, and without one the comments are not shown.
+(function testSshKeysNeedToken() {
+  var added = [];
+  var keys = {
+    status: function (cb) { cb({ ok: true, keys: [{ type: 'ssh-ed25519', comment: 'me@example.com', options: '', fingerprint: 'SHA256:x' }] }); },
+    add: function (key, cb) { added.push(key); cb({ ok: true, keys: [] }); },
+    remove: function (p, cb) { cb({ ok: true, keys: [] }); },
+    deleteFile: function (cb) { cb({ ok: true, keys: [] }); }
+  };
+  function call(token, method, url, from, body) {
+    var out = null;
+    routes.init({ config: { web: { enabled: false }, allowControl: true, token: token }, sshKeys: keys });
+    var req = createMockReq({
+      url: url, method: method, remoteAddress: from,
+      headers: { host: '192.168.8.20:8080', 'content-type': 'application/json' }
+    });
+    routes.handleRequest(req, createMockRes(function (r) { out = { code: r.statusCode, body: JSON.parse(r.body) }; }));
+    if (body) { req.emit('data', JSON.stringify(body)); req.emit('end'); }
+    return out;
+  }
+  var add = { action: 'add', key: 'ssh-ed25519 AAAA' };
+
+  var r = call('', 'GET', '/api/ssh', '192.168.8.10');
+  assert.strictEqual(r.body.writable, false);
+  assert.strictEqual(r.body.needsToken, true);
+  r = call('', 'POST', '/api/ssh', '192.168.8.10', add);
+  assert.strictEqual(r.code, 403);
+  assert.deepEqual(added, [], 'nothing added from the network without a token');
+
+  r = call('', 'GET', '/api/ssh', '192.168.8.10');
+  assert.strictEqual(r.body.keys[0].comment, undefined, 'no comment without a token');
+  assert.strictEqual(r.body.keys[0].fingerprint, 'SHA256:x');
+
+  // A rebinding page in the TV's browser, or an app on the TV, comes from 127.0.0.1 too.
+  r = call('', 'POST', '/api/ssh', '127.0.0.1', add);
+  assert.strictEqual(r.code, 403, 'not from the TV itself either');
+  assert.deepEqual(added, []);
+
+  r = call('secret', 'POST', '/api/ssh', '192.168.8.10', add);
+  assert.strictEqual(r.code, 401, 'the token is checked first');
+  r = call('secret', 'POST', '/api/ssh?k=secret', '192.168.8.10', add);
+  assert.strictEqual(r.code, 200);
+  assert.strictEqual(added.length, 1);
+  r = call('secret', 'GET', '/api/ssh?k=secret', '192.168.8.10');
+  assert.strictEqual(r.body.writable, true);
+  assert.strictEqual(r.body.needsToken, false);
+  assert.strictEqual(r.body.keys[0].comment, 'me@example.com');
+  console.log('  ✓ SSH keys can be changed only with a token, even from the TV itself, and their comments shown only with it');
 })();
 
 // Opening the dashboard in setup unsets host (dual-stack); closing it binds
@@ -1153,6 +1303,97 @@ function createMockRes(cb) {
   assert.deepEqual(JSON.parse(fs.readFileSync(cfgFile, 'utf8')), { port: 8080 });
   fs.unlinkSync(cfgFile);
   console.log('  ✓ setup opens the dashboard on the default host and closes it to loopback');
+})();
+
+// Testing the setup wizard emulation (dry-run mode).
+(function testSetupEmulation() {
+  var cfg = { allowControl: true, port: 8080, host: '0.0.0.0', emulateSetup: true };
+  routes.init({
+    config: cfg,
+    telemetry: { alwaysOnSupported: function (cb) { cb(true); }, lanHostname: function () { return 'lg.lan'; } }
+  });
+  routes.resetSimulatedSetup();
+
+  assert.strictEqual(routes.setupPending(), true, 'setupPending is true when emulateSetup is set');
+
+  function call(method, url, body, cb, remoteIp) {
+    var req = createMockReq({ method: method, url: url, remoteAddress: remoteIp || '192.168.1.100', headers: { 'content-type': 'application/json' } });
+    var res = createMockRes(function (r) {
+      var parsed = null;
+      try { parsed = JSON.parse(r.body); } catch (e) {}
+      cb(r, parsed);
+    });
+    routes.handleRequest(req, res);
+    if (body) {
+      req.emit('data', JSON.stringify(body));
+      req.emit('end');
+    }
+  }
+
+  // GET /api/setup?demo=1 from non-TV remote address succeeds in demo mode
+  call('GET', '/api/setup?demo=1', null, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+    assert.strictEqual(b.needed, true);
+  });
+
+  // POST /api/setup with action network simulates without restart
+  call('POST', '/api/setup', { action: 'network', open: true, demo: true }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+    assert.strictEqual(b.restarting, false);
+  });
+
+  // POST /api/setup with action alwaysReady simulates
+  call('POST', '/api/setup', { action: 'alwaysReady', on: true, demo: true }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+  });
+
+  // POST /api/setup with action handoff simulates link
+  call('POST', '/api/setup', { action: 'handoff', demo: true }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+    assert.ok(b.url && b.url.indexOf('?c=demo') !== -1);
+  });
+
+  // POST /api/setup with action done simulates completion
+  call('POST', '/api/setup', { action: 'done', demo: true }, function (r, b) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(b.ok, true);
+    assert.strictEqual(b.demo, true);
+  });
+
+  console.log('  ✓ setup emulation: safe dry-run responses without restart or persistent writes');
+})();
+
+// The dashboard's icon route answers through the icon server's shared reply.
+(function testAppIconRoute() {
+  var iconFile = path.join(os.tmpdir(), 'routes-icon-' + process.pid + '.png');
+  fs.writeFileSync(iconFile, 'png bytes');
+  routes.init({
+    config: { allowControl: true, token: '', web: { enabled: false } },
+    apps: { getIconPath: function (id, cb) { cb(id === 'com.example.app' ? iconFile : null); } }
+  });
+  routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=com.example.app' }), createMockRes(function (r) {
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(r.body, 'png bytes');
+    var etag = r.headers.ETag;
+    assert.ok(etag);
+    routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=com.example.app', headers: { 'if-none-match': etag } }), createMockRes(function (r304) {
+      assert.strictEqual(r304.statusCode, 304);
+      routes.handleRequest(createMockReq({ url: '/api/apps/icon?id=other' }), createMockRes(function (r404) {
+        assert.strictEqual(r404.statusCode, 404);
+        assert.strictEqual(JSON.parse(r404.body).error, 'icon not found');
+        try { fs.unlinkSync(iconFile); } catch (e) {}
+        console.log('  ✓ /api/apps/icon serves the icon with an ETag and a 304');
+      }));
+    }));
+  }));
 })();
 
 console.log('ALL test-routes.js assertions passed!');

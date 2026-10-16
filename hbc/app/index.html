@@ -80,7 +80,10 @@ body{display:flex;display:-webkit-flex;align-items:center;-webkit-align-items:ce
     } catch (e) { end(null); }
   }
 
-  // Waits for the server to answer at all, for up to `tries` attempts.
+  // Waits for the server to answer at all, for up to that many tries. No
+  // backticks in this script: the Homebrew Channel's compatibility check reads
+  // one here as a template literal, so ES2015, and lists webOS 2 and 3 as
+  // unable to run it.
   function waitFor(tries, cb) {
     ask(function (v) {
       if (v !== null) return cb(v);

@@ -1,9 +1,11 @@
 /**
- * test/test-luna-webos3.js - Settings service fallback for older webOS
+ * test/test-luna-webos3.js - Service name fallback for older webOS
  *
- * luna.js tries com.webos.service.settings first. When the TV answers
+ * luna.js tries the newer service names first. When the TV answers
  * "Service does not exist", it remembers and remaps every later call to
- * com.webos.settingsservice.
+ * the legacy name. Covers both:
+ *   com.webos.service.settings   -> com.webos.settingsservice
+ *   com.webos.service.systemservice -> com.palm.systemservice
  */
 
 var assert = require('assert');
@@ -88,9 +90,72 @@ luna1.call('com.webos.service.settings/getSystemSettings', {}, function () {
             'older TV: subsequent calls should use the old name directly');
           console.log('  ✓ subsequent calls use the remembered old name');
 
-          console.log('ALL test-luna-webos3.js assertions passed!\n');
+          testSystemService();
         });
       });
     });
   });
 });
+
+// --- Scenario 3: systemservice fallback (NTP clock service) ---
+function testSystemService() {
+  calls = [];
+  var firstCall = true;
+  nextResponse = function (uri) {
+    if (firstCall && uri.indexOf('com.webos.service.systemservice') === 0) {
+      firstCall = false;
+      return {
+        returnValue: false,
+        errorCode: -1,
+        errorText: 'Service does not exist: com.webos.service.systemservice.'
+      };
+    }
+    return { returnValue: true };
+  };
+
+  var luna3 = freshLuna();
+  luna3.call('com.webos.service.systemservice/clock/setTime', {}, function (res) {
+    assert.strictEqual(calls[0], 'com.webos.service.systemservice/clock/setTime',
+      'systemservice: first attempt should try the new name');
+    assert.strictEqual(calls[1], 'com.palm.systemservice/clock/setTime',
+      'systemservice: retry should use com.palm.systemservice');
+    assert.strictEqual(res.returnValue, true,
+      'systemservice: caller should get the successful retry result');
+    console.log('  ✓ older TV falls back to com.palm.systemservice for clock');
+
+    // After fallback, subsequent calls go straight to old name
+    calls = [];
+    luna3.call('com.webos.service.systemservice/clock/getTime', {}, function () {
+      assert.strictEqual(calls[0], 'com.palm.systemservice/clock/getTime',
+        'systemservice: subsequent calls should use the old name directly');
+      console.log('  ✓ subsequent clock calls use the remembered old name');
+
+      testBothIndependent();
+    });
+  });
+}
+
+// --- Scenario 4: each service is probed independently ---
+function testBothIndependent() {
+  calls = [];
+  nextResponse = function (uri) {
+    // settings fails, systemservice succeeds
+    if (uri.indexOf('com.webos.service.settings') === 0) {
+      return {
+        returnValue: false, errorCode: -1,
+        errorText: 'Service does not exist: com.webos.service.settings.'
+      };
+    }
+    return { returnValue: true };
+  };
+
+  var luna4 = freshLuna();
+  // systemservice succeeds on first try
+  luna4.call('com.webos.service.systemservice/clock/setTime', {}, function () {
+    assert.strictEqual(calls[0], 'com.webos.service.systemservice/clock/setTime',
+      'independent: systemservice should use the new name');
+    console.log('  ✓ services are probed independently');
+
+    console.log('ALL test-luna-webos3.js assertions passed!\n');
+  });
+}

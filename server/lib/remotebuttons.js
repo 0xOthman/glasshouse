@@ -251,7 +251,10 @@ function start() {
     }
   });
 
-  console.log('remotebuttons: listening for colored button events on ' + (activeDevices.length ? activeDevices.join(', ') : 'inputcommon') + ' (worker pid ' + child.pid + ')');
+  var devDesc = activeDevices.length > 2
+    ? activeDevices.length + ' input devices'
+    : (activeDevices.length ? activeDevices.join(', ') : 'inputcommon');
+  console.log('remotebuttons: listening for colored button events on ' + devDesc + ' (worker pid ' + child.pid + ')');
 }
 
 function init(opts) {

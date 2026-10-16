@@ -569,12 +569,62 @@ function getIconPath(appId, cb) {
         path.join(appDir, 'icon.png'),
         path.join(appDir, 'assets', 'icon.png')
       ];
-      for (var c = 0; c < candidates.length; c++) {
-        if (fs.existsSync(candidates[c])) return cb(candidates[c]);
-      }
+      return cb(firstFileInside(appDir, candidates));
     } catch (e) {}
     cb(null);
   });
+}
+
+/*
+ * The first of the paths that is a file inside dir once symlinks are
+ * followed, or null. The icon's path comes from the app's own appinfo.json,
+ * and the icons are served unauthenticated to the LAN with iconServer on, so
+ * an "icon" of "../../../var/lib/tvweb/config.json" must not be read.
+ */
+function firstFileInside(dir, paths) {
+  var root;
+  try { root = fs.realpathSync(dir); } catch (e) { return null; }
+  for (var i = 0; i < paths.length; i++) {
+    try {
+      var real = fs.realpathSync(paths[i]);
+      if (real.indexOf(root + path.sep) === 0 && fs.statSync(real).isFile()) return real;
+    } catch (e) {}
+  }
+  return null;
+}
+
+var dirSizeCache = {};
+var DIR_SIZE_CACHE_MS = 60000;
+
+function dirSize(dir, depth) {
+  if (!dir || typeof dir !== 'string') return 0;
+  var now = Date.now();
+  if (depth === undefined) {
+    if (dirSizeCache[dir] && (now - dirSizeCache[dir].time < DIR_SIZE_CACHE_MS)) {
+      return dirSizeCache[dir].size;
+    }
+    depth = 0;
+  }
+  if (depth > 8) return 0;
+  var total = 0;
+  try {
+    var entries = fs.readdirSync(dir);
+    for (var i = 0; i < entries.length; i++) {
+      var p = path.join(dir, entries[i]);
+      try {
+        var stat = fs.lstatSync(p);
+        if (stat.isDirectory()) {
+          total += dirSize(p, depth + 1);
+        } else if (stat.isFile()) {
+          total += stat.size;
+        }
+      } catch (e1) {}
+    }
+  } catch (e2) {}
+  if (depth === 0) {
+    dirSizeCache[dir] = { size: total, time: now };
+  }
+  return total;
 }
 
 /**
@@ -615,7 +665,10 @@ function getApps(cb) {
             folderPath: a.folderPath || '',
             systemApp: !!a.systemApp,
             removable: !!a.removable,
-            icon: a.largeIcon || a.icon || ''
+            icon: a.largeIcon || a.icon || '',
+            size: (typeof a.appsize === 'number' && a.appsize > 0) ? a.appsize
+                : (typeof a.installedSize === 'number' && a.installedSize > 0) ? a.installedSize
+                : null
           };
         }
       }
@@ -663,6 +716,9 @@ function getApps(cb) {
             if (a.largeIcon && !appMap[a.id].icon) appMap[a.id].icon = a.largeIcon;
             if (a.removable !== undefined) appMap[a.id].removable = a.removable;
             if (a.systemApp !== undefined) appMap[a.id].systemApp = a.systemApp;
+            if (typeof a.appsize === 'number' && a.appsize > 0 && !appMap[a.id].size) {
+              appMap[a.id].size = a.appsize;
+            }
           }
         }
       }
@@ -685,6 +741,11 @@ function getApps(cb) {
                         (!isDev && !isCrypto && findAppinfoPath(id) !== null);
 
         if (!isBuiltIn && (item.removable || isDev || isCrypto)) {
+          var size = item.size || null;
+          if (!size && item.folderPath) {
+            var dsz = dirSize(item.folderPath);
+            if (dsz > 0) size = dsz;
+          }
           // Removable user or store app
           installed.push({
             id: item.id,
@@ -693,7 +754,8 @@ function getApps(cb) {
             vendor: item.vendor,
             iconUrl: '/api/apps/icon?id=' + encodeURIComponent(item.id),
             removable: true,
-            folderPath: item.folderPath
+            folderPath: item.folderPath,
+            size: size
           });
         } else if ((lpMap[item.id] || hiddenMap[item.id]) && (item.systemApp || isBuiltIn)) {
           // System built-in tile on home screen ribbon (or currently hidden from it)
@@ -1084,6 +1146,7 @@ function uninstallApp(appId, cb) {
 
 module.exports = {
   init: init,
+  firstFileInside: firstFileInside,
   isProtected: isProtected,
   getApps: getApps,
   getIconPath: getIconPath,
@@ -1107,5 +1170,6 @@ module.exports = {
   setTileHidingEnabled: setTileHidingEnabled,
   tileHidingAllowed: tileHidingAllowed,
   migrateConfig: migrateConfig,
-  PROTECTED_APP_IDS: PROTECTED_APP_IDS
+  PROTECTED_APP_IDS: PROTECTED_APP_IDS,
+  dirSize: dirSize
 };

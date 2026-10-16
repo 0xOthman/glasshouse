@@ -57,6 +57,7 @@ body{font-family:'Manrope',sans-serif}
  */
 (function () {
   var FROM_SETTINGS = location.hash === '#ha';
+  var IS_DEMO = location.search.indexOf('demo=1') !== -1;
   var DONE_URL = '/assets/dashboard.html?tab=' + (FROM_SETTINGS ? 'settings' : 'system');
   var stage = document.getElementById('stage');
   var state = null;          // the server's view: network, homeAssistant, handoff
@@ -68,7 +69,8 @@ body{font-family:'Manrope',sans-serif}
 
   function api(method, body, cb) {
     var x = new XMLHttpRequest();
-    x.open(method, '/api/setup?t=' + Date.now(), true);
+    var url = '/api/setup?t=' + Date.now() + (IS_DEMO || (state && state.demo) ? '&demo=1' : '');
+    x.open(method, url, true);
     if (body) x.setRequestHeader('Content-Type', 'application/json');
     x.timeout = 5000;
     x.onload = function () {
@@ -85,6 +87,10 @@ body{font-family:'Manrope',sans-serif}
     tries = tries === undefined ? 60 : tries;
     api('GET', null, function (s) {
       if (s) { state = s; return cb(); }
+      if (IS_DEMO) {
+        state = { network: false, alwaysReady: false, demo: true, homeAssistant: {} };
+        return cb();
+      }
       if (tries <= 0) return show('trouble');
       setTimeout(function () { whenBack(cb, tries - 1); }, 1000);
     });
@@ -263,6 +269,14 @@ body{font-family:'Manrope',sans-serif}
     if (screen === 'network') {
       var open = rows[sel].id === 'open';
       netChosen = true;
+      if (state && (state.demo || IS_DEMO)) {
+        state.network = open;
+        busy = true;
+        return api('POST', { action: 'network', open: open, demo: true }, function () {
+          busy = false;
+          show('ha');
+        });
+      }
       if (open === !!state.network) return show('ha');
       busy = true;
       show('restarting');
@@ -274,7 +288,7 @@ body{font-family:'Manrope',sans-serif}
     if (screen === 'handoff') {
       var ha = state.homeAssistant || {};
       if (rows.length && rows[sel].id === 'skip') {
-        api('POST', { action: 'handoffStop' }, function () {});
+        api('POST', { action: 'handoffStop', demo: !!(state && (state.demo || IS_DEMO)) }, function () {});
         return FROM_SETTINGS ? location.replace(DONE_URL) : afterHa();
       }
       if (rows.length) return show('handoff');          // a new code
@@ -284,6 +298,14 @@ body{font-family:'Manrope',sans-serif}
     }
     if (screen === 'standby') {
       var on = rows[sel].id === 'on';
+      if (state && (state.demo || IS_DEMO)) {
+        state.alwaysReady = on;
+        busy = true;
+        return api('POST', { action: 'alwaysReady', on: on, demo: true }, function () {
+          busy = false;
+          show('summary');
+        });
+      }
       if (on === !!state.alwaysReady) return show('summary');
       busy = true;
       return api('POST', { action: 'alwaysReady', on: on }, function (r) {
@@ -294,7 +316,7 @@ body{font-family:'Manrope',sans-serif}
     }
     if (screen === 'summary') {
       busy = true;
-      return api('POST', { action: 'done' }, function () { location.replace(DONE_URL); });
+      return api('POST', { action: 'done', demo: !!(state && (state.demo || IS_DEMO)) }, function () { location.replace(DONE_URL); });
     }
     if (screen === 'trouble') return whenBack(function () { show(FROM_SETTINGS ? 'handoff' : 'welcome'); });
   }
@@ -302,7 +324,7 @@ body{font-family:'Manrope',sans-serif}
   function afterHa() { return show(hasAR() ? 'standby' : 'summary'); }
 
   function back() {
-    if (screen === 'handoff') api('POST', { action: 'handoffStop' }, function () {});
+    if (screen === 'handoff') api('POST', { action: 'handoffStop', demo: !!(state && (state.demo || IS_DEMO)) }, function () {});
     if (FROM_SETTINGS) return location.replace(DONE_URL);
     if (screen === 'network') return show('welcome');
     if (screen === 'ha') return show('network');
@@ -310,9 +332,36 @@ body{font-family:'Manrope',sans-serif}
     if (screen === 'standby') return show('ha');
     if (screen === 'summary') return show(hasAR() ? 'standby' : 'ha');
     // Welcome: leave the app, as Back does everywhere else on the TV.
-    if (window.PalmSystem && typeof window.PalmSystem.platformBack === 'function') window.PalmSystem.platformBack();
-    else window.close();
+    if (window.PalmSystem && typeof window.PalmSystem.platformBack === 'function') {
+      window.PalmSystem.platformBack();
+    } else if (window.history && window.history.length > 1) {
+      window.history.back();
+    } else {
+      location.replace(DONE_URL);
+    }
   }
+
+  stage.addEventListener('click', function (e) {
+    if (busy) return;
+    var target = e.target;
+    while (target && target !== stage) {
+      if (target.className && target.className.indexOf('btn') !== -1) { next(); return; }
+      if (target.className && target.className.indexOf('row') !== -1 && rows.length && !rows[0].ro) {
+        var box = document.getElementById('rows');
+        if (box) {
+          var children = box.children;
+          for (var i = 0; i < children.length; i++) {
+            if (children[i] === target) {
+              if (sel === i) next();
+              else { sel = i; drawRows(); }
+              return;
+            }
+          }
+        }
+      }
+      target = target.parentNode;
+    }
+  });
 
   document.addEventListener('keydown', function (e) {
     var k = e.key, c = e.keyCode;
@@ -328,7 +377,10 @@ body{font-family:'Manrope',sans-serif}
     if (screen === 'handoff') api('POST', { action: 'handoffStop' }, function () {});
   });
 
-  whenBack(function () { show(FROM_SETTINGS ? 'handoff' : 'welcome'); });
+  whenBack(function () {
+    var screenMatch = (location.search.match(/[?&]screen=([^&]+)/) || [])[1];
+    show(FROM_SETTINGS ? 'handoff' : (screenMatch || 'welcome'));
+  });
 })();
 </script>
 </body>

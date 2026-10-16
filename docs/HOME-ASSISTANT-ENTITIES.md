@@ -16,7 +16,7 @@ Every entity the TV publishes, by category. Which categories are published is se
 | `switch` | `switch.lg_tv_logo_light` | Logo Light | Toggle front illuminated TV logo |
 | `number` | `number.lg_tv_volume` | Volume | Volume slider (0–100). Unavailable when the level is set on an external sound device |
 | `select` | `select.lg_tv_input_source` | Input Source | HDMI 1–4, Live TV |
-| `select` | `select.lg_tv_app` | Launch App | Installed apps (YouTube, Netflix, Prime Video, Spotify, etc.) |
+| `select` | `select.lg_tv_app` | Launch App | Installed apps and LG Settings; `app_ids` attribute maps option labels to stable app IDs. `app_colors` gives each app's `iconColor` from its `appinfo.json` as `#rrggbb`, where it has one, and with **Share app icons** on in the MQTT tab, `app_icons` gives each app's icon as `http://<tv-ip>:8082/icons/<appId>.png` |
 | `select` | `select.lg_tv_picture_mode` | Picture Mode | Switch profiles (ISF Dark/Bright, Cinema, Game, Standard) |
 | `select` | `select.lg_tv_energy_saving` | Energy Saving Step | Auto, Off, Minimum, Medium, Maximum, Screen off |
 | `select` | `select.lg_tv_sound_output` | Sound Output | Switch outputs (TV Speaker, HDMI ARC, Optical, Headphone) |
@@ -37,6 +37,8 @@ Every entity the TV publishes, by category. Which categories are published is se
 | `button` | `button.lg_tv_pause` | Pause | Pause media playback |
 | `button` | `button.lg_tv_play_pause` | Play / Pause | Toggle media playback |
 | `button` | `button.lg_tv_stop` | Stop | Stop media playback |
+| `button` | `button.lg_tv_rewind` | Rewind | Presses Rewind on the remote |
+| `button` | `button.lg_tv_fast_forward` | Fast Forward | Presses Fast Forward on the remote |
 | `switch` | `switch.lg_tv_oled_screen_shift` | OLED Screen Shift | Pixel orbiting, on OLED TVs |
 | `select` | `select.lg_tv_oled_logo_dimming` | OLED Logo Dimming | Local logo dimming: Off, Light, High |
 | `select` | `select.lg_tv_screensaver_mode` | Screen Saver | Which screen saver the TV runs: LG default, Clock, Starfield, Fireworks or Panel vitals. Brightness is set on the dashboard's Screensaver tab |
@@ -80,7 +82,7 @@ Playback reaches an HDMI source over CEC, where the TV has only one key for both
 | `number` | `number.lg_tv_oled_light` | OLED Light | Sets the current picture mode's OLED Light (`0–100`); **Backlight** on an LCD. Follows the remote and mode changes as they happen |
 | `sensor` | `sensor.lg_tv_panel_dimming` | Panel Dimming | Dynamic backlight/panel dimming state |
 | `sensor` | `sensor.lg_tv_audio_output` | Audio Output | Output the audio service is driving (e.g. *HDMI ARC*, *Headphone / AUX*) |
-| `sensor` | `sensor.lg_tv_active_app` | Active App | Current foreground app or friendly CEC device |
+| `sensor` | `sensor.lg_tv_active_app` | Active App | Current foreground app or friendly CEC device; `app_id` attribute identifies the app. Where the TV reports its windows, `control_app_id` names the one the remote's keys reach, such as LG's Settings or Home over an HDMI input, or is empty with nothing focused or the TV off. Empty window transitions settle for 200 ms; standby clears it immediately |
 | `sensor` | `sensor.lg_tv_sound_format` | Sound Format | Format of the sound the app or input on screen is sending, as the dashboard's Sound panel shows it (e.g. *Opus*, *PCM*, *Dolby Digital Plus · Dolby Atmos*), or *None* while nothing plays. Attributes `codec` and `immersive` give the TV's own names (`eac3`, `atmos`). Published once the TV has answered with a format, which webOS 4 does not |
 | `sensor` | `sensor.lg_tv_play_state` | Player State | State of the TV's own media pipeline (`playing`, `paused`, `stopped`), or `idle` with nothing playing. Published once the TV has reported playback, and kept from then on |
 
@@ -92,7 +94,7 @@ of Unknowns.
 ## Hardware, Remote & System Diagnostics
 | Domain | Entity ID | Name | Description |
 | :--- | :--- | :--- | :--- |
-| `sensor` | `sensor.lg_tv_remote_battery` | Magic Remote Battery | Battery percentage of paired Magic Remote (`%`) |
+| `sensor` | `sensor.lg_tv_remote_battery` | Magic Remote Battery | Battery percentage of the paired Magic Remote (`%`), read when the remote is first used after the TV switches on, then at most hourly: from LG's remote service on webOS 4, over Bluetooth on webOS 9 and 10. Not read on other versions. Unknown until the remote has been read once; remembered across restarts |
 | `sensor` | `sensor.lg_tv_soc_architecture` | SoC Architecture | Processor platform (e.g. `Alpha 9 Gen 5 (O22)`) |
 | `sensor` | `sensor.lg_tv_oled_cell_type` | OLED Cell ID | Panel silicon cell identification (e.g. `08/00/1/03`) |
 | `sensor` | `sensor.lg_tv_tcon_firmware` | TCON Firmware | Timing Controller FPGA firmware version |
@@ -109,7 +111,10 @@ of Unknowns.
 | `sensor` | `sensor.lg_tv_flash_health` | Flash Storage Health | eMMC remaining health estimate (`>90% (Healthy)`) |
 | `sensor` | `sensor.lg_tv_flash_wear` | Flash Wear Level | JEDEC write-cycle consumption (`0–10%`) |
 | `sensor` | `sensor.lg_tv_mac_address` | MAC Address | MAC address of the interface the TV is using (diagnostic) |
-| `sensor` | `sensor.lg_tv_uptime` | Uptime | When the TV's processor last booted; standby does not reset it (diagnostic) |
+| `sensor` | `sensor.lg_tv_uptime` | Uptime | When the TV's processor last booted; standby does not reset it, but on a TV that suspends in standby, such as a B8 with Quick Start, it comes out later than the real boot (diagnostic) |
+| `sensor` | `sensor.lg_tv_watch_time_today` | Watch Time Today | Hours the screen has been on since the TV's local midnight, not counting time with the panel off or LG's screen saver showing (`h`). Published only while **Watch time** is on in the Server tab |
+| `sensor` | `sensor.lg_tv_watch_time_week` | Watch Time, Last 7 Days | The same over today and the six days before it (`h`) |
+| `sensor` | `sensor.lg_tv_watch_top_app_today` | Most Watched Today | The app or input on screen longest today |
 | `sensor` | `sensor.lg_tv_tvweb_version` | Server Version | Version of this server, not TV firmware (diagnostic) |
 | `update` | `update.lg_tv_server_update` | Server Update | Latest release, a summary of what each release since the installed one brings, and an install button. Published only while **Check for updates daily** is on in the dashboard's Server tab &mdash; see [Updating](managing.md#updating) |
 

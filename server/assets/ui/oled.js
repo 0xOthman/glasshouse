@@ -89,6 +89,36 @@ async function loadOledCare() {
   const inHours = v => hrs(v) === null ? '\u2014' : t('oled.hoursShort', '{n} h', { n: hrs(v) });
   q('oc-comp').textContent = inHours(d.hoursUntilComp);
   q('oc-refr').textContent = inHours(d.hoursUntilRefresher);
+
+  const compBar = q('oc-comp-bar');
+  if (compBar) {
+    if (d.hoursUntilComp !== null && d.hoursUntilComp !== undefined) {
+      const compMax = (d.compInterval && d.compInterval > 0) ? d.compInterval : 4;
+      const compPct = Math.min(100, Math.max(0, Math.round(((compMax - d.hoursUntilComp) / compMax) * 100)));
+      compBar.style.width = `${compPct}%`;
+      compBar.classList.toggle('ready', compPct >= 100);
+      if (compBar.parentElement) compBar.parentElement.setAttribute('aria-valuenow', compPct);
+    } else {
+      compBar.style.width = '0%';
+      compBar.classList.remove('ready');
+      if (compBar.parentElement) compBar.parentElement.setAttribute('aria-valuenow', '0');
+    }
+  }
+
+  const refrBar = q('oc-refr-bar');
+  if (refrBar) {
+    if (d.hoursUntilRefresher !== null && d.hoursUntilRefresher !== undefined) {
+      const refrMax = (d.refresherInterval && d.refresherInterval > 0) ? d.refresherInterval : 2000;
+      const refrPct = Math.min(100, Math.max(0, Math.round(((refrMax - d.hoursUntilRefresher) / refrMax) * 100)));
+      refrBar.style.width = `${refrPct}%`;
+      refrBar.classList.toggle('ready', refrPct >= 100);
+      if (refrBar.parentElement) refrBar.parentElement.setAttribute('aria-valuenow', refrPct);
+    } else {
+      refrBar.style.width = '0%';
+      refrBar.classList.remove('ready');
+      if (refrBar.parentElement) refrBar.parentElement.setAttribute('aria-valuenow', '0');
+    }
+  }
   // compStatus and refresherStatus are the TV's own words, in English.
   q('oc-comp-sub').textContent = d.compStatus ? d.compStatus : t('oled.comp.sub', '4-hour short cycle');
   q('oc-refr-sub').textContent = d.refresherStatus ? d.refresherStatus : t('oled.refresher.sub', '2,000-hour calibration');
@@ -100,7 +130,7 @@ async function loadOledCare() {
     { n: d.failureAlerts, name: t('oled.cycles.failures', 'Refresher failure alerts'),
       desc: t('oled.cycles.failures.desc', 'Maintenance passes the TV recorded as not finishing. Normally zero.') },
     { n: d.gsrStressCount, name: t('oled.cycles.gsr', 'GSR stress events'),
-      desc: t('oled.cycles.gsr.desc', 'How often Global Stress Reduction has dimmed the screen for something static. A count that climbs quickly means the same image is held on screen for long stretches.') }
+      desc: t('oled.cycles.gsr.desc', 'How often the panel has detected static image stress conditions. A rising count means static content is being shown for long stretches, even if GSR dimming is switched off.') }
   ].filter(c => c.n !== null && c.n !== undefined);
   q('oc-cycles').innerHTML = counts.map(c => `<div class="oc-count">
       <div class="oc-count-top"><span>${esc(c.name)}</span><b class="num">${Number(c.n).toLocaleString()}</b></div>

@@ -36,6 +36,22 @@ LG's On Timer and Off Timer switch the TV on or off at a scheduled time, once or
 
 A TV switched on by the On Timer shuts back off after two hours without a button press, provided LG's automatic shutoff setting is enabled. On webOS 6 and later, an On Timer set to Live TV with no channel tuned turns the TV on to Home instead when triggered here.
 
+## Screen time
+
+Limits on how long the screen is on each day, under **Advanced &rarr; Screen time**:
+
+* **Daily limit:** the screen time allowed in a day, from midnight on the TV's clock.
+* **Bedtime:** two times between which the TV is kept off. A window that ends earlier than it starts runs past midnight.
+* **App and input limits:** minutes a day for one app or input, picked from those watched in the last 30 days.
+
+The TV shows a toast five minutes before a limit and another when it is reached. A minute later it does what is chosen for that limit: for the daily limit and bedtime, switch the TV off, turn the screen off or only warn; for an app or input, go to Home, switch the TV off, turn the screen off or only warn. webOS 3 to 5 have no Home screen of their own, only LG's ribbon over what is playing, so there an app's limit switches the TV off instead of going to Home. A TV switched back on after its limit, or during bedtime, gets the same toast and minute again, except where the limit switched it off: then the toast is followed by the screen going off, and the TV switches off 5 minutes later, which leaves time to change the limit in Glasshouse. Only warn shows each toast once a day.
+
+The limits are counted by [watch time](metrics.md#watch-time), so they apply only while it is on in the Server tab, and once the TV's clock is set. Time with the screen off or LG's screen saver showing is not counted, and nothing is done while it is off. Switching the TV off needs `allowPower`, which is on unless `config.json` turns it off. A limit set in `config.json` (`screenTime`) that is not in a list is kept and shown.
+
+## System updates
+
+* **Block TV software updates:** Stops the TV installing LG's system updates, which can take away the access Glasshouse runs with. Apps and Glasshouse's own updates are unaffected.
+
 ## Display and ambient light
 
 * **LG logo:** Controls whether the LG logo animation displays during power-on and power-off (LG Logo Display).
@@ -59,6 +75,6 @@ Per-port settings for HDMI Deep Colour (extended bandwidth for 4K HDR) and audio
 
 * **Standby light:** Toggles the red standby indicator LED located on the front bezel of the TV.
 
-![Advanced tab: Quick Boot, Stay connected when off with its nightly power-down hours, Wake-on-LAN, LG logo, auto device detection and the standby light](../screenshots/advanced.png)
+![Advanced tab: Quick Boot, Stay connected when off with its nightly power-down hours, Wake-on-LAN, system updates, LG logo, auto device detection and the standby light](../screenshots/advanced.png)
 
-*The TV's own settings, grouped as Power, Display, Sound, HDMI inputs, Devices and Front lights.*
+*The TV's own settings, grouped as Power, System updates, Display, Sound, HDMI inputs, Devices and Front lights.*

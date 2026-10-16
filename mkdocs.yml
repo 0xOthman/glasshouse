@@ -37,6 +37,7 @@ nav:
   - Getting started:
       - Installing: install.md
       - Tested TVs: tested-tvs.md
+      - Updating and uninstalling: managing.md
   - The dashboard:
       - dashboard/index.md
       - Control: dashboard/control.md
@@ -53,22 +54,20 @@ nav:
   - Glasshouse apps:
       - The TV app: apps/tv-app.md
       - Android app: apps/android.md
-  - Home Assistant:
-      - HOME-ASSISTANT.md
-      - Entities: HOME-ASSISTANT-ENTITIES.md
-      - Remote button events: HOME-ASSISTANT-REMOTE-BUTTONS.md
-  - Additional Features:
+  - Smart Home & Lighting:
+      - Home Assistant:
+          - Overview: HOME-ASSISTANT.md
+          - Entities: HOME-ASSISTANT-ENTITIES.md
+          - Remote button events: HOME-ASSISTANT-REMOTE-BUTTONS.md
       - Ambient light (PicCap): piccap.md
-      - Prometheus metrics: PROMETHEUS.md
-      - Network time (NTP): ntp.md
-      - Log forwarding (syslog): syslog.md
-      - Experimental features: experimental.md
-  - Running it:
-      - Updating and uninstalling: managing.md
+  - Advanced & Administration:
       - Security: SECURITY.md
       - What it changes on the TV: TV-CHANGES.md
-  - Reference:
       - What LG's ACR does: ACR.md
+      - Network time (NTP): ntp.md
+      - Prometheus metrics: PROMETHEUS.md
+      - Log forwarding (syslog): syslog.md
+      - Experimental features: experimental.md
   - Development:
       - Contributing: CONTRIBUTING.md
       - Internals: IMPLEMENTATION.md
@@ -78,6 +77,7 @@ nav:
           - LG CX (OLED48CXPUB): development/tv-specs/cx.md
           - LG C2 (OLED42C24LA): development/tv-specs/c2.md
           - LG C5 (OLED48C5PUA): development/tv-specs/c5.md
+          - LG UA73 (55UA73006LA): development/tv-specs/ua73.md
           - LG NU80 (43NU800BPSC): development/tv-specs/nu80.md
       - Testing and CI: development/testing.md
       - TV research: development/TV-RESEARCH.md

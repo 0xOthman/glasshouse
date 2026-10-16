@@ -149,6 +149,11 @@ function audioValues(response, formatSoundOutput) {
   };
 }
 
+/** @this {StateGroup} */
+function stopIfUnknownMethod(response) {
+  if (/unknown method/i.test(String(response.errorText || ''))) this.subscription.stop();
+}
+
 var MASTER_VOLUME = 'com.webos.service.audio/master/getVolume';
 var LEGACY_VOLUME = 'com.webos.audio/getVolume';
 
@@ -185,6 +190,39 @@ function init(opts) {
     clearCache('application');
     return response.appId ? applicationValues(response.appId, inputNames, inputKey) : null;
   });
+  // applicationManager names the HDMI input beneath LG's Settings or Home;
+  // SurfaceManager lists the windows on screen. Display 0 is the TV's panel.
+  groups.surface = new StateGroup('surface', new luna.Subscription(
+    'com.webos.surfacemanager/getForegroundAppInfo', { subscribe: true }, null
+  ), function (response) {
+    if (!Array.isArray(response.foregroundAppInfo)) return null;
+    var windows = response.foregroundAppInfo, card = '', home = '', overlay = '', i, w;
+    for (i = 0; i < windows.length; i++) {
+      w = windows[i];
+      if (w.displayId !== undefined && w.displayId !== 0) continue;
+      if (w.windowType === '_WEBOS_WINDOW_TYPE_CARD') card = w.appId || '';
+      if (w.windowType === '_WEBOS_WINDOW_TYPE_HOME' && w.appId === 'com.webos.app.home') home = w.appId;
+      if (w.windowType === '_WEBOS_WINDOW_TYPE_OVERLAY' &&
+          /^com\.(palm|webos)\.app\./.test(w.appId || '')) overlay = w.appId;
+    }
+    return { control_app_id: overlay || home || card };
+  });
+  // Quick Settings is not among the windows on screen, but has the focus, and
+  // the focused window is the one the remote's keys reach.
+  groups.focus = new StateGroup('focus', new luna.Subscription(
+    'com.webos.surfacemanager/getFocusedWindowInfo', { subscribe: true }, null
+  ), function (response) {
+    if (!Array.isArray(response.focusedWindowInfo)) return null;
+    var windows = response.focusedWindowInfo, id = '', i, w;
+    for (i = 0; i < windows.length; i++) {
+      w = windows[i];
+      if (w.displayId === undefined || w.displayId === 0) id = w.appId || '';
+    }
+    return { control_app_id: id };
+  });
+  // A TV whose SurfaceManager lacks these methods refuses them each time:
+  // stop asking, and Active App goes without control_app_id.
+  groups.surface.onRefused = groups.focus.onRefused = stopIfUnknownMethod;
   groups.audio = new StateGroup('audio', new luna.Subscription(
     MASTER_VOLUME, { subscribe: true }, null
   ), function (response) {
@@ -239,7 +277,10 @@ function init(opts) {
 
   function start() {
     var key;
-    for (key in groups) groups[key].start();
+    // Window tracking is only useful to MQTT, which starts those groups itself.
+    for (key in groups) {
+      if (key !== 'surface' && key !== 'focus') groups[key].start();
+    }
   }
 
   function stop() {

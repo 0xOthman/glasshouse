@@ -56,7 +56,7 @@ Measured with `scripts/footprint.sh` on 2026-10-03, over a minute each, with MQT
 | OLED65B8SLC (webOS 4) | 1.4–1.7% | 29–42 MB | 5, 6 MB | 432–445 of 1976 MB |
 | OLED42C24LA (webOS 9.2) | 1.2–1.3% | 35–38 MB | 5, 10 MB | 525–535 of 1996 MB |
 
-The children are the five subscriptions held open for live state. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
+The children are the five subscriptions held open for live state, to which a TV whose SurfaceManager reports its windows adds two while the MQTT bridge is enabled. These two are started explicitly by the bridge; a TV without MQTT runs neither. Memory is the lower figure just after a start and grows towards the higher one. An open dashboard adds the reads behind each refresh; `./scripts/footprint.sh <tv-ip>` measures it for any TV.
 
 ---
 
@@ -100,7 +100,7 @@ instead:
 | `/proc/lg/pm/status` | per-core load, governor, AVS currents |
 | `/sys/block/mmcblk0/device/life_time` | eMMC wear (`0x01` = 0–10% used) |
 | `/sys/block/mmcblk0/device/pre_eol_info` | `01` Normal / `02` Warning / `03` Urgent |
-| `/mnt/lg/cmn_data/mrcu/mrcu1.info` | Magic Remote battery percentage, remote model, BDAddr, and firmware |
+| `/mnt/lg/cmn_data/mrcu/mrcu1.info` | Magic Remote model, BDAddr, and firmware, as at pairing. Its `Battery = 52(M) 35(L)` is the remote's battery thresholds, not its charge, so the level comes from the remote (see [Reading the Magic Remote's battery](#reading-the-magic-remotes-battery)) |
 | `/proc/lg/hdmi20/port[0-3]/status` | Real-time HDMI receiver PHY mode (FRL 48 Gbps vs TMDS), chroma (RGB 4:4:4), HDCP, cable error counter, ALLM, VRR |
 | `/proc/lg/pe/hdr_status` | Picture engine live video format, colorimetry standard (`BT.709`, `BT.2020`), and peak nit levels |
 | `/var/luna/preferences/environmentCondition` | Hardware configuration (SoC generation `_O22_`, DDR RAM, refresh rate, eye sensor) |
@@ -261,7 +261,7 @@ proved everything that matters. Certificate verification is never disabled: what
 comes back runs as root on the next restart.
 
 **The directory is updated in place, not swapped.** `/var/lib/tvweb` holds more
-than code — `config.json`, `adblock_hosts`, the staged screen saver the boot hook
+than code — `config.json`, `adblock_hosts`, `adblock_custom.json`, the staged screen saver the boot hook
 bind-mounts, `services_stopped` — and a wholesale swap has to carry every one of
 them across or silently lose it. Replacing only the files the release ships
 cannot lose state it never touches.
@@ -533,6 +533,17 @@ The server attempts to launch `com.webos.app.home` first. If that succeeds (webO
 
 The 100ms hold duration between key-down and key-up gives Qt's event loop sufficient time to arm `longPressTimer`, ensuring `global.goHome()` fires on release (`LSM NL_HOME_SHOWN`) and toggles the native Home launcher ribbon on webOS 3–5.
 
+### Key presses go ahead of telemetry
+
+Remote keys forwarded over MQTT, the arrows, OK, Back and Home, jump the queue
+of luna-send calls. Telemetry makes about a dozen calls per collection, and a
+key press arriving during one used to wait behind them. A key now goes ahead of
+every call waiting, may run beside the usual two, and keeps the gap between
+child starts. Keys run one at a time, since two `sendKeyCode` calls running
+together can finish out of order. A key schedules no telemetry read of its own;
+an app it opens reaches Home Assistant through the foreground-app subscription.
+Each key's wait and run time is logged at debug level.
+
 ## Older hardware capabilities (webOS 3.x and LCD models)
 
 Testing against 2016 hardware (such as 43UH610V-ZB and 55UH6030-UC on webOS 3.4.3) highlights several differences between older LCD platforms and modern OLED sets:
@@ -551,6 +562,21 @@ The blocklist is applied by bind-mounting a generated hosts file over
 `/etc/hosts`, which is the only way to change it on a read-only rootfs - the
 same technique webosbrew uses for `/etc/shadow` and `/etc/motd`. Verified
 working: `getent hosts ad.lgsmartad.com` returns `0.0.0.0`.
+
+Other tools edit `/etc/hosts` too: AmazOff points
+`cloudfront.xp-assets.aiv-cdn.net` at its local nginx. The table carries their
+lines over each time it is written. Switched off, the table comes down unless
+the file underneath lacks some of them: on a C4 on webOS 10.3.1 that file is on
+the read-only squashfs rootfs, so the table goes back up blocking nothing, and
+stays until the next reboot. A line is the blocker's own if it is a comment, a
+localhost line, a sinkhole (`0.0.0.0` or `::`) or names a host the table
+decides on, and anyone else's otherwise. The last rule is for the Homebrew
+Channel's update block, which points LG's update servers at `127.0.0.1` and
+`::1` and must not outlive update blocking being switched off. At boot,
+`50-tvweb` takes them from that boot's `/etc/hosts` before mounting and drops
+the previous boot's, so a tool that is no longer started leaves nothing behind.
+The table is written in place rather than replaced, since app jails such as
+Amazon's bind-mount it as their own `tmp/hosts` while it is mounted.
 
 Nine of the nineteen domains are ad, tracking and diagnostics hosts that
 nothing on the TV needs. The other ten are **LG infrastructure rather than
@@ -620,6 +646,31 @@ To prevent this while preserving full platform blocking:
   entirely, and `nextlgsdp.com` is blocked immediately.
 * With an [NTP server](#setting-the-clock-from-ntp) configured, the first answer it
   gives sets the time as `sdp`, which ends the wait at once.
+* An owner's hosts list that names `nextlgsdp.com` or a name under it gets the same wait,
+  on either tier.
+
+### The owner's hosts list
+
+`POST /api/adblock/custom` takes `{mode, text}` to upload a list, `{mode}` to
+change how the kept one is used, and `{clear: true}` to remove it, where `mode`
+is `add` or `replace`. It is held to what `/api/control` is (controls allowed,
+JSON, same origin) but takes up to 1 MB, where `/api/control` takes 4 KB.
+`parseCustomHosts` in `privacy.js` keeps the names a hosts file blackholes, or
+a plain list's names, lower-cased and once each, and counts redirects and
+anything that is not a host name as skipped. More than 10,000 names is refused:
+a hosts file is read line by line on every lookup.
+
+Only the names are saved, in `/var/lib/tvweb/adblock_custom.json`, never the
+table built from them. `adBlockList` puts them together with the tier's names
+from the running version each time the table is written: `add` takes the
+tier's names and then the owner's not already among them, `replace` the
+owner's alone. The table is rewritten at every start (`checkBootAdBlock`), so
+after an update the new version's names are in it without the file being sent
+again. The updater replaces only the files a release ships, so the saved list
+survives it, as `adblock_hosts` does. `/api/privacy` gives `adblock.custom`:
+`mode`, `count`, `updated`, `shared` (names on both lists), `ownCount` (the
+tier's own) and `blocked` (the table's total), for the tier in use, or
+`ads` while the blocker is off.
 
 ## Entity state must come from the TV, not from the command
 
@@ -781,6 +832,103 @@ change of error state.
 
 ---
 
+## Counting watch time
+
+`server/lib/history.js` counts, while it is switched on, how long the screen
+is on with each app or input in front. It follows the live `power` and
+`application` subscriptions, and starts the `application` one itself, which the
+MQTT bridge otherwise starts only with a broker. Off, or on with the panel off,
+is counted as nothing and as `screen_off`, and LG's screen saver as
+`screen_saver`, from tvpower's Screen Saver state: the foreground app stays
+the one it draws over. Home Assistant's watch-time sensors leave both out.
+
+Each change closes a segment measured on the monotonic clock. The wall clock
+places it: it is often wrong for a while after boot, until the broadcast time
+or NTP sets it, so a segment that closes before the clock passes 2026 waits in
+memory and is placed back from the monotonic time once it does.
+
+Segments are kept as seconds per UTC hour, a file per UTC month in
+`/var/lib/tvweb/history`, so storing them needs no time zone. Files are written
+every 10 minutes while counting, at once when the screen or the TV goes off, and
+on SIGTERM. Those more than 13 months old are deleted.
+
+The dashboard groups the hours into the browser's days. Home Assistant's
+"today" uses the TV's offset from UTC, worked out from the `localtime` and
+`utc` that `com.webos.service.systemservice/time/getSystemTime` reports
+together, read hourly. With no reading it is UTC.
+
+## Screen-time limits
+
+`server/lib/screentime.js` reads today's time per app and input from watch
+time, so it needs `history.js` running and the TV's offset from UTC read: the
+day starts at the TV's local midnight, to the whole UTC hour, as Home
+Assistant's "today" does. It checks every 30 seconds and at each change of
+power, screen or app, after `history.js` has counted it. The whole TV's limits
+come before an app's. At a limit it shows a toast through
+`com.webos.notification/createToast` and acts a minute later only if the same
+limit is still due, so turning the screen off or leaving the app in that
+minute cancels it. Each warning is shown once per local day.
+
+A toast sent as the screen comes on is not shown while the panel wakes (C4,
+webOS 10.3.1), so after the screen comes on the check waits 5 seconds. The TV
+reports itself on before its screen does, so a TV switched back on after the
+daily limit or bedtime switched it off gets its toast once the screen is on,
+the screen off 10 seconds later, and the TV off after 5 minutes, unless the
+limit has been changed by then. That the limit switched it off is kept in
+`/var/lib/tvweb/screentime.json` until the limit no longer applies or the
+settings are changed, as a C5 (webOS 10.3.1) shuts down fully and starts the
+server again when switched on.
+
+Turning the screen off over LG's screen saver does not hold, so when it is
+showing, Back dismisses it first and the screen goes off 1.5 seconds later.
+Either way, a screen back on 3 seconds after is turned off once more. Checks
+wait meanwhile, as the screen saver closing reports the screen on.
+
+## Reading the Magic Remote's battery
+
+LG's pairing file has only the remote model's battery thresholds, so
+`server/lib/remotebattery.js` reads the level from the remote's Bluetooth
+Battery Service. The remote sleeps soon after it is put down, and one asleep
+is not woken for this, so the read waits for it to wake, from
+`com.webos.service.mrcu/getConnectionStatus` subscribed: the first wake after
+the TV switches on, then one at least an hour after the last read, or five
+minutes after a failed one. A check every 10 minutes covers a remote kept
+awake. The subscription's updates are trusted for whether the remote is a
+Bluetooth one: asked once, the same method says it is not. On webOS 4,
+`com.webos.service.mrcu/getDeviceInfo` has the charge in `batteryLevel`, so it
+is asked first, and no Bluetooth connection is made where it answers; webOS 9
+and later answer `"-"`. The Bluetooth read is made only on webOS 9 and 10, where
+it has been tried: on a webOS 5 TV the remote lost its pointer and some buttons
+after waking once it began, until a reboot. Elsewhere the remote's battery is
+not shown. lginput2 holds the remote's own connection, and the
+Bluetooth service reads the service only over a GATT connection of its own, so
+each read there is
+`gatt/connect`, `gatt/discoverServices`, `gatt/readCharacteristicValue` by the
+`clientId` that connect returned, then `gatt/disconnect`, which is made
+whatever failed after connecting. A plain level in the pairing file, should
+an older TV write one, is used until the remote has given one.
+TV-RESEARCH.md has how this was found.
+
+## Settings backups
+
+`server/lib/backup.js` makes a JSON file of the LG settings `lgsettings.js`
+has rows for, in its promotions, sound, devices and hdmi sections, and of an
+allowlist of Glasshouse's own settings. A restore reads the TV's rows first and
+sets, through `lgsettings.set`, only those this TV has, that differ, whose
+value it offers (its choices and ranges are narrowed per TV) and that LG does
+not grey out now. The Glasshouse part goes through the same allowlist and
+`writeSettings`, and a change restarts the server, as saving settings from the
+dashboard does. `POST /api/backup` is held to the same checks as
+`POST /api/settings`: controls allowed, JSON, and from the dashboard's own origin.
+
+A backup lists the developer apps, those whose `folderPath` in `listApps` is
+under `/media/developer/apps/`, less the Homebrew Channel and Glasshouse's own.
+A restore installs none: those the TV lacks and the catalog has go to
+`/var/lib/tvweb/restore-apps.json`, which survives the restart a restore may
+make, and the Apps tab installs them one at a time as catalog installs with
+`auto`, so a preview with a choice in it waits for the person. A file anyone
+could edit decides nothing installed or given root on its own.
+
 ## The checks
 
 `scripts/` holds five static checks. Four need nothing but the repository and
@@ -819,7 +967,7 @@ A custom client path can also be configured in `config.json` via `"update": { "c
 
 ### Safe In-Place Staging & Rollback
 1. **Extraction & Validation**: The tarball is decompressed via Node's `zlib.gunzipSync` and unpacked into `/var/lib/tvweb/.update/`. It validates that the downloaded package contains a valid `server/tvweb.js` declaring the expected release version.
-2. **Non-Destructive Upgrade**: Files are copied over `/var/lib/tvweb/`. `config.json`, the ad blocker's hosts file (`adblock_hosts`), staged screensavers, and stopped service lists are strictly preserved.
+2. **Non-Destructive Upgrade**: Files are copied over `/var/lib/tvweb/`. `config.json`, the ad blocker's hosts file (`adblock_hosts`) and the owner's hosts list (`adblock_custom.json`), staged screensavers, and stopped service lists are strictly preserved.
 3. **Rollback Backup**: A complete copy of the replaced version is retained in `/var/lib/tvweb/.previous/`. Running `tvwebctl rollback` (or manually copying `.previous/.` back to `/var/lib/tvweb/`) restores the previous version without redeploying.
 
 ---
@@ -892,7 +1040,7 @@ Home screen bloatware tile hiding allows built-in or preloaded system apps (whic
 ### Non-Destructive Manifest Bind-Mounts
 1. **Manifest Overrides**: For each hidden app ID, `server/lib/apps.js` stages a modified `appinfo.json` in `/var/lib/tvweb/appinfo-overrides/<id>.json` with `"visible": false`.
 2. **Multi-Base Probing**: Overrides are bind-mounted over every discovered location for the target app manifest (prioritizing `/media/system/apps/usr/palm/applications` for OTA-updated system apps, followed by `/usr/palm/applications` and flash mounts `/mnt/otncabi` / `/mnt/otycabi`).
-3. **SAM Refresh**: SAM (Surface Application Manager) reads `appinfo.json` only when it scans. It also scans when configd's `profile.blockedAppList` changes, which LG uses to block apps by region, so `lib/samrescan.js` adds an id no app has and then puts the list back exactly as it was: nothing is blocked, and SAM rereads every `appinfo.json`, overlays included, in about 2 s without restarting (on a C2 running webOS 9.2, its pid was unchanged). configd saves the list back as a user-defined value, kept across reboots and with no call to remove it, so it stays at LG's value as of the nudge even if LG's own list later changes with a firmware update or a new country. Each caller then checks SAM reports the change (`getAppInfo` visibility, or the screen saver's type). Where the TV has no such list (webOS 4) or SAM does not catch up, `apps.js` restarts SAM as before (`killall -9 LunaExecutable` and `systemctl kill -s 9 sam.service` on systemd / `initctl restart sam` on Upstart). The boot hook does the same in shell. The restart was the one thing every black-picture report in #366 had in common.
+3. **SAM Refresh**: SAM (Surface Application Manager) reads `appinfo.json` only when it scans. It also scans when configd's `profile.blockedAppList` changes, which LG uses to block apps by region, so `lib/samrescan.js` adds an id no app has and then puts the list back exactly as it was: nothing is blocked, and SAM rereads every `appinfo.json`, overlays included, in about 2 s without restarting (on a C2 running webOS 9.2, its pid was unchanged). configd saves the list back as a user-defined value, kept across reboots and with no call to remove it, so it stays at LG's value as of the nudge even if LG's own list later changes with a firmware update or a new country. Each caller then checks SAM reports the change (`getAppInfo` visibility, or the screen saver's type). Where the TV has no such list (webOS 4) or SAM does not catch up, `apps.js` restarts SAM as before (`killall -9 LunaExecutable` and `systemctl kill -s 9 sam.service` on systemd / `initctl restart sam` on Upstart). The boot hook does the same in shell. The restart was the one thing every black-picture report in #366 had in common. sam ignores that list on webOS 10 (a C2 on 10.3.1), where `samrescan.rereadApp` asks it for one app instead with `blockSystemApp` followed by `releaseBlockSystemApp`; the screen saver switch uses that first, tile hiding does not yet.
 
 ### Cold Boot vs. Quick Start+ (Standby)
 - **Normal Usage (Quick Start+)**: LG webOS defaults to Quick Start+ (Active Standby / Suspend-to-RAM). When the TV is powered off and on with the remote, the Linux kernel, active bind-mounts, and SAM remain running in memory. The overrides remain intact, and hidden tiles never appear.
@@ -925,6 +1073,15 @@ so the list is written only once something is switched off. Each app's own
 setting from before the first change is kept in `/var/lib/tvweb/preload.json`
 for switching it back, and at start the apps switched off are put back off if
 the list has lost them, as after a firmware update.
+
+On an OLED48C5PUA (webOS 10.3) the stored list alone does not hold. Each time
+the TV is switched on from standby the preload manager reports every app as
+`isEnabled` true again, while configd still returns false for the apps switched
+off, and 4 seconds later it loaded YouTube. A `setPreloadPolicy` sent while the
+TV is on lasts through standby and is gone at the next switch-on. So the server
+sends `setPreloadPolicy` again for each app switched off, at its start and at
+every switch-on. Sent within a second of the TV reporting Active, it left
+YouTube unloaded.
 
 `/var/preferences/webos-preload-manager-conf.json` is not used: the preload
 manager writes an app back into it about 3 seconds after the app comes to the
@@ -964,6 +1121,7 @@ The debloating engine (`server/lib/services.js`) manages background system daemo
 Custom QML screensavers are staged in `/var/lib/tvweb/screensaver` and bind-mounted over `/usr/palm/applications/com.webos.app.screensaver`.
 
 * **Cold Boot vs Quick Start+**: On Quick Start+ suspend-to-RAM, active bind-mounts persist in memory. On a cold boot (such as after the 4-hour OLED Pixel Cleaning cycle or extended standby on webOS 9 and 10), `/var/lib/webosbrew/init.d/50-tvweb` re-applies the bind-mount if `/var/lib/tvweb/screensaver/.tvweb-screensaver` is present.
+* **Making sam read the new manifest**: sam reads an `appinfo.json` only when it scans, and where LG's screen saver is Flutter (webOS 10 and later) ours changes the app's `type`, so sam has to read it again or the launch goes to the wrong runner. `ensureScreensaverRunner` in `lib/screensavers.js` and the boot hook try three things in turn: `applicationManager/blockSystemApp` followed by `releaseBlockSystemApp` for the one app (`samrescan.rereadApp`; on a C5 on webOS 10.3.1 sam reported the new type within the second and kept its pid), then the configd nudge below (webOS 9), then `systemctl restart --no-block sam`, the restart behind the black-picture reports in #366. A running screen saver is relaunched after the first two, since neither stops it. The release goes out even when the block got no answer, which may still have been a block sam made, and on a TV whose stock screen saver is not QML the boot hook releases it once at every boot, so a run cut short between the two calls cannot leave it blocked. Custom screen savers stay held back on these TVs unless `allowOnWebos10` is set.
 * **Reverting to Stock**: When the user selects "LG default" (`stock`), `screensavers.setScreensaver('stock')` unmounts the live overlay and deletes `.tvweb-screensaver` along with all staged files. Without this cleanup, the boot hook would see the stale marker file on cold boot and re-mount the previously staged screensaver. `screensavers.init()` also auto-heals any orphaned marker files if the live screensaver is currently stock.
 
 ---

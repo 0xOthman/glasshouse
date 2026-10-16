@@ -13,6 +13,7 @@ var dns = require('dns');
 var readTrimmed = require('./util').readTrimmed;
 var toInt = require('./util').toInt;
 var lanAddress = require('./util').lanAddress;
+var hexColor = require('./util').hexColor;
 var path = require('path');
 var execFile = require('child_process').execFile;
 var names = require('./names');
@@ -40,6 +41,8 @@ var screensaversModule = null;
 var gameModule = null;
 /** @type {typeof import('./power')} */
 var powerModule = null;
+/** @type {typeof import('./remotebattery')} */
+var remoteBatteryModule = null;
 var alwaysReadyScreenOn = false;
 var tvwebVersionStr = '0.0.0';
 
@@ -162,6 +165,7 @@ function init(opts) {
   screensaversModule = opts.screensavers;
   gameModule = opts.game;
   powerModule = opts.power || null;
+  remoteBatteryModule = opts.remoteBattery || null;
   tvwebVersionStr = opts.tvwebVersion || '0.0.0';
   loadHdmiSeen();
   hasMediaState = readTrimmed(MEDIA_SEEN_FILE) !== null;
@@ -595,23 +599,64 @@ function getVideoSignal(targetPort) {
   return formatSignal(readVideoTiming(targetPort));
 }
 
-function readRemoteInfo() {
-  var now = Date.now();
-  if (cachedRemote && (now - lastRemoteCheck < 30000)) return cachedRemote;
-  var raw = readTrimmed('/mnt/lg/cmn_data/mrcu/mrcu1.info');
-  if (!raw) return cachedRemote || null;
-  var bMatch = raw.match(/Battery\s*=\s*(\d+)/i);
+/*
+ * The paired Magic Remote, from the file LG writes when it pairs. Its
+ * "Battery = 52(M) 35(L)" (webOS 9 and 10) is not the charge: lginput2 logs the
+ * same two numbers as the remote model's Mid and Low battery thresholds, and
+ * every MR24 reads 52 and 35. Only a plain "Battery = N" is taken as a level,
+ * in case an older TV writes one.
+ */
+function parseRemoteInfo(raw) {
+  if (!raw) return null;
+  // The threshold pair has its "(M)" straight after the first number.
+  var bMatch = raw.match(/Battery\s*=\s*(\d+)\s*(\()?/i);
   var nMatch = raw.match(/Name\s*=\s*([^\r\n]+)/i);
   var macMatch = raw.match(/BDAddr\s*=\s*([^\r\n]+)/i);
   var fwMatch = raw.match(/fwVer\s*=\s*([^\r\n]+)/i);
-  if (!bMatch && !nMatch) return cachedRemote || null;
-  cachedRemote = {
-    battery: bMatch ? parseInt(bMatch[1], 10) : null,
+  if (!bMatch && !nMatch) return null;
+  return {
+    battery: bMatch && !bMatch[2] ? parseInt(bMatch[1], 10) : null,
     model: nMatch ? nMatch[1].trim() : null,
     mac: macMatch ? macMatch[1].trim() : null,
     firmware: fwMatch ? fwMatch[1].trim() : null,
     paired: true
   };
+}
+
+// The pairing file's facts, with the level the remote itself last gave over
+// Bluetooth (remotebattery.js) ahead of any plain level in the file.
+function remoteInfo() {
+  var file = readRemoteInfo();
+  if (!file) return null;
+  var level = remoteBatteryModule ? remoteBatteryModule.level(file.mac) : null;
+  var isConn = remoteBatteryModule ? remoteBatteryModule.connected() : false;
+  var isBleRem = remoteBatteryModule ? remoteBatteryModule.isBle() : true;
+  var sig = remoteBatteryModule && typeof remoteBatteryModule.signal === 'function'
+    ? remoteBatteryModule.signal()
+    : null;
+  var fw = file.firmware || (remoteBatteryModule && typeof remoteBatteryModule.firmware === 'function'
+    ? remoteBatteryModule.firmware()
+    : null);
+  return {
+    battery: level !== null ? level : file.battery,
+    model: file.model,
+    mac: file.mac,
+    firmware: fw,
+    paired: file.paired,
+    connected: isConn,
+    bluetooth: !!(file.mac || isBleRem),
+    signal: sig
+  };
+}
+
+function readRemoteInfo() {
+  var now = Date.now();
+  if (cachedRemote && (now - lastRemoteCheck < 30000)) return cachedRemote;
+  var raw = readTrimmed('/mnt/lg/cmn_data/mrcu/mrcu1.info') ||
+            readTrimmed('/mnt/lg/cmn_data/btsvc/mrcu1.info');
+  var parsed = parseRemoteInfo(raw);
+  if (!parsed) return cachedRemote || null;
+  cachedRemote = parsed;
   lastRemoteCheck = Date.now();
   return cachedRemote;
 }
@@ -1101,10 +1146,11 @@ function parseAppList(raw) {
     if (a && a.id && a.visible !== false && a.id.indexOf('com.webos.app.container') !== 0) {
       if (!seen[a.id]) {
         seen[a.id] = true;
-        list.push({
-          id: a.id,
-          title: a.title || a.id
-        });
+        var entry = { id: a.id, title: a.title || a.id };
+        // listApps carries each app's appinfo.json fields, iconColor among them.
+        var color = hexColor(a.iconColor);
+        if (color) entry.iconColor = color;
+        list.push(entry);
       }
     }
   }
@@ -1472,7 +1518,7 @@ function detectDeviceInfo(cb, triesLeft) {
           if (res.firmwareVersion) {
             configObj.device.sw_version = res.firmwareVersion;
           }
-          console.log('device detected: ' + (configObj.device.name || 'LG TV') + ' (model: ' + configObj.device.model + ') fw: ' + (res.firmwareVersion || '?'));
+          console.log('device: detected ' + (configObj.device.name || 'LG TV') + ' (model: ' + configObj.device.model + ') fw: ' + (res.firmwareVersion || '?'));
         }
         if (!configObj.device.name) configObj.device.name = 'LG webOS TV';
         if (!configObj.device.model) configObj.device.model = 'webOS TV';
@@ -1565,7 +1611,7 @@ function collectStats(cb) {
   // later ones stay well within.
   var safetyTimeout = setTimeout(function () {
     if (isCollecting) {
-      console.warn('warning: stats collection safety timeout reached');
+      console.warn('telemetry: stats collection safety timeout reached');
       flushStats(lastStats || { ok: false, error: 'timeout' }, true);
     }
   }, statsCollected ? 4500 : 20000);
@@ -1645,7 +1691,7 @@ function collectStats(cb) {
       tcon_firmware: HARDWARE_INFO.tconFirmware,
       tcon_module: HARDWARE_INFO.tconModule
     } : null,
-    remote: readRemoteInfo(),
+    remote: remoteInfo(),
     temp: socTemp(),
     tempMillidegrees: socTempMillidegrees(),
     temps: null,
@@ -2089,7 +2135,9 @@ function alwaysOnSupported(cb) {
 function getCapabilities(extra) {
   extra = extra || {};
   return {
-    hasRemoteInfo: !!readRemoteInfo(),
+    // With a remote paired, Home Assistant keeps its battery sensor, unknown until
+    // the remote is first read, rather than losing it at each start.
+    hasRemoteInfo: !!remoteInfo(),
     hasPnwash: fs.existsSync('/mnt/lg/cmn_data/pnwash/completedOffRsCount'),
     hasCell: !!(HARDWARE_INFO && HARDWARE_INFO.cell),
     hasHdmiProc: fs.existsSync('/proc/lg/hdmi20'),
@@ -2107,9 +2155,15 @@ function getCapabilities(extra) {
     hasGpuClock: gpuClockMhz() !== null,
     isOled: !!extra.isOled,
     hasRemoteButtons: !!extra.hasRemoteButtons,
+    watchHistory: !!extra.watchHistory,
     hasSoundFormat: soundFormatSupported === true,
     userEntities: extra.userEntities || {}
   };
+}
+
+// An app's title, by its full id, once the installed apps have been read.
+function appTitle(appId) {
+  return appTitles[appId] || null;
 }
 
 function getInstalledApps() {
@@ -2165,6 +2219,7 @@ module.exports = {
   netBytes: netBytes,
   getVideoSignal: getVideoSignal,
   readRemoteInfo: readRemoteInfo,
+  parseRemoteInfo: parseRemoteInfo,
   getActiveHdmiDiagnostics: getActiveHdmiDiagnostics,
   getHdmiSignal: getHdmiSignal,
   hdmiReceiverMap: hdmiReceiverMap,
@@ -2186,6 +2241,7 @@ module.exports = {
   refreshInputNames: refreshInputNames,
   refreshInstalledApps: refreshInstalledApps,
   getInstalledApps: getInstalledApps,
+  appTitle: appTitle,
   getPictureModes: getPictureModes,
   getCapabilitySignature: getCapabilitySignature,
   loadHdmiSeen: loadHdmiSeen,

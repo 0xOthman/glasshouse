@@ -3,6 +3,7 @@
  */
 
 var assert = require('assert');
+var path = require('path');
 var mockEnv = require('./mocks/mock-env').createMockEnv();
 mockEnv.install();
 
@@ -163,7 +164,8 @@ test('getApps segregates removable apps and built-in system tiles', function (do
       title: 'YouTube',
       removable: true,
       systemApp: false,
-      folderPath: '/media/cryptofs/apps/usr/palm/applications/youtube.leanback.v4'
+      folderPath: '/media/cryptofs/apps/usr/palm/applications/youtube.leanback.v4',
+      appsize: 42455683
     },
     {
       id: 'com.webos.app.igallery',
@@ -216,6 +218,7 @@ test('getApps segregates removable apps and built-in system tiles', function (do
     var yt = res.installed.filter(function (x) { return x.id === 'youtube.leanback.v4'; })[0];
     assert.ok(yt, 'YouTube should be in installed');
     assert.strictEqual(yt.removable, true);
+    assert.strictEqual(yt.size, 42455683, 'YouTube size matches appsize');
 
     // Gallery in systemTiles
     var gal = res.systemTiles.filter(function (x) { return x.id === 'com.webos.app.igallery'; })[0];
@@ -432,6 +435,13 @@ test('restartSam waits for sam to finish loading, then relaunches the foreground
     apps.restartSamShared(answer(1));
     apps.restartSamShared(answer(2));
   });
+});
+
+test('dirSize computes folder size on disk', function () {
+  var dir = path.join(__dirname, 'mocks');
+  var sz = apps.dirSize(dir);
+  assert.strictEqual(typeof sz, 'number');
+  assert.ok(sz > 0, 'dirSize should be positive for mock directory');
 });
 
 var failures = 0;

@@ -6,6 +6,14 @@ var net = require('net');
 var tls = require('tls');
 var toBuffer = require('./util').toBuffer;
 
+var CONNACK_ERRORS = {
+  1: 'unacceptable protocol version',
+  2: 'identifier rejected',
+  3: 'server unavailable',
+  4: 'bad username or password',
+  5: 'not authorized'
+};
+
 function encodeVarLength(len) {
   var bytes = [];
   do {
@@ -15,6 +23,49 @@ function encodeVarLength(len) {
     bytes.push(digit);
   } while (len > 0);
   return toBuffer(bytes);
+}
+
+function encodeConnectPacket(opts) {
+  opts = opts || {};
+  var protoName = toBuffer([0, 4, 77, 81, 84, 84]); // 'MQTT'
+  var protoLevel = toBuffer([4]); // 3.1.1
+  var flags = 0x02; // CleanSession
+  if (opts.will) {
+    flags |= 0x04; // Will flag
+    if (opts.will.retain) flags |= 0x20;
+  }
+  if (opts.username) flags |= 0x80;
+  if (opts.password) flags |= 0x40;
+
+  var flagBuf = toBuffer([flags]);
+  var keepAlive = toBuffer([0, opts.keepAlive || 60]); // 60s
+  var varHeader = Buffer.concat([protoName, protoLevel, flagBuf, keepAlive]);
+
+  var payloads = [];
+  var cid = opts.clientId || ('lgtv_' + Math.random().toString(16).slice(2, 8));
+  var cidBuf = toBuffer(cid, 'utf8');
+  var cidLen = toBuffer([cidBuf.length >> 8, cidBuf.length & 0xff]);
+  payloads.push(cidLen, cidBuf);
+
+  if (opts.will) {
+    var wtBuf = toBuffer(opts.will.topic, 'utf8');
+    payloads.push(toBuffer([wtBuf.length >> 8, wtBuf.length & 0xff]), wtBuf);
+    var wmBuf = toBuffer(opts.will.payload || '', 'utf8');
+    payloads.push(toBuffer([wmBuf.length >> 8, wmBuf.length & 0xff]), wmBuf);
+  }
+
+  if (opts.username) {
+    var uBuf = toBuffer(opts.username, 'utf8');
+    payloads.push(toBuffer([uBuf.length >> 8, uBuf.length & 0xff]), uBuf);
+  }
+  if (opts.password) {
+    var pBuf = toBuffer(opts.password, 'utf8');
+    payloads.push(toBuffer([pBuf.length >> 8, pBuf.length & 0xff]), pBuf);
+  }
+
+  var payload = Buffer.concat(payloads);
+  var remLen = encodeVarLength(varHeader.length + payload.length);
+  return Buffer.concat([toBuffer([0x10]), remLen, varHeader, payload]);
 }
 
 function MiniMQTT(opts) {
@@ -28,6 +79,9 @@ function MiniMQTT(opts) {
   this.retryTimer = null;
   this.subscriptions = [];
   this.listeners = {};
+  this.connectStart = 0;
+  this.pingStart = 0;
+  this.latencyMs = null;
 }
 
 MiniMQTT.prototype.on = function(event, fn) {
@@ -76,48 +130,10 @@ MiniMQTT.prototype.connect = function() {
     socket = net.createConnection({ host: this.opts.host, port: this.opts.port || 1883 });
   }
   this.client = socket;
+  this.connectStart = Date.now();
 
   socket.on(self.opts.tls ? 'secureConnect' : 'connect', function() {
-    var protoName = toBuffer([0, 4, 77, 81, 84, 84]); // 'MQTT'
-    var protoLevel = toBuffer([4]); // 3.1.1
-    var flags = 0x02; // CleanSession
-    if (self.opts.will) {
-      flags |= 0x04; // Will flag
-      if (self.opts.will.retain) flags |= 0x20;
-    }
-    if (self.opts.username) flags |= 0x80;
-    if (self.opts.password) flags |= 0x40;
-
-    var flagBuf = toBuffer([flags]);
-    var keepAlive = toBuffer([0, 60]); // 60s
-    var varHeader = Buffer.concat([protoName, protoLevel, flagBuf, keepAlive]);
-
-    var payloads = [];
-    var cid = self.opts.clientId || ('lgtv_' + Math.random().toString(16).slice(2, 8));
-    var cidBuf = toBuffer(cid, 'utf8');
-    var cidLen = toBuffer([cidBuf.length >> 8, cidBuf.length & 0xff]);
-    payloads.push(cidLen, cidBuf);
-
-    if (self.opts.will) {
-      var wtBuf = toBuffer(self.opts.will.topic, 'utf8');
-      payloads.push(toBuffer([wtBuf.length >> 8, wtBuf.length & 0xff]), wtBuf);
-      var wmBuf = toBuffer(self.opts.will.payload || '', 'utf8');
-      payloads.push(toBuffer([wmBuf.length >> 8, wmBuf.length & 0xff]), wmBuf);
-    }
-
-    if (self.opts.username) {
-      var uBuf = toBuffer(self.opts.username, 'utf8');
-      payloads.push(toBuffer([uBuf.length >> 8, uBuf.length & 0xff]), uBuf);
-    }
-    if (self.opts.password) {
-      var pBuf = toBuffer(self.opts.password, 'utf8');
-      payloads.push(toBuffer([pBuf.length >> 8, pBuf.length & 0xff]), pBuf);
-    }
-
-    var payload = Buffer.concat(payloads);
-    var remLen = encodeVarLength(varHeader.length + payload.length);
-    var packet = Buffer.concat([toBuffer([0x10]), remLen, varHeader, payload]);
-    socket.write(packet);
+    socket.write(encodeConnectPacket(self.opts));
   });
 
   socket.on('data', function(chunk) {
@@ -130,6 +146,7 @@ MiniMQTT.prototype.connect = function() {
     var wasConnected = self.connected;
     self.connected = false;
     self.client = null;
+    self.latencyMs = null;
     clearInterval(self.pingTimer);
     if (wasConnected) {
       console.log('mqtt: disconnected from ' + self.opts.host + ':' + (self.opts.port || (self.opts.tls ? 8883 : 1883)));
@@ -173,6 +190,7 @@ MiniMQTT.prototype._parse = function() {
       var returnCode = packetBody[1];
       if (returnCode === 0) {
         this.connected = true;
+        this.latencyMs = this.connectStart ? (Date.now() - this.connectStart) : null;
         var self = this;
         clearInterval(this.pingTimer);
         /*
@@ -189,6 +207,7 @@ MiniMQTT.prototype._parse = function() {
             console.log('mqtt: no answer from ' + self.opts.host + ' - reconnecting');
             return self.client.destroy();
           }
+          self.pingStart = Date.now();
           self.client.write(toBuffer([0xc0, 0x00])); // PINGREQ
         }, 30000);
         // Resubscribe to all saved subscriptions
@@ -197,7 +216,15 @@ MiniMQTT.prototype._parse = function() {
         }
         this.emit('connect');
       } else {
-        this.emit('error', new Error('CONNACK rejected with code ' + returnCode));
+        var errDesc = CONNACK_ERRORS[returnCode] || ('CONNACK rejected with code ' + returnCode);
+        this.emit('error', new Error(errDesc));
+        if (this.client) {
+          this.client.destroy();
+        }
+      }
+    } else if (packetType === 13) { // PINGRESP
+      if (this.pingStart) {
+        this.latencyMs = Date.now() - this.pingStart;
       }
     } else if (packetType === 3) { // PUBLISH
       var qos = (flags >> 1) & 0x03;
@@ -292,5 +319,113 @@ MiniMQTT.prototype.setWill = function(payload) {
 };
 
 MiniMQTT.encodeVarLength = encodeVarLength;
+MiniMQTT.encodeConnectPacket = encodeConnectPacket;
+
+/*
+ * Probe broker reachability and credentials without disturbing the running
+ * client. Connects, sends an MQTT 3.1.1 CONNECT packet, parses CONNACK,
+ * measures round-trip latency, and tears down the socket cleanly.
+ */
+MiniMQTT.testConnection = function(opts, cb) {
+  cb = typeof cb === 'function' ? cb : function() {};
+  opts = opts || {};
+  if (!opts.host || typeof opts.host !== 'string' || !opts.host.trim()) {
+    return cb(null, { ok: false, error: 'broker host is required' });
+  }
+  var host = opts.host.trim();
+  var port = opts.port ? parseInt(opts.port, 10) : (opts.tls ? 8883 : 1883);
+  if (!port || port < 1 || port > 65535) {
+    return cb(null, { ok: false, error: 'invalid port' });
+  }
+  var timeoutMs = opts.timeoutMs || 5000;
+  var startTime = Date.now();
+  var done = false;
+  var timer = null;
+  var socket = null;
+
+  function finish(result) {
+    if (done) return;
+    done = true;
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (socket) {
+      try { socket.destroy(); } catch (e) {}
+      socket = null;
+    }
+    cb(null, result);
+  }
+
+  timer = setTimeout(function() {
+    finish({ ok: false, latencyMs: Date.now() - startTime, error: 'connection timed out' });
+  }, timeoutMs);
+
+  try {
+    if (opts.tls) {
+      socket = tls.connect({
+        host: host,
+        port: port,
+        servername: host,
+        rejectUnauthorized: opts.tlsRejectUnauthorized !== false
+      });
+    } else {
+      socket = net.createConnection({ host: host, port: port });
+    }
+  } catch (err) {
+    return finish({ ok: false, error: err.message || String(err) });
+  }
+
+  socket.on(opts.tls ? 'secureConnect' : 'connect', function() {
+    try {
+      var packet = encodeConnectPacket({
+        clientId: 'gh_test_' + Math.random().toString(16).slice(2, 8),
+        username: opts.username,
+        password: opts.password,
+        keepAlive: 10
+      });
+      socket.write(packet);
+    } catch (err) {
+      finish({ ok: false, latencyMs: Date.now() - startTime, error: err.message || String(err) });
+    }
+  });
+
+  var buf = toBuffer([]);
+  socket.on('data', function(chunk) {
+    buf = Buffer.concat([buf, chunk]);
+    while (buf.length >= 2) {
+      var packetType = buf[0] >> 4;
+      var multiplier = 1, remLen = 0, idx = 1, digit;
+      do {
+        if (idx >= buf.length) return; // wait for more data
+        digit = buf[idx++];
+        remLen += (digit & 127) * multiplier;
+        multiplier *= 128;
+      } while ((digit & 128) !== 0);
+
+      var totalLen = idx + remLen;
+      if (buf.length < totalLen) return; // wait for full packet
+
+      var packetBody = buf.slice(idx, totalLen);
+      buf = buf.slice(totalLen);
+
+      if (packetType === 2) { // CONNACK
+        var latency = Date.now() - startTime;
+        var returnCode = packetBody.length >= 2 ? packetBody[1] : 0;
+        if (returnCode === 0) {
+          return finish({ ok: true, latencyMs: latency, code: 0 });
+        }
+        var reason = CONNACK_ERRORS[returnCode] || ('connection refused: code ' + returnCode);
+        return finish({ ok: false, latencyMs: latency, code: returnCode, error: reason });
+      }
+    }
+  });
+
+  socket.on('error', function(err) {
+    var msgStr = (err && err.message) || String(err || 'connection error');
+    finish({ ok: false, latencyMs: Date.now() - startTime, error: msgStr });
+  });
+
+  socket.on('close', function() {
+    finish({ ok: false, latencyMs: Date.now() - startTime, error: 'connection closed by broker' });
+  });
+};
 
 module.exports = MiniMQTT;

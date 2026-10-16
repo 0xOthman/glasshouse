@@ -77,10 +77,10 @@ function readJson(filePath, dflt) {
 }
 
 // Written beside the file and renamed over it, so a reader never sees half of
-// it. Throws on failure.
-function writeJsonAtomic(filePath, obj, mode) {
+// it. Indented, for a file someone may edit, unless compact. Throws on failure.
+function writeJsonAtomic(filePath, obj, mode, compact) {
   var tmp = filePath + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(obj, null, 2), 'utf8');
+  fs.writeFileSync(tmp, compact ? JSON.stringify(obj) : JSON.stringify(obj, null, 2), 'utf8');
   if (mode !== undefined) fs.chmodSync(tmp, mode);
   fs.renameSync(tmp, filePath);
 }
@@ -119,6 +119,19 @@ function listenDualStack(server, port, host, cb) {
   server.listen(port, host);
 }
 
+/*
+ * A colour as '#rrggbb' in lower case, from '#rgb' or '#rrggbb' as an
+ * appinfo.json gives it, or null for anything else. Android's
+ * Color.parseColor takes no three-digit form, so it is spelled out.
+ */
+function hexColor(v) {
+  var m = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(typeof v === 'string' ? v.trim() : '');
+  if (!m) return null;
+  var h = m[1].toLowerCase();
+  if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+  return '#' + h;
+}
+
 // host:port as a URL writes it, with an IPv6 address in brackets.
 function hostPort(host, port) {
   return (String(host).indexOf(':') !== -1 ? '[' + host + ']' : host) + ':' + port;
@@ -138,5 +151,6 @@ module.exports = {
   unlinkQuiet: unlinkQuiet,
   existsQuiet: existsQuiet,
   listenDualStack: listenDualStack,
-  hostPort: hostPort
+  hostPort: hostPort,
+  hexColor: hexColor
 };

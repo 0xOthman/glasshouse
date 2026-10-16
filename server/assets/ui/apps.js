@@ -80,7 +80,7 @@ async function addPage() {
   const url = q('page-add-url'), name = q('page-add-name'), btn = q('page-add-btn'), msg = q('page-add-msg');
   msg.textContent = '';
   if (!url.value.trim()) return url.focus();
-  btn.disabled = true;
+  if (btn) { btn.disabled = true; btn.classList.add('busy'); }
   try {
     const r = await fetch(api('/api/apps/add-page'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -95,7 +95,9 @@ async function addPage() {
       url.focus();
     } else { url.value = ''; name.value = ''; }
   } catch (e) { msg.textContent = e.message; }
-  btn.disabled = false;
+  finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
+  }
   loadApps();
 }
 
@@ -156,14 +158,17 @@ function renderAppsPanel() {
         const id = esc(app.id);
         const iconUrl = api('/api/apps/icon?id=' + encodeURIComponent(app.id));
         const meta = [app.version ? 'v' + app.version : '', app.vendor || ''].filter(Boolean).join(' · ');
+        const sizeBadge = (app.size && typeof fmtSize === 'function') ? fmtSize(app.size) : '';
         return `<div class="prot-row">
           <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
           <div class="prot-main">
-            <div class="prot-title">${title} <span class="prot-sub">&middot; ${id}</span></div>
+            <div class="prot-title">${title}</div>
             <div class="prot-desc">${esc(meta || t('apps.installed.app', 'Installed app'))}</div>
             ${rowError[app.id] ? `<div class="prot-desc row-err">${esc(rowError[app.id])}</div>` : ''}
           </div>
           <div class="prot-status">
+            ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
+            <button type="button" class="pill good" onclick="sendCommand('launchApp','${jsq(app.id)}')" ${!d.writable || uninstalling[app.id] ? 'disabled' : ''}>${esc(t('apps.launch.button', 'Launch'))}</button>
             <button type="button" class="pill ${uninstalling[app.id] ? 'busy' : 'bad'}" onclick="confirmUninstall('${jsq(app.id)}', '${jsq(app.title || app.id)}')" ${!d.writable || uninstalling[app.id] ? 'disabled' : ''}>${esc(uninstalling[app.id] ? t('apps.uninstall.working', 'Uninstalling\u2026') : t('apps.uninstall.button', 'Uninstall'))}</button>
           </div>
         </div>`;
@@ -237,7 +242,7 @@ function renderAppsPanel() {
         return `<div class="prot-row">
           <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
           <div class="prot-main">
-            <div class="prot-title">${title} <span class="prot-sub">&middot; ${id}</span></div>
+            <div class="prot-title">${title}</div>
             <div class="prot-desc">${esc(isHidden ? t('apps.tile.hidden.desc', 'Hidden from home launcher ribbon') : t('apps.tile.visible.desc', 'Visible on home launcher ribbon'))}</div>
           </div>
           <div class="prot-status">
@@ -290,8 +295,8 @@ function renderAppsPanel() {
               <div class="prot-title">${title} <span class="prot-sub">&middot; ${unit}</span></div>
               <div class="prot-desc">${desc}</div>
             </div>
-            <div class="prot-status" style="display:flex;align-items:center;gap:10px">
-              ${badge ? `<span class="pv-badge" style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--w06);color:var(--t2)">${badge}</span>` : ''}
+            <div class="prot-status">
+              ${badge ? `<span class="app-badge">${badge}</span>` : ''}
               ${renderToggle({
                 id: 'btn-svc-' + id,
                 cls: isDisabled ? 'warn' : 'good',
@@ -447,6 +452,7 @@ async function postHomeScreen(btnId, body) {
   const btn = q(btnId);
   if (btn) {
     btn.disabled = true;
+    btn.classList.add('busy');
     btn.textContent = t('apps.service.updating', 'Updating…');
   }
   let error = null;
@@ -460,6 +466,8 @@ async function postHomeScreen(btnId, body) {
     if (!r || !r.ok) error = (r && r.error) || t('common.unknownError', 'unknown error');
   } catch (e) {
     error = e.message;
+  } finally {
+    if (btn) btn.classList.remove('busy');
   }
   if (error) alert(t('apps.home.failed', 'Could not change the Home screen: {error}', { error }));
   loadApps();
@@ -521,6 +529,7 @@ async function togglePreload(appId, makeOff) {
   const btn = q('btn-preload-' + appId);
   if (btn) {
     btn.disabled = true;
+    btn.classList.add('busy');
     btn.textContent = t('apps.service.updating', 'Updating\u2026');
   }
   let error = null;
@@ -539,6 +548,8 @@ async function togglePreload(appId, makeOff) {
     }
   } catch (e) {
     error = e.message;
+  } finally {
+    if (btn) btn.classList.remove('busy');
   }
   if (appsData) renderPreload(appsData);
   if (error) alert(t('apps.preload.failed', 'Could not change it: {error}', { error }));
@@ -548,6 +559,7 @@ async function toggleService(serviceId, makeDisabled) {
   const btn = document.getElementById('btn-svc-' + serviceId);
   if (btn) {
     btn.disabled = true;
+    btn.classList.add('busy');
     btn.textContent = t('apps.service.updating', 'Updating\u2026');
   }
   try {
@@ -576,6 +588,8 @@ async function toggleService(serviceId, makeDisabled) {
       btn.textContent = makeDisabled ? t('apps.service.active', 'Active') : t('apps.service.disabled', 'Disabled');
     }
     alert(t('apps.service.failed', 'Could not update service: {error}', { error: e.message }));
+  } finally {
+    if (btn) btn.classList.remove('busy');
   }
 }
 
@@ -648,8 +662,10 @@ async function toggleTileVisibility(appId, makeHidden) {
 async function setTileHiding(enabled) {
   const btnOff = q('tile-hiding-off');
   const btnOn = q('tile-hiding-on');
+  const target = enabled ? btnOn : btnOff;
   if (btnOff) btnOff.disabled = true;
   if (btnOn) btnOn.disabled = true;
+  if (target) target.classList.add('busy');
   try {
     const res = await fetch(api('/api/apps/tile-hiding'), {
       method: 'POST',
@@ -671,6 +687,7 @@ async function setTileHiding(enabled) {
     alert(t('apps.tiles.failed', 'Could not update tile hiding: {error}', { error: e.message }));
     renderAppsPanel();
   } finally {
+    if (target) target.classList.remove('busy');
     if (btnOff) btnOff.disabled = false;
     if (btnOn) btnOn.disabled = false;
   }

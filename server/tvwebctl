@@ -214,7 +214,10 @@ watch_loop() {
     slept=$(( now - last ))
     last=$now
     if [ "$slept" -gt $(( CHECK * 3 )) ]; then
-      echo "$(date): resumed after ${slept}s suspended - skipping one check" >> "$LOG"
+      printf '%s [%s] [INFO] watchdog: resumed after %ss suspended - skipping one check\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        "$(cut -d' ' -f1 /proc/uptime 2>/dev/null || echo 0)" \
+        "$slept" >> "$LOG"
       stale=0
       continue
     fi

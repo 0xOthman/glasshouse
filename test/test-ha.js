@@ -253,7 +253,8 @@ console.log('Running test-ha.js ...');
   assert.strictEqual(by.balance.payload.enabled_by_default, false);
   assert.strictEqual(by.balance.payload.entity_category, 'config');
   assert.strictEqual(by.balance.payload.min, -50);
-  assert.ok(/lgs \| default/.test(by.bluetooth_speaker_mode.payload.value_template));
+  // A retained message from before the settings were published has no lgs.
+  assert.ok(by.bluetooth_speaker_mode.payload.value_template.indexOf("(value_json.get('lgs') or {})") !== -1);
   var none = ha.buildEntities({ pfx: 'test/tv' }).filter(function (e) { return e.id === 'sound_mode'; });
   assert.strictEqual(none.length, 0);
   console.log('  ✓ LG settings become entities only where the TV has them');
@@ -330,7 +331,16 @@ console.log('Running test-ha.js ...');
     assert.strictEqual(b.payload.payload_press, k);
     assert.ok(ha.HA_ENTITIES.some(function (e) { return e.id === 'remote_' + k && e.cat === 'controls'; }));
   });
-  console.log('  ✓ OLED Light is a slider on the live topic, and the D-pad, Back and Home are buttons');
+  [['rewind', 'rewind', 'mdi:rewind'], ['fast_forward', 'fastForward', 'mdi:fast-forward']].forEach(function (m) {
+    var b = by['button.' + m[0]];
+    assert.ok(b, m[0]);
+    assert.strictEqual(b.payload.command_topic, 'test/tv/command/playback');
+    assert.strictEqual(b.payload.payload_press, m[1]);
+    assert.strictEqual(b.payload.icon, m[2]);
+    assert.ok(require('../server/lib/controls').RCU_KEY_CODES[m[1]], 'controls knows ' + m[1]);
+    assert.ok(ha.HA_ENTITIES.some(function (e) { return e.id === m[0] && e.type === 'button' && e.cat === 'controls'; }));
+  });
+  console.log('  ✓ OLED Light is a slider on the live topic, and the D-pad, Back, Home, Rewind and Fast Forward are buttons');
 })();
 
 // LG's PHY error count is no longer published, and Home Assistant is told to
@@ -349,11 +359,72 @@ console.log('Running test-ha.js ...');
   // Hyphens, uppercase, and spaces are sanitized to underscores
   assert.strictEqual(ha.defaultEntityId('switch', 'LG-C9', 'on_timer'), 'switch.lg_c9_on_timer');
   assert.strictEqual(ha.defaultEntityId('sensor', 'Living Room TV', 'active_app'), 'sensor.living_room_tv_active_app');
+  var activeApp = ha.buildEntities({ pfx: 'test/tv' }).filter(function (e) { return e.id === 'active_app'; })[0];
+  assert.strictEqual(activeApp.payload.json_attributes_topic, 'test/tv/state/application/remote', 'routing arrives without waiting for telemetry');
+  assert.strictEqual(activeApp.payload.json_attributes_template, '{{ value_json | tojson }}');
+  var launch = ha.buildEntities({ pfx: 'test/tv', installedApps: [{ id: 'netflix', title: 'Netflix' }, { id: 'com.example.player', title: 'Example Player' }] })
+    .filter(function (e) { return e.id === 'app'; })[0];
+  var ids = JSON.parse(launch.payload.json_attributes_template.replace(/^\{\{ | \| tojson \}\}$/g, '')).app_ids;
+  assert.strictEqual(ids['Example Player'], 'com.example.player', 'each launchable title carries its app id');
+  assert.strictEqual(ids.Netflix, 'netflix');
+  assert.strictEqual(ids.Settings, 'com.palm.app.settings', 'LG Settings is launchable from the select');
+  assert.ok(launch.payload.options.indexOf('Settings') >= 0);
   assert.strictEqual(ha.defaultEntityId('button', '__LG_TV__', 'restart'), 'button.lg_tv_restart');
   // Empty or missing device id produces domain.item_id
   assert.strictEqual(ha.defaultEntityId('number', '', 'volume'), 'number.volume');
   assert.strictEqual(ha.defaultEntityId('select', null, 'sound_output'), 'select.sound_output');
   console.log('  ✓ defaultEntityId generates valid, sanitized Home Assistant entity IDs');
+})();
+
+// The Launch App select's icons and colours, for a launcher showing tiles
+(function testLaunchAppIconsAndColors() {
+  function launchAttrs(opts) {
+    opts.pfx = 'test/tv';
+    var launch = ha.buildEntities(opts).filter(function (e) { return e.id === 'app'; })[0];
+    var tpl = launch.payload.json_attributes_template;
+    assert.ok(/^\{\{ \{.*\} \| tojson \}\}$/.test(tpl), 'a dict literal piped through tojson');
+    return JSON.parse(tpl.replace(/^\{\{ | \| tojson \}\}$/g, ''));
+  }
+  var apps = [
+    { id: 'netflix', title: 'Netflix', iconColor: '#E50914' },
+    { id: 'youtube.leanback.v4', title: 'YouTube', iconColor: '#fff' },
+    { id: 'bad.colour', title: 'Bad', iconColor: 'red' },
+    { id: 'no.colour', title: 'None' }
+  ];
+
+  var off = launchAttrs({ installedApps: apps });
+  assert.strictEqual('app_icons' in off, false, 'no icons while the icon server is off or the address unknown');
+  assert.ok(off.app_ids.Netflix, 'app_ids stays');
+
+  var on = launchAttrs({ installedApps: apps, iconBaseUrl: 'http://192.168.1.131:8082/icons/' });
+  assert.strictEqual(on.app_icons.netflix, 'http://192.168.1.131:8082/icons/netflix.png');
+  assert.strictEqual(on.app_icons['youtube.leanback.v4'], 'http://192.168.1.131:8082/icons/youtube.leanback.v4.png');
+  assert.strictEqual(on.app_icons['com.palm.app.settings'], 'http://192.168.1.131:8082/icons/com.palm.app.settings.png');
+  console.log('  ✓ app_icons is published only with the icon server listening and the TV\'s address known');
+
+  assert.deepEqual(on.app_colors, { netflix: '#e50914', 'youtube.leanback.v4': '#ffffff' });
+  var plain = launchAttrs({ installedApps: [{ id: 'no.colour', title: 'None' }] });
+  assert.strictEqual('app_colors' in plain, false, 'no app_colors when no app has a valid colour');
+  console.log('  ✓ app_colors carries only valid hex colours, as #rrggbb');
+})();
+
+// A field missing from the telemetry is logged by Home Assistant each time a
+// template reads it (#761), so every read goes through get().
+(function testTemplatesReadSafely() {
+  var ents = ha.buildEntities({ allowControl: true, allowPower: true, isOled: true,
+    installedApps: [{ id: 'netflix', title: 'Netflix' }] });
+  var unsafe = [];
+  JSON.stringify(ents, function (k, v) {
+    if (typeof v === 'string' && /template$/.test(k) && /value_json\.(?!get\()/.test(v)) unsafe.push(k + ': ' + v);
+    return v;
+  });
+  assert.deepEqual(unsafe, [], 'a template reads value_json.<field> directly');
+  assert.strictEqual(ha.safeFields('{{ value_json.a.b }}'), "{{ (value_json.get('a') or {}).get('b') }}");
+  assert.strictEqual(ha.safeFields('{{ value_json.get("x") }}'), '{{ value_json.get("x") }}', 'get() is left');
+  assert.strictEqual(ha.safeFields('{{ value_json.a.get("b") }}'), "{{ (value_json.get('a') or {}).get(\"b\") }}");
+  var retired = ha.RETIRED_ENTITIES.map(function (e) { return e.type + '.' + e.id; });
+  assert.ok(retired.indexOf('sensor.soc_current') !== -1 && retired.indexOf('binary_sensor.standby_stuck') !== -1);
+  console.log('  ✓ every template reads telemetry fields with get(), and the removed SoC current and standby sensors are cleared');
 })();
 
 console.log('ALL test-ha.js assertions passed!\n');

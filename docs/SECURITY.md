@@ -142,7 +142,9 @@ telnet.
 
 1. In the Homebrew Channel, turn **SSH** on.
 2. **Reboot.** The flag is only read at boot.
-3. Install your key. The placeholder password `alpine` gets you in this once:
+3. Install your key. The Server tab's **SSH keys**, under Advanced, takes a
+   pasted public key, with no password involved. Or the placeholder password
+   `alpine` gets you in this once:
    ```bash
    ssh-copy-id root@<tv-ip>
    ```
@@ -159,6 +161,12 @@ telnet.
 
 **Do not turn telnet off before step 5.** If SSH does not come up you will have
 no root access, and recovery means re-rooting the TV.
+
+A key is a way in that outlasts the dashboard, so the Server tab changes keys
+only with a `token` set, even from the TV itself: a page in the TV's browser
+reached through a rebinding name, or any app on the TV, also connects from the
+TV. Without a token it only lists them, by fingerprint. Its **Delete the key file** puts the `alpine` password back from
+the next reboot, for a TV whose keys are lost; add a key again straight after.
 
 `deploy.sh` prefers SSH and falls back to telnet automatically, so it keeps
 working throughout. `--telnet` forces the old path if you need it.

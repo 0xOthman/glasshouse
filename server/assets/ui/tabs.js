@@ -64,12 +64,14 @@ function showTab(name) {
   relayout(false);   // the panel just became measurable
   cfgPollStatus(name === 'mqtt');
   if (name === 'metrics') loadHdmiOnce();
-  if (name === 'apps') { loadApps(); loadCatalog(false); pollInstall(); }
+  watchPolling(name === 'metrics');
+  if (name === 'apps') { loadApps(); loadCatalog(false); pollInstall(); loadRestoredApps(); }
   if (name === 'server') checkOnOpen();
   if (name === 'server') loadTvApp();
+  if (name === 'server') loadSsh();
   if (name === 'oledcare') loadOledCare();
   gamePolling(name === 'game');
-  if (name === 'advanced') loadAdvSettings();
+  if (name === 'advanced') { loadAdvSettings(); loadUpdate(); loadScreenTime(); }
   if (name === 'servicemenu') loadServiceMenu();
   if (name === 'screensaver') loadScreensavers();
   if (name === 'privacy') loadPrivacy();

@@ -164,6 +164,27 @@ const SOUND_BUTTON = {
 
 let moreOutputs = [];
 
+function updateSoundoutsLayout() {
+  const sel = q('so_more');
+  const soBox = q('soundouts');
+  if (!soBox) return;
+  const visibleBtns = Array.from(soBox.querySelectorAll('button')).filter(b => !b.hidden);
+  if (sel && !sel.hidden) {
+    visibleBtns.forEach(b => { b.classList.remove('span-full'); b.classList.remove('span-center'); });
+    sel.classList.remove('span-full');
+    sel.classList.toggle('span-center', visibleBtns.length % 2 === 0);
+  } else if (visibleBtns.length % 2 !== 0) {
+    if (sel) { sel.classList.remove('span-full'); sel.classList.remove('span-center'); }
+    visibleBtns.forEach((b, i) => {
+      b.classList.remove('span-full');
+      b.classList.toggle('span-center', i === visibleBtns.length - 1);
+    });
+  } else {
+    visibleBtns.forEach(b => { b.classList.remove('span-full'); b.classList.remove('span-center'); });
+    if (sel) { sel.classList.remove('span-full'); sel.classList.remove('span-center'); }
+  }
+}
+
 // The TV's other outputs go in More. One of them in use shows as a button of
 // its own before the list, so More always reads as the way to the rest.
 function renderMoreOutputs(outputs, current) {
@@ -184,6 +205,7 @@ function renderMoreOutputs(outputs, current) {
     extra.hidden = !inUse;
     extra.textContent = inUse ? inUse.name : '';
   }
+  updateSoundoutsLayout();
 }
 
 function hdmiKey(d) {
@@ -227,9 +249,14 @@ async function tick() {
     pwStandby = ps.raw === 'Active Standby';
     if (q('poff')) q('poff').textContent = pwStandby ? t('ctl.powerOn', 'Power on') : t('ctl.powerOff', 'Power off');
     const isComp = (o.comp_status === 'Running');
+    const isStandby = !isComp && (ps.systemOn === false || ps.raw === 'Standby' || ps.raw === 'Active Standby');
+    const isScreenOff = !isComp && !isStandby && ps.screenOn === false;
+    const isOn = !isComp && !isStandby && !isScreenOff && ps.screenOn !== false && (ps.systemOn === true || ps.label === 'On');
     const stEl = q('state');
     stEl.classList.toggle('comp', isComp);
-    stEl.classList.toggle('off', !isComp && ps.screenOn === false);
+    stEl.classList.toggle('standby', isStandby);
+    stEl.classList.toggle('off', isScreenOff);
+    stEl.classList.toggle('on', isOn);
     if (isComp) {
       stEl.querySelector('span').textContent = t('state.activeStandby', 'Active Standby');
       q('source').textContent = t('state.compRunning', 'Completing Panel Maintenance (Short Cycle)');
@@ -276,6 +303,7 @@ async function tick() {
       const ltLogoVal = getLease('logoLight', lights.logo);
       advPill('logolight', 'lt_logo', lights.hasLogo ? (ltLogoVal !== undefined ? ltLogoVal : lights.logo) : undefined);
       if (q('adv-display')) q('adv-display').hidden = d.lgLogo === undefined;
+      if (q('adv-lights')) q('adv-lights').hidden = lights.standby === undefined && !lights.hasLogo;
       const pc = d.piccapCapture;
       const pcVal = getLease('piccap', pc ? pc.running : undefined);
       advPill('piccap', 'btn_piccap', pc ? (pcVal !== undefined ? pcVal : pc.running) : undefined);
@@ -292,13 +320,31 @@ async function tick() {
     }
 
     const rem = d.remote;
-    if (rem && rem.battery !== null && rem.battery !== undefined) {
+    const hasBattery = !!(rem && typeof rem.battery === 'number');
+    if (hasBattery) {
       q('remoteblock').hidden = false;
       q('remote-pct').textContent = rem.battery;
       const gFill = q('remote-gauge-fill');
       gFill.style.width = Math.max(5, Math.min(100, rem.battery)) + '%';
       gFill.style.background = rem.battery <= 15 ? 'var(--red)' : rem.battery <= 30 ? 'var(--cand)' : 'var(--green)';
-      q('remote-model-sub').textContent = rem.model ? rem.model.replace(/^LGE\s*/i, '') : 'MR22';
+      q('remote-model-val').textContent = rem.model ? rem.model.replace(/^LGE\s*/i, '') : t('metrics.remote.name', 'Magic Remote');
+      q('remote-fw-val').textContent = rem.firmware || '—';
+      if (q('remote-fw-row')) q('remote-fw-row').hidden = !rem.firmware;
+      if (q('remote-signal-row')) {
+        q('remote-signal-row').hidden = !rem.signal;
+        if (rem.signal) {
+          const isWeak = rem.signal === 'weak';
+          q('remote-signal-val').textContent = isWeak ? t('metrics.remote.signalWeak', 'Weak') : t('metrics.remote.signalGood', 'Good');
+          q('remote-signal-val').style.color = isWeak ? 'var(--cand)' : '';
+        }
+      }
+      const rPill = q('remote-pill');
+      if (rPill) {
+        const isConn = !!rem.connected;
+        rPill.className = 'pill ' + (isConn ? 'good' : 'idle');
+        rPill.textContent = isConn ? t('metrics.remote.connected', 'Connected') : t('metrics.remote.standby', 'Standby');
+        rPill.title = rem.mac ? t('metrics.remote.bluetooth', 'Bluetooth: {address}', { address: rem.mac }) + ' · ' + (isConn ? t('metrics.remote.connected', 'Connected') : t('metrics.remote.standby', 'Standby')) : '';
+      }
       q('remoteblock').title = [rem.model || t('metrics.remote.name', 'Magic Remote'),
         rem.firmware ? t('metrics.remote.firmware', 'Firmware: {version}', { version: rem.firmware }) : '',
         rem.mac ? t('metrics.remote.bluetooth', 'Bluetooth: {address}', { address: rem.mac }) : ''].filter(Boolean).join(' · ');
@@ -515,9 +561,12 @@ async function tick() {
     q('mute').classList.toggle('on', muted);
 
     if (d.inputs && !q('inputs').dataset.built) {
-      q('inputs').innerHTML = Object.keys(d.inputs).map(k =>
-        `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')">${esc(d.inputs[k])}</button>`).join('') +
-        `<button id="in_livetv" onclick="sendCommand('input','livetv')">${esc(t('ctl.liveTv', 'Live TV'))}</button>`;
+      const inKeys = Object.keys(d.inputs);
+      const totalInputs = inKeys.length + 1;
+      const liveTvClass = (totalInputs % 2 !== 0) ? ' class="span-center"' : '';
+      q('inputs').innerHTML = inKeys.map(k =>
+        `<button id="in_${esc(k)}" onclick="sendCommand('input','${jsq(k)}')"><span class="lbl" title="${esc(d.inputs[k])}">${esc(d.inputs[k])}</span></button>`).join('') +
+        `<button id="in_livetv"${liveTvClass} onclick="sendCommand('input','livetv')"><span class="lbl" title="${esc(t('ctl.liveTv', 'Live TV'))}">${esc(t('ctl.liveTv', 'Live TV'))}</span></button>`;
       q('inputs').dataset.built = '1';
     }
 
@@ -661,10 +710,6 @@ async function tick() {
       renderMoreOutputs(offered ? offered.filter(o => !SOUND_BUTTON[o.id]) : [], curSo);
     }
 
-    const up = d.uptime, dd = Math.floor(up / 86400), hh = Math.floor(up % 86400 / 3600), mm = Math.floor(up % 3600 / 60);
-    const upFor = dd ? t('footer.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
-      : t('footer.uptime.hours', '{h}h {m}m', { h: hh, m: mm });
-    q('uptime').textContent = t('footer.up', 'Up {time}', { time: upFor });
     setVersion(d.tvwebVersion);
     // Several groups stay hidden until the first payload says the TV has them,
     // so the columns are only worth filling once that has happened.

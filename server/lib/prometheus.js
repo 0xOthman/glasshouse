@@ -601,6 +601,14 @@ var FAMILIES = [
     name: 'glasshouse_ntp_last_answer_timestamp_seconds', type: 'gauge',
     help: 'When the last answer came from the NTP server, as a Unix time.',
     samples: function (s, version, syslog, ntp) { return ntp && ntp.last ? one(ntp.last.at / 1000) : []; }
+  },
+  {
+    name: 'glasshouse_watch_seconds_total', type: 'counter',
+    help: 'Time the TV has been on, per app or input in front, in seconds, while watch time is on. screen_off is the TV on with its panel off, screen_saver with LG\'s screen saver showing. Clearing the history resets it.',
+    samples: function (s, version, syslog, ntp, watch) {
+      if (!watch) return [];
+      return Object.keys(watch).sort().map(function (app) { return [{ app: app }, watch[app]]; });
+    }
   }
 ];
 
@@ -623,13 +631,14 @@ function labelSet(labels) {
 
 // stats is telemetry's collectStats result; version is Glasshouse's own;
 // syslog is the syslog module's counters, null while forwarding is off; ntp is
-// the NTP client's status, null while it is off.
-function render(stats, version, syslog, ntp) {
+// the NTP client's status, null while it is off; watch is seconds per app
+// from the watch-time history, null while that is off.
+function render(stats, version, syslog, ntp, watch) {
   var s = stats && typeof stats === 'object' ? stats : {};
   var out = '';
   for (var i = 0; i < FAMILIES.length; i++) {
     var f = FAMILIES[i];
-    var samples = f.samples(s, version, syslog || null, ntp || null);
+    var samples = f.samples(s, version, syslog || null, ntp || null, watch || null);
     if (!samples.length) continue;
     out += '# HELP ' + f.name + ' ' + f.help + '\n# TYPE ' + f.name + ' ' + f.type + '\n';
     for (var j = 0; j < samples.length; j++) {

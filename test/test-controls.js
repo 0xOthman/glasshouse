@@ -380,4 +380,106 @@ console.log('Running test-controls.js ...');
   console.log('  ✓ the time server is saved and the client restarted, a mistyped one refused, and the switch keeps it');
 })();
 
+// updateCheck and updateAutoCheck return unified updateSummary (including daemon health) (#712)
+(function testUpdateCheckSummary() {
+  var checkedAge = null;
+  var autoCheckVal = null;
+  controls.init({
+    config: { allowControl: true },
+    updater: {
+      checkForUpdate: function (minAge, cb) {
+        checkedAge = minAge;
+        cb(null, { ok: true, state: 'current' });
+      },
+      setAutoCheck: function (val, cb) {
+        autoCheckVal = val;
+        cb({ ok: true, autoCheck: val });
+      }
+    },
+    updateSummary: function () {
+      return { ok: true, state: 'current', daemon: { uptime: 100, rss: 123456 } };
+    }
+  });
+
+  controls.doControl('updateCheck', 'open', function (res) {
+    assert.strictEqual(res.ok, true);
+    assert.strictEqual(checkedAge, 120000);
+    assert.deepEqual(res.daemon, { uptime: 100, rss: 123456 });
+  });
+
+  controls.doControl('updateAutoCheck', true, function (res) {
+    assert.strictEqual(res.ok, true);
+    assert.strictEqual(autoCheckVal, true);
+    assert.deepEqual(res.daemon, { uptime: 100, rss: 123456 });
+  });
+
+  console.log('  ✓ updateCheck and updateAutoCheck return unified updateSummary including daemon');
+})();
+
+// Remote keys and Home go ahead of the luna queue, and log how long they took
+(function testRcuUrgent() {
+  var normal = [];
+  var urgent = [];
+  var debugs = [];
+  var realDebug = console.debug;
+  console.debug = function (m) { debugs.push(String(m)); };
+  controls.init({
+    config: { allowControl: true },
+    telemetry: { clearCache: function () {} },
+    luna: function (uri, payload, cb) { normal.push(uri); cb({ returnValue: true }); },
+    lunaUrgent: function (uri, payload, cb) {
+      urgent.push(uri + ' ' + JSON.stringify(payload));
+      var now = require('../server/lib/util').monotonicMs();
+      cb({ returnValue: true }, '', { startedAt: now, endedAt: now + 31 });
+    }
+  });
+  controls.doControl('rcu', 'right', function (res) { assert.strictEqual(res.ok, true); });
+  controls.doControl('rcu', 'home', function (res) { assert.strictEqual(res.ok, true); });
+  controls.doControl('volume', 20, function () {});
+  console.debug = realDebug;
+  assert.deepEqual(urgent, [
+    'com.webos.service.networkinput/test/sendKeyCode {"keyCode":106}',
+    'com.webos.applicationManager/launch {"id":"com.webos.app.home"}'
+  ]);
+  assert.deepEqual(normal, ['com.webos.audio/setVolume'], 'only rcu takes the urgent path');
+  assert.ok(/^rcu right: queued \d+ ms, luna 31 ms, ok$/.test(debugs[0]), debugs[0]);
+  assert.ok(/^rcu home: queued \d+ ms, luna 31 ms, ok$/.test(debugs[1]), debugs[1]);
+  console.log('  ✓ remote keys and Home use the urgent luna path and log their timing');
+})();
+
 console.log('ALL test-controls.js assertions passed!\n');
+
+// 6. A powerOff answered with a failure is read back before trying again
+(function testPowerOffReadBack() {
+  // [first answer, state read back, second answer, ok expected, requests expected]
+  var cases = [
+    [{ returnValue: false }, 'Active Standby', null, true, 2],
+    [{ returnValue: false }, 'Active', { returnValue: false, errorText: 'com.webos.service.tvpower/power is busy' }, true, 3],
+    [{ returnValue: false, errorText: 'refused' }, 'Active', { returnValue: false, errorText: 'refused again' }, false, 3]
+  ];
+  var done = 0;
+  function next(i) {
+    if (i === cases.length) {
+      done = i;
+      return console.log('  ✓ a powerOff answered with a failure counts as done once the TV is switching off');
+    }
+    var c = cases[i], calls = [];
+    controls.init({
+      config: { allowControl: true, allowPower: true },
+      luna: function (uri, payload, cb) {
+        calls.push(uri);
+        if (/getPowerState$/.test(uri)) return cb({ returnValue: true, state: c[1] });
+        cb(calls.length === 1 ? c[0] : c[2]);
+      },
+      clearLunaCache: function () {},
+      telemetry: { clearCache: function () {} }
+    });
+    controls.doControl('powerOff', null, function (res) {
+      assert.strictEqual(res.ok, c[3], 'case ' + i);
+      assert.strictEqual(calls.length, c[4], 'case ' + i + ' requests');
+      next(i + 1);
+    });
+  }
+  next(0);
+  process.on('exit', function () { assert.strictEqual(done, cases.length, 'every powerOff case answered'); });
+})();

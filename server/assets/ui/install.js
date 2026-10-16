@@ -41,6 +41,44 @@ function installIdle() {
   return !installSnap || !(INSTALL_BUSY[installSnap.state] || installSnap.state === 'awaiting-confirm');
 }
 
+let catalogCategory = 'all';
+
+function appCategory(a) {
+  // If the repository provides an explicit category, use it directly
+  if (a.category) {
+    const c = String(a.category).toLowerCase().trim();
+    if (c === 'game' || c === 'games' || c === 'emulator' || c === 'emulators') return 'game';
+    if (c === 'screensaver' || c === 'screensavers') return 'screensaver';
+    if (c === 'amblight' || c === 'ambilight' || c === 'lighting') return 'amblight';
+    if (c === 'multimedia' || c === 'media' || c === 'video' || c === 'audio' || c === 'music' || c === 'streaming' || c === 'internet') return 'multimedia';
+    if (c === 'utility' || c === 'utilities' || c === 'system' || c === 'tools') return 'utility';
+    return c;
+  }
+  // Dynamic keyword and topic classification from package metadata (no hardcoded app IDs)
+  const text = ((a.id || '') + ' ' + (a.title || '') + ' ' + (a.description || '')).toLowerCase();
+  if (text.includes('screensaver') || text.includes('screen saver') || text.includes('idlegif')) return 'screensaver';
+  if (text.includes('piccap') || text.includes('hyperion') || text.includes('hyperhdr') || text.includes('ambilight')) return 'amblight';
+  if (!text.includes('terminal') && (text.includes('game') || text.includes('gaming') || text.includes('pinball') || text.includes('doom') || text.includes('retroarch') || text.includes('emulator') || text.includes('arcade') || text.includes('openttd') || text.includes('steam link') || text.includes('gamestream') || text.includes('punktfunk'))) {
+    return 'game';
+  }
+  if (text.includes('player') || text.includes('jellyfin') || text.includes('plex') || text.includes('kodi') || text.includes('stream') || text.includes('media') || text.includes('video') || text.includes('music') || text.includes('audio') || text.includes('twitch') || text.includes('youtube') || text.includes('bilibili') || text.includes('crunchyroll') || text.includes('iptv') || text.includes('photo') || text.includes('gallery') || text.includes('immich') || text.includes('subsonic') || text.includes('cinema') || text.includes('decotv') || text.includes('tvheadend')) {
+    return 'multimedia';
+  }
+  return 'utility';
+}
+
+function setCatalogCategory(cat) {
+  catalogCategory = cat;
+  const container = q('catalog-categories');
+  if (container) {
+    const btns = container.querySelectorAll('button');
+    for (let i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('on', btns[i].dataset.cat === cat);
+    }
+  }
+  renderCatalog();
+}
+
 function renderCatalog() {
   const list = q('apps-catalog-list');
   if (!list || !catalogData) return;
@@ -55,9 +93,12 @@ function renderCatalog() {
     return;
   }
   const term = q('catalog-search').value.trim().toLowerCase();
-  const shown = apps.filter(a => !term ||
-    (a.title || '').toLowerCase().includes(term) || (a.id || '').toLowerCase().includes(term) ||
-    (a.description || '').toLowerCase().includes(term));
+  const shown = apps.filter(a => {
+    if (catalogCategory !== 'all' && appCategory(a) !== catalogCategory) return false;
+    if (!term) return true;
+    return (a.title || '').toLowerCase().includes(term) || (a.id || '').toLowerCase().includes(term) ||
+      (a.description || '').toLowerCase().includes(term);
+  });
   if (!shown.length) {
     list.innerHTML = `<div class="sub" style="padding:16px 0">${esc(t('apps.install.noMatch', 'No apps match.'))}</div>`;
     return;
@@ -81,9 +122,9 @@ function renderCatalog() {
       ? `<img src="${esc(a.iconUri)}" width="38" height="38" loading="lazy" referrerpolicy="no-referrer" alt="" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">`
       : '<span style="width:38px;height:38px;flex-shrink:0"></span>';
     const meta = [a.version ? 'v' + a.version : '',
-      a.size ? fmtSize(a.size) : '',
       a.state === 'update' && a.installedVersion ? t('apps.install.have', 'installed: v{version}', { version: a.installedVersion }) : ''
     ].filter(Boolean).join(' · ');
+    const sizeBadge = (a.size && typeof fmtSize === 'function') ? fmtSize(a.size) : '';
     const root = a.rootRequired ? ` <span class="pill warn" style="padding:1px 8px">${esc(t('apps.install.rootBadge', 'root'))}</span>` : '';
     const clickFn = isInstalled
       ? `confirmUninstall('${jsq(a.id)}', '${jsq(a.title || a.id)}');`
@@ -91,22 +132,16 @@ function renderCatalog() {
     return `<div class="prot-row">
       ${icon}
       <div class="prot-main">
-        <div class="prot-title">${esc(a.title || a.id)}${root} <span class="prot-sub">&middot; ${esc(meta)}</span></div>
+        <div class="prot-title">${esc(a.title || a.id)}${root}${meta ? ` <span class="prot-sub">&middot; ${esc(meta)}</span>` : ''}</div>
         <div class="prot-desc">${esc(a.description || a.id)}</div>
         ${rowError[a.id] ? `<div class="prot-desc row-err">${esc(rowError[a.id])}</div>` : ''}
       </div>
       <div class="prot-status">
+        ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
         <button type="button" class="pill ${cls}" data-app="${esc(a.id)}" onclick="${clickFn}"${fill} ${off ? 'disabled' : ''}>${esc(label)}</button>
       </div>
     </div>`;
   }).join('');
-}
-
-function fmtSize(n) {
-  if (typeof n !== 'number' || n <= 0) return '';
-  if (n < 1048576) return t('apps.install.kb', '{n} KB', { n: Math.round(n / 1024) });
-  const mb = n / 1048576;
-  return t('apps.install.mb', '{n} MB', { n: mb >= 10 ? Math.round(mb) : Math.round(mb * 10) / 10 });
 }
 
 function fmtMb(n) { return t('apps.install.mb', '{n} MB', { n: Math.round(n / 1048576) }); }
@@ -286,6 +321,8 @@ async function toggleSideload(enable) {
   if (enable) {
     if (!confirm(t('apps.sideload.enable.confirm', 'Allow installing apps from a URL or an uploaded file?\n\nPackages from outside the catalog are unvetted and can run anything on the TV. Only install packages you trust.'))) return;
   }
+  const btn = q(enable ? 'btn-sideload-enable' : 'btn-sideload-disable');
+  if (btn) btn.classList.add('busy');
   try {
     const r = await fetch(api('/api/apps/install/sideload'), {
       method: 'POST',
@@ -299,6 +336,8 @@ async function toggleSideload(enable) {
     renderSideload();
   } catch (e) {
     showErr(e.message);
+  } finally {
+    if (btn) btn.classList.remove('busy');
   }
 }
 
@@ -429,8 +468,11 @@ function startInstall(appId) {
 function startUrlInstall() {
   const url = q('sl-url').value.trim();
   if (!url) return;
+  const btn = q('sl-url-btn');
+  if (btn) btn.classList.add('busy');
   prepareInstallTarget('url');
-  startJob('/api/apps/install/url', { url, sha256: q('sl-sha').value.trim() });
+  startJob('/api/apps/install/url', { url, sha256: q('sl-sha').value.trim() })
+    .finally(() => { if (btn) btn.classList.remove('busy'); });
 }
 
 async function startJob(path, body) {
@@ -459,11 +501,14 @@ function installFailed(text) {
 function uploadIpk() {
   const f = q('sl-file').files[0];
   if (!f || !installIdle() || uploading) return;
+  const btn = q('sl-file-btn');
+  if (btn) btn.classList.add('busy');
   prepareInstallTarget('file');
   q('catalog-msg').textContent = '';
   uploading = true;
   renderSideload();
   const fail = text => {
+    if (btn) btn.classList.remove('busy');
     uploading = false;
     renderSideload();
     setInstallStatus('');
@@ -478,6 +523,7 @@ function uploadIpk() {
   };
   xhr.onerror = () => fail(t('apps.install.uploadFailed', 'The upload did not finish'));
   xhr.onload = () => {
+    if (btn) btn.classList.remove('busy');
     let j = {};
     try { j = JSON.parse(xhr.responseText); } catch (e) {}
     if (xhr.status !== 200 || !j.ok) return fail(j.error || t('apps.install.failed', 'The install could not be started'));
@@ -552,3 +598,61 @@ window.addEventListener('keydown', e => {
     if (modal && !modal.hidden) cancelInstall();
   }
 });
+
+// ---- apps from a restored backup ----
+/* The apps a restore found missing here and the catalog has. Each is
+   installed as one picked from the catalog: its preview stops for a choice
+   such as root, and otherwise goes straight on. */
+let restoredApps = [];
+let restoringApps = false;
+
+function renderRestoredApps() {
+  const box = q('restore-apps');
+  box.hidden = !restoredApps.length;
+  if (!restoredApps.length) return;
+  q('restore-apps-text').textContent = t('apps.restore.text', 'From a restored backup, not installed here: {names}.', { names: restoredApps.map(a => a.title).join(', ') });
+  q('restore-apps-install').disabled = restoringApps;
+  q('restore-apps-dismiss').disabled = restoringApps;
+}
+
+async function loadRestoredApps() {
+  try {
+    const r = await fetch(api('/api/backup/apps'), { cache: 'no-store' });
+    const d = await r.json();
+    restoredApps = (d.ok && d.apps) || [];
+  } catch (e) {
+    restoredApps = [];
+  }
+  renderRestoredApps();
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// Until the install that was started has finished, one way or another.
+async function installSettled() {
+  await sleep(1500);
+  while (!installIdle() || installOwn) await sleep(1000);
+}
+
+async function installRestoredApps() {
+  if (restoringApps || !installIdle()) return;
+  restoringApps = true;
+  renderRestoredApps();
+  try {
+    for (const a of restoredApps.slice()) {
+      startInstall(a.id);
+      await installSettled();
+    }
+  } finally {
+    restoringApps = false;
+    await loadRestoredApps();
+  }
+}
+
+async function dismissRestoredApps() {
+  try {
+    await fetch(api('/api/backup/apps/clear'), { method: 'POST' });
+  } catch (e) {}
+  restoredApps = [];
+  renderRestoredApps();
+}

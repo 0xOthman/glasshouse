@@ -10,6 +10,7 @@ var http = require('http');
 var say = require('./say');
 var lanAddress = require('./util').lanAddress;
 var listenDualStack = require('./util').listenDualStack;
+var sendIconFile = require('./iconserver').sendIconFile;
 var writeJsonAtomic = require('./util').writeJsonAtomic;
 var unlinkQuiet = require('./util').unlinkQuiet;
 var existsQuiet = require('./util').existsQuiet;
@@ -89,6 +90,14 @@ var prometheusModule = null;
 var syslogModule = null;
 /** @type {typeof import('./ntp')} */
 var ntpModule = null;
+/** @type {typeof import('./history')} */
+var historyModule = null;
+/** @type {typeof import('./sshkeys')} */
+var sshKeysModule = null;
+/** @type {typeof import('./screentime')} */
+var screentimeModule = null;
+/** @type {typeof import('./backup')} */
+var backupModule = null;
 var fromHbcFn = null;
 var tileHidingOffMsg = '';
 var assetPathFn = null;
@@ -171,6 +180,7 @@ function luna(uri, payload, cb) { return lunaFn(uri, payload, cb); }
 function getMqttStatus() { return getMqttStatusFn(); }
 
 function setupPending() {
+  if (config && config.emulateSetup) return true;
   return existsQuiet(SETUP_PENDING);
 }
 
@@ -181,7 +191,8 @@ function setupPending() {
  * own exposure defeats the point of setting them. The one exception is host,
  * from the TV itself during setup - see setNetworkAccess. Experimental feature
  * toggles (allowTileHiding, allowOnWebos10), allowNetworkDebugger and
- * prometheus.enabled are writable from the Server tab.
+ * prometheus.enabled are writable from the Server tab, and iconServer from the
+ * MQTT tab: its port answers nothing but the icons the dashboard serves.
  */
 function readConfigFile() {
   try {
@@ -189,7 +200,7 @@ function readConfigFile() {
       return JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
     }
   } catch (e) {
-    console.warn('warning: could not re-read ' + configFilePath + ': ' + e.message);
+    console.warn('config: could not re-read ' + configFilePath + ': ' + e.message);
   }
   return {};
 }
@@ -259,6 +270,8 @@ function validateSettings(j) {
   if (!/^[a-z0-9_]{1,64}$/.test(out.device.id)) e.push('device id must be 1-64 characters of a-z, 0-9 or _');
   out.device.name = trimmedString(d.name);
 
+  // Saved with the MQTT form, whose Launch App select lists the icons' addresses.
+  if (j && typeof j.iconServer === 'boolean') out.iconServer = j.iconServer;
 
   return { errors: e, value: out };
 }
@@ -359,20 +372,44 @@ function ownIdentity() {
   return { id: 'lg_' + key, prefix: 'lgtv_' + key };
 }
 
-function setupState() {
+var simulatedSetupState = {};
+
+function resetSimulatedSetup() {
+  simulatedSetupState = { network: null, alwaysReady: null, homeAssistant: null };
+}
+
+function isSetupEmulated(query, body) {
+  if (config && config.emulateSetup) return true;
+  if (query && (query.demo === '1' || query.demo === 'true')) return true;
+  if (body && (body.demo === true || body.demo === '1')) return true;
+  return false;
+}
+
+function setupState(isDemo) {
   var m = config.mqtt || {};
   var mqttStat = getMqttStatus();
-  return {
+  var open = networkOpen();
+  if (isDemo && simulatedSetupState.network !== null && simulatedSetupState.network !== undefined) {
+    open = simulatedSetupState.network;
+  }
+  var st = {
     ok: true,
     needed: setupPending(),
     writable: config.allowControl,
-    network: networkOpen(),
+    network: open,
     token: !!config.token,
-    address: lanAddress() ? lanAddress() + ':' + config.port : null,
+    address: lanAddress() ? lanAddress() + ':' + config.port : (isDemo ? '192.168.1.131:' + (config.port || 8080) : null),
     hostname: telemetryModule ? telemetryModule.lanHostname(lanAddress()) : null,
-    homeAssistant: { configured: !!(m.enabled && m.host), state: mqttStat.state },
-    handoff: HANDOFF.server ? handoffUrl() : null
+    homeAssistant: (isDemo && simulatedSetupState.homeAssistant) ? simulatedSetupState.homeAssistant : { configured: !!(m.enabled && m.host), state: mqttStat.state },
+    handoff: HANDOFF.server ? handoffUrl() : (isDemo ? 'http://' + (lanAddress() || '192.168.1.131') + ':' + (config.port || 8080) + '/?c=demo' : null)
   };
+  if (isDemo) {
+    st.demo = true;
+    if (simulatedSetupState.alwaysReady !== null && simulatedSetupState.alwaysReady !== undefined) {
+      st.alwaysReady = simulatedSetupState.alwaysReady;
+    }
+  }
+  return st;
 }
 
 function startHandoff(cb) {
@@ -535,7 +572,6 @@ function loadUI() {
       return;
     }
     UI_HTML = page;
-    console.log('assets: serving ui.html from ' + f);
     /*
      * On this thread rather than zlib's worker pool. Node 0.12's process
      * spawning can deadlock (see lunaCached), and startup launches luna-send
@@ -545,8 +581,10 @@ function loadUI() {
      */
     try {
       UI_HTML_GZ = zlib.gzipSync(UI_HTML);
-      console.log('assets: pre-compressed ui.html (' + UI_HTML.length + ' -> ' + UI_HTML_GZ.length + ' bytes)');
-    } catch (ze) {}
+      console.log('assets: serving ui.html from ' + f + ' (' + Math.round(UI_HTML_GZ.length / 1024) + ' KB compressed)');
+    } catch (ze) {
+      console.log('assets: serving ui.html from ' + f);
+    }
   } catch (e) {
     console.error('assets: could not read ui.html: ' + e.message);
   }
@@ -565,6 +603,8 @@ function updateSummary() {
   s.isWebos10 = !!(screensaversModule && screensaversModule.slowSwitch && screensaversModule.slowSwitch());
   s.homeLayout = homeScreenModule ? homeScreenModule.experimental() : null;
   s.prometheusEnabled = prometheusEnabled();
+  s.watchHistory = historyModule ? historyModule.status() : null;
+  s.backupDaily = backupModule ? backupModule.dailyStatus() : null;
   s.ntp = ntpModule ? ntpModule.getStatus() : null;
   // What is saved, on or off, so the switch can show a server kept while off.
   var ntpConf = (config && config.ntp) || {};
@@ -574,6 +614,20 @@ function updateSummary() {
     enabled: !!(ntpConf.server && String(ntpConf.server).trim()) && ntpConf.enabled !== false
   };
   s.syslog = syslogModule && syslogModule.getStatus ? syslogModule.getStatus() : null;
+  var mem = null;
+  try {
+    if (typeof process !== 'undefined' && process.memoryUsage) {
+      mem = process.memoryUsage();
+    }
+  } catch (e) {}
+  s.daemon = {
+    uptime: (typeof process !== 'undefined' && process.uptime) ? Math.floor(process.uptime()) : null,
+    pid: (typeof process !== 'undefined' && process.pid) ? process.pid : null,
+    port: (config && config.port) || 8080,
+    rss: (mem && typeof mem.rss === 'number') ? mem.rss : null,
+    heapUsed: (mem && typeof mem.heapUsed === 'number') ? mem.heapUsed : null,
+    heapTotal: (mem && typeof mem.heapTotal === 'number') ? mem.heapTotal : null
+  };
   return s;
 }
 
@@ -872,7 +926,7 @@ function handleInstallRoute(req, res, u, pathname) {
       writeSettings({ apps: { sideload: enable } }, function (err) {
         if (err) return installError(res, err.message);
         if (enable) {
-          console.warn('warning: apps.sideload enabled from dashboard; arbitrary IPK installations allowed');
+          console.warn('security: apps.sideload enabled from dashboard; arbitrary IPK installations allowed');
         } else {
           console.log('apps: apps.sideload disabled');
         }
@@ -881,6 +935,55 @@ function handleInstallRoute(req, res, u, pathname) {
     });
   }
   return send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
+function getSettingsPayload() {
+  var mc = config.mqtt || {};
+  var mqttStat = getMqttStatus();
+  return {
+    ok: true,
+    writable: config.allowControl,
+    configFile: configFilePath,
+    iconServer: config.iconServer === true,
+    mqtt: {
+      enabled: !!mc.enabled,
+      host: mc.host || '',
+      port: mc.port === undefined ? null : mc.port,
+      tls: !!mc.tls,
+      tlsRejectUnauthorized: mc.tlsRejectUnauthorized !== false,
+      username: mc.username || '',
+      // The password is deliberately not returned; only whether one is set.
+      passwordSet: !!mc.password,
+      topicPrefix: mc.topicPrefix || 'lgtv',
+      discoveryPrefix: mc.discoveryPrefix || 'homeassistant',
+      telemetryIntervalMs: mc.telemetryIntervalMs || 10000,
+      entities: {
+        controls: !mc.entities || mc.entities.controls !== false,
+        oled: !mc.entities || mc.entities.oled !== false,
+        video: !mc.entities || mc.entities.video !== false,
+        system: !mc.entities || mc.entities.system !== false,
+        diagnostics: !mc.entities || mc.entities.diagnostics !== false,
+        disabled: (mc.entities && Array.isArray(mc.entities.disabled)) ? mc.entities.disabled : []
+      },
+      categories: HA_CATEGORIES,
+      entityCatalogue: HA_ENTITIES
+    },
+    device: {
+      id: (config.device && config.device.id) || '',
+      name: (config.device && config.device.name) || ''
+    },
+    /* Ages rather than timestamps: the TV's clock is often minutes off the
+       browser's, and a negative "last publish" reads as a fault. */
+    status: {
+      state: mqttStat.state,
+      broker: mqttStat.broker,
+      tls: mqttStat.tls,
+      detail: mqttStat.detail,
+      forMs: Date.now() - (mqttStat.since || Date.now()),
+      lastPublishMs: mqttStat.lastPublish ? Date.now() - mqttStat.lastPublish : null,
+      latencyMs: mqttStat.latencyMs || null
+    }
+  };
 }
 
 function handleRequest(req, res) {
@@ -1000,16 +1103,24 @@ function handleRequest(req, res) {
 
   // First-run setup and the TV's own settings. The TV only: see fromTV.
   if (pathname === '/api/setup') {
-    if (!fromTV(req)) return send(res, 403, JSON.stringify({ ok: false, error: 'only from the TV itself' }));
+    var isDemo = isSetupEmulated(u.query);
+    if (!fromTV(req) && !isDemo) return send(res, 403, JSON.stringify({ ok: false, error: 'only from the TV itself' }));
     if (req.method === 'GET') {
       /*
        * Setup offers Always-on only on a TV that has it (a C2 on webOS 9.2
        * does, a B8 on 4.4 does not). A B8 still answers for the alwaysOn value,
        * so whether the TV has the feature is telemetry's alwaysOnSupported.
        */
-      return telemetryModule.alwaysOnSupported(function (has) {
-        var st = setupState();
-        if (!has) return send(res, 200, JSON.stringify(st));
+      var checkAR = (telemetryModule && typeof telemetryModule.alwaysOnSupported === 'function')
+        ? telemetryModule.alwaysOnSupported
+        : function (cb) { cb(false); };
+      return checkAR(function (has) {
+        var st = setupState(isDemo);
+        if (!has && !isDemo) return send(res, 200, JSON.stringify(st));
+        if (isDemo) {
+          if (st.alwaysReady === undefined) st.alwaysReady = false;
+          return send(res, 200, JSON.stringify(st));
+        }
         luna('com.webos.service.settings/getSystemSettings',
              { category: 'general', keys: ['alwaysOn'] }, function (r) {
           var ar = r && r.returnValue !== false && r.settings && r.settings.alwaysOn;
@@ -1028,6 +1139,28 @@ function handleRequest(req, res) {
       var a = null;
       try { a = JSON.parse(stBody); } catch (e) {
         return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      var actionDemo = isDemo || isSetupEmulated(u.query, a);
+      if (actionDemo) {
+        if (a.action === 'network') {
+          simulatedSetupState.network = !!a.open;
+          return send(res, 200, JSON.stringify({ ok: true, restarting: false, demo: true }));
+        }
+        if (a.action === 'alwaysReady') {
+          simulatedSetupState.alwaysReady = !!a.on;
+          return send(res, 200, JSON.stringify({ ok: true, demo: true }));
+        }
+        if (a.action === 'handoff') {
+          var dummyUrl = (lanOrigin() || 'http://' + (lanAddress() || '192.168.1.131') + ':' + (config.port || 8080)) + '/?c=demo';
+          return send(res, 200, JSON.stringify({ ok: true, url: dummyUrl, demo: true }));
+        }
+        if (a.action === 'handoffStop') {
+          return send(res, 200, JSON.stringify({ ok: true, demo: true }));
+        }
+        if (a.action === 'done') {
+          return send(res, 200, JSON.stringify({ ok: true, demo: true }));
+        }
+        return send(res, 400, JSON.stringify({ ok: false, error: 'unknown action' }));
       }
       if (!config.allowControl && a.action !== 'done') {
         return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
@@ -1098,13 +1231,88 @@ function handleRequest(req, res) {
         // that decide how hard it is worked.
         panelHours: (oledData.panel_hours === undefined) ? null : oledData.panel_hours,
         hoursUntilComp: (oledData.hours_until_comp === undefined) ? null : oledData.hours_until_comp,
+        compInterval: (oledData.comp_interval_hours === undefined) ? 4 : oledData.comp_interval_hours,
         hoursUntilRefresher: (oledData.hours_until_refresher === undefined) ? null : oledData.hours_until_refresher,
+        refresherInterval: (oledData.refresher_interval_hours === undefined) ? 2000 : oledData.refresher_interval_hours,
         compStatus: oledData.comp_status || null,
         refresherStatus: oledData.refresher_status || null,
         compCycles: (oledData.comp_cycles === undefined) ? null : oledData.comp_cycles,
         refresherCycles: (oledData.refresher_cycles === undefined) ? null : oledData.refresher_cycles,
         failureAlerts: (oledData.failure_alerts === undefined) ? null : oledData.failure_alerts
       }));
+    });
+  }
+
+  // Watch time, by UTC hour, for the last days (35 unless asked, at most 400).
+  if (pathname === '/api/history' && historyModule) {
+    var historyDays = parseInt(u.query.days, 10);
+    if (!(historyDays >= 1 && historyDays <= 400)) historyDays = 35;
+    var historyNow = Date.now();
+    var historyReply = historyModule.query(historyNow - historyDays * 86400000, historyNow);
+    historyReply.ok = true;
+    return send(res, 200, JSON.stringify(historyReply));
+  }
+
+  /*
+   * The keys that may log in as root over SSH: GET lists them, POST adds one,
+   * removes one or deletes the file. A key is a way in that outlasts this
+   * server, so changing them needs a token, which every /api/ request has
+   * then been checked for. A request from the TV itself is not enough: a page
+   * in its browser reached through a rebinding name, or any app on the TV,
+   * comes from 127.0.0.1 too, and a key added that way is root.
+   */
+  if (pathname === '/api/ssh' && sshKeysModule) {
+    var sshNeedsToken = !config.token;
+    if (req.method !== 'POST') {
+      return sshKeysModule.status(function (r) {
+        r.writable = !!config.allowControl && !sshNeedsToken;
+        r.needsToken = !!config.allowControl && sshNeedsToken;
+        // A key's comment is often its owner's address: only for whoever could change the keys.
+        if (sshNeedsToken) {
+          (r.keys || []).forEach(function (k) { delete k.comment; delete k.options; });
+        }
+        send(res, 200, JSON.stringify(r));
+      });
+    }
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (sshNeedsToken) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.ssh.needsToken', 'Changing SSH keys needs a token in config.json.') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      var sshReply = function (r) {
+        if (r.ok) r.writable = true;
+        send(res, r.ok ? 200 : 400, JSON.stringify(r));
+      };
+      if (body.action === 'add') return sshKeysModule.add(body.key, sshReply);
+      if (body.action === 'remove') return sshKeysModule.remove(String(body.fingerprint || ''), sshReply);
+      if (body.action === 'deleteFile') return sshKeysModule.deleteFile(sshReply);
+      send(res, 400, JSON.stringify({ ok: false, error: 'unknown action' }));
+    });
+  }
+  // Screen-time limits: GET for the Advanced tab, POST to change any of the settings.
+  if (pathname === '/api/screentime' && screentimeModule) {
+    if (req.method !== 'POST') {
+      var stReply = screentimeModule.status(Date.now());
+      stReply.ok = true;
+      stReply.writable = !!config.allowControl;
+      return send(res, 200, JSON.stringify(stReply));
+    }
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      var st = screentimeModule.validate(body);
+      if (st.error) return send(res, 400, JSON.stringify({ ok: false, error: st.error }));
+      writeSettings({ screenTime: st.value }, function (err) {
+        if (err) return send(res, 500, JSON.stringify({ ok: false, error: 'could not save setting: ' + err.message }));
+        screentimeModule.apply(st.value);
+        var stSaved = screentimeModule.status(Date.now());
+        stSaved.ok = true;
+        stSaved.writable = true;
+        send(res, 200, JSON.stringify(stSaved));
+      });
     });
   }
 
@@ -1154,6 +1362,36 @@ function handleRequest(req, res) {
     });
   }
 
+  /*
+   * The owner's own hosts list for the ad blocker: { mode, text } uploads one,
+   * { mode } changes how it is used, { clear: true } removes it. Larger than
+   * /api/control takes, so a route of its own, held to the same rules.
+   */
+  if (pathname === '/api/adblock/custom' && req.method === 'POST') {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (!postGuard(req, res, 'application/json', false)) return;
+    var cbody = '';
+    var ctoo = false;
+    req.on('data', function (d) {
+      cbody += d;
+      if (cbody.length > 1048576) { ctoo = true; req.destroy(); }
+    });
+    req.on('end', function () {
+      if (ctoo) return;
+      var cj = null;
+      try { cj = JSON.parse(cbody); } catch (e) {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      if (!cj || typeof cj !== 'object') {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
+      }
+      privacyModule.setCustomHosts(cj, function (r) { send(res, r.ok ? 200 : 400, JSON.stringify(r)); });
+    });
+    return;
+  }
+
   if (pathname === '/api/privacy') {
     return privacyModule.collectPrivacy(function (pv) { send(res, 200, JSON.stringify(pv)); });
   }
@@ -1189,28 +1427,8 @@ function handleRequest(req, res) {
     var iconAppId = u.query && u.query.id;
     return appsModule.getIconPath(iconAppId, function (iconPath) {
       if (!iconPath) return send(res, 404, JSON.stringify({ ok: false, error: 'icon not found' }));
-      fs.stat(iconPath, function (err, st) {
-        if (err || !st) return send(res, 404, JSON.stringify({ ok: false, error: 'icon read failed' }));
-        var etag = '"' + st.size.toString(16) + '-' + Number(st.mtime).toString(16) + '"';
-        var headers = {
-          'Content-Type': 'image/png',
-          'Content-Length': st.size,
-          'Cache-Control': 'public, max-age=86400',
-          'ETag': etag
-        };
-        if (req.headers && req.headers['if-none-match'] === etag) {
-          res.writeHead(304, { 'ETag': etag, 'Cache-Control': headers['Cache-Control'] });
-          return res.end();
-        }
-        if (req.method === 'HEAD') {
-          res.writeHead(200, headers);
-          return res.end();
-        }
-        fs.readFile(iconPath, function (readErr, buf) {
-          if (readErr || !buf) return send(res, 500, JSON.stringify({ ok: false, error: 'icon read failed' }));
-          res.writeHead(200, headers);
-          res.end(buf);
-        });
+      sendIconFile(req, res, iconPath, function (status, error) {
+        send(res, status, JSON.stringify({ ok: false, error: error }));
       });
     });
   }
@@ -1348,7 +1566,8 @@ function handleRequest(req, res) {
     return telemetryModule.collectStats(function (s) {
       var forwarded = syslogModule ? syslogModule.getCounters() : null;
       var clock = ntpModule ? ntpModule.getStatus() : null;
-      send(res, 200, prometheusModule.render(s, versionStr, forwarded, clock), 'text/plain; version=0.0.4; charset=utf-8');
+      var watched = historyModule && historyModule.status().running ? historyModule.totals() : null;
+      send(res, 200, prometheusModule.render(s, versionStr, forwarded, clock, watched), 'text/plain; version=0.0.4; charset=utf-8');
     });
   }
 
@@ -1380,50 +1599,65 @@ function handleRequest(req, res) {
 
   if (pathname === '/api/settings' && req.method === 'GET') {
     if (!authed(u.query, req)) return send(res, 401, JSON.stringify({ ok: false, error: 'unauthorized' }));
-    var mc = config.mqtt || {};
-    var mqttStat = getMqttStatus();
-    return send(res, 200, JSON.stringify({
-      ok: true,
-      writable: config.allowControl,
-      configFile: configFilePath,
-      mqtt: {
-        enabled: !!mc.enabled,
-        host: mc.host || '',
-        port: mc.port === undefined ? null : mc.port,
-        tls: !!mc.tls,
-        tlsRejectUnauthorized: mc.tlsRejectUnauthorized !== false,
-        username: mc.username || '',
-        // The password is deliberately not returned; only whether one is set.
-        passwordSet: !!mc.password,
-        topicPrefix: mc.topicPrefix || 'lgtv',
-        discoveryPrefix: mc.discoveryPrefix || 'homeassistant',
-        telemetryIntervalMs: mc.telemetryIntervalMs || 10000,
-        entities: {
-          controls: !mc.entities || mc.entities.controls !== false,
-          oled: !mc.entities || mc.entities.oled !== false,
-          video: !mc.entities || mc.entities.video !== false,
-          system: !mc.entities || mc.entities.system !== false,
-          diagnostics: !mc.entities || mc.entities.diagnostics !== false,
-          disabled: (mc.entities && Array.isArray(mc.entities.disabled)) ? mc.entities.disabled : []
-        },
-        categories: HA_CATEGORIES,
-        entityCatalogue: HA_ENTITIES
-      },
-      device: {
-        id: (config.device && config.device.id) || '',
-        name: (config.device && config.device.name) || ''
-      },
-      /* Ages rather than timestamps: the TV's clock is often minutes off the
-         browser's, and a negative "last publish" reads as a fault. */
-      status: {
-        state: mqttStat.state,
-        broker: mqttStat.broker,
-        tls: mqttStat.tls,
-        detail: mqttStat.detail,
-        forMs: Date.now() - (mqttStat.since || Date.now()),
-        lastPublishMs: mqttStat.lastPublish ? Date.now() - mqttStat.lastPublish : null
+    return send(res, 200, JSON.stringify(getSettingsPayload()));
+  }
+
+  // The apps a restored backup listed that this TV still lacks, for the Apps tab.
+  if (pathname === '/api/backup/apps' && req.method === 'GET' && backupModule) {
+    return backupModule.pendingApps(function (apps) { send(res, 200, JSON.stringify({ ok: true, apps: apps })); });
+  }
+  if (pathname === '/api/backup/apps/clear' && req.method === 'POST' && backupModule) {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    backupModule.clearPendingApps();
+    return send(res, 200, JSON.stringify({ ok: true, apps: [] }));
+  }
+
+  // A daily backup kept on the TV, by name, saved by the browser as a file.
+  if (pathname === '/api/backup/saved' && req.method === 'GET' && backupModule) {
+    var savedBackup = backupModule.readSaved(String(u.query.name || ''));
+    if (savedBackup === null) return send(res, 404, JSON.stringify({ ok: false, error: 'no such backup' }));
+    return send(res, 200, savedBackup);
+  }
+
+  // A backup of the TV's settings, saved by the browser as a file.
+  if (pathname === '/api/backup' && req.method === 'GET' && backupModule) {
+    return backupModule.create(function (b) { send(res, 200, JSON.stringify(b)); });
+  }
+
+  /*
+   * Restoring one changes LG's settings, so it is held to what saving the
+   * dashboard's settings is: controls on, JSON, and from this origin.
+   */
+  if (pathname === '/api/backup' && req.method === 'POST' && backupModule) {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (String(req.headers['content-type'] || '').toLowerCase().indexOf('application/json') !== 0) {
+      return send(res, 415, JSON.stringify({ ok: false, error: 'Content-Type must be application/json' }));
+    }
+    var borigin = req.headers.origin;
+    if (borigin && String(borigin).replace(/^https?:\/\//, '') !== String(req.headers.host || '')) {
+      return send(res, 403, JSON.stringify({ ok: false, error: 'cross-origin request refused' }));
+    }
+    var bbody = '';
+    req.on('data', function (d) {
+      bbody += d;
+      if (bbody.length > 65536) req.destroy();
+    });
+    req.on('end', function () {
+      var b = null;
+      try { b = JSON.parse(bbody); } catch (e) {
+        return send(res, 400, JSON.stringify({ ok: false, error: 'malformed JSON' }));
       }
-    }));
+      if (installBusyRefusal(res)) return;
+      backupModule.restore(b, function (r) {
+        send(res, r.ok ? 200 : 400, JSON.stringify(r));
+        if (r.restart) restartSoon(250, 'backup');
+      });
+    });
+    return;
   }
 
   if (pathname === '/api/settings' && req.method === 'POST') {
@@ -1458,7 +1692,7 @@ function handleRequest(req, res) {
         if (err) {
           return send(res, 500, JSON.stringify({ ok: false, error: 'could not write ' + configFilePath + ': ' + err.message }));
         }
-        console.log('settings: saved to ' + configFilePath + ', restarting to apply');
+        console.log('config: saved to ' + configFilePath + ', restarting to apply');
         send(res, 200, JSON.stringify({ ok: true, restarting: true }));
         restartSoon(250, 'settings');
       });
@@ -1528,6 +1762,10 @@ function init(opts) {
   if (opts.prometheus) prometheusModule = opts.prometheus;
   if (opts.syslog) syslogModule = opts.syslog;
   if (opts.ntp) ntpModule = opts.ntp;
+  if (opts.history) historyModule = opts.history;
+  if (opts.sshKeys) sshKeysModule = opts.sshKeys;
+  if (opts.screentime) screentimeModule = opts.screentime;
+  if (opts.backup) backupModule = opts.backup;
   if (opts.fromHomebrewChannel) fromHbcFn = opts.fromHomebrewChannel;
   if (opts.tileHidingOff) tileHidingOffMsg = opts.tileHidingOff;
   if (opts.assetPath) assetPathFn = opts.assetPath;
@@ -1575,6 +1813,8 @@ module.exports = {
   lanOrigin: lanOrigin,
   setupPending: setupPending,
   setupState: setupState,
+  resetSimulatedSetup: resetSimulatedSetup,
+  isSetupEmulated: isSetupEmulated,
   startHandoff: startHandoff,
   stopHandoff: stopHandoff,
   loadUI: loadUI,

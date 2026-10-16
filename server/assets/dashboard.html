@@ -19,8 +19,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;background:#000;overflow:hidden}
 body{font-family:'Manrope',sans-serif;color:#fff;
-  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;
-  /* the remote drives it; there is no pointer */ cursor:none}
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
 
 #stage{height:100vh;display:flex;flex-direction:column;padding:5vh 0 5vh 8vw}
 
@@ -287,8 +286,12 @@ function refreshCaps() {
     .then(function (r) { return r.json(); })
     .then(function (d) {
       // A new install walks through setup first - but only in the TV app: a
-      // phone's browser cannot use those screens.
-      if (d && d.setupNeeded && window.PalmSystem) return location.replace('/assets/setup.html');
+      // phone's browser cannot use those screens. The ?setup=1 or ?emulate-setup=1
+      // query parameter allows testing the setup wizard from any browser.
+      var emulateParam = location.search.indexOf('setup=') !== -1 || location.search.indexOf('emulate-setup') !== -1;
+      if (d && ((d.setupNeeded && window.PalmSystem) || emulateParam)) {
+        return location.replace('/assets/setup.html' + (d.setupNeeded ? '' : '?demo=1'));
+      }
       lanOrigin = (d && d.origin) || null;
       lanKey = (d && d.key) || null;
       renderHint();
@@ -390,7 +393,6 @@ function sysRows(d) {
   if (d.hardware && d.hardware.soc_arch) r.push({ label: 'SoC', value: d.hardware.soc_arch });
   if (d.hardware && d.hardware.ram) r.push({ label: 'RAM', value: d.hardware.ram });
   if (d.hardware && d.hardware.refresh_rate) r.push({ label: t('tv.system.panelRefresh', 'Panel refresh'), value: withUnit(d.hardware.refresh_rate, 'Hz') });
-  if (d.uptime) r.push({ label: t('tv.system.uptime', 'Uptime'), value: fmtUptime(d.uptime) });
   if (d.remote && d.remote.battery !== null && d.remote.battery !== undefined)
     r.push({ label: t('tv.system.remoteBattery', 'Remote battery'), value: withUnit(d.remote.battery, '%') });
   if (d.ssid) r.push({ label: t('tv.system.wiFi', 'Wi-Fi'), value: d.ssid });
@@ -410,9 +412,8 @@ function optionRows(d) {
              press: on ? t('tv.press.turnOff', 'Press OK to turn off') : t('tv.press.turnOn', 'Press OK to turn on'), hint: hint };
   }
   var timers = d.powerTimers || {};
-  if (d.quickBoot !== undefined || d.wakeOnLan !== undefined || d.alwaysReady !== undefined || d.alwaysReadyScreen !== undefined ||
-      timers.on || timers.off) {
-    r.push(head(t('adv.power', 'Power')));
+  if (d.quickBoot !== undefined || d.wakeOnLan !== undefined || d.alwaysReady !== undefined || d.alwaysReadyScreen !== undefined) {
+    r.push(head(t('adv.powerStandby', 'Power & standby')));
     if (d.quickBoot !== undefined)
       r.push(toggle(t('adv.quickBoot', 'Quick Boot'), d.quickBoot, 'quickBoot',
         t('adv.quickBoot.desc', 'Switching off puts the TV into a light sleep rather than shutting it down, so it comes back on faster. LG calls this Quick Start+.')));
@@ -428,13 +429,16 @@ function optionRows(d) {
                cls: 'act', act: 'arOff', start: d.alwaysReadyOff.start,
                press: t('tv.options.nightlyPowerDown.press', 'Press OK to move it an hour later'),
                hint: t('tv.options.nightlyPowerDown.hint', 'For five hours every night, LG lets a switched-off TV sleep fully. It is offline then, so Glasshouse and Home Assistant cannot reach it. LG fixes the length; choose hours when the TV is not used.') });
+    if (d.wakeOnLan !== undefined)
+      r.push(toggle(t('adv.wol', 'Wake-on-LAN'), d.wakeOnLan, 'wakeOnLan',
+        t('tv.options.wol.hint', 'Lets Home Assistant, a phone or another device on the network switch the TV on from standby. Requires Quick Boot (Quick Start+) to keep the network connection responsive while off. LG calls this Mobile TV On.')));
+  }
+  if (timers.on || timers.off) {
+    r.push(head(t('adv.timers', 'Timers')));
     // The time and days are set from the browser dashboard; here they are
     // shown, and the timer switched on or off.
     if (timers.on) r.push(timerRow(timers.on, 'on', t('adv.onTimer', 'On Timer')));
     if (timers.off) r.push(timerRow(timers.off, 'off', t('adv.offTimer', 'Off Timer')));
-    if (d.wakeOnLan !== undefined)
-      r.push(toggle(t('adv.wol', 'Wake-on-LAN'), d.wakeOnLan, 'wakeOnLan',
-        t('tv.options.wol.hint', 'Lets Home Assistant, a phone or another device on the network switch the TV on from standby. LG calls this Mobile TV On.')));
   }
   // Sound and SIMPLINK, from lgsettings.js; each shows only where the TV has it.
   var ls = d.lgSettings || [];
@@ -569,7 +573,7 @@ function oledRows(d) {
       hint: t('tv.oled.pixelRefresherCycles.hint', 'How many long calibrations the panel has run. These are the ones that matter for wear.') });
   if (d.gsrStressCount !== null && d.gsrStressCount !== undefined)
     r.push({ label: t('oled.cycles.gsr', 'GSR stress events'), value: num(d.gsrStressCount),
-      hint: t('tv.oled.gsrStressEvents.hint', 'How often sticky reduction has had to step in. A rising count means static content is being shown for long stretches.') });
+      hint: t('tv.oled.gsrStressEvents.hint', 'How often the panel has detected static image stress conditions. A rising count means static content is being shown for long stretches, even if GSR dimming is switched off.') });
 
   r.push(head(t('oled.protections', 'Protections')));
   if (d.gsr !== null && d.gsr !== undefined)
@@ -687,8 +691,10 @@ function appsRows(d) {
     r.push(head(t('tv.apps.head.uninstallApplications', 'Uninstall Applications')));
     for (var j = 0; j < inst.length; j++) {
       var app = inst[j];
+      var sz = app.size ? fmtSize(app.size) : '';
       r.push({
         label: app.title || app.id,
+        ver: sz,
         value: t('apps.uninstall.button', 'Uninstall'),
         cls: 'bad',
         act: 'uninstall',
@@ -911,6 +917,17 @@ function privacyRows(d) {
              act: 'adblock', key: cur.next, from: abMode,
              press: cur.press,
              hint: cur.hint + ' ' + t('tv.privacy.blocking.streaming', 'Streaming apps are untouched.') });
+    // Uploaded, changed and removed in the browser dashboard only.
+    if (ab.custom) {
+      r.push({ label: t('pv.adblock.custom', 'Custom ad blocking'),
+               value: !ab.custom.enabled
+                 ? t('tv.privacy.custom.off', 'Off, {n} names kept', { n: ab.custom.count })
+                 : ab.custom.mode === 'add'
+                 ? t('tv.privacy.custom.add', '{n} names, with Glasshouse’s', { n: ab.custom.count })
+                 : t('tv.privacy.custom.replace', '{n} names, instead of Glasshouse’s', { n: ab.custom.count }),
+               cls: 'st note',
+               hint: t('tv.privacy.custom.hint', 'Changed or removed in the browser dashboard: Privacy, then Advanced.') });
+    }
   }
 
   // LG's own settings from lgsettings.js; only those the TV has come back.
@@ -1253,6 +1270,22 @@ function updateRows(d) {
   }
 
   r.push(head(t('tv.update.head.information', 'Information')));
+  if (d.daemon) {
+    var dMemMb = d.daemon.rss ? Math.round(d.daemon.rss / 1048576) + ' MB RAM' : '';
+    var dUp = d.daemon.uptime ? fmtUptime(d.daemon.uptime) : '';
+    var dParts = [];
+    if (dUp) dParts.push(dUp);
+    if (dMemMb) dParts.push(dMemMb);
+    if (dParts.length) {
+      r.push({
+        label: t('tv.update.serverHealth', 'Server health'),
+        value: dParts.join(' · '),
+        cls: 'on',
+        plain: true,
+        hint: t('tv.update.serverHealth.hint', 'Memory footprint and uptime of the Glasshouse background process on this TV.')
+      });
+    }
+  }
   if (d.checkedMs !== null && d.checkedMs !== undefined) {
     var mins = Math.floor(d.checkedMs / 60000);
     var checkedStr = mins < 1 ? t('tv.update.checked.now', 'Just now') : (mins === 1 ? t('tv.update.checked.oneMin', '1 min ago') : t('tv.update.checked.mins', '{n} mins ago', { n: mins }));
@@ -1751,6 +1784,25 @@ function move(d) {
   if (i < 0 || i >= rows.length) return;
   sel = i;
   render();
+}
+
+function page(d) {
+  if (!rows.length) return;
+  var target = sel;
+  for (var count = 0; count < 6; count++) {
+    var next = target;
+    do { next += d; } while (next >= 0 && next < rows.length && rows[next].head);
+    if (next < 0 || next >= rows.length) break;
+    target = next;
+  }
+  if (target === sel) {
+    if (d < 0) target = firstSel();
+    else if (d > 0) target = lastSel();
+  }
+  if (target !== sel && !rows[target].head) {
+    sel = target;
+    render();
+  }
 }
 
 function pickRow(i) {
@@ -2323,9 +2375,22 @@ document.addEventListener('keydown', function (e) {
   else if (c === 39 || k === 'ArrowRight') { if (!sub) switchTab(1); e.preventDefault(); }
   else if (c === 38 || k === 'ArrowUp')    { move(-1);      e.preventDefault(); }
   else if (c === 40 || k === 'ArrowDown')  { move(1);       e.preventDefault(); }
+  else if (c === 402 || c === 33 || k === 'ChannelUp' || k === 'PageUp' || k === 'VK_CHANNEL_UP')     { page(-1); e.preventDefault(); }
+  else if (c === 403 || c === 34 || k === 'ChannelDown' || k === 'PageDown' || k === 'VK_CHANNEL_DOWN') { page(1);  e.preventDefault(); }
   else if (c === 13 || k === 'Enter')      { activate();    e.preventDefault(); }
   else if (c === 461 || k === 'GoBack' || k === 'BrowserBack') { if (sub) backOut(); else leaveApp(); e.preventDefault(); }
 });
+
+// The Magic Remote's wheel arrives as a wheel event, not a key, and the page
+// itself never scrolls (overflow:hidden), so it moves the selection a row per
+// notch as Up and Down do. Older engines only fire mousewheel, whose
+// wheelDelta has the opposite sign to deltaY.
+function onWheel(e) {
+  var d = e.deltaY !== undefined ? e.deltaY : -e.wheelDelta;
+  if (d) move(d > 0 ? 1 : -1);
+  e.preventDefault();
+}
+document.addEventListener('onwheel' in document ? 'wheel' : 'mousewheel', onWheel);
 window.addEventListener('resize', function () { if (rows.length) position(); });
 
 renderTabs();

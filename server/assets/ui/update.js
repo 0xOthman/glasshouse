@@ -56,6 +56,9 @@ function renderUpdate(d) {
     : t('server.available', 'v{version} is out. Installing it replaces the server and restarts it.', { version: d.latest });
   desc.hidden = !d.available;
   renderWhatsNew(d);
+  if (d.daemon !== undefined) {
+    renderServerHealth(d.daemon);
+  }
 
   updateToggle('upd-auto', {
     cls: d.autoCheck ? 'good' : 'idle',
@@ -106,9 +109,21 @@ function renderUpdate(d) {
       disabled: !d.writable
     });
   }
+  if (d.watchHistory) {
+    updateToggle('srv-watch', {
+      cls: d.watchHistory.enabled ? 'good' : 'idle',
+      label: d.watchHistory.enabled ? t('common.on', 'On') : t('common.off', 'Off'),
+      on: d.watchHistory.enabled,
+      disabled: !d.writable
+    });
+    const clear = q('srv-watch-clear');
+    clear.hidden = !d.watchHistory.kept;
+    clear.disabled = !d.writable;
+  }
   if (d.ntpSettings) {
     renderNtp(d.ntp, d.ntpSettings, d.writable);
   }
+  if (d.backupDaily) renderBackupDaily(d.backupDaily, d.writable);
 
   const hlRow = q('exp-homelayout-row');
   if (hlRow) {
@@ -179,6 +194,44 @@ function renderWhatsNew(d) {
     (more ? `<div class="upd-new-r"><a href="${esc(REPO + '/releases')}" target="_blank" rel="noopener">${esc(more === 1
       ? t('server.whatsNew.moreOne', 'And 1 more release')
       : t('server.whatsNew.more', 'And {n} more releases', { n: more }))}</a></div>` : '');
+}
+
+function renderServerHealth(dm) {
+  const row = q('server-health-row');
+  if (!row) return;
+  if (!dm) {
+    row.hidden = true;
+    return;
+  }
+  row.hidden = false;
+  const bMem = q('server-badge-mem');
+  const bUp = q('server-badge-uptime');
+
+  if (bMem) {
+    if (dm.rss) {
+      const rssMb = Math.round(dm.rss / 1048576);
+      bMem.textContent = t('server.health.memBadge', '{n} MB RAM', { n: rssMb });
+      bMem.title = t('server.health.memTooltip', 'Memory (RSS)');
+      bMem.hidden = false;
+    } else {
+      bMem.hidden = true;
+    }
+  }
+
+  if (bUp) {
+    if (dm.uptime != null) {
+      const s = dm.uptime;
+      const dd = Math.floor(s / 86400), hh = Math.floor((s % 86400) / 3600), mm = Math.floor((s % 3600) / 60);
+      const upStr = dd ? t('metrics.uptime.days', '{d}d {h}h {m}m', { d: dd, h: hh, m: mm })
+        : (hh ? t('metrics.uptime.hours', '{h}h {m}m', { h: hh, m: mm })
+        : t('server.health.uptimeMins', '{m}m', { m: mm || 1 }));
+      bUp.textContent = t('server.health.up', 'Up {time}', { time: upStr });
+      bUp.title = t('server.health.uptimeTooltip', 'Process uptime');
+      bUp.hidden = false;
+    } else {
+      bUp.hidden = true;
+    }
+  }
 }
 
 async function loadUpdate() {
@@ -328,10 +381,15 @@ async function checkNow() {
   updArrival = '';
   q('upd-pill').className = 'pill idle';
   q('upd-pill').textContent = t('server.state.checking', 'checking');
-  q('upd-check').disabled = true;
-  const r = await updControl('updateCheck');
-  updBusy = false;
-  if (r && r.ok && r.state !== 'checking') renderUpdate(r); else loadUpdate();
+  const btn = q('upd-check');
+  if (btn) { btn.disabled = true; btn.classList.add('busy'); }
+  try {
+    const r = await updControl('updateCheck');
+    updBusy = false;
+    if (r && r.ok && r.state !== 'checking') renderUpdate(r); else loadUpdate();
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
+  }
 }
 
 async function installUpdate() {
@@ -448,12 +506,15 @@ async function toggleNtp() {
 async function saveNtpServer() {
   const input = q('ntp-server'), btn = q('ntp-save');
   if (!input.value.trim()) return input.focus();
-  btn.disabled = true;
-  const r = await sendCommand('setNtpServer', input.value.trim());
-  btn.disabled = false;
-  delete input.dataset.dirty;
-  // A refusal, such as a mistyped address, is shown by sendCommand.
-  if (r && r.ok) renderUpdate(r); else loadUpdate();
+  if (btn) { btn.disabled = true; btn.classList.add('busy'); }
+  try {
+    const r = await sendCommand('setNtpServer', input.value.trim());
+    delete input.dataset.dirty;
+    // A refusal, such as a mistyped address, is shown by sendCommand.
+    if (r && r.ok) renderUpdate(r); else loadUpdate();
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('busy'); }
+  }
 }
 
 // Advanced stays open in this browser once opened.
@@ -471,6 +532,141 @@ async function togglePrometheus() {
   b.disabled = true;
   const r = await sendCommand('setPrometheusEnabled', !b.dataset.on);
   if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+async function toggleWatchTime() {
+  const b = q('srv-watch');
+  b.disabled = true;
+  const r = await sendCommand('setHistoryEnabled', !b.dataset.on);
+  if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+// Stopping keeps what is there; this deletes it.
+async function clearWatchTime() {
+  if (!confirm(t('server.watch.clearConfirm', 'Delete all watch time kept on the TV?'))) return;
+  const r = await sendCommand('clearHistory');
+  if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+// ---- settings backup ----
+function backupMessage(text) {
+  const m = q('backup-msg');
+  m.textContent = text;
+  m.hidden = !text;
+}
+
+// Hands a backup to the browser as a file named for its TV and day.
+function downloadBackupFile(b) {
+  const model = String((b.from && b.from.model) || 'tv').replace(/[^A-Za-z0-9_-]+/g, '-');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: 'application/json' }));
+  a.download = `glasshouse-backup-${model}-${b.created.slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function saveBackup() {
+  try {
+    const r = await fetch(api('/api/backup'), { cache: 'no-store' });
+    const b = await r.json();
+    if (!r.ok || b.format !== 'glasshouse-backup') throw new Error(b.error || r.status);
+    downloadBackupFile(b);
+    backupMessage(t('server.backup.saved', 'Saved {count} LG settings and Glasshouse’s own.', { count: Object.keys(b.lg || {}).length }));
+  } catch (e) {
+    backupMessage(t('server.backup.saveFailed', 'Could not make a backup — {error}', { error: e.message }));
+  }
+}
+
+async function restoreBackup(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file) return;
+  let b;
+  try { b = JSON.parse(await file.text()); } catch (e) { b = null; }
+  restoreBackupData(b);
+}
+
+async function restoreBackupData(b) {
+  if (!b || b.format !== 'glasshouse-backup') {
+    return backupMessage(t('server.backup.notBackup', 'That file is not a Glasshouse backup'));
+  }
+  const from = (b.from && b.from.model) || t('server.backup.unknownTv', 'an unknown TV');
+  const when = b.created ? new Date(b.created).toLocaleString() : '?';
+  if (!confirm(t('server.backup.confirm', 'Restore the settings saved from {tv} on {date}? This changes LG’s settings on this TV.', { tv: from, date: when }))) return;
+  backupMessage(t('server.backup.restoring', 'Restoring…'));
+  try {
+    const r = await fetch(api('/api/backup'), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b)
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    const lg = d.lg || {};
+    let text = t('server.backup.restored', 'Changed {changed} LG settings, {same} were already so, {skipped} skipped as this TV does not have them or they are not available now.', {
+      changed: (lg.applied || []).length, same: lg.unchanged || 0, skipped: (lg.skipped || []).length
+    });
+    if ((lg.failed || []).length) text += ' ' + t('server.backup.failedSome', '{count} could not be set.', { count: lg.failed.length });
+    const apps = d.apps || {};
+    if ((apps.toInstall || []).length) text += ' ' + t('server.backup.appsToInstall', '{count} apps from the backup can be installed from the Apps tab.', { count: apps.toInstall.length });
+    if ((apps.manual || []).length) text += ' ' + t('server.backup.appsManual', 'Not in the Homebrew Channel catalog, to install by hand: {names}.', { names: apps.manual.map(a => a.title).join(', ') });
+    if (d.restart) text += ' ' + t('server.backup.restarting', 'Glasshouse restarts to apply its own settings.');
+    backupMessage(text);
+  } catch (e) {
+    backupMessage(t('server.backup.restoreFailed', 'Could not restore — {error}', { error: e.message }));
+  }
+}
+
+// ---- daily backups, kept on the TV ----
+function renderBackupDaily(daily, writable) {
+  updateToggle('backup-daily', {
+    cls: daily.enabled ? 'good' : 'idle',
+    label: daily.enabled ? t('common.on', 'On') : t('common.off', 'Off'),
+    on: daily.enabled,
+    disabled: !writable
+  });
+  const list = q('backup-saved');
+  list.hidden = !daily.saved.length;
+  list.innerHTML = daily.saved.map(s => {
+    const day = new Date(s.date + 'T12:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    return `<div class="bk"><span class="bk-date">${esc(day)}</span>` +
+      `<span class="bk-size">${esc(t('server.backup.kb', '{kb} KB', { kb: Math.max(1, Math.round(s.size / 1024)) }))}</span>` +
+      `<button type="button" class="link-btn" data-name="${esc(s.name)}" data-do="download">${esc(t('server.backup.download', 'Download'))}</button>` +
+      `<button type="button" class="link-btn" data-name="${esc(s.name)}" data-do="restore"${writable ? '' : ' disabled'}>${esc(t('server.backup.restoreSaved', 'Restore'))}</button></div>`;
+  }).join('');
+  for (const b of list.querySelectorAll('button')) {
+    b.onclick = () => (b.dataset.do === 'download' ? downloadSavedBackup : restoreSavedBackup)(b.dataset.name);
+  }
+}
+
+async function toggleBackupDaily() {
+  const b = q('backup-daily');
+  b.disabled = true;
+  const r = await sendCommand('setBackupDaily', !b.dataset.on);
+  if (r && r.ok) renderUpdate(r); else loadUpdate();
+}
+
+async function fetchSavedBackup(name) {
+  const r = await fetch(api('/api/backup/saved?name=' + encodeURIComponent(name)), { cache: 'no-store' });
+  const b = await r.json();
+  if (!r.ok || b.format !== 'glasshouse-backup') throw new Error(b.error || r.status);
+  return b;
+}
+
+async function downloadSavedBackup(name) {
+  try {
+    downloadBackupFile(await fetchSavedBackup(name));
+  } catch (e) {
+    backupMessage(t('server.backup.readFailed', 'Could not read that backup — {error}', { error: e.message }));
+  }
+}
+
+async function restoreSavedBackup(name) {
+  let b;
+  try { b = await fetchSavedBackup(name); } catch (e) {
+    return backupMessage(t('server.backup.readFailed', 'Could not read that backup — {error}', { error: e.message }));
+  }
+  restoreBackupData(b);
 }
 
 async function toggleExpScreensaver() {

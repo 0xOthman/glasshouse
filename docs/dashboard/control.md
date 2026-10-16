@@ -7,7 +7,7 @@ The **Control** tab, `/?tab=control`, turns the TV into a locally controlled dev
 * **D-pad navigation:** Directional arrows (Up, Down, Left, Right), OK/Select, Back, and Home to navigate webOS menus and built-in interfaces.
 * **Media playback:** Dedicated transport controls (Play, Pause, Stop, Rewind, Fast Forward) for active media players.
 * **Volume and mute:** Volume slider, precision step buttons (`+` and `-`), and a one-click mute toggle.
-* **Source selection:** One-click switching across active TV inputs, including HDMI ports and Live TV.
+* **Source selection:** One-click switching across active TV inputs, including HDMI ports and Live TV, with an active indicator marking the current display source.
 
 ## Picture and sound
 
@@ -23,11 +23,12 @@ The **Control** tab, `/?tab=control`, turns the TV into a locally controlled dev
 * **Sleep timer:** Sets a timed shutoff (Off, 10, 30, 60, 90, or 120 minutes).
 * **Power and reboot:** Switches the TV between standby and on, or performs a full operating system reboot.
 
-## Apps, web and notifications
+## Apps and remote tools
 
 * **App launcher:** Launch installed webOS applications directly from the dashboard grid.
-* **Screen notifications:** Send instant on-screen toast notifications (up to 120 characters) to display messages on the TV.
-* **Open a web page:** Enter any HTTP or HTTPS URL to launch it immediately in the TV's native web browser.
+* **Remote tools & utilities:** Collapsible section grouping quick on-screen actions:
+  * **Screen notifications:** Send instant on-screen toast notifications (up to 120 characters) to display messages on the TV.
+  * **Open a web page:** Enter any HTTP or HTTPS URL to launch it immediately in the TV's native web browser.
 
 ![Control tab: panel, source, volume, playback, D-pad, sleep timer, picture, sound, apps, screen notifications, web page launcher and power](../screenshots/control.png)
 

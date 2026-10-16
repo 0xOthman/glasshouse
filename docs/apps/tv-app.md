@@ -2,11 +2,52 @@
 
 The dashboard can also run directly on the TV's home screen, driven by the remote, for when there is no phone or laptop to hand.
 
-It is drawn on true black for OLED panels in 1080p, with high-contrast text and a layout designed for remote control: Left and Right flip between sections, Up and Down move within rows, and OK acts on the selected item.
+It is drawn on true black for OLED panels in 1080p, with high-contrast text and a layout designed for remote control: Left and Right flip between sections, Up and Down move within rows, Channel Up and Channel Down page through long lists, and OK acts on the selected item.
 
 ![The Glasshouse TV app showing live hardware metrics, temperatures, and storage health on true black](../screenshots/tv-app.png)
 
 *The TV app's Metrics view, showing SoC temperature, CPU load, memory, swap, eMMC storage wear, and TV model.*
+
+### Remote navigation
+
+The TV app is operated entirely with the LG remote control:
+
+* **Left / Right**: Switch between dashboard tabs (Metrics, System, Display, Audio, Network, Apps, Settings, OLED Care).
+* **Up / Down**, or the Magic Remote's wheel: Move selection row by row, automatically skipping section headings.
+* **Channel Up / Channel Down** (or **Page Up / Page Down**): Jump 6 selectable rows at a time to quickly page through long lists, such as the Homebrew Channel catalog, installed apps, or system options.
+* **OK / Enter**: Toggle switches, expand options, or confirm app installations and actions.
+* **Back**: Return to the previous view from sub-menus (such as app preview details) or exit the app.
+* **Magic Remote pointer**: Clicking a row selects it and clicking it again acts on it; clicking a tab opens it.
+
+### First-run setup wizard
+
+Opening the TV app on a fresh install starts an on-screen setup wizard to configure the TV in a few quick steps with the remote:
+
+1. **Web dashboard access**: Choose between opening the web dashboard to devices across your home network or keeping it private to this TV only (`127.0.0.1`).
+2. **Home Assistant integration**: Connect your TV to Home Assistant via MQTT. The TV displays a QR code to scan with your phone, allowing you to enter MQTT broker details easily without typing credentials on the remote.
+3. **Active Standby (Always-on)**: On TVs with Always Ready support (such as LG C2 or G2), choose whether Glasshouse and Home Assistant remain connected with the screen off so the TV can be controlled and turned back on over the network.
+4. **Summary**: Review your setup and open the dashboard with a single click.
+
+All choices made during setup can be changed at any time from the TV app's **Settings** tab or the web dashboard.
+
+![Welcome screen of the Glasshouse TV app setup wizard](../screenshots/tv-app-setup-welcome.png)
+
+*The setup wizard welcome screen.*
+
+![Network access choice in the TV app setup wizard](../screenshots/tv-app-setup-network.png)
+
+*Choosing whether the web dashboard is open to devices on the home network or TV-local only.*
+
+![Home Assistant phone pairing QR code in the TV app setup wizard](../screenshots/tv-app-setup-handoff.png)
+
+*Scanning the phone handoff code to configure Home Assistant without typing on the remote.*
+
+![Setup wizard summary screen ready to open the dashboard](../screenshots/tv-app-setup-summary.png)
+
+*The final summary screen confirming your settings before opening the dashboard.*
+
+> [!TIP]
+> **Testing the setup wizard**: To test or verify the setup flow without modifying TV settings, start the server with the `--emulate-setup` flag, or open the web dashboard in a browser with `?setup=1`.
 
 ### Pairing and settings
 

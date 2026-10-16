@@ -103,6 +103,21 @@ console.log('Running test-telemetry.js ...');
   console.log('  ✓ emmcInfo parses healthy multi-region eMMC');
 })();
 
+// 1b. The Magic Remote's pairing file
+(function testRemoteInfo() {
+  // As a C4 (webOS 10.3.1) writes it: the battery line is the Mid and Low thresholds.
+  var c4 = telemetry.parseRemoteInfo('Name = LGE MR24\nBDAddr = 00:00:5e:00:53:02\n' +
+    'fwVer = 23.63(H).04.1.0.192.7.1.0.62.1\nBattery = 52(M) 35(L)\nhidraw = /dev/hidraw0');
+  assert.strictEqual(c4.battery, null, 'the thresholds are no battery level');
+  assert.strictEqual(c4.model, 'LGE MR24');
+  assert.strictEqual(c4.firmware, '23.63(H).04.1.0.192.7.1.0.62.1');
+  assert.strictEqual(telemetry.parseRemoteInfo('Name = LGE MR20\nBattery = 80').battery, 80, 'a plain level is read');
+  assert.strictEqual(telemetry.parseRemoteInfo('Battery = 80').battery, 80, 'with no name');
+  assert.strictEqual(telemetry.parseRemoteInfo('hidraw = /dev/hidraw0'), null);
+  assert.strictEqual(telemetry.parseRemoteInfo(null), null);
+  console.log('  ✓ the remote\'s battery thresholds are not read as its level, a plain level is');
+})();
+
 // 2. onlineCpus tests
 (function testOnlineCpus() {
   var cpus = telemetry.onlineCpus();
@@ -570,8 +585,8 @@ telemetry.refreshInstalledApps(function (apps) {
   mockEnv.luna['com.webos.applicationManager/listApps'] = {
     returnValue: true,
     launchPoints: [
-      { id: 'netflix', title: 'Netflix' },
-      { id: 'com.webos.app.discovery', title: 'Apps' },
+      { id: 'netflix', title: 'Netflix', iconColor: '#E50914' },
+      { id: 'com.webos.app.discovery', title: 'Apps', iconColor: 'red' },
       { id: 'com.webos.app.container', title: 'Container' },
       { id: 'hidden.app', title: 'Hidden', visible: false }
     ]
@@ -582,6 +597,9 @@ telemetry.refreshInstalledApps(function (apps) {
     assert.strictEqual(lpApps[0].id, 'com.webos.app.discovery');
     assert.strictEqual(lpApps[1].id, 'netflix');
     console.log('  ✓ refreshInstalledApps parses launchPoints array (webOS 6+ / issue #145)');
+    assert.strictEqual(lpApps[1].iconColor, '#e50914');
+    assert.strictEqual('iconColor' in lpApps[0], false);
+    console.log('  ✓ refreshInstalledApps keeps a valid iconColor and drops anything else');
 
     // A live event expires the stats but keeps the app list: the next read
     // does not scan the apps again.

@@ -19,7 +19,7 @@
  * first 4096 bytes of a downloaded tvweb.js for this line (up to 0.82.2), and
  * refuses a release where it is further down (#586).
  */
-var TVWEB_VERSION = '0.91.0';
+var TVWEB_VERSION = '0.99.0';
 
 var http = require('http');
 var fs = require('fs');
@@ -50,6 +50,7 @@ var devtools = require('./lib/devtools');
 var oled = require('./lib/oled');
 var screensavers = require('./lib/screensavers');
 var appsModule = require('./lib/apps');
+var iconServer = require('./lib/iconserver');
 var samrescan = require('./lib/samrescan');
 var servicesModule = require('./lib/services');
 var preload = require('./lib/preload');
@@ -72,6 +73,11 @@ var remotebuttons = require('./lib/remotebuttons');
 var logsModule = require('./lib/logs');
 var syslogForwarder = require('./lib/syslog');
 var ntpClient = require('./lib/ntp');
+var history = require('./lib/history');
+var sshKeys = require('./lib/sshkeys');
+var screentime = require('./lib/screentime');
+var remoteBattery = require('./lib/remotebattery');
+var backup = require('./lib/backup');
 var power = require('./lib/power');
 var names = require('./lib/names');
 var msg = say.msg;
@@ -184,6 +190,14 @@ var CONFIG = {
   // `token`: it widens who can run code on the TV.
   allowNetworkDebugger: false,
 
+  // Installed apps' icons, read-only and unauthenticated, at
+  // http://<tv>:<port + 2>/icons/<appId>.png, for a launcher on another
+  // device. Also switched from the MQTT tab.
+  iconServer: false,
+
+  // For testing the first-run setup wizard UI without touching TV settings or restarting.
+  emulateSetup: false,
+
   // PicCap is offered where it is installed; its Home Assistant entity is
   // switched off like any other.
   piccap: { pollIntervalMs: 30000 },
@@ -239,6 +253,40 @@ var CONFIG = {
   ntp: {
     server: '',
     port: 123
+  },
+
+  /*
+   * Watch time: how long the screen is on, per app and input, kept in
+   * /var/lib/tvweb/history for 13 months. Off by default, as it records what
+   * the household watches.
+   */
+  history: {
+    enabled: false
+  },
+
+  /*
+   * A backup of the settings each day, as the Server tab's Download backup
+   * makes, kept in /var/lib/tvweb/backups for the last 7 days. Off by default.
+   */
+  backup: {
+    daily: false
+  },
+
+  /*
+   * Screen-time limits, counted by watch time: a daily total in minutes (0
+   * for none), a bedtime from bedtimeStart to bedtimeEnd ('HH:MM', TV time),
+   * and apps, minutes a day by app or input. action is what the TV does at
+   * the daily limit or bedtime (off, screenOff or warn), appAction what an
+   * app does at its own (home, off, screenOff or warn).
+   */
+  screenTime: {
+    enabled: false,
+    dailyMinutes: 0,
+    bedtimeStart: '',
+    bedtimeEnd: '',
+    action: 'off',
+    appAction: 'home',
+    apps: {}
   },
 
   device: {
@@ -323,17 +371,17 @@ function loadConfig() {
           var mode = fs.statSync(paths[i]).mode & parseInt('777', 8);
           if (mode !== parseInt('600', 8)) {
             fs.chmodSync(paths[i], parseInt('600', 8));
-            console.log('tightened permissions on ' + paths[i] + ' to 0600');
+            console.log('config: tightened permissions on ' + paths[i] + ' to 0600');
           }
         } catch (e) {
-          console.warn('warning: could not chmod ' + paths[i] + ': ' + e.message);
+          console.warn('config: could not chmod ' + paths[i] + ': ' + e.message);
         }
         CONFIG_FILE = paths[i];
-        console.log('loaded configuration from ' + paths[i]);
+        console.log('config: loaded ' + paths[i]);
         break;
       }
     } catch (e) {
-      console.warn('warning: error reading config from ' + paths[i] + ':', e.message);
+      console.warn('config: error reading ' + paths[i] + ': ' + e.message);
     }
   }
 }
@@ -385,6 +433,9 @@ loadConfig();
     else if (a[i] === '--debug' || a[i] === '-d') {
       CONFIG.logging = CONFIG.logging || {};
       CONFIG.logging.level = 'debug';
+    }
+    else if (a[i] === '--emulate-setup' || a[i] === '--demo-setup') {
+      CONFIG.emulateSetup = true;
     }
   }
 })();
@@ -443,6 +494,7 @@ privacy.init({ luna: luna, lunaCached: lunaCached, config: CONFIG, lgSettings: l
 oled.init({ luna: luna, config: CONFIG });
 samrescan.init({ luna: luna });
 appsModule.init({ luna: luna, config: CONFIG });
+iconServer.init({ config: CONFIG, apps: appsModule });
 servicesModule.init({ stateDir: __dirname });
 preload.init({ luna: luna, stateDir: __dirname });
 quickAccess.init({ luna: luna, inputNames: telemetry.inputNameMap });
@@ -466,6 +518,7 @@ telemetry.init({
   screensavers: screensavers,
   game: game,
   power: power,
+  remoteBattery: remoteBattery,
   tvwebVersion: TVWEB_DISPLAY_VERSION
 });
 
@@ -528,6 +581,7 @@ remotebuttons.init({
 
 controls.init({
   luna: luna,
+  lunaUrgent: lunaTransport.callUrgent,
   piccap: piccap,
   clearLunaCache: clearLunaCache,
   config: CONFIG,
@@ -541,6 +595,8 @@ controls.init({
   updater: updater,
   devtools: devtools,
   ntp: ntpClient,
+  history: history,
+  backup: backup,
   republishDiscovery: function () { republishDiscovery(); },
   tvApp: tvApp,
   restartSelf: restartSelf,
@@ -702,7 +758,7 @@ function restartSelf() {
   // Every restart path ends here. A restart mid-install would leave the
   // package half-written and the job unreported.
   if (installer.isWorking()) {
-    console.error('restart refused: ' + msg('srv.install.busy.restart', 'an install is in progress; restart when it has finished'));
+    console.error('server: restart refused: ' + msg('srv.install.busy.restart', 'an install is in progress; restart when it has finished'));
     return false;
   }
   var ctl = [path.join(__dirname, 'tvwebctl'), '/var/lib/tvweb/tvwebctl'];
@@ -714,7 +770,7 @@ function restartSelf() {
       }).unref();
       return true;
     } catch (e) {
-      console.error('restart failed: ' + e.message);
+      console.error('server: restart failed: ' + e.message);
     }
   }
   return false;
@@ -765,6 +821,10 @@ routes.init({
   prometheus: prometheus,
   syslog: syslogForwarder,
   ntp: ntpClient,
+  history: history,
+  sshKeys: sshKeys,
+  screentime: screentime,
+  backup: backup,
   configFile: CONFIG_FILE,
   controls: controls,
   telemetry: telemetry,
@@ -786,12 +846,33 @@ routes.init({
   assetPath: assetPath,
   assetDirs: ASSET_DIRS,
   luna: luna,
-  getMqttStatus: function () { return MQTT_STATUS; },
+  getMqttStatus: function () {
+    if (activeMqttClient && activeMqttClient.connected && activeMqttClient.latencyMs != null) {
+      MQTT_STATUS.latencyMs = activeMqttClient.latencyMs;
+    } else {
+      MQTT_STATUS.latencyMs = null;
+    }
+    return MQTT_STATUS;
+  },
   appsChanged: appsChanged,
   logs: logsModule,
   version: TVWEB_VERSION,
   displayVersion: TVWEB_DISPLAY_VERSION
 });
+
+backup.init({
+  lgSettings: lgSettings,
+  config: CONFIG,
+  writeSettings: routes.writeSettings,
+  about: function () { return { model: CONFIG.device && CONFIG.device.model, version: TVWEB_DISPLAY_VERSION }; },
+  luna: luna,
+  repo: repo,
+  // The Homebrew Channel and Glasshouse's own apps are on any TV restoring one.
+  keepApp: function (id) {
+    return installer.SELF_UPDATING.indexOf(id) === -1 && !appsModule.PROTECTED_APP_IDS[id];
+  }
+});
+if (!CLI_MODE) backup.startDaily();
 
 if (WEB_ENABLED && !CLI_MODE) routes.loadUI();   // otherwise nothing will serve it
 
@@ -806,8 +887,7 @@ var mqttEnabled = !!(CONFIG.mqtt && CONFIG.mqtt.enabled && CONFIG.mqtt.host);
  * process to exist, and a silent no-op is harder to diagnose than an exit.
  */
 if (!CLI_MODE && !webEnabled && !mqttEnabled) {
-  console.error('nothing to do: web.enabled is false and mqtt is not configured.');
-  console.error('enable one of them in config.json.');
+  console.error('server: web.enabled is false and mqtt is not configured; enable one in config.json');
   process.exit(1);
 }
 
@@ -818,6 +898,8 @@ if (!CLI_MODE) {
 }
 
 if (!CLI_MODE) servicesModule.startEnforcing();
+// Discovery carries the icons' address once the server is listening.
+if (!CLI_MODE) iconServer.start(function (err, started) { if (started) republishDiscovery(); });
 // Late, so configd is up after a boot.
 if (!CLI_MODE) {
   var preloadTimer = setTimeout(function () { preload.reapply(); }, 60000);
@@ -830,12 +912,13 @@ if (CLI_MODE) {
 } else if (webEnabled) {
   listenDualStack(server, CONFIG.port, CONFIG.host, function (err, took, fellBack) {
     if (err) throw err;
-    console.log('tvweb listening on ' + hostPort(took, CONFIG.port) +
+    console.log('server: listening on ' + hostPort(took, CONFIG.port) +
                 (fellBack ? ' (IPv4 only, [::] gave ' + fellBack.code + ')' : '') +
-                '  control=' + CONFIG.allowControl + '  power=' + CONFIG.allowPower +
-                '  auth=' + (CONFIG.token ? 'token' : 'none'));
+                ' (control: ' + (CONFIG.allowControl ? 'on' : 'off') +
+                ', power: ' + (CONFIG.allowPower ? 'on' : 'off') +
+                ', auth: ' + (CONFIG.token ? 'token' : 'none') + ')');
     if (CONFIG.apps && CONFIG.apps.sideload === true && !CONFIG.token) {
-      console.warn('warning: apps.sideload is on and no token is set; anyone who can reach port ' +
+      console.warn('security: apps.sideload is on and no token is set; anyone who can reach port ' +
                     CONFIG.port + ' can install a package from a URL or a file');
     }
     oled.detectOled(function () {});   // resolve and log panel type up front
@@ -845,19 +928,19 @@ if (CLI_MODE) {
       // Boot is the moment to do it: nothing is open, and it is never removed
       // while open. Once it is gone this finds nothing to do.
       tvApp('retire', function (r) {
-        if (r && r.retired) console.log('tv app: old tile removed; the Homebrew Channel app replaces it');
+        if (r && r.retired) console.log('tvapp: old tile removed; Homebrew Channel replaces it');
       });
     } else {
       // The home-screen app packages its own loading screen, name and icons at
       // install - the dashboard itself is served fresh - so bring those up to
       // date with this release. A removed app is left removed.
       tvApp('refresh', function (r) {
-        if (r && r.refreshed && r.ok) console.log('tv app: refreshed to this release');
+        if (r && r.refreshed && r.ok) console.log('tvapp: refreshed to current release');
       });
     }
   });
 } else {
-  console.log('web dashboard disabled (web.enabled=false) - mqtt bridge only');
+  console.log('server: web dashboard disabled (web.enabled: false) - mqtt bridge only');
   oled.detectOled(function () {});
 }
 
@@ -881,6 +964,7 @@ var MQTT_STATUS = {
   since: Date.now(),
   lastPublish: 0
 };
+var activeMqttClient = null;
 
 function mqttStatus(state, detail) {
   if (MQTT_STATUS.state !== state) MQTT_STATUS.since = Date.now();
@@ -926,15 +1010,13 @@ function setupHomeAssistant() {
       retain: true
     }
   });
+  activeMqttClient = mqttClient;
   piccap.attachMqtt({ client: mqttClient, prefix: pfx, allowControl: CONFIG.allowControl });
   piccapChanged = function () {
-    if (!mqttClient.connected) return;
-    console.log('mqtt: PicCap ' + (piccap.getState() ? 'answering' : 'gone') + ' - republishing discovery');
-    publishDiscovery();
+    requestDiscoveryRepublish('PicCap status');
   };
   republishDiscovery = function () {
-    if (!mqttClient || !mqttClient.connected) return;
-    publishDiscovery();
+    requestDiscoveryRepublish('configuration');
   };
   onRemoteButton = function (button, code) {
     console.log('remotebuttons: ' + button + ' button pressed (code ' + code + ')');
@@ -969,6 +1051,26 @@ function setupHomeAssistant() {
     return publishRaw.call(mqttClient, topic, message, retain);
   };
 
+  var discoveryDebounceTimer = null;
+  var discoveryReasons = [];
+
+  function requestDiscoveryRepublish(reason) {
+    if (!mqttClient || !mqttClient.connected) return;
+    if (reason && discoveryReasons.indexOf(reason) === -1) {
+      discoveryReasons.push(reason);
+    }
+    if (discoveryDebounceTimer) clearTimeout(discoveryDebounceTimer);
+    discoveryDebounceTimer = setTimeout(function () {
+      discoveryDebounceTimer = null;
+      var reasons = discoveryReasons.slice();
+      discoveryReasons = [];
+      if (reasons.length) {
+        console.log('mqtt: ' + reasons.join(', ') + ' changed - republishing discovery');
+      }
+      publishDiscovery();
+    }, 400);
+  }
+
   function publishDiscovery() {
     ha.clearRetired(function (topic, payload, retain) {
       mqttClient.publish(topic, payload, retain);
@@ -983,7 +1085,8 @@ function setupHomeAssistant() {
       allowPower: CONFIG.allowPower,
       isOled: oled.getIsOled(),
       updatesElsewhere: fromHomebrewChannel(),
-      piccap: piccapWanted() && piccap.getState() !== null
+      piccap: piccapWanted() && piccap.getState() !== null,
+      iconBaseUrl: iconServer.baseUrl()
     });
 
     entities = ha.filterWithholds(entities, {
@@ -996,6 +1099,7 @@ function setupHomeAssistant() {
         updateCheck: !!(CONFIG.update && CONFIG.update.check),
         isOled: oled.getIsOled(),
         hasRemoteButtons: remotebuttons.isSupported(),
+        watchHistory: history.status().running,
         userEntities: (CONFIG.mqtt && CONFIG.mqtt.entities) || {}
       })
     });
@@ -1168,12 +1272,12 @@ function setupHomeAssistant() {
         lastLgsSig = lgsSig;
         lgsRows = ls.rows;
         if (lastLgsSig) {
-          console.log('mqtt: LG settings changed (' + ls.rows.length + ') - republishing discovery');
-          publishDiscovery();
+          requestDiscoveryRepublish('LG settings');
         }
       }
       liveState.reconcile(s);
       s.tvOff = tvOff;
+      s.watch = history.summary();
       /*
        * Switched off, the TV has no foreground app, which left Input Source
        * and Launch App reading unknown. They keep the last input and app
@@ -1219,23 +1323,20 @@ function setupHomeAssistant() {
       }).join(',');
       if (sig && sig !== lastPicSig) {
         lastPicSig = sig;
-        console.log('mqtt: picture modes changed (' + sig + ') - republishing discovery');
-        publishDiscovery();
+        requestDiscoveryRepublish('picture modes');
       }
       // The Sound Output select's options are the outputs the TV offers, also
       // in discovery: the first answer replaces the list of every output.
       var soundSig = telemetry.getSoundOutputs().join(',');
       if (soundSig && soundSig !== lastSoundSig) {
         lastSoundSig = soundSig;
-        console.log('mqtt: sound outputs on offer (' + soundSig + ') - republishing discovery');
-        publishDiscovery();
+        requestDiscoveryRepublish('sound outputs');
       }
       // The Sound Format sensor appears once the TV has answered the call.
       var soundFormatCap = telemetry.hasSoundFormat();
       if (soundFormatCap && !lastSoundFormatCap) {
         lastSoundFormatCap = true;
-        console.log('mqtt: the TV reports its sound format - republishing discovery');
-        publishDiscovery();
+        requestDiscoveryRepublish('sound format');
       }
       // Launch App's options are the installed apps, and live in discovery too.
       var appSig = telemetry.getInstalledApps().map(function (a) { return a.id; }).sort().join(',');
@@ -1243,8 +1344,7 @@ function setupHomeAssistant() {
         var hadApps = lastAppSig;
         lastAppSig = appSig;
         if (hadApps) {
-          console.log('mqtt: installed apps changed (' + telemetry.getInstalledApps().length + ') - republishing discovery');
-          publishDiscovery();
+          requestDiscoveryRepublish('installed apps');
         }
       }
       /*
@@ -1262,13 +1362,12 @@ function setupHomeAssistant() {
        */
       if (s.mac && !devInfo.connections) {
         devInfo.connections = [['mac', s.mac]];
-        publishDiscovery();
+        requestDiscoveryRepublish('network address');
       }
       var cap = telemetry.getCapabilitySignature();
       if (cap !== lastCapSig) {
         lastCapSig = cap;
-        console.log('mqtt: set reported (' + cap + ') for the first time - republishing discovery');
-        publishDiscovery();
+        requestDiscoveryRepublish('capabilities');
       }
     });
     });
@@ -1306,6 +1405,14 @@ function setupHomeAssistant() {
 
     if (piccap.handleMqttCommand(action, val)) return;
 
+    // A held arrow sends a stream of keys, and a telemetry read after each one
+    // would queue a dozen luna calls per key. A key that changes the app
+    // reaches Home Assistant through the foreground-app subscription.
+    if (action === 'rcu') {
+      doControl(action, val, function () {});
+      return;
+    }
+
     if (action === 'screen') {
       var turnOff = (val.toUpperCase() === 'OFF');
       doControl(turnOff ? 'screenOff' : 'screenOn', null, function() {});
@@ -1314,28 +1421,42 @@ function setupHomeAssistant() {
 
     if (action === 'reboot') {
       doControl('reboot', null, function (r) {
-        console.log('mqtt: reboot executed, result: ' + JSON.stringify(r));
+        if (!r || r.ok === false) {
+          console.error('mqtt: reboot failed: ' + ((r && (r.error || r.errorText)) || 'unknown error'));
+        } else {
+          console.log('mqtt: reboot initiated');
+        }
       });
       return;
     }
 
     if (action === 'powerOff') {
       doControl('powerOff', null, function (r) {
-        console.log('mqtt: powerOff executed, result: ' + JSON.stringify(r));
+        if (!r || r.ok === false) {
+          console.error('mqtt: powerOff failed: ' + ((r && (r.error || r.errorText)) || 'unknown error'));
+        } else {
+          console.log('mqtt: powerOff initiated');
+        }
       });
       return;
     }
 
     if (action === 'powerOn') {
       doControl('powerOn', null, function (r) {
-        console.log('mqtt: powerOn executed, result: ' + JSON.stringify(r));
+        if (!r || r.ok === false) {
+          console.error('mqtt: powerOn failed: ' + ((r && (r.error || r.errorText)) || 'unknown error'));
+        } else {
+          console.log('mqtt: powerOn initiated');
+        }
       });
       return;
     }
 
     if (action === 'mute') {
       doControl('mute', val.toUpperCase() === 'ON', function (r) {
-        console.log('mqtt: mute set to ' + val + ', result: ' + JSON.stringify(r));
+        if (!r || r.ok === false) {
+          console.error('mqtt: mute change failed: ' + ((r && (r.error || r.errorText)) || 'unknown error'));
+        }
         setTimeout(publishTelemetry, 400);
       });
       return;
@@ -1343,7 +1464,9 @@ function setupHomeAssistant() {
 
     if (action === 'volume') {
       doControl('volume', toInt(val, 10), function (r) {
-        console.log('mqtt: volume set to ' + val + ', result: ' + JSON.stringify(r));
+        if (!r || r.ok === false) {
+          console.error('mqtt: volume change failed: ' + ((r && (r.error || r.errorText)) || 'unknown error'));
+        }
         setTimeout(publishTelemetry, 400);
       });
       return;
@@ -1359,7 +1482,9 @@ function setupHomeAssistant() {
     // LG's On or Off Timer, switched on or off: powerTimer/on or powerTimer/off.
     if (action === 'powerTimer/on' || action === 'powerTimer/off') {
       doControl('powerTimer', { timer: action.substring(11), enabled: val.toUpperCase() === 'ON' }, function (r) {
-        if (!r || !r.ok) console.log('mqtt: ' + action + ' not set: ' + JSON.stringify(r));
+        if (!r || !r.ok) {
+          console.error('mqtt: ' + action + ' failed: ' + ((r && (r.error || r.errorText)) || 'unknown error'));
+        }
         setTimeout(publishTelemetry, 400);
       });
       return;
@@ -1374,7 +1499,9 @@ function setupHomeAssistant() {
                  : lgsCur.type === 'number' ? { id: lgsRow, value: toInt(val, lgsCur.value) }
                  : { id: lgsRow, value: val };
       doControl('lgSetting', lgsVal, function (r) {
-        if (!r || !r.ok) console.log('mqtt: ' + lgsRow + ' not set: ' + JSON.stringify(r));
+        if (!r || !r.ok) {
+          console.error('mqtt: ' + lgsRow + ' failed: ' + ((r && (r.error || r.errorText)) || 'unknown error'));
+        }
         setTimeout(publishTelemetry, 400);
       });
       return;
@@ -1394,7 +1521,11 @@ function setupHomeAssistant() {
         return;
       }
       doControl('update', null, function (r) {
-        console.log('mqtt: update requested, result: ' + JSON.stringify(r));
+        if (!r || !r.ok) {
+          console.error('mqtt: update failed: ' + ((r && (r.error || r.errorText)) || 'unknown error'));
+        } else {
+          console.log('mqtt: update initiated');
+        }
       });
       return;
     }
@@ -1425,7 +1556,7 @@ function setupHomeAssistant() {
 
   function flushMqttErrorRepeats() {
     if (mqttErrorRepeats) {
-      console.error('mqtt error: last message repeated ' + mqttErrorRepeats + ' more time' +
+      console.error('mqtt: last error repeated ' + mqttErrorRepeats + ' more time' +
                     (mqttErrorRepeats === 1 ? '' : 's'));
       mqttErrorRepeats = 0;
     }
@@ -1437,7 +1568,7 @@ function setupHomeAssistant() {
     if (err.message === lastMqttError) { mqttErrorRepeats++; return; }
     flushMqttErrorRepeats();
     lastMqttError = err.message;
-    console.error('mqtt error:', err.message);
+    console.error('mqtt: ' + err.message);
   });
 
   /* A socket error destroys the socket, so 'close' follows it. The error text
@@ -1448,11 +1579,13 @@ function setupHomeAssistant() {
 
   process.on('SIGTERM', function() {
     remotebuttons.stop();
+    iconServer.stop();
     if (mqttClient) mqttClient.disconnect();
     process.exit(0);
   });
   process.on('SIGINT', function() {
     remotebuttons.stop();
+    iconServer.stop();
     if (mqttClient) mqttClient.disconnect();
     process.exit(0);
   });
@@ -1461,6 +1594,8 @@ function setupHomeAssistant() {
   setInterval(tickTelemetry, intervalMs);
 
   liveState.start();
+  liveState.startGroup('surface');
+  liveState.startGroup('focus');
   notificationState.start();
   mqttClient.connect();
 }
@@ -1504,10 +1639,48 @@ if (!CLI_MODE) {
 
   ntpClient.init({ config: CONFIG, luna: luna });
   ntpClient.start();
+
+  history.init({ config: CONFIG, luna: luna, liveState: liveState, appTitle: telemetry.appTitle });
+  history.start();
+  screentime.init({ config: CONFIG, liveState: liveState, control: controls.doControl, injectKey: controls.injectKey, keyBack: controls.KEY_BACK });
+  screentime.start();
+  /*
+   * Registered before the MQTT bridge's handlers, which exit, so it runs
+   * first. With no bridge it is the only handler, and exits itself.
+   */
+  process.on('SIGTERM', function () {
+    history.flush();
+    if (process.listeners('SIGTERM').length === 1) process.exit(0);
+  });
+  process.on('SIGINT', function () {
+    history.flush();
+    if (process.listeners('SIGINT').length === 1) process.exit(0);
+  });
+
+  remoteBattery.init({
+    luna: luna,
+    stateDir: __dirname,
+    webosVersion: telemetry.detectWebosVersion(),
+    onLevel: function (level) {
+      console.log('remote: battery ' + level + '%');
+      telemetry.expireStats();
+    }
+  });
+  remoteBattery.start(function () {
+    var p = liveState.state.snapshot().power;
+    return !!(p && p.systemOn);
+  });
+  liveState.state.onChange(function (ev) {
+    if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) remoteBattery.poweredOn();
+  });
   // Always, as a server set from the dashboard later starts the client then.
   // sync() does nothing while no server is set.
   liveState.state.onChange(function (ev) {
     if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) ntpClient.sync();
+  });
+  // A C5 (webOS 10.3) has every app's preloading enabled again at each switch-on.
+  liveState.state.onChange(function (ev) {
+    if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) preload.resend();
   });
 
   telemetry.detectDeviceInfo(function() {
