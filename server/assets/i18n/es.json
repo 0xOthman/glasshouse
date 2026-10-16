@@ -3840,8 +3840,8 @@
   "from": "{id} must be updated from the Homebrew Channel"
  },
  "srv.install.idMismatch": {
-  "text": "el paquete es {found}, no {expected}",
-  "from": "the package is {found}, not {expected}"
+  "text": "el catálogo la muestra como {expected}, pero lo que descarga es otra app, {found}. Quien gestiona el catálogo tiene que corregirlo.",
+  "from": "the catalog lists it as {expected}, but what it downloads is a different app, {found}. Whoever runs the catalog needs to correct it."
  },
  "srv.install.idRequired": {
   "text": "se necesita el id de una app",
@@ -6978,5 +6978,25 @@
  "srv.repo.unreachable": {
   "text": "no se pudo leer {url}: {error}",
   "from": "could not read {url}: {error}"
+ },
+ "apps.install.notInstalled": {
+  "text": "{name} no se instaló.",
+  "from": "{name} was not installed."
+ },
+ "apps.uninstall.notRemoved": {
+  "text": "{name} no se desinstaló.",
+  "from": "{name} was not uninstalled."
+ },
+ "apps.catalogs.unread": {
+  "text": "No se pudo leer este catálogo.",
+  "from": "This catalog could not be read."
+ },
+ "apps.install.dir.store": {
+  "text": "v{version}, en lugar de la v{from} de la tienda de LG",
+  "from": "v{version}, in place of the LG store's v{from}"
+ },
+ "apps.install.mbUnder1": {
+  "text": "menos de 1 MB",
+  "from": "under 1 MB"
  }
 }

@@ -753,7 +753,7 @@ function proceedVerify(j) {
           var found = info.package === j.pkg.id;
           for (var i = 0; i < info.apps.length; i++) if (info.apps[i].id === j.pkg.id) found = true;
           if (!found) {
-            return fail(j, msg('srv.install.idMismatch', 'the package is {found}, not {expected}', { found: info.package, expected: j.pkg.id }));
+            return fail(j, msg('srv.install.idMismatch', 'the catalog lists it as {expected}, but what it downloads is a different app, {found}. Whoever runs the catalog needs to correct it.', { found: info.package, expected: j.pkg.id }));
           }
         }
         j.info = info;

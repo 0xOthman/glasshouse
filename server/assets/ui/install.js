@@ -145,7 +145,7 @@ function catalogRow(a, writable, from) {
     <div class="prot-main">
       <div class="prot-title">${esc(a.title || a.id)}${root}${meta ? ` <span class="prot-sub">&middot; ${esc(meta)}</span>` : ''}</div>
       <div class="prot-desc">${esc(a.description || a.id)}</div>
-      ${rowError[a.id] ? `<div class="prot-desc row-err">${esc(rowError[a.id])}</div>` : ''}
+      ${rowErrorNote(a.id)}
     </div>
     <div class="prot-status">
       ${sizeBadge ? `<span class="app-badge" title="${esc(t('apps.installed.storageTooltip', 'Storage footprint'))}">${esc(sizeBadge)}</span>` : ''}
@@ -155,7 +155,9 @@ function catalogRow(a, writable, from) {
   </div>`;
 }
 
-function fmtMb(n) { return t('apps.install.mb', '{n} MB', { n: Math.round(n / 1048576) }); }
+function fmtMb(n) {
+  return n > 0 && n < 524288 ? t('apps.install.mbUnder1', 'under 1 MB') : t('apps.install.mb', '{n} MB', { n: Math.round(n / 1048576) });
+}
 
 /* The update tab's bar, for installs: a download or upload moves it by what
    has arrived, up to 60%, and the steps after ease on towards their marks, as
@@ -174,7 +176,13 @@ const instProg = makeProgress('inst-prog', 'inst-step', 'inst-bar', null, p => {
  */
 const ROW_FLASH_MS = 2500;
 const rowFlash = {};      // id -> { label, cls, until }
-const rowError = {};      // id -> text
+const rowError = {};      // id -> { title, text }
+
+// A row's error, as the page's error banner: what did not happen, then why.
+function rowErrorNote(id) {
+  const e = rowError[id];
+  return e ? `<div class="err-note" role="alert"><b>${esc(e.title)}</b>${esc(e.text)}</div>` : '';
+}
 const uninstalling = {};  // id -> true
 
 function catalogJob() {
@@ -289,8 +297,11 @@ function renderPreview(pv) {
   const dir = pv.direction;
   const ver = pv.version, from = pv.installedVersion;
   q('inst-title').textContent = (pv.apps && pv.apps[0] && pv.apps[0].title) || pv.package;
+  // Replacing the LG store's app: its version is the store's numbering, so
+  // the two are not compared.
   q('inst-meta').textContent = pv.package + ' · ' + (
-    dir === 'up' ? t('apps.install.dir.up', 'upgrade from v{from} to v{version}', { from, version: ver })
+    pv.storeInstalled && from ? t('apps.install.dir.store', 'v{version}, in place of the LG store\'s v{from}', { from, version: ver })
+    : dir === 'up' ? t('apps.install.dir.up', 'upgrade from v{from} to v{version}', { from, version: ver })
     : dir === 'down' ? t('apps.install.dir.down', 'downgrade from v{from} to v{version}', { from, version: ver })
     : dir === 'same' ? t('apps.install.dir.same', 'reinstall of v{version}', { version: ver })
     : t('apps.install.dir.new', 'new install of v{version}', { version: ver }));
@@ -417,7 +428,12 @@ function installEnded(s) {
       setCatalogState(s.appId, (s.result && s.result.version) || '');
       flashRow(s.appId, t('apps.install.installed', 'Installed'), 'good flash');
     } else if (s.state === 'error' || s.state === 'interrupted') {
-      rowError[s.appId] = sentence(s.error || t('common.unknownError', 'unknown error'));
+      const app = (catalogData ? (catalogData.apps || []).concat(catalogData.others || []) : [])
+        .find(x => x.id === s.appId && (!s.repo || x.repo === s.repo));
+      rowError[s.appId] = {
+        title: t('apps.install.notInstalled', '{name} was not installed.', { name: (app && app.title) || s.appId }),
+        text: sentence(s.error || t('common.unknownError', 'unknown error'))
+      };
       showErr(s.error || t('common.unknownError', 'unknown error'));
     }
     renderCatalog();
@@ -508,7 +524,7 @@ function renderOtherCatalogs() {
       <div class="prot-main">
         <div class="prot-title" translate="no">${esc(r.label)}</div>
         <div class="prot-desc catalog-url" translate="no">${esc(r.url)}</div>
-        ${r.error ? `<div class="prot-desc row-err">${esc(sentence(r.error))}</div>` : ''}
+        ${r.error ? `<div class="err-note" role="alert"><b>${esc(t('apps.catalogs.unread', 'This catalog could not be read.'))}</b>${esc(sentence(r.error))}</div>` : ''}
       </div>
       <div class="prot-status">
         <span class="app-badge">${esc(t('apps.count', '{n} apps', { n: r.count }))}</span>

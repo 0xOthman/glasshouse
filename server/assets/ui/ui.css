@@ -1194,6 +1194,7 @@ footer{margin-top:38px;font-size:13px;letter-spacing:.08em;text-transform:upperc
 .page-add-msg:empty{display:none}
 .page-add #page-add-url{flex:2 1 260px}
 .page-add #page-add-name{flex:1 1 160px}
+.page-add #catalog-url{flex:1 1 260px}
 /* The address takes a full row at every width, so its placeholder is not cut; the hash and the button share the next one. */
 #sl-url{flex:1 1 100%}
 #sl-sha{flex:1 1 160px}
@@ -1371,3 +1372,6 @@ button.tools-jump:active{background:var(--w80)}
 .rk-opt.on{color:var(--btn-on-fg);background:var(--w100);border-color:var(--w100)}
 /* A catalog's address is one long word. */
 .catalog-url{overflow-wrap:anywhere}
+/* An error under a row, styled as the page's own error banner (#offline). */
+.err-note{font-size:14px;border-left:2px solid var(--red);padding:9px 13px;background:var(--w06);color:var(--w90);margin-top:8px;max-width:64ch;overflow-wrap:anywhere}
+.err-note b{font-weight:600;margin-right:6px}
