@@ -375,8 +375,36 @@ async function setQuickAccessKey(sel) {
   await loadApps();
 }
 
-// What the remote's keys do (lib/remotekeys.js): each key's select has As LG
-// has it, Nothing, then the inputs and apps it can open.
+// What the remote's keys do (lib/remotekeys.js): a tile per key, grouped as
+// the remote groups them, each showing what it does now. Choosing a tile opens
+// a picker under its row with As LG has it, Nothing, the inputs and the apps.
+const RK_GROUPS = [
+  { id: 'streaming', title: () => t('apps.remoteKeys.streaming', 'Streaming buttons'),
+    keys: ['netflix', 'amazon', 'disneyplus', 'lgchannels', 'rakutentv', 'hulu', 'iplayer', 'freeviewplay', 'slingtv'] },
+  { id: 'colour', title: () => t('apps.remoteKeys.colour', 'Color keys'), keys: ['red', 'green', 'yellow', 'blue'] },
+  // Anything else, including keys a later server offers.
+  { id: 'other', title: () => t('apps.remoteKeys.other', 'Other keys'), keys: null }
+];
+// The colour keys' own colours, the one place colour is the key's name.
+const RK_COLOURS = { red: 'var(--red)', green: 'var(--green)', yellow: '#f2c230', blue: 'var(--blue)' };
+let rkData = null;     // the last remoteKeys answer, for the picker
+let rkOpen = null;     // the key whose picker is open
+let rkCols = 0;        // the columns its grid had when it opened
+let rkWritable = false;
+let rkMoreOpen = false;  // the other countries' keys, folded until opened
+
+function rkIcon(id) {
+  return `<img class="rk-ico" src="${esc(api('/api/apps/icon?id=' + encodeURIComponent(id)))}" alt="" onerror="this.style.visibility='hidden'">`;
+}
+
+// What a key does, as its tile shows it.
+function rkDoes(k, kindOf) {
+  if (k.action === 'lg') return `<span class="rk-lg">${esc(t('apps.remoteKeys.lg', 'As LG has it'))}</span>`;
+  if (k.action === 'nothing') return `<span class="rk-none" aria-hidden="true">⦸</span>${esc(t('apps.remoteKeys.doesNothing', 'Does nothing'))}`;
+  const icon = kindOf(k.id) === 'app' ? rkIcon(k.id) : '';
+  return `${icon}<span translate="no">${esc(k.opens)}</span>`;
+}
+
 function renderRemoteKeys(d) {
   const disc = q('disc-remotekeys');
   const list = q('apps-rk-list');
@@ -390,43 +418,120 @@ function renderRemoteKeys(d) {
       ? t('apps.remoteKeys.count', '{n} changed', { n: changed })
       : t('apps.remoteKeys.asLg', 'As LG has it');
   }
-  if (!list || list.contains(document.activeElement)) return;
-  const inputs = rk.choices.filter(c => c.kind === 'input');
-  const apps = rk.choices.filter(c => c.kind === 'app');
-  const opt = (c, cur) => `<option value="${esc(c.id)}"${c.id === cur ? ' selected' : ''}>${esc(c.title)}</option>`;
-  list.innerHTML = rk.keys.map(k => {
-    const cur = k.action === 'open' ? k.id : k.action;
-    // A key set to something no longer offered (an app since removed) keeps
-    // it on the list, so the select shows what the key does now.
-    const known = k.action !== 'open' || rk.choices.some(c => c.id === k.id);
-    const current = known ? '' : `<option value="${esc(k.id)}" selected>${esc(k.opens)}</option>`;
-    const does = k.action === 'lg' ? t('apps.remoteKeys.lg', 'As LG has it')
-      : k.action === 'nothing' ? t('apps.remoteKeys.nothing', 'Nothing')
-      : t('apps.remoteKeys.opens', 'Opens {app}', { app: k.opens });
-    return `<div class="prot-row rk-row">
-      <div class="prot-main">
-        <div class="prot-title" translate="no">${esc(k.title)}</div>
-        <div class="prot-desc">${esc(does)}</div>
-      </div>
-      <div class="prot-status">
-        <select class="pill-sel qa-sel" data-key="${esc(k.key)}" ${d.writable ? '' : 'disabled'}
-          aria-label="${esc(t('apps.remoteKeys.keyLabel', '{key} key', { key: k.title }))}" onchange="setRemoteKey(this)">
-          ${current}
-          <option value="lg"${cur === 'lg' ? ' selected' : ''}>${esc(t('apps.remoteKeys.lg', 'As LG has it'))}</option>
-          <option value="nothing"${cur === 'nothing' ? ' selected' : ''}>${esc(t('apps.remoteKeys.nothing', 'Nothing'))}</option>
-          <optgroup label="${esc(t('apps.remoteKeys.inputs', 'Inputs'))}">${inputs.map(c => opt(c, cur)).join('')}</optgroup>
-          <optgroup label="${esc(t('apps.remoteKeys.apps', 'Apps'))}">${apps.map(c => opt(c, cur)).join('')}</optgroup>
-        </select>
-      </div>
-    </div>`;
+  rkData = rk;
+  rkWritable = !!d.writable;
+  // Left alone while a choice is being made in it.
+  if (!list || (rkOpen && list.contains(document.activeElement))) return;
+  const kinds = {};
+  rk.choices.forEach(c => { kinds[c.id] = c.kind; });
+  const kindOf = id => kinds[id] || 'app';
+  const tile = k => {
+    const dot = RK_COLOURS[k.key] ? `<i class="rk-dot" style="background:${RK_COLOURS[k.key]}"></i>` : '';
+    const label = k.action === 'open' ? t('apps.remoteKeys.opens', 'Opens {app}', { app: k.opens })
+      : k.action === 'nothing' ? t('apps.remoteKeys.doesNothing', 'Does nothing') : t('apps.remoteKeys.lg', 'As LG has it');
+    return `<button type="button" class="rk-key${k.action !== 'lg' ? ' rk-changed' : ''}" data-key="${esc(k.key)}"
+        aria-expanded="false" aria-label="${esc(t('apps.remoteKeys.keyLabel', '{key} key', { key: k.title }) + ': ' + label)}"
+        ${rkWritable ? '' : 'disabled'} onclick="toggleRemoteKey(this)">
+      <span class="rk-name" translate="no">${dot}${esc(k.title)}</span>
+      <span class="rk-does">${rkDoes(k, kindOf)}</span>
+    </button>`;
+  };
+  // A key only another country's remotes have waits at the end, folded away,
+  // unless it has been changed.
+  const away = rk.keys.filter(k => k.elsewhere && k.action === 'lg');
+  const placed = new Set(away.map(k => k.key));
+  const groups = RK_GROUPS.map(g => {
+    const keys = rk.keys.filter(k => !placed.has(k.key) && (!g.keys || g.keys.includes(k.key)));
+    keys.forEach(k => placed.add(k.key));
+    if (!keys.length) return '';
+    return `<div class="rk-grp">${esc(g.title())}</div>
+      <div class="rk-grid">${keys.map(tile).join('')}</div>`;
   }).join('');
+  const more = away.length ? `<details class="rk-more"${rkMoreOpen ? ' open' : ''} ontoggle="rkMoreOpen = this.open">
+      <summary class="rk-grp">${esc(t('apps.remoteKeys.elsewhere', 'Buttons on remotes sold elsewhere ({n})', { n: away.length }))}</summary>
+      <div class="rk-grid">${away.map(tile).join('')}</div></details>` : '';
+  list.innerHTML = groups + more;
+  if (rkOpen) {
+    const tile = list.querySelector(`.rk-key[data-key="${CSS.escape(rkOpen)}"]`);
+    rkOpen = null;
+    if (tile) toggleRemoteKey(tile);
+  }
 }
 
-async function setRemoteKey(sel) {
-  sel.disabled = true;
+// Opens a key's picker as a full row after the tile's own row, so the tiles
+// around it keep their places; the arrow points up at the tile.
+function toggleRemoteKey(tile) {
+  const list = q('apps-rk-list');
+  const was = rkOpen;
+  closeRemoteKeyPicker();
+  if (!rkData || !list || was === tile.dataset.key) return;
+  const k = rkData.keys.find(x => x.key === tile.dataset.key);
+  if (!k) return;
+  rkOpen = k.key;
+  tile.classList.add('rk-open');
+  tile.setAttribute('aria-expanded', 'true');
+  const grid = tile.parentElement;
+  const tiles = Array.from(grid.children).filter(el => el.classList.contains('rk-key'));
+  const cols = rkColumns(grid);
+  rkCols = cols;
+  const i = tiles.indexOf(tile);
+  const after = tiles[Math.min(tiles.length - 1, (Math.floor(i / cols) + 1) * cols - 1)];
+  const cur = k.action === 'open' ? k.id : k.action;
+  const opt = (value, html, extra) => `<button type="button" class="rk-opt${value === cur ? ' on' : ''}${extra || ''}"
+      data-value="${esc(value)}" aria-pressed="${value === cur}" onclick="chooseRemoteKey(this)">${html}</button>`;
+  const inputs = rkData.choices.filter(c => c.kind === 'input');
+  const apps = rkData.choices.filter(c => c.kind === 'app');
+  // A key set to something no longer offered (an app since removed) still shows it.
+  const gone = k.action === 'open' && !rkData.choices.some(c => c.id === k.id)
+    ? opt(k.id, `<span translate="no">${esc(k.opens)}</span>`) : '';
+  const pick = document.createElement('div');
+  pick.className = 'rk-pick';
+  pick.setAttribute('role', 'group');
+  pick.setAttribute('aria-label', t('apps.remoteKeys.keyLabel', '{key} key', { key: k.title }));
+  pick.innerHTML = `<div class="rk-pick-head"><span translate="no">${esc(t('apps.remoteKeys.keyLabel', '{key} key', { key: k.title }))}</span>
+      <button type="button" class="rk-close" onclick="closeRemoteKeyPicker(true)">${esc(t('apps.remoteKeys.close', 'Close'))}</button></div>
+    <div class="rk-opts">${opt('lg', esc(t('apps.remoteKeys.lg', 'As LG has it')))}${opt('nothing', `<span aria-hidden="true">⦸</span> ${esc(t('apps.remoteKeys.nothing', 'Nothing'))}`)}${gone}</div>
+    ${inputs.length ? `<div class="rk-sub">${esc(t('apps.remoteKeys.inputs', 'Inputs'))}</div>
+    <div class="rk-opts">${inputs.map(c => opt(c.id, `<span translate="no">${esc(c.title)}</span>`)).join('')}</div>` : ''}
+    ${apps.length ? `<div class="rk-sub">${esc(t('apps.remoteKeys.apps', 'Apps'))}</div>
+    <div class="rk-opts">${apps.map(c => opt(c.id, `${rkIcon(c.id)}<span translate="no">${esc(c.title)}</span>`)).join('')}</div>` : ''}`;
+  after.after(pick);
+  rkAimArrow(tile, pick);
+  const on = pick.querySelector('.rk-opt.on') || pick.querySelector('.rk-opt');
+  if (on) on.focus({ preventScroll: true });
+}
+
+function rkColumns(grid) {
+  return Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(' ').length);
+}
+
+// The arrow sits under the middle of the chosen tile.
+function rkAimArrow(tile, pick) {
+  const g = tile.parentElement.getBoundingClientRect(), r = tile.getBoundingClientRect();
+  pick.style.setProperty('--rk-arrow', Math.round(r.left - g.left + r.width / 2) + 'px');
+}
+
+function closeRemoteKeyPicker(refocus) {
+  const list = q('apps-rk-list');
+  const pick = list && list.querySelector('.rk-pick');
+  if (pick) pick.remove();
+  const tile = list && rkOpen ? list.querySelector(`.rk-key[data-key="${CSS.escape(rkOpen)}"]`) : null;
+  if (tile) {
+    tile.classList.remove('rk-open');
+    tile.setAttribute('aria-expanded', 'false');
+    if (refocus) tile.focus();
+  }
+  rkOpen = null;
+}
+
+async function chooseRemoteKey(btn) {
+  const key = rkOpen;
+  if (!key) return;
+  const v = btn.dataset.value;
+  const body = v === 'lg' || v === 'nothing' ? { key, action: v } : { key, action: 'open', id: v };
+  document.querySelectorAll('#apps-rk-list .rk-pick .rk-opt').forEach(b => { b.disabled = true; });
+  btn.classList.add('busy');
   let error = null;
-  const v = sel.value;
-  const body = v === 'lg' || v === 'nothing' ? { key: sel.dataset.key, action: v } : { key: sel.dataset.key, action: 'open', id: v };
   try {
     const res = await fetch(api('/api/remotekeys'), {
       method: 'POST',
@@ -438,10 +543,27 @@ async function setRemoteKey(sel) {
   } catch (e) {
     error = e.message;
   }
-  sel.blur();
+  closeRemoteKeyPicker(true);
   if (error) alert(t('apps.remoteKeys.failed', 'Could not change it: {error}', { error }));
   await loadApps();
 }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && rkOpen) closeRemoteKeyPicker(true);
+});
+// A phone's address bar showing or hiding is a resize too, so the picker stays
+// open: it moves only when the columns change, and its arrow follows the tile.
+window.addEventListener('resize', () => {
+  if (!rkOpen) return;
+  const list = q('apps-rk-list');
+  const tile = list && list.querySelector(`.rk-key[data-key="${CSS.escape(rkOpen)}"]`);
+  const pick = list && list.querySelector('.rk-pick');
+  if (!tile || !pick) return;
+  if (rkColumns(tile.parentElement) === rkCols) return rkAimArrow(tile, pick);
+  const key = rkOpen;
+  closeRemoteKeyPicker(false);
+  toggleRemoteKey(list.querySelector(`.rk-key[data-key="${CSS.escape(key)}"]`));
+});
 
 // Apps LG keeps loaded in the background (#624).
 // Parts of LG's Home screen, and inputs as tiles on it (lib/homescreen.js).
