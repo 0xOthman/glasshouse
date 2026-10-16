@@ -36,11 +36,18 @@ WebOSWindow {
     property real valScale:   level > 0 ? 0.86 : 0.46
     property real alphaScale: level > 0 ? 1.00 : 0.60
 
-    // 840x840 canvas with max curve radius <= 320*unit leaves >100*unit margin
-    // on every side so loops never clip against the Canvas or screen edges.
+    // 840x840 canvas with max curve radius <= 304*unit has ~150*unit of
+    // transparent padding on every side so loops never clip inside the Canvas.
+    // Letting that transparent border overhang the screen edges allows the
+    // visible ribbons themselves to sweep right up to all four screen edges.
     property int padSize: Math.round(840 * win.unit)
-    property int maxX: Math.max(40, win.width - padSize - 20)
-    property int maxY: Math.max(40, win.height - padSize - 20)
+    property int minX: -Math.round(150 * win.unit)
+    property int maxX: win.width - padSize + Math.round(150 * win.unit)
+    property int minY: -Math.round(150 * win.unit)
+    property int maxY: win.height - padSize + Math.round(150 * win.unit)
+
+    function roamX(u) { return Math.round(win.minX + u * (win.maxX - win.minX)); }
+    function roamY(u) { return Math.round(win.minY + u * (win.maxY - win.minY)); }
 
     function hsvRgba(h, s, v, a) {
         var hh = ((h % 1.0) + 1.0) % 1.0;
@@ -141,22 +148,22 @@ WebOSWindow {
         id: sculptureA
         width: win.padSize
         height: win.padSize
-        x: Math.round(win.maxX * 0.12)
-        y: Math.round(win.maxY * 0.18)
+        x: win.roamX(0.04)
+        y: win.roamY(0.06)
 
         SequentialAnimation on x {
             loops: Animation.Infinite
-            NumberAnimation { to: Math.round(win.maxX * 0.86); duration: 34000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxX * 0.24); duration: 29000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxX * 0.72); duration: 31000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxX * 0.12); duration: 27000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamX(0.96); duration: 34000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamX(0.18); duration: 29000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamX(0.84); duration: 31000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamX(0.04); duration: 27000; easing.type: Easing.InOutSine }
         }
         SequentialAnimation on y {
             loops: Animation.Infinite
-            NumberAnimation { to: Math.round(win.maxY * 0.82); duration: 23000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxY * 0.10); duration: 27000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxY * 0.88); duration: 25000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxY * 0.18); duration: 21000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamY(0.94); duration: 23000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamY(0.02); duration: 27000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamY(0.98); duration: 25000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamY(0.06); duration: 21000; easing.type: Easing.InOutSine }
         }
 
         // Layer A1: 2:3 harmonic ribbon with 3D perspective tilt
@@ -243,22 +250,22 @@ WebOSWindow {
         id: sculptureB
         width: win.padSize
         height: win.padSize
-        x: Math.round(win.maxX * 0.82)
-        y: Math.round(win.maxY * 0.76)
+        x: win.roamX(0.94)
+        y: win.roamY(0.92)
 
         SequentialAnimation on x {
             loops: Animation.Infinite
-            NumberAnimation { to: Math.round(win.maxX * 0.14); duration: 37000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxX * 0.78); duration: 31000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxX * 0.28); duration: 28000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxX * 0.82); duration: 33000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamX(0.02); duration: 37000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamX(0.88); duration: 31000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamX(0.14); duration: 28000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamX(0.94); duration: 33000; easing.type: Easing.InOutSine }
         }
         SequentialAnimation on y {
             loops: Animation.Infinite
-            NumberAnimation { to: Math.round(win.maxY * 0.12); duration: 26000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxY * 0.86); duration: 22000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxY * 0.18); duration: 29000; easing.type: Easing.InOutSine }
-            NumberAnimation { to: Math.round(win.maxY * 0.76); duration: 24000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamY(0.04); duration: 26000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamY(0.96); duration: 22000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamY(0.08); duration: 29000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: win.roamY(0.92); duration: 24000; easing.type: Easing.InOutSine }
         }
 
         // Layer B1: 2:3 counter-harmonic ribbon in violet-rose
