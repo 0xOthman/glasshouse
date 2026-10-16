@@ -103,8 +103,7 @@ sam_reports() {
 # when switching to one restarted sam (#366). A block and release of the one
 # app has replaced the restart, and has held on webOS 10 (#768), so they are
 # applied there; webOS 11 and later are untried and held back, unless
-# config.json has "allowOnWebos10": true, which alone lets sam be restarted
-# when the reread fails. The type is recorded for the server, which cannot
+# config.json has "allowOnWebos10": true. sam is never restarted for one. The type is recorded for the server, which cannot
 # read the stock manifest while one of ours is mounted over it.
 ssapp=/usr/palm/applications/com.webos.app.screensaver
 stock_type=$(sed -n 's/.*"type"[^"]*"\([^"]*\)".*/\1/p' "$ssapp/appinfo.json" 2>/dev/null)
@@ -117,13 +116,9 @@ if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ]; then
   luna-send -n 1 luna://com.webos.applicationManager/releaseBlockSystemApp '{"id":"com.webos.app.screensaver"}' >/dev/null 2>&1 || true
 fi
 held=0
-allow_restart=0
 webos_major=$(sed -n 's/.*webOS[^0-9]*\([0-9][0-9]*\)\..*/\1/p' /etc/issue 2>/dev/null | head -n 1)
-if grep -q '"allowOnWebos10"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then
-  allow_restart=1
-fi
 if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ] && [ "$webos_major" != "10" ]; then
-  if [ "$allow_restart" -eq 1 ]; then
+  if grep -q '"allowOnWebos10"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then
     echo "$(date): allowOnWebos10 set - custom screen saver not held back"
   else
     held=1
@@ -149,8 +144,6 @@ if [ -f /var/lib/tvweb/screensaver/.tvweb-screensaver ]; then
         echo "$(date): sam read the screen saver again after a block and release, without a restart"
       elif sam_nudge && sam_reports com.webos.app.screensaver "\"type\": *\"$staged_type\""; then
         echo "$(date): sam read the screen saver again, without a restart"
-      elif [ "$allow_restart" -eq 1 ]; then
-        systemctl restart --no-block sam >/dev/null 2>&1 || true
       else
         # sam still runs LG's: put LG's files back under it rather than restart it.
         umount "$ssapp" 2>/dev/null || true

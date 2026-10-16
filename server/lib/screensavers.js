@@ -27,10 +27,8 @@ var SCREENSAVER_LEVEL_MARKER = '.tvweb-brightness';
 // the stock manifest whenever one of ours is in use.
 var STOCK_TYPE_FILE = '/var/lib/tvweb/screensaver-stock-type';
 
-// sam takes most of a minute to stop and come back (OLED55G42LW, webOS 10.3.1),
-// and the screen stays dark meanwhile. Give up waiting well after that.
-var SWITCH_POLL_MS = 3000;
-var SWITCH_SETTLE_MS = 5000;
+// Once set while sam restarted for a switch; sam is no longer restarted, so it
+// stays clear, and the dashboards' notice for it does not show.
 var SWITCH_TIMEOUT_MS = 150000;
 var SWITCHING_ERROR = msg('srv.saver.switching', 'The TV is still switching screen savers. Try again in a minute.');
 var HELD_ERROR = msg('srv.saver.held', 'Custom screen savers are turned off on this TV for now, as they have not been tried on its webOS version. Before 0.98.1, on webOS 10, they could leave the picture, the sound and HDMI control off until the TV was unplugged. One already in use stays until the TV is next fully restarted.');
@@ -159,7 +157,7 @@ function slowSwitch() {
 // a C2 (webOS 10.3), so they are on there by default (#768). webOS 11 and later
 // are untried and stay held back: the boot hook does not apply them and nothing
 // here restarts sam. "allowOnWebos10": true in config.json turns them on
-// anywhere, with sam restarted if the reread fails.
+// anywhere; it does not let sam be restarted.
 function heldBack() {
   return slowSwitch() && !onByDefault() && !allowedAnyway();
 }
@@ -185,27 +183,6 @@ function heldOverridden() {
 function switching() {
   if (switchingSince && Date.now() - switchingSince > SWITCH_TIMEOUT_MS) switchingSince = 0;
   return !!switchingSince;
-}
-
-// sam answers again once it is back; until then luna calls to it time out.
-function waitForRunner(type) {
-  switchingSince = Date.now();
-  var since = switchingSince;
-  (function poll() {
-    setTimeout(function () {
-      if (switchingSince !== since) return;
-      if (!switching()) return;
-      lunaFn('com.webos.applicationManager/getAppInfo', { id: 'com.webos.app.screensaver' }, function (r) {
-        if (switchingSince !== since) return;
-        if (r && r.appInfo && r.appInfo.type === type) {
-          return setTimeout(function () {
-            if (switchingSince === since) switchingSince = 0;
-          }, SWITCH_SETTLE_MS);
-        }
-        poll();
-      });
-    }, SWITCH_POLL_MS);
-  })();
 }
 
 function screensaverLevel() {
@@ -304,8 +281,9 @@ function stageScreensaverAppinfo() {
   fs.writeFileSync(path.join(SCREENSAVER_DIR, 'appinfo.json'), out);
 }
 
-// cb(samRestarted, notTaken): notTaken where sam still holds the other type
-// and was not restarted, which only allowOnWebos10 permits.
+// cb(samRestarted, notTaken): notTaken where sam still holds the other type.
+// sam is never restarted for a screen saver: that restart is the step behind
+// #366, so a switch it does not take is undone instead.
 function ensureScreensaverRunner(cb) {
   var staged;
   try {
@@ -340,15 +318,8 @@ function ensureScreensaverRunner(cb) {
           console.log('screensaver: sam read the manifest again, without a restart');
           return cb(false);
         }
-        if (!allowedAnyway()) {
-          console.log('screensaver: sam did not read the manifest again, and is not restarted (#366)');
-          return cb(false, true);
-        }
-        execFile('/bin/systemctl', ['restart', '--no-block', 'sam'], { timeout: 10000 }, function (e) {
-          if (e) console.error('screensaver: could not restart sam: ' + e.message);
-          else waitForRunner(staged);
-          cb(!e);
-        });
+        console.log('screensaver: sam did not read the manifest again, and is not restarted (#366)');
+        cb(false, true);
       });
     });
   });
