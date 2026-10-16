@@ -2,9 +2,9 @@
 
 The **Server** tab, `/?tab=server`, holds Glasshouse's own settings: Glasshouse itself and an Advanced section for developers and home-lab setups. Preferences for this browser (theme, sidebar, and language) are located in the sidebar navigation area.
 
-![Server tab: Glasshouse's version and updates, the app on the TV's home screen, and the Advanced section](../screenshots/server.png)
+![Server tab: Glasshouse's version and updates, server health, the daily update check, watch time, the settings backup and daily backup, the app on the TV's home screen, and the Advanced section](../screenshots/server.png)
 
-*Glasshouse's updates and the Advanced section.*
+*Glasshouse's updates, watch time, settings backups and the Advanced section.*
 
 ## Glasshouse
 

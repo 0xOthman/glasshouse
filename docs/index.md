@@ -65,7 +65,7 @@ This project is intended to give a rooted webOS TV a useful local control surfac
 ### Web dashboard
 
 <p align="center">
-  <a href="screenshots/dashboard.png"><img src="screenshots/dashboard.png" alt="Metrics tab: SoC temperature, system readouts, storage, Magic Remote battery and HDMI ports, dark theme (OLED42C24LA)" width="440"></a>
+  <a href="screenshots/dashboard.png"><img src="screenshots/dashboard.png" alt="Metrics tab: SoC temperature, system readouts, storage, watch time, Magic Remote battery and HDMI ports, dark theme (OLED42C24LA)" width="440"></a>
   &nbsp;
   <a href="screenshots/dashboard-light.png"><img src="screenshots/dashboard-light.png" alt="Control tab: panel, source, volume, playback, sleep timer and power, light theme (OLED42C24LA)" width="440"></a>
   <br>
