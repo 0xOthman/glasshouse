@@ -400,3 +400,173 @@ and others' work on webOS 10
 - `luna-send` run from an SSH shell can print nothing for
   `com.webos.applicationManager` calls, while the same call from a node child
   process answers.
+
+## Screen saver timing (webOS 5.6.2, CX; webOS 10.3.1, C5)
+
+Both TVs were timed from the last key press to tvpower's `Screen Saver`
+state, with a blank browser page (`com.webos.app.browser`, `target:
+about:blank`) in front.
+
+- **The idle time is screenmanager's**, not the compositor's.
+  `com.webos.surfacemanager.userActivityTimeout` (120000 ms) runs a timer in
+  `StarfishScreenSaverView.qml`; when it ends, `StarfishViewStateController.qml`
+  closes overlays, alerts, the keyboard, PIN prompts and the spinner. It does
+  not start the screen saver.
+- **CX:** `/usr/sbin/screenmanager` reads configd's
+  `com.webos.service.nop.screenSaverTimeout`, in seconds. The base layer has
+  1800; the `tvoverlay` layer sets 130 for OLED, and the screen saver came on
+  123 s after the blank page opened. Whether a value written there is used
+  was not tried on the CX.
+- **C5:** screenmanager does not read that key (its value there is 180, and
+  60 written to it changed nothing, live or after a reboot). It subscribes to
+  settings `option.screenSaverTimer`, in minutes, with
+  `checkChangedScreenSaverTimerByUser` beside it (`default`, or `user` once
+  LG's menu has set it). The allowed values are 3, 10, 20 and 30, and 3 timed
+  at 176 to 181 s. 2 and 4 were stored (with `valueCheck: false`, and again
+  after adding them to the allowed list with `setSystemSettingDesc`), but with
+  either one stored no screen saver came at all, live, after
+  `systemctl restart screenmanager`, or after a reboot. So only LG's four
+  values work, and anything else switches the screen saver off.
+  `resetSystemSettingDesc` puts LG's list back.
+- **`com.webos.service.screenmanager.screenSaverProperties`** (OLED layer:
+  `preferredType` 2 and 3, `screenSaverDelay` 30) is per kind of screen saver
+  request, not the idle time.
+- **An input with no signal blocks it.** Over HDMI 1 with nothing connected
+  (CX), or Live TV with no antenna (C5), no screen saver came in over 200 s.
+  On the CX the input shows its own No Signal picture instead, LG's No Signal
+  Image (settings `general.noSignalScreenSaver`, on on that CX, off on the
+  C5).
+- **On the C5 the TV falls back to Live TV** after a reboot, and when the
+  compositor's 120 s timer closes a Home window with nothing under it, sam
+  launches the last app (`LAUNCH_LASTAPP on_foreground_null`). A Home that
+  comes back that way closes the screen saver as it opens.
+
+## Home's snapshot (webOS 5.6.2, CX)
+
+The webOS 9 entries above describe the home app's CRIU checkpoint. On a CX:
+
+- sam restores only apps listed in `CRIUSupportApps` in
+  `/etc/palm/sam-conf-tv.json` (Home and fullhome among them), and only while
+  `/tmp/criu_enable` exists. `criu.sh` creates that flag at boot; with it
+  moved aside, a killed Home starts fresh. The flag is not per app, so the
+  other snapshot apps (the inputs and Live TV) are not restored either until
+  it is back.
+- Deleting `/tmp/checkpoint/com.webos.app.home` is not enough: the next
+  restore copies it again from `/mnt/lg/cmn_data/checkpoint`. An `invalid_img`
+  marker in the tmpfs copy means "refresh from flash", not "skip".
+- Setting Home's `preloadMode` to `full` in configd's preload list made no
+  difference: Home was still restored (`parameters.snapshot: true`).
+- With no image in either place, sam logs `criu dump image is not exist`,
+  starts the app normally and dumps it about 0.25 s later. The dump comes
+  after QML loads and before `appLaunched`, so a luna connection made at load
+  time is dead after a restore (`Denied method call`).
+- A restore whose saved pid is taken still worked: libcriu restored with a
+  new pid (`enable_zygote:1`).
+- `/etc` is a read-only overlay on a full squashfs, sam reads
+  `sam-conf-tv.json` once about 5 s into boot, and `sam.service`'s
+  `ExecStartPre` script kills every native app when sam is respawned, so the
+  list cannot be changed without a mount and a sam restart at every boot.
+
+## Home's launch events (webOS 5.6.2, CX)
+
+- At power-on, `com.webos.app.inputcommon` launches the default home app with
+  `activateType: powerOn` when the TV was switched on by a key and
+  `general.homeAutoLaunch` is on (it is the Home Auto Launch switch in LG's
+  settings). LG's home app closes itself about 9 s later on its own timer;
+  nothing in the system does it.
+- Home gets `relaunch` with `launchType: homeKey` for a Home press and
+  `activateType: recent` for a long press. The My Apps key sends the same
+  launch as Home. Launching another app sends Home `pause` with reason
+  `keepAlive`; it never gets `close`.
+- Home is an overlay window (`_WEBOS_WINDOW_TYPE_HOME`), so the app beneath
+  stays the foreground app and keeps playing. A Home window that sets
+  `_WEBOS_WINDOW_TYPE_CARD` before it shows becomes the foreground app, and
+  the app beneath gets `background` and gives up its media pipelines.
+
+## The default home app (webOS 10.3.1, C5)
+
+- Which app the Home key opens is settings `general.defaultApps` (`home`), set
+  with `applicationManager/setDefaultApp { category: "home", appId }`. The
+  surface manager calls `launchDefaultApp` with
+  `{ activateType: "home"|"myapps", launchType: "homeKey" }`.
+- If that app is gone, the Home key does nothing ("no default app is set for
+  the category"), while power-on still opens LG's home.
+- A developer-mode QML app runs under `qml-runner` with only `public`
+  permissions, and its luna calls never reach the bus, so a separate app
+  cannot stand in for Home.
+
+## Muting and pausing (webOS 5.6.2, CX)
+
+- `com.webos.audio/setMuted` only changes audiod's own status: the TV keeps
+  playing and `com.webos.service.apiadapter/audio/getMute` stays false.
+  `apiadapter/audio/setMute { mute }` mutes it and shows LG's mute icon.
+  Switching on from standby, or a reboot, clears the mute.
+- With sound through an ARC soundbar (`external_arc`),
+  `com.webos.audio/setVolume` left the volume as it was. Not looked into
+  further.
+- `com.webos.service.networkinput/controls/pause` paused a playing video in
+  YouTube, Netflix, Apple TV and Peacock. Paramount+ only shows its player bar
+  on the first one and pauses on the second. On YouTube's browse screen it
+  does nothing.
+- `applicationManager/pause { id }` sends the app `pause` but leaves it the
+  foreground app; YouTube stopped, and a `launch` afterwards left it on a
+  black screen for over 25 s. `com.webos.media/pause` fails on an app's own
+  pipelines (`is_managed: false`).
+
+## The system log (webOS 5.6.2, CX; webOS 10.3.1, C5)
+
+- On the CX, `/var/log/messages` gets only the `NL_*` messages named in
+  `/etc/PmLogDaemon/whitelist.txt`. A context raised to debug with `PmLogCtl`
+  writes nothing more there, and a native app's stdio is `/dev/null`.
+- The C5 keeps its system log in `/var/log/dbg-log` as well as
+  `/var/log/messages`; QML errors are in the first.
+
+## `ls-monitor` restarts the TV (webOS 10.3.1, C5)
+
+Running `ls-monitor` on the C5 made `ls-hubd` open a monitor socket per
+service until it ran out of file handles (`Too many open files`, about 360 in
+use normally, limit 1024). faultmanager recorded `fd leak is happened on
+"process = ls-hubd"` in `/var/spool/faultmanager` and answered the next
+suspend request with `rebootToSuspend`, so the TV restarted with
+`PowerOnReason: rebootByFault` at its next standby. It happened both times
+`ls-monitor` was run, and not without it.
+
+## Terms of Use withdrawn (webOS 5.6.2, CX)
+
+With the Terms of Use or the Privacy Policy not accepted, the TV sets
+`generalTermsAllowed` off at its next boot, and then every app launch
+(YouTube, Netflix, the Content Store) opened `com.webos.app.eula` instead,
+and the Home key asked whether to end User Agreements. With both accepted but
+the flag written off, launches were blocked at once. Accepting both again
+opened the apps without a restart. So the gate is the flag, and the TV only
+sets it at boot when both documents are accepted.
+
+## The microphone switch (webOS 10.3.1, C5)
+
+`voiceinput.sound/getMicSwitchStatus` reads the switch on the TV as a GPIO
+level: `high` is on, `low` off. Flipping it logged "MIC SWITCH Status
+Changed: 1 -> 0", took ThinQ's voice activation off with reason "Mic Switch",
+and showed a toast saying the microphone is off.
+
+## Settings with no visible effect
+
+Read on a CX (5.6.2) and a C5 (10.3.1); nothing outside LG's own settings
+definitions was found reading these:
+
+- `option.webOSPromotionVideo` (on/off), on both TVs.
+- `general.homeAutoLaunchMode` (`full`) on the CX.
+- `watchedListCollection`, on the C5.
+
+And some that have a reader but no effect found:
+
+- `general.powerOnScreen` takes only `todays` and `liveTv`, and only the
+  broadcast service (`legacy-broadcast`) reads it.
+- `option.usageCare` is only the Usage Care entry in LG's settings menu;
+  Family Care's screen-time lock reads the `parentalControl` keys instead.
+- `voiceLongDistance` off or on opened no capture device in Active or Active
+  Standby on the C5; detection may run on the sound chip, so this is not
+  settled.
+- `hotelMode.enablePowerOnDefaultVolume` and `powerOnDefaultVolume` are set
+  by LG's installation menu together with hotel mode itself. On the C5
+  `audiod` reads the first; on the CX nothing outside that menu does. Not
+  tried.
