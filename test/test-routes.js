@@ -222,7 +222,8 @@ function createMockRes(cb) {
   var mockApps = { tileHidingAllowed: function () { return true; } };
   var mockSavers = {
     allowedAnyway: function () { return true; },
-    slowSwitch: function () { return true; }
+    slowSwitch: function () { return true; },
+    experimental: function () { return true; }
   };
   var mockUpdater = { updateSummary: function () { return { ok: true, installed: '0.76.1' }; } };
   var mockPrivacy = { tvUpdatesBlocked: function () { return false; } };

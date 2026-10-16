@@ -622,7 +622,7 @@ function saverRows(d) {
   var slow = d.slowSwitch && d.current === 'stock' ? function (m) { return m.id !== 'stock'; }
            : d.slowSwitch ? function (m) { return m.id === 'stock'; }
            : function () { return false; };
-  // On webOS 10 and later custom screen savers are experimental (#366): the
+  // On webOS 11 and later custom screen savers are experimental (#366, #768): the
   // switch is here too, and turning it on takes a second press.
   if (d.held || d.heldOverridden) {
     var ssOn = !!d.heldOverridden;
@@ -630,7 +630,7 @@ function saverRows(d) {
              value: ssOn ? t('common.on', 'On') : t('common.off', 'Off'), cls: ssOn ? 'on' : 'off',
              act: d.writable ? 'saverAllow' : null, on: ssOn,
              press: ssOn ? t('tv.saver.allow.off', 'Press OK to switch off') : t('tv.saver.allow.on', 'Press OK to switch on (experimental)'),
-             hint: t('ss.exp.desc', 'On webOS 10 and later, using one has sometimes left the picture, the sound and HDMI control off until the TV was unplugged.') });
+             hint: t('ss.exp.desc', 'They have not been tried on this webOS version. Before Glasshouse 0.98.1, on webOS 10, using one sometimes left the picture, the sound and HDMI control off until the TV was unplugged.') });
   }
   if (d.external && d.external.active) {
     r.push({ label: t('tv.saver.external', 'Homebrew screen saver'), value: t('apps.service.active', 'Active'), cls: 'warn',
@@ -2104,7 +2104,7 @@ function activate() {
         r.origPress = r.press;
         r.value = t('tv.confirm', 'Confirm?');
         r.press = t('tv.saver.allow.again', 'Press OK again to switch on');
-        flash(t('ss.exp.desc', 'On webOS 10 and later, using one has sometimes left the picture, the sound and HDMI control off until the TV was unplugged.'));
+        flash(t('ss.exp.desc', 'They have not been tried on this webOS version. Before Glasshouse 0.98.1, on webOS 10, using one sometimes left the picture, the sound and HDMI control off until the TV was unplugged.'));
         render();
         setTimeout(function () {
           if (r.confirming) { r.confirming = false; r.value = r.origValue; r.press = r.origPress; render(); }

@@ -2832,12 +2832,12 @@
   "from": "Experimental features"
  },
  "server.experimental.screensaver": {
-  "text": "Salvapantallas personalizados (webOS 10+)",
-  "from": "Custom screen savers (webOS 10+)"
+  "text": "Salvapantallas personalizados (webOS 11+)",
+  "from": "Custom screen savers (webOS 11+)"
  },
  "server.experimental.screensaver.short": {
-  "text": "Permite los salvapantallas propios del panel en webOS 10 y posteriores, en la pestaña Salvapantallas.",
-  "from": "Allows the dashboard's own screen savers on webOS 10 and later, on the Screensaver tab."
+  "text": "Permite los salvapantallas propios del panel en webOS 11 y posteriores, en la pestaña Salvapantallas.",
+  "from": "Allows the dashboard's own screen savers on webOS 11 and later, on the Screensaver tab."
  },
  "server.experimental.tileHiding": {
   "text": "Ocultación de iconos de la pantalla de inicio",
@@ -4692,8 +4692,8 @@
   "from": "Bursts of colour on black, a few seconds apart."
  },
  "srv.saver.held": {
-  "text": "Los salvapantallas personalizados están desactivados en esta TV por ahora. En webOS 10 y posteriores pueden dejar sin imagen, sin sonido y sin control HDMI hasta que se desenchufa la TV. Uno que ya esté en uso se mantiene hasta el próximo reinicio completo de la TV.",
-  "from": "Custom screen savers are turned off on this TV for now. On webOS 10 and later they can leave the picture, the sound and HDMI control off until the TV is unplugged. One already in use stays until the TV is next fully restarted."
+  "text": "Los salvapantallas personalizados están desactivados en esta TV por ahora, ya que no se han probado en su versión de webOS. Antes de la 0.98.1, en webOS 10, podían dejar la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV. Uno que ya esté en uso sigue hasta que la TV se reinicie por completo.",
+  "from": "Custom screen savers are turned off on this TV for now, as they have not been tried on its webOS version. Before 0.98.1, on webOS 10, they could leave the picture, the sound and HDMI control off until the TV was unplugged. One already in use stays until the TV is next fully restarted."
  },
  "srv.saver.noRemote": {
   "text": "no se pudo alcanzar el dispositivo de entrada del mando",
@@ -4884,12 +4884,12 @@
   "from": "Dismiss screen saver"
  },
  "ss.exp.confirm": {
-  "text": "¿Activar los salvapantallas personalizados?\n\nEn webOS 10 y posteriores, usar uno ha dejado a veces la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV. Desenchufarla un minuto lo arregla.",
-  "from": "Switch on custom screen savers?\n\nOn webOS 10 and later, using one has sometimes left the picture, the sound and HDMI control off until the TV was unplugged. Unplugging the TV for a minute puts it right."
+  "text": "¿Activar los salvapantallas personalizados?\n\nNo se han probado en esta versión de webOS. Antes de Glasshouse 0.98.1, en webOS 10, usar uno a veces dejaba la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV. Desenchufar la TV un minuto lo arregla.",
+  "from": "Switch on custom screen savers?\n\nThey have not been tried on this webOS version. Before Glasshouse 0.98.1, on webOS 10, using one sometimes left the picture, the sound and HDMI control off until the TV was unplugged. Unplugging the TV for a minute puts it right."
  },
  "ss.exp.desc": {
-  "text": "En webOS 10 y posteriores, usar uno ha dejado a veces la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV.",
-  "from": "On webOS 10 and later, using one has sometimes left the picture, the sound and HDMI control off until the TV was unplugged."
+  "text": "No se han probado en esta versión de webOS. Antes de Glasshouse 0.98.1, en webOS 10, usar uno a veces dejaba la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV.",
+  "from": "They have not been tried on this webOS version. Before Glasshouse 0.98.1, on webOS 10, using one sometimes left the picture, the sound and HDMI control off until the TV was unplugged."
  },
  "ss.exp.onTitle": {
   "text": "Salvapantallas personalizados: activados (experimental)",
@@ -4908,8 +4908,8 @@
   "from": "Note: if a firmware update is applied, the screen saver will be restored to the LG default."
  },
  "ss.held": {
-  "text": "Los salvapantallas personalizados están desactivados en esta TV por ahora. En webOS 10 y posteriores pueden dejar sin imagen, sin sonido y sin control HDMI hasta que se desenchufa la TV. Cambia al salvapantallas de LG para dejar de usar este ahora; si no, desaparece tras el próximo reinicio completo de la TV.",
-  "from": "Custom screen savers are turned off on this TV for now. On webOS 10 and later they can leave the picture, the sound and HDMI control off until the TV is unplugged. Switch to LG's screen saver to stop using this one now; otherwise it goes when the TV is next fully restarted."
+  "text": "Los salvapantallas personalizados están desactivados en esta TV por ahora, ya que no se han probado en su versión de webOS. Cambia al salvapantallas de LG para dejar de usar este ahora; si no, se quita la próxima vez que la TV se reinicie por completo.",
+  "from": "Custom screen savers are turned off on this TV for now, as they have not been tried on its webOS version. Switch to LG's screen saver to stop using this one now; otherwise it goes when the TV is next fully restarted."
  },
  "ss.inUse": {
   "text": "En uso",
@@ -7006,5 +7006,13 @@
  "apps.install.showMore": {
   "text": "Mostrar {n} más",
   "from": "Show {n} more"
+ },
+ "srv.saver.notTaken": {
+  "text": "La TV no aceptó el nuevo salvapantallas sin reiniciar su gestor de apps, algo que en algunas TV ha dejado la imagen o el sonido apagados, así que se mantiene el salvapantallas de LG.",
+  "from": "The TV did not take the new screen saver without restarting its app manager, which has left the picture or sound off on some TVs, so LG's screen saver is kept."
+ },
+ "srv.saver.stockLater": {
+  "text": "El salvapantallas de LG está elegido y la TV lo usará desde su próximo reinicio: no aceptó el cambio sin reiniciar su gestor de apps, algo que en algunas TV ha dejado la imagen o el sonido apagados.",
+  "from": "LG's screen saver is set, and the TV uses it from its next restart: it did not take the change without restarting its app manager, which has left the picture or sound off on some TVs."
  }
 }

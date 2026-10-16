@@ -108,45 +108,47 @@ realNextTick(function () {
           assert.strictEqual(restarts.length, 0);
           console.log('  ✓ tile hiding is refused and sam is never restarted for it');
 
-          // 4. Going back to LG's screen saver is still allowed, with the pause
+          // 4. Going back to LG's screen saver is still allowed. sam is not
+          // restarted for it (#366): LG's takes over from the next restart,
+          // and the answer says so.
           screensavers.setScreensaver('stock', 'dim', function (s) {
-            assert.strictEqual(s.ok, true);
+            assert.strictEqual(s.ok, false);
+            assert.strictEqual(s.current, 'stock');
+            assert.ok(/next restart/.test(s.error), s.error);
             // Back on LG's, the tab stays, to offer the switch that turns
             // custom screen savers on, and they are still held back.
             assert.strictEqual(screensavers.screensaverList().available, true);
             assert.strictEqual(screensavers.screensaverList().held, true);
-            assert.strictEqual(restarts.length, 1);
-            assert.ok(/restart --no-block sam/.test(restarts[0]));
-            assert.strictEqual(s.switching, true);
-            screensavers.trigger(function (tr) {
-              assert.strictEqual(tr.ok, false);
-              assert.ok(/still switching/.test(tr.error));
-              assert.strictEqual(ssRequests, 0);
-              console.log('  ✓ switching back to the LG default restarts sam and holds requests meanwhile');
+            assert.strictEqual(restarts.length, 0, 'sam is never restarted without allowOnWebos10');
+            assert.strictEqual(s.switching, false);
+            console.log('  ✓ switching back to the LG default does not restart sam, and says it applies from the next restart');
 
-              realNextTick(function waitClear() {
-                if (screensavers.switching()) return realNextTick(waitClear);
-                assert.ok(polls >= 3, 'cleared before sam came back');
-                screensavers.trigger(function (tr2) {
-                  assert.strictEqual(tr2.ok, true);
-                  assert.strictEqual(ssRequests, 1);
-                  console.log('  ✓ the LG default starts once sam is back');
-
-                  // 5. allowOnWebos10 in config.json turns them back on, flagged
-                  config.allowOnWebos10 = true;
-                  assert.strictEqual(screensavers.heldBack(), false);
-                  var over = screensavers.screensaverList();
-                  assert.strictEqual(over.held, false);
-                  assert.strictEqual(over.heldOverridden, true);
-                  over.modes.forEach(function (m) {
-                    assert.strictEqual(m.available, m.id === 'stock' || m.id === 'clock', m.id);
-                  });
-                  console.log('  ✓ allowOnWebos10 turns them back on and is reported');
-                  console.log('ALL test-screensaver-switch.js assertions passed!\n');
-                  env.restore();
-                });
-              });
+            // 5. allowOnWebos10 in config.json turns them back on, flagged
+            config.allowOnWebos10 = true;
+            assert.strictEqual(screensavers.heldBack(), false);
+            var over = screensavers.screensaverList();
+            assert.strictEqual(over.held, false);
+            assert.strictEqual(over.heldOverridden, true);
+            over.modes.forEach(function (m) {
+              assert.strictEqual(m.available, m.id === 'stock' || m.id === 'clock', m.id);
             });
+            console.log('  ✓ allowOnWebos10 turns them back on and is reported');
+
+            // 6. On webOS 10 they are on without it, and not experimental (#768)
+            config.allowOnWebos10 = false;
+            screensavers.init({ luna: env.mockLuna, config: config, webosVersion: '10.3.1',
+              assetPath: function (qml) { return qml === 'screensavers/clock.qml' ? '/tmp/tvweb-test/clock.qml' : null; } });
+            assert.strictEqual(screensavers.heldBack(), false);
+            assert.strictEqual(screensavers.onByDefault(), true);
+            assert.strictEqual(screensavers.experimental(), false);
+            var ten = screensavers.screensaverList();
+            assert.strictEqual(ten.held, false);
+            assert.strictEqual(ten.heldOverridden, false);
+            screensavers.init({ luna: env.mockLuna, config: config, webosVersion: '11.2.0' });
+            assert.strictEqual(screensavers.heldBack(), true, 'webOS 11 is untried and stays held back');
+            console.log('  ✓ on webOS 10 they are on by default; webOS 11 stays held back');
+            console.log('ALL test-screensaver-switch.js assertions passed!\n');
+            env.restore();
           });
         });
       });
