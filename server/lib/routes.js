@@ -70,6 +70,8 @@ var servicesModule = null;
 var preloadModule = null;
 /** @type {typeof import('./quickaccess')} */
 var quickAccessModule = null;
+/** @type {typeof import('./remotekeys')} */
+var remoteKeysModule = null;
 /** @type {typeof import('./homescreen')} */
 var homeScreenModule = null;
 /** @type {typeof import('./screensavers')} */
@@ -1412,12 +1414,19 @@ function handleRequest(req, res) {
           if (!quickAccessModule) return send(res, 200, JSON.stringify(d));
           quickAccessModule.getQuickAccess(function (qa) {
             d.quickAccess = qa && qa.supported ? qa : null;
+            if (!remoteKeysModule) return withHome();
+            remoteKeysModule.getRemoteKeys(function (rk) {
+              d.remoteKeys = rk && rk.supported ? rk : null;
+              withHome();
+            });
+          });
+          function withHome() {
             if (!homeScreenModule) return send(res, 200, JSON.stringify(d));
             homeScreenModule.getHomeScreen(function (hs) {
               d.homeScreen = hs;
               send(res, 200, JSON.stringify(d));
             });
-          });
+          }
         });
       });
     });
@@ -1544,6 +1553,18 @@ function handleRequest(req, res) {
     return readJsonBody(req, res, function (body) {
       if (!quickAccessModule) return send(res, 503, JSON.stringify({ ok: false, error: 'quick access module unavailable' }));
       quickAccessModule.setQuickAccess(body && body.key, body && body.id, function (r) {
+        send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
+      });
+    });
+  }
+
+  if (pathname === '/api/remotekeys' && req.method === 'POST') {
+    if (!config.allowControl) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    return readJsonBody(req, res, function (body) {
+      if (!remoteKeysModule) return send(res, 503, JSON.stringify({ ok: false, error: 'remote keys module unavailable' }));
+      remoteKeysModule.setRemoteKey(body && body.key, body && body.action, body && body.id, function (r) {
         send(res, r && r.ok ? 200 : 400, JSON.stringify(r));
       });
     });
@@ -1750,6 +1771,7 @@ function init(opts) {
   if (opts.services) servicesModule = opts.services;
   if (opts.preload) preloadModule = opts.preload;
   if (opts.quickAccess) quickAccessModule = opts.quickAccess;
+  if (opts.remoteKeys) remoteKeysModule = opts.remoteKeys;
   if (opts.homeScreen) homeScreenModule = opts.homeScreen;
   if (opts.screensavers) screensaversModule = opts.screensavers;
   if (opts.updater) updaterModule = opts.updater;

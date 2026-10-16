@@ -262,6 +262,7 @@ function renderAppsPanel() {
 
   renderPreload(d);
   renderQuickAccess(d);
+  renderRemoteKeys(d);
   renderHomeScreen(d);
 
   // Render Background Services
@@ -371,6 +372,74 @@ async function setQuickAccessKey(sel) {
   }
   sel.blur();
   if (error) alert(t('apps.quickAccess.failed', 'Could not change it: {error}', { error }));
+  await loadApps();
+}
+
+// What the remote's keys do (lib/remotekeys.js): each key's select has As LG
+// has it, Nothing, then the inputs and apps it can open.
+function renderRemoteKeys(d) {
+  const disc = q('disc-remotekeys');
+  const list = q('apps-rk-list');
+  const rk = d.remoteKeys;
+  if (!disc) return;
+  disc.hidden = !rk;
+  if (!rk) return;
+  const changed = rk.keys.filter(k => k.action !== 'lg').length;
+  if (q('apps-rk-summary')) {
+    q('apps-rk-summary').textContent = changed
+      ? t('apps.remoteKeys.count', '{n} changed', { n: changed })
+      : t('apps.remoteKeys.asLg', 'As LG has it');
+  }
+  if (!list || list.contains(document.activeElement)) return;
+  const inputs = rk.choices.filter(c => c.kind === 'input');
+  const apps = rk.choices.filter(c => c.kind === 'app');
+  const opt = (c, cur) => `<option value="${esc(c.id)}"${c.id === cur ? ' selected' : ''}>${esc(c.title)}</option>`;
+  list.innerHTML = rk.keys.map(k => {
+    const cur = k.action === 'open' ? k.id : k.action;
+    // A key set to something no longer offered (an app since removed) keeps
+    // it on the list, so the select shows what the key does now.
+    const known = k.action !== 'open' || rk.choices.some(c => c.id === k.id);
+    const current = known ? '' : `<option value="${esc(k.id)}" selected>${esc(k.opens)}</option>`;
+    const does = k.action === 'lg' ? t('apps.remoteKeys.lg', 'As LG has it')
+      : k.action === 'nothing' ? t('apps.remoteKeys.nothing', 'Nothing')
+      : t('apps.remoteKeys.opens', 'Opens {app}', { app: k.opens });
+    return `<div class="prot-row rk-row">
+      <div class="prot-main">
+        <div class="prot-title" translate="no">${esc(k.title)}</div>
+        <div class="prot-desc">${esc(does)}</div>
+      </div>
+      <div class="prot-status">
+        <select class="pill-sel qa-sel" data-key="${esc(k.key)}" ${d.writable ? '' : 'disabled'}
+          aria-label="${esc(t('apps.remoteKeys.keyLabel', '{key} key', { key: k.title }))}" onchange="setRemoteKey(this)">
+          ${current}
+          <option value="lg"${cur === 'lg' ? ' selected' : ''}>${esc(t('apps.remoteKeys.lg', 'As LG has it'))}</option>
+          <option value="nothing"${cur === 'nothing' ? ' selected' : ''}>${esc(t('apps.remoteKeys.nothing', 'Nothing'))}</option>
+          <optgroup label="${esc(t('apps.remoteKeys.inputs', 'Inputs'))}">${inputs.map(c => opt(c, cur)).join('')}</optgroup>
+          <optgroup label="${esc(t('apps.remoteKeys.apps', 'Apps'))}">${apps.map(c => opt(c, cur)).join('')}</optgroup>
+        </select>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function setRemoteKey(sel) {
+  sel.disabled = true;
+  let error = null;
+  const v = sel.value;
+  const body = v === 'lg' || v === 'nothing' ? { key: sel.dataset.key, action: v } : { key: sel.dataset.key, action: 'open', id: v };
+  try {
+    const res = await fetch(api('/api/remotekeys'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const r = await res.json();
+    if (!r || !r.ok) error = (r && r.error) || t('common.unknownError', 'unknown error');
+  } catch (e) {
+    error = e.message;
+  }
+  sel.blur();
+  if (error) alert(t('apps.remoteKeys.failed', 'Could not change it: {error}', { error }));
   await loadApps();
 }
 

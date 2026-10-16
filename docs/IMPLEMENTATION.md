@@ -544,6 +544,60 @@ together can finish out of order. A key schedules no telemetry read of its own;
 an app it opens reaches Home Assistant through the foreground-app subscription.
 Each key's wait and run time is logged at debug level.
 
+## Remote keys through the compositor's filter chain
+
+The compositor, `surface-manager`, does not act on remote keys itself. It reads
+the configd key `com.webos.surfacemanager.keyFilters`, an ordered list of
+`{ file, handler }` pairs, loads each file into a JavaScript shell that holds
+the compositor's objects by name (`applicationManager`, `settingsService`,
+`volume`, the views) and calls the handlers in order for every key with
+`(key, pressed, autoRepeat)`. A handler returns `KeyPolicy.NextPolicy` to let
+the next one see the key, `Accepted` to consume it, or `NotAccepted` to pass it
+to the app in front. LG's handlers are in `/usr/lib/qt5/qml/KeyFilters/`: a CX
+(webOS 5.6) has 14 entries across `systemUi.js` and `appLaunch.js`, a C5
+(webOS 10.3) 21 across four files. The Netflix and Prime Video buttons, Guide,
+Input, TV, the color keys and Home are all cases in those files, each ending
+in `applicationManager.launch` or a view call.
+
+The compositor subscribes to the key. On a change it destroys every loaded
+filter, reloads the files from disk and builds the chain again
+(`StarfishKeyFilter.qml`, `onKeyFiltersChanged`), so a new list takes effect at
+once with nothing restarted. configd keeps a set value across reboots, as it
+does for the preload list.
+
+`remotekeys.js` uses that and nothing else. The keys set on the Apps tab are
+kept in `/var/lib/tvweb/remotekeys.json`; from them it writes
+`remotekeys-filter.js` beside it, one `case` per key, and sets the configd key
+to that entry followed by whatever the list held, less any earlier entry of its
+own. A key it names is consumed on press and release, the press opening what
+was chosen with `applicationManager.launch(id, "{}")` or nothing; every other
+key returns `NextPolicy`. LG's files are never written, and with no key set the
+entry is taken out and the file deleted, so **As LG has it** on every key is
+LG's chain, byte for byte.
+
+Only keys this TV's own filter files name are offered, found by searching them
+for the symbol (`WebOS.Key_webOS_Disneyplus` is in a C5's `appLaunch.js` and
+not a CX's). The compositor's enum knows more names than a given remote sends,
+and a case on an unknown symbol would never match. Home and Back are not
+offered, since the dashboard's own Home screen changes rely on them; volume,
+mute, channel and power are handled by the microcontroller before any filter
+sees them, so there is nothing to change.
+
+The compositor reloads only on a change of the key's value: configd says
+nothing to a subscriber when the same list is written again. A CX kept running
+the first filter through two rewrites of the file whose chain writes were
+identical, and took the new file the moment the entry went out and came back.
+So a change made while the entry is already in the chain is written as two
+lists, LG's alone and then the full one, each a reload.
+
+A file with a syntax error costs only its own entry: the loader catches the
+exception and logs it, and LG's filters still load. The filter's own console
+and pmLog lines do not reach `/var/log/messages` on a CX, so what it did is
+read from sam's launch lines (`NL_APP_LAUNCH_BEGIN` with the compositor as the
+caller) and the app in front. On a CX (webOS 5.6) a key set to open an app
+brought it to the front within two seconds of the press, a key set to nothing
+launched nothing, and a key put back as LG has it left the chain as it was.
+
 ## Older hardware capabilities (webOS 3.x and LCD models)
 
 Testing against 2016 hardware (such as 43UH610V-ZB and 55UH6030-UC on webOS 3.4.3) highlights several differences between older LCD platforms and modern OLED sets:

@@ -1,6 +1,6 @@
 # Apps and home screen launcher
 
-The **Apps** tab, `/?tab=apps`, has three groups: **Apps**, for installing and removing apps and the web pages saved to the Home screen; **Home screen and remote**, for what the Home screen shows and what the remote's number keys open; and **Background**, for the memory LG's background apps and services take up.
+The **Apps** tab, `/?tab=apps`, has three groups: **Apps**, for installing and removing apps and the web pages saved to the Home screen; **Home screen and remote**, for what the Home screen shows and what the remote's keys do; and **Background**, for the memory LG's background apps and services take up.
 
 ![Apps tab in three groups: installed applications and saved web pages under Apps, the Home screen layout with its inputs and parts, Quick Access and hidden system apps under Home screen and remote, and apps kept ready and background services under Background](../screenshots/apps.png)
 
@@ -54,6 +54,16 @@ On webOS 10 the section has a switch at the top, with its warning, and nothing i
 Sets what each number key on the remote opens when it is held: an installed app, an HDMI input or Live TV, for keys 1 to 9. Holding 0 shows the list on the TV. A change applies straight away, the same as changing it in the TV's own Quick Access list, which shows it too.
 
 **None** leaves a key opening nothing, including one LG set itself, such as its help on 9. A key LG set for an app that is not installed, as it does for some regions' channel apps, shows as **App not installed**, with the app's id beneath. A key set to a live TV channel on the TV shows the channel, and can be changed here but not set to another channel. The TV app lists the keys without changing them.
+
+### Remote keys
+
+Sets what a key on the remote does: **As LG has it**, **Nothing**, or opening an installed app, an HDMI input or Live TV instead. The keys listed are the ones this TV's own key handling names, so a C5 lists its Disney+ button and a CX does not; Netflix, Prime Video, Guide, Input, TV, Search, Info, Help and the four color keys are typical. Home, Back, volume, mute, channel and power are not offered.
+
+The list is what the TV handles, not what any one remote has. A Magic Remote has no Guide, Info or color keys, and a plain IR remote no Netflix or Prime Video button, while the TV handles all of them because other remotes send them. Look at the remote before setting a key: a key it cannot send does nothing when set, and does no harm either.
+
+A change applies straight away, on whatever is on screen, and lasts across reboots. Setting every key back to **As LG has it** leaves the TV exactly as it was; so does `tvwebctl restore-keys` before uninstalling.
+
+A key set here is taken before any app sees it, so it wins over an app's own use of that key. YouTube uses **Guide** for its own guide, and Live TV and the HDMI inputs use the color keys for their banners and teletext: with such a key set here, those apps no longer get it, whatever is on screen, until the key is **As LG has it** again. There is no per-app setting. How it works is in [Remote keys through the compositor's filter chain](../IMPLEMENTATION.md#remote-keys-through-the-compositors-filter-chain).
 
 ### Hide home screen system apps
 
