@@ -46,7 +46,7 @@ Saved TVs, including their tokens, remain stored securely in private app storage
 ## Dashboard features
 
 * **Full-screen WebView**: The dashboard displays full screen, hiding system bars and matching the TV's dark or light theme.
-* **Menu in the top bar**: On a phone the dashboard's section menu sits in the app's top bar beside the back button, named after the section on screen, instead of further down the page.
+* **Controls at the bottom**: The back button and, on a phone, the dashboard's section menu sit in a bar along the bottom of the screen, within a thumb's reach. The menu is named after the section on screen, and replaces the page's own menu bar.
 * **Pull-to-refresh**: Pull down at the top of any dashboard screen to reload the page.
 * **Package sideloading**: Integrates with Android's system file picker, allowing `.ipk` Homebrew packages stored on your phone to be sideloaded directly onto the TV.
 * **Battery efficient**: Polling and WebView JavaScript timers pause automatically whenever the app moves to the background.
