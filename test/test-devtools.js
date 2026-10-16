@@ -19,7 +19,8 @@ childProcess.execFile = function (file, args, opts, cb) {
 var devtools = require('../server/lib/devtools');
 
 var FLAG = '/var/luna/preferences/devmode_enabled';
-var FILES = [FLAG, '/usr/sbin/iptables', '/usr/sbin/ip6tables', '/sbin/iptables', '/sbin/ip6tables'];
+var TABLES = '/proc/net/ip_tables_names';
+var FILES = [FLAG, '/usr/sbin/iptables', '/usr/sbin/ip6tables', '/sbin/iptables', '/sbin/ip6tables', TABLES];
 
 function tv(present, fn) {
   FILES.forEach(function (f) { mockEnv.files[f] = present.indexOf(f) !== -1 ? '' : null; });
@@ -76,10 +77,27 @@ test('a kernel without ip6_tables still gets the IPv4 rule', function () {
 });
 
 test('the dashboard is told when the port could not be closed', function () {
-  tv([FLAG, '/usr/sbin/iptables'], function () {
+  tv([FLAG, '/usr/sbin/iptables', TABLES], function () {
     answer = function () { return new Error('not permitted'); };
     assert.deepEqual(run(), []);
     assert.equal(devtools.status(), 'open');
+  });
+});
+
+// A 50QNED80A6A (webOS 10): iptables is there, the kernel's filter table is not (#699).
+test('a kernel without a firewall is reported as one', function () {
+  tv([FLAG, '/usr/sbin/iptables'], function () {
+    answer = function () { return new Error("can't initialize iptables table `filter'"); };
+    assert.deepEqual(run(), []);
+    assert.equal(devtools.status(), 'unsupported');
+  });
+});
+
+test('a TV without iptables is reported as having no firewall', function () {
+  tv([FLAG], function () {
+    assert.deepEqual(run(), []);
+    assert.deepEqual(calls, []);
+    assert.equal(devtools.status(), 'unsupported');
   });
 });
 
