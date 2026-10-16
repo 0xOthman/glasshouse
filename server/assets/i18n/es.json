@@ -795,6 +795,50 @@
   "text": "Ninguna",
   "from": "None"
  },
+ "apps.remoteKeys": {
+  "text": "Teclas del mando",
+  "from": "Remote keys"
+ },
+ "apps.remoteKeys.apps": {
+  "text": "Apps",
+  "from": "Apps"
+ },
+ "apps.remoteKeys.asLg": {
+  "text": "Como lo tiene LG",
+  "from": "As LG has it"
+ },
+ "apps.remoteKeys.count": {
+  "text": "{n} cambiadas",
+  "from": "{n} changed"
+ },
+ "apps.remoteKeys.desc": {
+  "text": "Lo que hace una tecla del mando: como lo tiene LG, nada, o abrir en su lugar una app o una entrada. Un cambio se aplica al momento y se mantiene tras reiniciar. Una tecla asignada aquí se toma antes de que la vea ninguna app, así que una app que usa esa tecla por sí misma, como YouTube con Guía, deja de recibirla. Las teclas listadas son las que maneja esta TV; un mando concreto puede no tenerlas todas.",
+  "from": "What a key on the remote does: as LG has it, nothing, or opening an app or input instead. A change applies straight away and lasts across reboots. A key set here is taken before any app sees it, so an app that uses the key itself, such as YouTube with Guide, no longer gets it. The keys listed are the ones this TV handles; a given remote may not have them all."
+ },
+ "apps.remoteKeys.failed": {
+  "text": "No se pudo cambiar: {error}",
+  "from": "Could not change it: {error}"
+ },
+ "apps.remoteKeys.inputs": {
+  "text": "Entradas",
+  "from": "Inputs"
+ },
+ "apps.remoteKeys.keyLabel": {
+  "text": "Tecla {key}",
+  "from": "{key} key"
+ },
+ "apps.remoteKeys.lg": {
+  "text": "Como lo tiene LG",
+  "from": "As LG has it"
+ },
+ "apps.remoteKeys.nothing": {
+  "text": "Nada",
+  "from": "Nothing"
+ },
+ "apps.remoteKeys.opens": {
+  "text": "Abre {app}",
+  "from": "Opens {app}"
+ },
  "apps.restore.dismiss": {
   "text": "Descartar",
   "from": "Dismiss"
@@ -4550,6 +4594,30 @@
  "srv.quickAccess.unsupported": {
   "text": "El acceso rápido de esta TV no se puede cambiar desde aquí",
   "from": "This TV's Quick Access cannot be changed from here"
+ },
+ "srv.remoteKeys.badKey": {
+  "text": "Esta TV no tiene esa tecla",
+  "from": "This TV does not have that key"
+ },
+ "srv.remoteKeys.chainFailed": {
+  "text": "La TV no aceptó el cambio",
+  "from": "The TV did not take the change"
+ },
+ "srv.remoteKeys.liveTv": {
+  "text": "TV en directo",
+  "from": "Live TV"
+ },
+ "srv.remoteKeys.noApps": {
+  "text": "No se pudieron leer las apps de la TV. Inténtalo de nuevo en un momento.",
+  "from": "Could not read the TV's apps. Try again in a moment."
+ },
+ "srv.remoteKeys.saveFailed": {
+  "text": "No se pudo guardar el cambio: {error}",
+  "from": "Could not save the change: {error}"
+ },
+ "srv.remoteKeys.unknownApp": {
+  "text": "Esa app no está en esta TV",
+  "from": "That app is not on this TV"
  },
  "srv.repo.notCatalog": {
   "text": "no es un catálogo de paquetes: {url}",

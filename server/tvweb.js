@@ -55,6 +55,7 @@ var samrescan = require('./lib/samrescan');
 var servicesModule = require('./lib/services');
 var preload = require('./lib/preload');
 var quickAccess = require('./lib/quickaccess');
+var remoteKeys = require('./lib/remotekeys');
 var homeScreen = require('./lib/homescreen');
 var telemetry = require('./lib/telemetry');
 var controls = require('./lib/controls');
@@ -498,6 +499,7 @@ iconServer.init({ config: CONFIG, apps: appsModule });
 servicesModule.init({ stateDir: __dirname });
 preload.init({ luna: luna, stateDir: __dirname });
 quickAccess.init({ luna: luna, inputNames: telemetry.inputNameMap });
+remoteKeys.init({ luna: luna, inputNames: telemetry.inputNameMap, stateDir: __dirname });
 homeScreen.init({ luna: luna, config: CONFIG, inputNames: telemetry.inputNameMap, stateDir: __dirname, webosVersion: telemetry.detectWebosVersion() });
 // webOS 10's layout is an overlay mount, gone after a restart of the TV.
 homeScreen.reapply();
@@ -836,6 +838,7 @@ routes.init({
   services: servicesModule,
   preload: preload,
   quickAccess: quickAccess,
+  remoteKeys: remoteKeys,
   homeScreen: homeScreen,
   screensavers: screensavers,
   updater: updater,
@@ -904,6 +907,8 @@ if (!CLI_MODE) iconServer.start(function (err, started) { if (started) republish
 if (!CLI_MODE) {
   var preloadTimer = setTimeout(function () { preload.reapply(); }, 60000);
   if (preloadTimer.unref) preloadTimer.unref();
+  var keysTimer = setTimeout(function () { remoteKeys.ensure(); }, 60000);
+  if (keysTimer.unref) keysTimer.unref();
 }
 
 if (CLI_MODE) {
