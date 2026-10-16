@@ -9,7 +9,7 @@ var rb = require('../server/lib/remotebattery');
 
 console.log('Running test-remotebattery.js ...');
 
-var tmpFile = path.join(__dirname, 'tmp-battery.json');
+var tmpFile = path.join(require('os').tmpdir(), 'gh-battery-' + process.pid + '.json');
 var REMOTE = { paired: true, typeOfDevice: 'ble', name: 'LGE MR24', address: '00:00:5e:00:53:02' };
 
 // A TV answering as a C4 (webOS 10.3.1) did, with what is asked recorded.
@@ -38,6 +38,20 @@ function fakeLuna(opts) {
 }
 
 var pending = 0;
+
+/*
+ * Calls fn once ok() holds, checking every 5 ms, or fails after 3 s. A read
+ * waits on timers of 0 ms, which a loaded CI runner can hold back well past a
+ * fixed 20 ms wait (Node 16 on the v0.98.1 bump).
+ */
+function until(ok, what, fn) {
+  var started = Date.now();
+  (function poll() {
+    if (ok()) return fn();
+    if (Date.now() - started > 3000) throw new assert.AssertionError({ message: what + ' (waited 3 s)' });
+    setTimeout(poll, 5);
+  })();
+}
 function check(name, opts, expectLevel, expectCalls) {
   pending++;
   var luna = fakeLuna(opts);
@@ -79,15 +93,13 @@ steps.push(function () {
   after(function () {
     assert.strictEqual(luna.calls.length, 0, 'a remote going to sleep is no chance');
     rb.connectionChanged(awake);
-    after(function () {
-      assert.strictEqual(reads(), 1, 'read when it wakes');
+    until(function () { return reads() === 1; }, 'read when it wakes', function () {
       rb.connectionChanged(awake);
       after(function () {
         assert.strictEqual(reads(), 1, 'not again within the hour');
         rb.poweredOn();
         rb.connectionChanged(awake);
-        after(function () {
-          assert.strictEqual(reads(), 2, 'again at the first wake after switching on');
+        until(function () { return reads() === 2; }, 'again at the first wake after switching on', function () {
           console.log('  ✓ it reads when the remote wakes, at most hourly, and again after switching on');
           pending--;
         });
@@ -106,11 +118,10 @@ steps.push(function () {
     status.connected = true;
     status.isBleRemocon = true;
     rb.connectionChanged(status);
-    setTimeout(function () {
-      assert.ok(luna.calls.indexOf('bluetooth2/gatt/readCharacteristicValue') !== -1, 'read at the wake');
+    until(function () { return luna.calls.indexOf('bluetooth2/gatt/readCharacteristicValue') !== -1; }, 'read at the wake', function () {
       console.log('  ✓ a check that finds the remote asleep does not put off the next wake');
       pending--;
-    }, 20);
+    });
   });
 });
 steps.push(function () {
@@ -156,11 +167,10 @@ steps.push(function () {
   var luna = fakeLuna({ status: { returnValue: true, connected: true, isBleRemocon: false } });
   rb.init({ luna: luna, webosVersion: '10.3.1', discoverMs: 0, settleMs: 0 });
   rb.connectionChanged({ returnValue: true, connected: true, isBleRemocon: true });
-  setTimeout(function () {
-    assert.ok(luna.calls.indexOf('bluetooth2/gatt/readCharacteristicValue') !== -1, 'read at the wake');
+  until(function () { return luna.calls.indexOf('bluetooth2/gatt/readCharacteristicValue') !== -1; }, 'read at the wake', function () {
     console.log('  ✓ a wake is read though the one-off status leaves isBleRemocon false');
     pending--;
-  }, 20);
+  });
 });
 steps.push(function () {
   rb.init();
