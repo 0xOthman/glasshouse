@@ -204,7 +204,7 @@ function restore(cb) {
   var ids = Object.keys(added).map(function (k) { return added[k]; });
   function layoutBack() {
     if (!layout) return cb({ ok: true });
-    layout.restore(function (r) { cb({ ok: !!(r && r.ok) }); });
+    layout.restore(function (r) { cb({ ok: !!(r && r.ok), error: r && r.error }); });
   }
   if (!ids.length || !lunaFn) return layoutBack();
   removeLaunchPoints(ids, function () {

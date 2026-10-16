@@ -314,6 +314,11 @@ and others' work on webOS 10
   `globalline` to 0 by 0, placed after `herobanner`. Taking `globalline` out
   left the screen black. Icon size is in `libapp.so` and the clock item works
   only in the senior layout.
+- **The home app runs as `flutter-client`.** On a C2 (webOS 10.3.1) its
+  command line is `/usr/bin/flutter-client -i com.webos.app.home`, so
+  `pidof com.webos.app.home` finds nothing. Other Flutter apps run as
+  `flutter-client` too; the `-i` argument names the app. Killed with SIGTERM,
+  the TV started it again with the changed layout.
 - **Rows are stacked from their heights.** With `qcardList` and
   `recommendedShelf` only taken out, the apps row sat in the middle of the
   screen on a C2 (webOS 10). mareklarek's layout keeps it at the bottom by

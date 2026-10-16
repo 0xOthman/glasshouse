@@ -39,6 +39,7 @@ var overlayDir = '/tmp/glasshouse-home';
 var mountsFile = '/proc/mounts';
 var filesystemsFile = '/proc/filesystems';
 var checkpointDirs = ['/tmp/checkpoint', '/mnt/lg/cmn_data/checkpoint'];
+var procDir = '/proc';
 var supportedCache = null;
 
 // Paths are options so test/test-homescreen-webos10.js can use a stand-in.
@@ -47,7 +48,7 @@ function init(opts) {
   lunaFn = opts.luna || null;
   config = opts.config || null;
   webosVersion = opts.webosVersion || null;
-  ['assetsDir', 'stateDir', 'overlayDir', 'mountsFile', 'filesystemsFile', 'checkpointDirs'].forEach(function (k) {
+  ['assetsDir', 'stateDir', 'overlayDir', 'mountsFile', 'filesystemsFile', 'checkpointDirs', 'procDir'].forEach(function (k) {
     if (opts[k]) setPath(k, opts[k]);
   });
   supportedCache = null;
@@ -60,6 +61,7 @@ function setPath(k, v) {
   else if (k === 'mountsFile') mountsFile = v;
   else if (k === 'filesystemsFile') filesystemsFile = v;
   else if (k === 'checkpointDirs') checkpointDirs = v;
+  else if (k === 'procDir') procDir = v;
 }
 
 function readText(p) {
@@ -215,14 +217,14 @@ function unmountLayout(cb) {
  */
 function apply(hidden, cb) {
   if (!hidden.length) {
-    return unmountLayout(function () { restartHome(function () { cb(null); }); });
+    return unmountLayout(function () { restartHome(cb); });
   }
   var lg = lgLayout();
   if (!recognised(lg)) return cb(msg('srv.home.noLayout', 'Could not read LG\'s Home screen layout'));
   try { fs.writeFileSync(lgCopy(), lg, 'utf8'); } catch (e) { return cb(e.message); }
   mountLayout(buildLayout(lg, hidden), function (err) {
     if (err) return cb(err);
-    restartHome(function () { cb(null); });
+    restartHome(cb);
   });
 }
 
@@ -248,7 +250,9 @@ function restore(cb) {
   try { if (fs.existsSync(stateFile())) fs.unlinkSync(stateFile()); } catch (e) {}
   if (!had) return cb({ ok: true, changed: false });
   console.log('homescreen: LG\'s layout put back (webOS 10)');
-  unmountLayout(function () { restartHome(function () { cb({ ok: true, changed: true }); }); });
+  unmountLayout(function () {
+    restartHome(function (err) { cb(err ? { ok: false, error: err } : { ok: true, changed: true }); });
+  });
 }
 
 /*
@@ -271,21 +275,47 @@ function reapply(cb) {
 /*
  * The home app reads its layout when it starts. Killed, the TV may restore it
  * from a CRIU checkpoint with the old layout, so those go first (as on webOS
- * 9; harmless where there are none). By process id, never pkill -f, whose
- * pattern would match this shell's own command line.
+ * 9; harmless where there are none).
  */
 function restartHome(cb) {
   var cmd = checkpointDirs.map(function (d) {
     return 'rm -rf ' + q(d + '/' + HOME_ID) + ' ' + q(d + '/hash_check_' + HOME_ID);
-  }).join('; ') + '; for p in $(pidof ' + HOME_ID + '); do kill $p; done; true';
+  }).join('; ');
   foreground(function (wasHome) {
-    sh(cmd, function () {
-      if (!wasHome || !lunaFn) return cb();
+    sh(cmd, function (err) {
+      if (err) return cb(err);
+      var failed = homePids().filter(function (pid) {
+        // Checked again: the process may have gone and its id been reused.
+        if (!isHome(pid)) return false;
+        try { process.kill(pid, 'SIGTERM'); return false; } catch (e) { return e.code !== 'ESRCH'; }
+      });
+      if (failed.length) return cb(msg('srv.home.noRestart', 'Could not restart the Home screen'));
+      if (!wasHome || !lunaFn) return cb(null);
       setTimeout(function () {
-        lunaFn('com.webos.applicationManager/launch', { id: HOME_ID }, function () { cb(); });
+        lunaFn('com.webos.applicationManager/launch', { id: HOME_ID }, function () { cb(null); });
       }, 2000);
     });
   });
+}
+
+/*
+ * The home app's processes. On a C2 (webOS 10.3.1) it runs as
+ * "/usr/bin/flutter-client -i com.webos.app.home", so pidof finds nothing
+ * (#612); other Flutter apps run as flutter-client too, so only the -i pair
+ * marks it. Read from /proc rather than matched with pkill -f, whose pattern
+ * would match this server's own shell.
+ */
+function homePids() {
+  var names;
+  try { names = fs.readdirSync(procDir); } catch (e) { return []; }
+  return names.filter(function (n) { return /^\d+$/.test(n); }).map(Number).filter(isHome);
+}
+
+function isHome(pid) {
+  var args = (readText(path.join(procDir, String(pid), 'cmdline')) || '').split('\0');
+  if (path.basename(args[0]) === HOME_ID) return true;
+  for (var i = 1; i < args.length - 1; i++) if (args[i] === '-i' && args[i + 1] === HOME_ID) return true;
+  return false;
 }
 
 function foreground(cb) {

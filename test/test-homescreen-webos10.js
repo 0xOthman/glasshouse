@@ -45,6 +45,23 @@ var mounts = path.join(root, 'mounts');
 var filesystems = path.join(root, 'filesystems');
 fs.writeFileSync(mounts, '');
 fs.writeFileSync(filesystems, 'nodev\ttmpfs\nnodev\toverlay\n');
+// The home app as a C2 on 10.3.1 runs it, an older name, and another Flutter app.
+var proc = path.join(root, 'proc');
+fs.mkdirSync(proc);
+[['100', '/usr/bin/flutter-client\0-i\0com.webos.app.home\0'],
+ ['101', 'com.webos.app.home\0'],
+ ['102', '/usr/bin/flutter-client\0-i\0com.webos.app.screensaver\0'],
+ ['103', '/bin/sh\0-c\0echo -i com.webos.app.home\0'],
+ ['self', '']].forEach(function (p) {
+  fs.mkdirSync(path.join(proc, p[0]));
+  fs.writeFileSync(path.join(proc, p[0], 'cmdline'), p[1]);
+});
+var killed = [];
+var killFails = false;
+process.kill = function (pid, sig) {
+  if (killFails) { var e = new Error('kill EPERM'); e.code = 'EPERM'; throw e; }
+  killed.push(pid + ' ' + sig);
+};
 
 // Shell commands recorded, not run; a mount marks the folder mounted.
 var runs = [];
@@ -63,7 +80,7 @@ var config = {};
 function setup(version) {
   home10.init({ luna: function (u, p, cb) { process.nextTick(function () { cb({ returnValue: true, appId: 'com.webos.app.hdmi1' }); }); },
                 config: config, webosVersion: version, assetsDir: assets, stateDir: state,
-                overlayDir: path.join(root, 'overlay'), mountsFile: mounts, filesystemsFile: filesystems,
+                overlayDir: path.join(root, 'overlay'), mountsFile: mounts, procDir: proc, filesystemsFile: filesystems,
                 checkpointDirs: [path.join(root, 'cp')] });
 }
 function checked(fn) {
@@ -130,9 +147,10 @@ home10.setPart('quickCards', false, checked(function (refused) {
     var mount = runs.filter(function (x) { return /mount -t overlay/.test(x.cmd); })[0];
     assert.ok(mount.cmd.indexOf('lowerdir=' + assets) !== -1, 'LG\'s folder underneath');
     assert.ok(mount.stdin.indexOf('qcardList') === -1 && mount.stdin.indexOf('recommendedShelf') !== -1);
-    assert.ok(runs.some(function (x) { return /pidof com\.webos\.app\.home/.test(x.cmd) && !/pkill/.test(x.cmd); }), 'home app restarted by pid');
+    assert.deepEqual(killed, ['100 SIGTERM', '101 SIGTERM'], 'the home app under either name, no other Flutter app or shell');
+    assert.ok(!runs.some(function (x) { return /pkill|pidof/.test(x.cmd); }));
     assert.strictEqual(fs.readFileSync(path.join(state, 'home-webos10-lg.xml'), 'utf8'), LG, 'LG\'s copy kept');
-    console.log('  ✓ hiding a part mounts LG\'s layout without it over the folder, and restarts the home app');
+    console.log('  ✓ hiding a part mounts LG\'s layout without it over the folder, and restarts the home app found by its arguments');
 
     home10.setPart('sideIcons', false, checked(function () {
       var xml = runs.filter(function (x) { return /mount -t overlay/.test(x.cmd); }).pop().stdin.split('\n');
@@ -153,12 +171,21 @@ home10.setPart('quickCards', false, checked(function (refused) {
           assert.strictEqual(runs.length, before, 'nothing while still mounted, as after a server restart');
           console.log('  ✓ after a restart of the TV the layout is put back, and not twice');
 
+          killFails = true;
+          home10.setPart('recommended', false, checked(function (failed) {
+          assert.strictEqual(failed.ok, false, 'a home app that could not be restarted is reported');
+          assert.ok(/restart/.test(failed.error));
+          killFails = false;
+          console.log('  ✓ a failed restart of the home app is reported');
+          killed = [];
           home10.restore(checked(function (back) {
             assert.strictEqual(back.changed, true);
+            assert.strictEqual(killed.length, 2, 'restarted after putting LG\'s layout back too');
             assert.ok(runs.slice(before).some(function (x) { return /^umount /.test(x.cmd); }));
             assert.deepEqual(home10.parts().map(function (p) { return p.shown; }), [true, true, true]);
             console.log('  ✓ putting LG\'s Home screen back unmounts it and forgets the choices');
             console.log('ALL test-homescreen-webos10.js assertions passed!\n');
+          }));
           }));
         }));
       }));

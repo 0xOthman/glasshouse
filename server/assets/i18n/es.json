@@ -4491,6 +4491,10 @@
   "text": "No se pudo leer el diseño de la pantalla de inicio de LG",
   "from": "Could not read LG's Home screen layout"
  },
+ "srv.home.noRestart": {
+  "text": "No se pudo reiniciar la pantalla de inicio",
+  "from": "Could not restart the Home screen"
+ },
  "srv.home.noTiles": {
   "text": "No se pudieron leer los iconos de la pantalla de inicio del TV. Inténtalo de nuevo en un momento.",
   "from": "Could not read the TV's Home screen tiles. Try again in a moment."
