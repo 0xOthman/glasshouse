@@ -248,8 +248,8 @@ var PRIVACY_DAEMONS = {
   rdxd:       [msg('srv.daemon.rdxd', 'Diagnostics collector'), msg('srv.daemon.rdxd.detail', 'Gathers crash and diagnostic reports'), 'upstart']
 };
 
-var SERVICES_FILE = '/var/lib/tvweb/services_stopped';
-var SERVICE_CONTROLLABLE = { uploadd: true, rdxd: true };
+/** @type {typeof import('./services')} */
+var servicesModule = null;
 
 /*
  * The bus starts some of LG's services on demand: their service file says
@@ -1034,52 +1034,30 @@ function readConsentFlags() {
   return out;
 }
 
-function stoppedServices() {
-  var raw = readTrimmed(SERVICES_FILE), out = [];
-  if (!raw) return out;
-  var parts = raw.split('\n');
-  for (var i = 0; i < parts.length; i++) {
-    var n = parts[i].replace(/\s+/g, '');
-    if (n && SERVICE_CONTROLLABLE[n] && out.indexOf(n) === -1) out.push(n);
-  }
-  return out;
-}
-
-function upstartJobs(cb) {
-  // A TV without initctl has no jobs to list.
-  if (!fs.existsSync('/sbin/initctl')) return cb({});
-  execFile('/sbin/initctl', ['list'], { timeout: 4000 }, function (err, stdout) {
-    var out = {}, lines = String(stdout || '').split('\n');
-    for (var i = 0; i < lines.length; i++) {
-      var m = /^(\S+)\s+(\S+)/.exec(lines[i]);
-      if (m) out[m[1]] = m[2].replace(/,$/, '');
-    }
-    cb(out);
-  });
-}
-
+/*
+ * Whether a daemon can be switched off, and whether it is, come from the
+ * background services switch (lib/services), which masks the unit or stops
+ * the job and keeps it stopped. initctl list answers nothing on a CX
+ * (webOS 5.6.2) and webOS 9, so it could not say.
+ */
 function runningDaemons(cb) {
-  var held = stoppedServices();
-  upstartJobs(function (jobs) {
-    psArgs(function (txt) {
-      var list = [];
-      for (var name in PRIVACY_DAEMONS) {
-        if (!PRIVACY_DAEMONS.hasOwnProperty(name)) continue;
-        var d = PRIVACY_DAEMONS[name];
-        var onDemand = d[2] === 'bus';
-        list.push({
-          name: name,
-          label: d[0],
-          detail: d[1],
-          running: txt.indexOf('/usr/sbin/' + name) !== -1,
-          onDemand: onDemand,
-          job: jobs[name] || null,
-          stoppable: !onDemand && !!SERVICE_CONTROLLABLE[name] && !!jobs[name],
-          heldDown: held.indexOf(name) !== -1
-        });
-      }
-      cb(list, txt);
-    });
+  psArgs(function (txt) {
+    var list = [];
+    for (var name in PRIVACY_DAEMONS) {
+      if (!PRIVACY_DAEMONS.hasOwnProperty(name)) continue;
+      var d = PRIVACY_DAEMONS[name];
+      var onDemand = d[2] === 'bus';
+      list.push({
+        name: name,
+        label: d[0],
+        detail: d[1],
+        running: txt.indexOf('/usr/sbin/' + name) !== -1,
+        onDemand: onDemand,
+        stoppable: !onDemand && !!servicesModule && servicesModule.available(name),
+        heldDown: !!servicesModule && servicesModule.isDisabled(name)
+      });
+    }
+    cb(list, txt);
   });
 }
 
@@ -1378,6 +1356,7 @@ function setConsent(ckey, cOn, cb) {
 function init(opts) {
   opts = opts || {};
   if (opts.lgSettings) lgSettingsModule = opts.lgSettings;
+  if (opts.services) servicesModule = opts.services;
   if (opts.luna) luna = opts.luna;
   if (opts.lunaCached) lunaCached = opts.lunaCached;
   if (opts.config) config = opts.config;

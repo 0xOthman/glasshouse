@@ -503,7 +503,7 @@ var LIVE_STALE = {
 
 lgSettings.init({ luna: luna, lunaCached: lunaCached, clearLunaCache: clearLunaCache });
 game.init({ lunaCached: lunaCached, inputKey: telemetry.inputKey });
-privacy.init({ luna: luna, lunaCached: lunaCached, config: CONFIG, lgSettings: lgSettings });
+privacy.init({ luna: luna, lunaCached: lunaCached, config: CONFIG, lgSettings: lgSettings, services: servicesModule });
 oled.init({ luna: luna, config: CONFIG });
 samrescan.init({ luna: luna });
 appsModule.init({ luna: luna, config: CONFIG });

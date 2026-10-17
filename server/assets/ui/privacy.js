@@ -230,11 +230,8 @@ async function loadPrivacy() {
     }).join('');
     const liveOn = (d.acr && d.acr.active ? 1 : 0) + (d.acr && d.acr.capturing ? 1 : 0);
     const total = dae.length + 2;
-    /*
-     * Whether these can be switched off is a property of the firmware, not of
-     * the dashboard: webOS 9 has an initctl that lists no jobs, so the rows are
-     * read-only there and the note must not promise otherwise.
-     */
+    // The rows only report; switching off is the Apps tab's background
+    // services switch, which the note points to.
     q('pv-running-note').textContent = t('pv.runningNow.note',
       'A service can be running with its permission switched off \u2014 it simply has nothing it is allowed to send. ' +
       'They are switched off in the Apps tab, under Turn off background services, which keeps them off across reboots. ' +

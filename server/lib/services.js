@@ -430,6 +430,15 @@ function toggleService(id, disabled, cb) {
   }
 }
 
+// Whether the TV has this catalog service, so that it can be switched off.
+function available(id) {
+  var systemctl = getSystemctl(), initctl = getInitctl();
+  for (var i = 0; i < CATALOG.length; i++) {
+    if (CATALOG[i].id === id) return serviceExists(CATALOG[i], systemctl, initctl);
+  }
+  return false;
+}
+
 function isDisabled(id) {
   return readDisabledList().indexOf(id) !== -1;
 }
@@ -440,5 +449,6 @@ module.exports = {
   getServices: getServices,
   toggleService: toggleService,
   isDisabled: isDisabled,
+  available: available,
   startEnforcing: startEnforcing
 };

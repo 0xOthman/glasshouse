@@ -496,7 +496,7 @@ test('a service is taken as started by a call only where the bus starts it on de
 
 // A TV answering luna calls from answers, with ps reading psText; asked
 // collects every uri called.
-function busTv(psText, answers) {
+function busTv(psText, answers, services) {
   var asked = [];
   var answer = function (uri, params, cb) {
     asked.push(uri);
@@ -507,7 +507,8 @@ function busTv(psText, answers) {
     luna: answer,
     lunaCached: function (uri, params, ttl, cb) { answer(uri, params, cb); },
     lgSettings: { collect: function (section, cb) { cb({ rows: [] }); } },
-    config: { allowControl: true }
+    config: { allowControl: true },
+    services: services || { available: function () { return false; }, isDisabled: function () { return false; } }
   });
   privacy._setPs(function (cb) { cb(psText); });
   privacy.clearCache();
@@ -598,6 +599,24 @@ test('the microphone switch is read only on a TV that names one exactly, and nev
   privacy.readMicSwitch(function (m) { got2 = m; }, PS_NONE + '/usr/sbin/voiceinput\n');
   assert.strictEqual(got2.on, true, 'asked while it runs');
   privacy._setBusDir(busDir);
+});
+
+
+test('the diagnostics daemons are stoppable and kept off as the background services switch has them', function () {
+  var services = {
+    available: function (id) { return id === 'uploadd' || id === 'rdxd'; },
+    isDisabled: function (id) { return id === 'rdxd'; }
+  };
+  busTv(PS_NONE + '/usr/sbin/uploadd -d\n', {}, services);
+  var got;
+  privacy.collectPrivacy(function (p) { got = p; });
+  var by = {};
+  got.daemons.forEach(function (d) { by[d.name] = d; });
+  assert.deepEqual([by.uploadd.running, by.uploadd.stoppable, by.uploadd.heldDown], [true, true, false]);
+  assert.deepEqual([by.rdxd.running, by.rdxd.stoppable, by.rdxd.heldDown], [false, true, true]);
+  assert.strictEqual(by.acr2.stoppable, false, 'started on demand, not stoppable');
+  var reports = got.simple.areas.filter(function (a) { return a.id === 'reports'; })[0];
+  assert.deepEqual(reports.items.map(function (i) { return i.service; }), ['uploadd']);
 });
 
 var failures = 0;
