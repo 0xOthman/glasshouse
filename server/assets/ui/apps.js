@@ -202,8 +202,10 @@ function renderAppsPanel() {
     btnOff.disabled = !d.writable;
     btnOn.disabled = !d.writable || (!!d.tileHidingHeld && !tileHidingEnabled);
   }
+  // Only where the TV has no nudge: there each cold boot restarts sam to hide
+  // the tiles again, which is what blanks the screen for a moment.
   if (warningBox) {
-    warningBox.hidden = !tileHidingEnabled || !!d.tileHidingHeld;
+    warningBox.hidden = !tileHidingEnabled || !!d.tileHidingHeld || d.tileHidingNudge === true;
   }
   q('tile-hiding-held').hidden = !d.tileHidingHeld;
   q('tile-hiding-overridden').hidden = !d.tileHidingOverridden;
@@ -233,30 +235,20 @@ function renderAppsPanel() {
     } else if (tiles.length === 0) {
       tilesList.innerHTML = `<div class="sub" style="padding:16px 0">${esc(t('apps.tiles.none', 'No eligible system apps found.'))}</div>`;
     } else {
-      tilesList.innerHTML = tiles.map(tile => {
-        const title = esc(tile.title || tile.id);
-        const id = esc(tile.id);
-        const iconUrl = api('/api/apps/icon?id=' + encodeURIComponent(tile.id));
+      // A tile per app, as Remote keys has: choosing one hides or shows it.
+      tilesList.innerHTML = `<div class="rk-grid">${tiles.map(tile => {
         const pending = tilePending.hasOwnProperty(tile.id);
         const isHidden = willHide(tile);
-        return `<div class="prot-row">
-          <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
-          <div class="prot-main">
-            <div class="prot-title">${title}</div>
-            <div class="prot-desc">${esc(isHidden ? t('apps.tile.hidden.desc', 'Hidden from home launcher ribbon') : t('apps.tile.visible.desc', 'Visible on home launcher ribbon'))}</div>
-          </div>
-          <div class="prot-status">
-            ${renderToggle({
-              id: 'btn-tile-' + id,
-              cls: isHidden ? 'warn' : 'good',
-              label: pending ? (isHidden ? t('apps.tile.hiding', 'Hiding\u2026') : t('apps.tile.restoring', 'Restoring\u2026'))
-                : isHidden ? t('apps.tile.hidden', 'Hidden') : t('apps.tile.visible', 'Visible'),
-              disabled: !d.writable || pending,
-              onclick: "toggleTileVisibility('" + id + "', " + (!isHidden) + ")"
-            })}
-          </div>
-        </div>`;
-      }).join('');
+        const state = pending ? (isHidden ? t('apps.tile.hiding', 'Hiding\u2026') : t('apps.tile.restoring', 'Restoring\u2026'))
+          : isHidden ? t('apps.tile.hidden', 'Hidden') : t('apps.tile.shown', 'Shown');
+        const name = tile.title || tile.id;
+        return `<button type="button" class="rk-key sys-tile${isHidden ? ' sys-hidden' : ''}" aria-pressed="${isHidden}"
+            aria-label="${esc(name + ': ' + state)}" ${!d.writable || pending ? 'disabled' : ''}
+            onclick="toggleTileVisibility('${jsq(tile.id)}', ${!isHidden})">
+          <span class="rk-does">${rkIcon(tile.id)}<span translate="no">${esc(name)}</span></span>
+          <span class="rk-name">${esc(state)}</span>
+        </button>`;
+      }).join('')}</div>`;
     }
   }
 
@@ -315,6 +307,14 @@ function renderAppsPanel() {
 }
 
 // The remote's Quick Access keys: holding 1 to 9 opens what is set here.
+// Quick Access (lib/quickaccess.js): a tile per number key, laid out as the
+// remote's number pad, each showing what holding it opens. Choosing a tile
+// opens a picker under its row, as Remote keys does.
+let qaData = null;      // the last quickAccess answer, for the picker
+let qaOpen = null;      // the key whose picker is open
+let qaCols = 0;
+let qaWritable = false;
+
 function renderQuickAccess(d) {
   const disc = q('disc-quickaccess');
   const list = q('apps-qa-list');
@@ -324,56 +324,122 @@ function renderQuickAccess(d) {
   if (!qa) return;
   const set = qa.keys.filter(k => k.id).length;
   if (q('apps-qa-summary')) q('apps-qa-summary').textContent = t('apps.quickAccess.count', '{n} of 9 set', { n: set });
-  if (!list || list.contains(document.activeElement)) return;
-  const inputs = qa.choices.filter(c => c.kind === 'input');
-  const apps = qa.choices.filter(c => c.kind === 'app');
-  const opt = (c, cur) => `<option value="${esc(c.id)}"${c.id === cur ? ' selected' : ''}>${esc(c.title)}</option>`;
-  list.innerHTML = qa.keys.map(k => {
-    const known = !k.id || qa.choices.some(c => c.id === k.id);
-    // A key set to something not offered here (a channel, a hidden LG app)
-    // keeps it on the list, so the select shows what the key does now.
-    const current = known ? '' : `<option value="${esc(k.id)}" selected>${esc(k.title)}</option>`;
-    const icon = k.id ? `<img src="${api('/api/apps/icon?id=' + encodeURIComponent(k.id))}" width="38" height="38"
-      style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">`
-      : `<div style="width:38px;height:38px;flex-shrink:0"></div>`;
-    return `<div class="prot-row qa-row">
-      ${icon}
-      <div class="prot-main">
-        <div class="prot-title"><span class="qa-key">${k.key}</span> ${esc(k.id ? k.title : t('apps.quickAccess.none', 'Nothing set'))}</div>
-        ${!k.installed ? `<div class="prot-desc" translate="no">${esc(k.id)}</div>` : ''}
-        ${k.lgDefault ? `<div class="prot-desc">${esc(t('apps.quickAccess.lgDefault', 'Set by LG'))}</div>` : ''}
-      </div>
-      <div class="prot-status">
-        <select class="pill-sel qa-sel" data-key="${k.key}" ${d.writable ? '' : 'disabled'}
-          aria-label="${esc(t('apps.quickAccess.keyLabel', 'Key {key}', { key: k.key }))}" onchange="setQuickAccessKey(this)">
-          ${current}
-          <option value=""${!k.id ? ' selected' : ''}>${esc(t('apps.quickAccess.reset', 'None'))}</option>
-          <optgroup label="${esc(t('apps.quickAccess.inputs', 'Inputs'))}">${inputs.map(c => opt(c, k.id)).join('')}</optgroup>
-          <optgroup label="${esc(t('apps.quickAccess.apps', 'Apps'))}">${apps.map(c => opt(c, k.id)).join('')}</optgroup>
-        </select>
-      </div>
-    </div>`;
-  }).join('');
+  qaData = qa;
+  qaWritable = !!d.writable;
+  // Left alone while a choice is being made in it.
+  if (!list || (qaOpen && list.contains(document.activeElement))) return;
+  list.innerHTML = `<div class="rk-grid qa-grid">${qa.keys.map(k => {
+    const does = k.id
+      ? `${rkIcon(k.id)}<span translate="no">${esc(k.title)}</span>`
+      : `<span class="rk-lg">${esc(t('apps.quickAccess.none', 'Nothing set'))}</span>`;
+    const note = !k.installed && k.id ? `<span class="qa-note" translate="no">${esc(k.id)}</span>`
+      : k.lgDefault ? `<span class="qa-note">${esc(t('apps.quickAccess.lgDefault', 'Set by LG'))}</span>` : '';
+    return `<button type="button" class="rk-key qa-key-tile${k.id ? ' rk-changed' : ''}" data-key="${k.key}"
+        aria-expanded="false" aria-label="${esc(t('apps.quickAccess.keyLabel', 'Key {key}', { key: k.key }) + ': ' + (k.id ? k.title : t('apps.quickAccess.none', 'Nothing set')))}"
+        ${qaWritable ? '' : 'disabled'} onclick="toggleQuickAccessKey(this)">
+      <span class="qa-num">${k.key}</span>
+      <span class="rk-does">${does}</span>
+      ${note}
+    </button>`;
+  }).join('')}</div>`;
+  if (qaOpen) {
+    const tile = list.querySelector(`.qa-key-tile[data-key="${qaOpen}"]`);
+    qaOpen = null;
+    if (tile) toggleQuickAccessKey(tile);
+  }
 }
 
-async function setQuickAccessKey(sel) {
-  sel.disabled = true;
+// The picker goes in after the last tile of the chosen one's row, as for
+// Remote keys, with None, the inputs and the apps.
+function toggleQuickAccessKey(tile) {
+  const was = qaOpen;
+  closeQuickAccessPicker();
+  if (!qaData || String(was) === tile.dataset.key) return;
+  const k = qaData.keys.find(x => String(x.key) === tile.dataset.key);
+  if (!k) return;
+  qaOpen = k.key;
+  tile.classList.add('rk-open');
+  tile.setAttribute('aria-expanded', 'true');
+  const grid = tile.parentElement;
+  const tiles = Array.from(grid.children).filter(el => el.classList.contains('qa-key-tile'));
+  const cols = rkColumns(grid);
+  qaCols = cols;
+  const i = tiles.indexOf(tile);
+  const after = tiles[Math.min(tiles.length - 1, (Math.floor(i / cols) + 1) * cols - 1)];
+  const opt = (value, html) => `<button type="button" class="rk-opt${value === (k.id || '') ? ' on' : ''}"
+      data-value="${esc(value)}" aria-pressed="${value === (k.id || '')}" onclick="chooseQuickAccessKey(this)">${html}</button>`;
+  const inputs = qaData.choices.filter(c => c.kind === 'input');
+  const apps = qaData.choices.filter(c => c.kind === 'app');
+  // A key set to something not offered here (a channel, a hidden LG app) still shows it.
+  const gone = k.id && !qaData.choices.some(c => c.id === k.id) ? opt(k.id, `<span translate="no">${esc(k.title)}</span>`) : '';
+  const label = t('apps.quickAccess.keyLabel', 'Key {key}', { key: k.key });
+  const pick = document.createElement('div');
+  pick.className = 'rk-pick';
+  pick.setAttribute('role', 'group');
+  pick.setAttribute('aria-label', label);
+  pick.innerHTML = `<div class="rk-pick-head"><span>${esc(label)}</span>
+      <button type="button" class="rk-close" onclick="closeQuickAccessPicker(true)">${esc(t('apps.remoteKeys.close', 'Close'))}</button></div>
+    <div class="rk-opts">${opt('', esc(t('apps.quickAccess.reset', 'None')))}${gone}</div>
+    ${inputs.length ? `<div class="rk-sub">${esc(t('apps.quickAccess.inputs', 'Inputs'))}</div>
+    <div class="rk-opts">${inputs.map(c => opt(c.id, `<span translate="no">${esc(c.title)}</span>`)).join('')}</div>` : ''}
+    ${apps.length ? `<div class="rk-sub">${esc(t('apps.quickAccess.apps', 'Apps'))}</div>
+    <div class="rk-opts">${apps.map(c => opt(c.id, `${rkIcon(c.id)}<span translate="no">${esc(c.title)}</span>`)).join('')}</div>` : ''}`;
+  after.after(pick);
+  rkAimArrow(tile, pick);
+  const on = pick.querySelector('.rk-opt.on') || pick.querySelector('.rk-opt');
+  if (on) on.focus({ preventScroll: true });
+}
+
+function closeQuickAccessPicker(refocus) {
+  const list = q('apps-qa-list');
+  const pick = list && list.querySelector('.rk-pick');
+  if (pick) pick.remove();
+  const tile = list && qaOpen ? list.querySelector(`.qa-key-tile[data-key="${qaOpen}"]`) : null;
+  if (tile) {
+    tile.classList.remove('rk-open');
+    tile.setAttribute('aria-expanded', 'false');
+    if (refocus) tile.focus();
+  }
+  qaOpen = null;
+}
+
+async function chooseQuickAccessKey(btn) {
+  const key = qaOpen;
+  if (!key) return;
+  document.querySelectorAll('#apps-qa-list .rk-pick .rk-opt').forEach(b => { b.disabled = true; });
+  btn.classList.add('busy');
   let error = null;
   try {
     const res = await fetch(api('/api/quickaccess'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: Number(sel.dataset.key), id: sel.value })
+      body: JSON.stringify({ key: Number(key), id: btn.dataset.value })
     });
     const r = await res.json();
     if (!r || !r.ok) error = (r && r.error) || t('common.unknownError', 'unknown error');
   } catch (e) {
     error = e.message;
   }
-  sel.blur();
+  closeQuickAccessPicker(true);
   if (error) alert(t('apps.quickAccess.failed', 'Could not change it: {error}', { error }));
   await loadApps();
 }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && qaOpen) closeQuickAccessPicker(true);
+});
+// As for Remote keys: the picker moves only when the columns change.
+window.addEventListener('resize', () => {
+  if (!qaOpen) return;
+  const list = q('apps-qa-list');
+  const tile = list && list.querySelector(`.qa-key-tile[data-key="${qaOpen}"]`);
+  const pick = list && list.querySelector('.rk-pick');
+  if (!tile || !pick) return;
+  if (rkColumns(tile.parentElement) === qaCols) return rkAimArrow(tile, pick);
+  const key = qaOpen;
+  closeQuickAccessPicker(false);
+  toggleQuickAccessKey(list.querySelector(`.qa-key-tile[data-key="${key}"]`));
+});
 
 // What the remote's keys do (lib/remotekeys.js): a tile per key, grouped as
 // the remote groups them, each showing what it does now. Choosing a tile opens
