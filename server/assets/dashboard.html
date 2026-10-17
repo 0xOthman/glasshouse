@@ -282,6 +282,8 @@ var initialSel = null;
 /* Where a phone can reach this server. Only the server knows it - the app is
    served from localhost - so it is asked for once and kept. */
 var lanOrigin = null, lanKey = null;
+// allowPower in config.json; without it the server refuses Power off and Reboot, so they are not offered.
+var allowPower = false;
 function refreshCaps() {
   fetch('/api/caps', { cache: 'no-store' })
     .then(function (r) { return r.json(); })
@@ -295,7 +297,10 @@ function refreshCaps() {
       }
       lanOrigin = (d && d.origin) || null;
       lanKey = (d && d.key) || null;
+      var couldPower = allowPower;
+      allowPower = !!(d && d.allowPower);
       renderHint();
+      if (allowPower !== couldPower && T().key === 'options') fetchTab(true);
     })
     .catch(function () {});
 }
@@ -434,8 +439,9 @@ function optionRows(d) {
       r.push(toggle(t('adv.wol', 'Wake-on-LAN'), d.wakeOnLan, 'wakeOnLan',
         t('tv.options.wol.hint', 'Lets Home Assistant, a phone or another device on the network switch the TV on from standby. Requires Quick Boot (Quick Start+) to keep the network connection responsive while off. LG calls this Mobile TV On.')));
   }
-  if (timers.on || timers.off) {
+  if (d.sleepTimer !== undefined || timers.on || timers.off) {
     r.push(head(t('adv.timers', 'Timers')));
+    if (d.sleepTimer !== undefined) r.push(sleepRow(d.sleepTimer));
     // The time and days are set from the browser dashboard; here they are
     // shown, and the timer switched on or off.
     if (timers.on) r.push(timerRow(timers.on, 'on', t('adv.onTimer', 'On Timer')));
@@ -475,8 +481,30 @@ function optionRows(d) {
     if (lights.hasLogo)
       r.push(toggle(t('adv.logoLight', 'Logo light'), lights.logo, 'logoLight', t('tv.options.logoLight.hint', 'The lit LG logo on the front of the TV.')));
   }
+  // Last, away from the row the tab opens on, so a stray OK lands nowhere near them.
+  if (allowPower) {
+    r.push(head(t('adv.power', 'Power')));
+    r.push({ label: t('ctl.powerOff', 'Power off'), value: '', cls: 'act', act: 'powerOff',
+             press: t('tv.options.powerOff.press', 'Press OK, then again, to power off'),
+             hint: t('tv.options.powerOff.hint', 'The same as the power button on the remote.') });
+    r.push({ label: t('ctl.reboot', 'Reboot'), value: '', cls: 'act', act: 'reboot',
+             press: t('tv.options.reboot.press', 'Press OK, then again, to reboot'),
+             hint: t('tv.options.reboot.hint', 'A full restart of the TV, which LG\u2019s menus do not offer. It is unavailable for about a minute.') });
+  }
   if (!r.length) r.push({ label: t('tv.options.nothingToSetOn', 'Nothing to set on this TV'), value: '' });
   return r;
+}
+
+// The values LG's settings service accepts, in the order OK steps through them.
+var SLEEP_STEPS = ['off', '10', '30', '60', '90', '120'];
+function sleepRow(cur) {
+  var words = { off: t('common.off', 'Off'), '10': t('ctl.sleep.10', '10 min'), '30': t('ctl.sleep.30', '30 min'),
+                '60': t('ctl.sleep.60', '60 min'), '90': t('ctl.sleep.90', '90 min'), '120': t('ctl.sleep.120', '120 min') };
+  var i = SLEEP_STEPS.indexOf(cur), next = SLEEP_STEPS[(i + 1) % SLEEP_STEPS.length];
+  return { label: t('ctl.sleep', 'Sleep timer'), value: words[cur] || cur, cls: 'act', act: 'sleepTimer', on: cur !== 'off', next: next,
+           press: next === 'off' ? t('tv.options.sleep.toOff', 'Press OK to turn it off')
+                                 : t('tv.options.sleep.toNext', 'Press OK for {time}', { time: words[next] }),
+           hint: t('tv.options.sleep.hint', 'Switches the TV off once this time has passed.') };
 }
 
 function timerRow(tm, which, label) {
@@ -2312,6 +2340,18 @@ function activate() {
                   r.next === 'bright' ? t('ss.bright', 'Bright') : t('ss.dim', 'Dim'));
     case 'saverStart':
       return startSaverAfterRelease();
+    case 'sleepTimer':
+      return send({ action: 'sleepTimer', value: r.next });
+    case 'powerOff':
+    case 'reboot':
+      var installing = inst && INST_BUSY[inst.state]
+        ? t('tv.options.power.installBusy', 'An app is still installing. Stopping now may leave it half-installed.') : null;
+      if (confirmFirst(r, r.act === 'reboot' ? t('tv.options.reboot.again', 'Press OK again to reboot')
+                                             : t('tv.options.powerOff.again', 'Press OK again to power off'), installing)) return;
+      var going = r.act === 'reboot' ? t('tv.options.rebooting', 'Rebooting\u2026') : t('tv.options.poweringOff', 'Powering off\u2026');
+      r.value = going;
+      render();
+      return send({ action: r.act }, going);
     case 'quickBoot':
       return send({ action: 'quickBoot', value: !r.on }, r.on ? t('tv.flash.quickBootOff', 'Quick Boot turned off') : t('tv.flash.quickBootOn', 'Quick Boot turned on'));
     case 'deviceDetection':
