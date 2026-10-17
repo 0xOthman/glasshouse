@@ -41,12 +41,14 @@ function next() {
 // The switch sets livePlus, then each flag found, and counts what else went.
 function testControl() {
   console.log('  ✓ the flags are those the ACR binary names, or acrAllowed');
-  var calls = [];
+  var calls = [], hasLive = true;
   controls.init({
     config: { allowControl: true },
     telemetry: { clearCache: function () {} },
     clearLunaCache: function () {},
     luna: function (uri, payload, cb) {
+      if (/getSystemSettings$/.test(uri)) return cb(hasLive ? { returnValue: true, settings: { livePlus: 'on' } }
+                                                            : { returnValue: false, errorText: 'There is no matched result from DB' });
       calls.push(uri.split('/').pop() + ' ' + JSON.stringify(payload.settings));
       cb({ returnValue: true });
     },
@@ -62,9 +64,16 @@ function testControl() {
     assert.deepEqual(calls, ['setSystemSettings {"livePlus":"off"}', 'acrAllowed false', 'acrOnAllowed false']);
     assert.deepEqual(res, { ok: true, alsoChanged: 2 });
     console.log('  ✓ the ACR switch writes livePlus and every flag found');
-    fs.readdirSync(dir).forEach(function (f) { fs.unlinkSync(path.join(dir, f)); });
-    fs.rmdirSync(dir);
-    console.log('ALL test-acr-consent.js assertions passed!\n');
+    calls = [];
+    hasLive = false;
+    controls.doControl('acr', false, function (res2) {
+      assert.deepEqual(calls, ['acrAllowed false', 'acrOnAllowed false']);
+      assert.deepEqual(res2, { ok: true, alsoChanged: 2 });
+      console.log('  ✓ on a TV without livePlus only the flags are written');
+      fs.readdirSync(dir).forEach(function (f) { fs.unlinkSync(path.join(dir, f)); });
+      fs.rmdirSync(dir);
+      console.log('ALL test-acr-consent.js assertions passed!\n');
+    });
   });
 }
 

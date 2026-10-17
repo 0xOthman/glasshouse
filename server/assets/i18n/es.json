@@ -2463,6 +2463,10 @@
   "text": "ID de publicidad",
   "from": "Advertising ID"
  },
+ "pv.adid.stopped": {
+  "text": "El servicio de publicidad de LG no está en ejecución, así que no está entregando ningún ID.",
+  "from": "LG’s advertising service is not running, so it is not handing out an ID."
+ },
  "pv.adid.unreadable": {
   "text": "Este firmware no responde a la llamada que lo lee.",
   "from": "This firmware does not answer the call that reads it."
@@ -4451,6 +4455,10 @@
   "text": "El ACR de LG capta lo que hay en pantalla, tanto de aplicaciones como de HDMI, para deducir qué ves y dirigirte anuncios.",
   "from": "LG’s ACR captures what is on screen, from apps and HDMI alike, to work out what you watch and target ads at you."
  },
+ "srv.privacy.adStopped": {
+  "text": "El servicio de publicidad de LG no está en ejecución, y esto lo iniciaría.",
+  "from": "LG’s advertising service is not running, and this would start it."
+ },
  "srv.privacy.adid": {
   "text": "Identificador de publicidad",
   "from": "Advertising identifier"
@@ -4514,6 +4522,10 @@
  "srv.privacy.lmt.detail": {
   "text": "Activado, se pide a las apps que no usen este ID para perfilarte.",
   "from": "When on, apps are asked not to use this ID to profile you."
+ },
+ "srv.privacy.lmt.none": {
+  "text": "Este televisor no tiene el ajuste Limitar el seguimiento de anuncios.",
+  "from": "This TV has no Limit ad tracking setting."
  },
  "srv.privacy.mic": {
   "text": "Interruptor del micrófono",

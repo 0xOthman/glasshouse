@@ -957,7 +957,7 @@ function privacyRows(d) {
                hint: t('tv.privacy.capture.hint', 'Whether it is sampling the screen right now, as opposed to merely being switched on.') });
   }
 
-  if (d.advertisingId && d.advertisingId.available) {
+  if (d.advertisingId && (d.advertisingId.available || d.advertisingId.lmtKnown)) {
     r.push(head(t('pv.adid', 'Advertising identifier')));
     r.push({ label: d.advertisingId.limitTrackingLabel || t('pv.lmt', 'Limit ad tracking'),
              value: d.advertisingId.limitTracking ? t('common.on', 'On') : t('common.off', 'Off'),
@@ -965,7 +965,8 @@ function privacyRows(d) {
              act: d.consentWritable === false ? null : 'lmt', on: d.advertisingId.limitTracking,
              press: d.advertisingId.limitTracking ? t('tv.press.switchOff', 'Press OK to switch off') : t('tv.press.switchOn', 'Press OK to switch on'),
              hint: t('tv.privacy.lmt.hint', 'When on, apps are asked not to use the TV’s advertising ID to profile the viewer. It is a request, not an enforcement.') });
-    r.push({ label: t('tv.privacy.resetTheAdvertisingId', 'Reset the advertising ID'), value: '→', cls: 'act', act: 'resetAdId',
+    // With the ad service stopped there is no ID, and a reset would start it.
+    if (d.advertisingId.available) r.push({ label: t('tv.privacy.resetTheAdvertisingId', 'Reset the advertising ID'), value: '→', cls: 'act', act: 'resetAdId',
              press: t('tv.privacy.resetTheAdvertisingId.press', 'Press OK to reset'),
              hint: t('tv.privacy.resetTheAdvertisingId.hint', 'Issues a fresh identifier, which breaks the link to whatever has been collected against the old one. Harmless to repeat.') });
   }

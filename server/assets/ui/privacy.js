@@ -119,17 +119,21 @@ async function loadPrivacy() {
        gets a row and a pill. */
     // available === false means the call does not exist on this firmware, which
     // is not the same answer as "no identifier assigned".
+    // stopped: LG's ad service is not running, and asking would start it.
     const adOk = ad.available !== false;
+    const lmtOk = adOk || !!ad.lmtKnown;
     q('pv-adid').innerHTML = pvRow(esc(t('pv.adid.row', 'Advertising ID')),
-      esc(!adOk ? t('pv.adid.unreadable', 'This firmware does not answer the call that reads it.')
+      esc(ad.stopped ? t('pv.adid.stopped', 'LG\u2019s advertising service is not running, so it is not handing out an ID.')
+            : !adOk ? t('pv.adid.unreadable', 'This firmware does not answer the call that reads it.')
             : ad.present ? t('pv.adid.hidden', 'The value is deliberately not displayed here.')
                          : t('pv.adid.none', 'No identifier is currently assigned.')),
-      !adOk ? `<span class="pill idle">${esc(t('pv.notReadable', 'Not readable'))}</span>`
+      ad.stopped ? `<span class="pill good">${esc(t('pv.notRunning', 'Not running'))}</span>`
+            : !adOk ? `<span class="pill idle">${esc(t('pv.notReadable', 'Not readable'))}</span>`
             : `<span class="pill ${ad.present ? 'warn' : 'good'}">${esc(ad.present ? t('pv.adid.assigned', 'Assigned') : t('pv.adid.noneShort', 'None'))}</span>`);
     q('pv-lmt').innerHTML = pvRow(
       esc(ad.limitTrackingLabel || t('pv.lmt', 'Limit ad tracking')),
-      esc(adOk ? (ad.limitTrackingDetail || '') : t('pv.lmt.unknown', 'Read from the same call, so it is unknown here.')),
-      !adOk ? `<span class="pill idle">${esc(t('pv.unknown', 'Unknown'))}</span>`
+      esc(lmtOk ? (ad.limitTrackingDetail || '') : t('pv.lmt.unknown', 'Read from the same call, so it is unknown here.')),
+      !lmtOk ? `<span class="pill idle">${esc(t('pv.unknown', 'Unknown'))}</span>`
             : d.consentWritable
             ? renderToggle({
                 id: 'lmt-toggle',
@@ -138,7 +142,8 @@ async function loadPrivacy() {
                 next: ad.limitTracking ? '0' : '1'
               })
             : `<span class="pill ${ad.limitTracking ? 'good' : 'warn'}">${esc(ad.limitTracking ? t('common.on', 'On') : t('common.off', 'Off'))}</span>`);
-    // The two ad actions go through the same service, so they cannot work either.
+    // The two ad actions go through the same service, so they cannot work
+    // either, and with it stopped they would start it.
     for (const id of ['adid-reset', 'adcookies-clear']) {
       const btn = q(id);
       if (btn) btn.disabled = !adOk;
@@ -233,7 +238,7 @@ async function loadPrivacy() {
     q('pv-running-note').textContent = t('pv.runningNow.note',
       'A service can be running with its permission switched off \u2014 it simply has nothing it is allowed to send. ' +
       'They are switched off in the Apps tab, under Turn off background services, which keeps them off across reboots. ' +
-      'LG\'s recognition and advertising services are not listed: anything that asks them a question starts them, this panel included.');
+      'LG\'s recognition and advertising services are not listed: anything that asks them a question starts them, so this panel asks them only while they are running.');
 
     q('pv-running-cur').textContent = dae.length
       ? t('pv.runningOf', '{n} of {total} running', { n: dae.filter(x => x.running).length + liveOn, total }) : '';

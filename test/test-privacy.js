@@ -3,6 +3,7 @@
  */
 
 var assert = require('assert');
+var fs = require('fs');
 var mockEnv = require('./mocks/mock-env').createMockEnv();
 mockEnv.install();
 
@@ -474,6 +475,129 @@ test('an answer that is not high or low shows nothing', function () {
   micTv('on with switch', 'unknown');
   privacy.readMicSwitch(function (m) { got = m; });
   assert.strictEqual(got, null);
+});
+
+
+// The bus's service files as a CX and a C5 have them: acr2 and admanager
+// started on demand, the voice service not listed.
+var pathMod = require('path');
+var busDir = pathMod.join(__dirname, 'fixtures', 'bus-cx');
+privacy._setBusDir(busDir);
+var PS_NONE = 'COMMAND\n/usr/sbin/tvpowerd\n/usr/bin/node /media/developer/tvweb.js\n';
+var PS_BOTH = PS_NONE + '/usr/sbin/acr2\n/usr/sbin/admanager --flag\n';
+
+test('a service is taken as started by a call only where the bus starts it on demand and it is not running', function () {
+  assert.strictEqual(privacy.wouldStart('com.webos.service.acr', PS_NONE), true);
+  assert.strictEqual(privacy.wouldStart('com.webos.service.acr', PS_BOTH), false);
+  assert.strictEqual(privacy.wouldStart('com.webos.service.admanager', PS_BOTH), false);
+  assert.strictEqual(privacy.wouldStart('com.webos.service.tvpower', PS_NONE), false, 'not on demand');
+  assert.strictEqual(privacy.wouldStart('com.webos.service.voiceinput.sound', PS_NONE), false, 'not listed');
+});
+
+// A TV answering luna calls from answers, with ps reading psText; asked
+// collects every uri called.
+function busTv(psText, answers) {
+  var asked = [];
+  var answer = function (uri, params, cb) {
+    asked.push(uri);
+    var a = answers[uri];
+    cb(typeof a === 'function' ? a(params) : (a || { returnValue: true }));
+  };
+  privacy.init({
+    luna: answer,
+    lunaCached: function (uri, params, ttl, cb) { answer(uri, params, cb); },
+    lgSettings: { collect: function (section, cb) { cb({ rows: [] }); } },
+    config: { allowControl: true }
+  });
+  privacy._setPs(function (cb) { cb(psText); });
+  privacy.clearCache();
+  return asked;
+}
+var LMT_URI = 'com.webos.settingsservice/getSystemSettings';
+function askedOf(asked, re) { return asked.filter(function (u) { return re.test(u); }); }
+
+test('the privacy panel does not ask a stopped ACR or ad service, and reads Limit ad tracking from the setting', function () {
+  var lmtAnswer = { returnValue: true, settings: { lmt: 'off' } };
+  var got;
+  var asked = busTv(PS_NONE, (function () { var a = {}; a[LMT_URI] = lmtAnswer; return a; })());
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.deepEqual(askedOf(asked, /service\.(acr|admanager)\//), []);
+  assert.strictEqual(got.acr.active, false);
+  assert.strictEqual(got.acr.stopped, true);
+  assert.strictEqual(got.acr.captureState, 'stopped');
+  assert.strictEqual(got.advertisingId.available, false);
+  assert.strictEqual(got.advertisingId.stopped, true);
+  assert.strictEqual(got.advertisingId.lmtKnown, true);
+  assert.strictEqual(got.advertisingId.limitTracking, false);
+  var ads = got.simple.areas.filter(function (a) { return a.id === 'ads'; })[0];
+  assert.ok(ads.items.some(function (i) { return i.action === 'limitAdTracking'; }), 'Limit ad tracking off is still counted');
+});
+
+test('the privacy panel asks both services while they run', function () {
+  var asked = busTv(PS_BOTH, {
+    'com.webos.service.acr/getACRSolutionStatus': { returnValue: true, ACRSolutionStatus: true },
+    'com.webos.service.acr/getVideoCaptureStatus': { returnValue: true, status: 'capturing' },
+    'com.webos.service.admanager/getAdid': { returnValue: true, IFA: 'x', LMT: 'on' }
+  });
+  var got;
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.strictEqual(askedOf(asked, /service\.(acr|admanager)\//).length, 3);
+  assert.strictEqual(got.acr.active, true);
+  assert.strictEqual(got.acr.capturing, true);
+  assert.ok(!got.acr.stopped);
+  assert.strictEqual(got.advertisingId.present, true);
+  assert.ok(!got.advertisingId.stopped);
+});
+
+test('resetting the ID or clearing cookies does not start a stopped ad service', function () {
+  var asked = busTv(PS_NONE, {});
+  var r1, r2;
+  privacy.resetAdId(function (r) { r1 = r; });
+  privacy.clearAdCookies(function (r) { r2 = r; });
+  assert.strictEqual(r1.ok, false);
+  assert.strictEqual(r2.ok, false);
+  assert.deepEqual(askedOf(asked, /admanager/), []);
+});
+
+test('Limit ad tracking is not written on a TV without the setting', function () {
+  var none = {};
+  none[LMT_URI] = { returnValue: false, errorText: 'There is no matched result from DB' };
+  var asked = busTv(PS_BOTH, none);
+  var got;
+  privacy.setLimitTracking(true, function (r) { got = r; });
+  assert.strictEqual(got.ok, false);
+  assert.deepEqual(askedOf(asked, /setSystemSettings/), []);
+});
+
+test('with the ad service stopped, Limit ad tracking is checked from the setting', function () {
+  var lmt = 'off';
+  var a = {};
+  a[LMT_URI] = function () { return { returnValue: true, settings: { lmt: lmt } }; };
+  a['com.webos.settingsservice/setSystemSettings'] = function (p) { lmt = p.settings.lmt; return { returnValue: true }; };
+  var asked = busTv(PS_NONE, a);
+  var got;
+  privacy.setLimitTracking(true, function (r) { got = r; });
+  assert.deepEqual(got, { ok: true, limitTracking: true });
+  assert.deepEqual(askedOf(asked, /admanager/), []);
+});
+
+test('the microphone switch is read only on a TV that names one exactly, and never by starting the voice service', function () {
+  ['on', 'off', 'on without switch', 'with switch'].forEach(function (support) {
+    var asked = micTv(support, 'high');
+    var got = 'unset';
+    privacy.readMicSwitch(function (m) { got = m; }, PS_NONE);
+    assert.strictEqual(got, null, support);
+    assert.deepEqual(askedOf(asked, /voiceinput/), [], support);
+  });
+  privacy._setBusDir(pathMod.join(__dirname, 'fixtures', 'bus-voice'));
+  var asked2 = micTv('on with switch', 'high');
+  var got2 = 'unset';
+  privacy.readMicSwitch(function (m) { got2 = m; }, PS_NONE);
+  assert.strictEqual(got2, null);
+  assert.deepEqual(askedOf(asked2, /voiceinput/), []);
+  privacy.readMicSwitch(function (m) { got2 = m; }, PS_NONE + '/usr/sbin/voiceinput\n');
+  assert.strictEqual(got2.on, true, 'asked while it runs');
+  privacy._setBusDir(busDir);
 });
 
 var failures = 0;

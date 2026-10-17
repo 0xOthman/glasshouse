@@ -251,6 +251,68 @@ var PRIVACY_DAEMONS = {
 var SERVICES_FILE = '/var/lib/tvweb/services_stopped';
 var SERVICE_CONTROLLABLE = { uploadd: true, rdxd: true };
 
+/*
+ * The bus starts some of LG's services on demand: their service file says
+ * Type=dynamic, and ls-hubd runs the program the first time anything calls
+ * one. com.webos.service.acr (acr2) and com.webos.service.admanager are such
+ * on a CX (webOS 5.6.2) and a C5 (webOS 10.3.1), so a status query would start
+ * either one again after it was stopped. Such a service is asked only while it
+ * runs. Read once: the files are on the read-only rootfs.
+ */
+var BUS_DIR = '/usr/share/dbus-1/system-services';
+var onDemand = null;
+
+function onDemandPrograms() {
+  if (onDemand) return onDemand;
+  onDemand = {};
+  var files = [];
+  try { files = fs.readdirSync(BUS_DIR); } catch (e) {}
+  files.forEach(function (f) {
+    if (!/\.service$/.test(f)) return;
+    var text = readTrimmed(BUS_DIR + '/' + f) || '';
+    if (!/^Type\s*=\s*dynamic\s*$/m.test(text)) return;
+    var exec = /^Exec\s*=\s*(\S+)/m.exec(text), names = /^Name\s*=\s*(.+)$/m.exec(text);
+    if (!exec || !names) return;
+    names[1].split(';').forEach(function (n) {
+      n = n.trim();
+      if (n) onDemand[n] = exec[1];
+    });
+  });
+  return onDemand;
+}
+
+// Whether a call to service would start it: started on demand, and its
+// program not among psText's (ps -eo args).
+function wouldStart(service, psText) {
+  var prog = onDemandPrograms()[service];
+  if (!prog) return false;
+  var base = prog.split('/').pop();
+  return !String(psText || '').split('\n').some(function (line) {
+    var cmd = line.trim().split(/\s+/)[0];
+    return cmd === prog || cmd === base;
+  });
+}
+
+var psArgs = function (cb) {
+  execFile('/bin/ps', ['-eo', 'args'], { timeout: 4000 }, function (err, stdout) {
+    cb(String(stdout || ''));
+  });
+};
+
+// cb(answer), or cb(null) without asking where asking would start the service.
+function askIfRunning(idle, uri, cb) {
+  if (idle) return cb(null);
+  luna(uri, {}, cb);
+}
+
+// The TV's own Limit ad tracking setting: true or false, or null where it has none.
+function readLmt(cb) {
+  luna('com.webos.settingsservice/getSystemSettings', { category: 'general', keys: ['lmt'] }, function (r) {
+    var v = r && r.settings && r.settings.lmt;
+    cb(v === undefined || v === null ? null : String(v).toLowerCase() === 'on');
+  });
+}
+
 var luna = null;
 var lunaCached = null;
 var config = {};
@@ -984,6 +1046,8 @@ function stoppedServices() {
 }
 
 function upstartJobs(cb) {
+  // A TV without initctl has no jobs to list.
+  if (!fs.existsSync('/sbin/initctl')) return cb({});
   execFile('/sbin/initctl', ['list'], { timeout: 4000 }, function (err, stdout) {
     var out = {}, lines = String(stdout || '').split('\n');
     for (var i = 0; i < lines.length; i++) {
@@ -997,8 +1061,8 @@ function upstartJobs(cb) {
 function runningDaemons(cb) {
   var held = stoppedServices();
   upstartJobs(function (jobs) {
-    execFile('/bin/ps', ['-eo', 'args'], { timeout: 4000 }, function (err, stdout) {
-      var txt = String(stdout || ''), list = [];
+    psArgs(function (txt) {
+      var list = [];
       for (var name in PRIVACY_DAEMONS) {
         if (!PRIVACY_DAEMONS.hasOwnProperty(name)) continue;
         var d = PRIVACY_DAEMONS[name];
@@ -1014,7 +1078,7 @@ function runningDaemons(cb) {
           heldDown: held.indexOf(name) !== -1
         });
       }
-      cb(list);
+      cb(list, txt);
     });
   });
 }
@@ -1025,12 +1089,13 @@ function runningDaemons(cb) {
  * level, "high" on and "low" off; a CX (webOS 5.6.2) has neither the setting
  * nor the service. null when there is nothing to show.
  */
-function readMicSwitch(cb) {
+function readMicSwitch(cb, ps) {
   var lunaFn = lunaCached || function (uri, params, ttl, done) { luna(uri, params, done); };
   lunaFn('com.webos.service.config/getConfigs', { configNames: ['tv.model.supportFarFieldVoice'] }, 3600000,
          function (c) {
     var support = String((c && c.configs && c.configs['tv.model.supportFarFieldVoice']) || '');
-    if (!/with switch/.test(support)) return cb(null);
+    if (!/^on with switch$/.test(support)) return cb(null);
+    if (wouldStart('com.webos.service.voiceinput.sound', ps)) return cb(null);
     luna('com.webos.service.voiceinput.sound/getMicSwitchStatus', {}, function (r) {
       var st = r && r.returnValue !== false && r.micSwitchStatus;
       if (st !== 'high' && st !== 'low') return cb(null);
@@ -1050,23 +1115,26 @@ function collectPrivacy(cb) {
   var out = { ok: true, consent: readConsentFlags(), consentWritable: config.allowControl,
               consentGroups: CONSENT_GROUPS };
 
-  runningDaemons(function (daemons) {
+  runningDaemons(function (daemons, ps) {
     out.daemons = daemons;
+    var acrIdle = wouldStart('com.webos.service.acr', ps);
+    var adIdle = wouldStart('com.webos.service.admanager', ps);
     var lunaFn = lunaCached || luna;
     lunaFn('com.webos.settingsservice/getSystemSettings', { keys: ['eulaInfoNetwork'] }, 60000,
            function (elnRes) {
       var eln = elnRes && elnRes.settings && elnRes.settings.eulaInfoNetwork;
       if (eln && Array.isArray(eln.eulaList)) annotateConsent(out.consent, eln);
-      luna('com.webos.service.acr/getACRSolutionStatus', {}, function (acr) {
+      askIfRunning(acrIdle, 'com.webos.service.acr/getACRSolutionStatus', function (acr) {
         out.acr = {
           label: msg('srv.privacy.acr', 'Screen content recognition'),
           detail: msg('srv.privacy.acr.detail', 'LG’s ACR captures what is on screen, from apps and HDMI alike, to work out what you watch and target ads at you.'),
           active: !!(acr && acr.ACRSolutionStatus)
         };
-        luna('com.webos.service.acr/getVideoCaptureStatus', {}, function (cap) {
+        if (acrIdle) out.acr.stopped = true;
+        askIfRunning(acrIdle, 'com.webos.service.acr/getVideoCaptureStatus', function (cap) {
           out.acr.capturing = !!(cap && cap.status && cap.status !== 'stopped');
-          out.acr.captureState = (cap && cap.status) ? cap.status : 'unknown';
-          luna('com.webos.service.admanager/getAdid', {}, function (ad) {
+          out.acr.captureState = acrIdle ? 'stopped' : (cap && cap.status) ? cap.status : 'unknown';
+          askIfRunning(adIdle, 'com.webos.service.admanager/getAdid', function (ad) {
             var adOk = !!(ad && ad.returnValue !== false && ad.IFA !== undefined);
             var id = (adOk && ad.IFA) ? String(ad.IFA) : null;
             out.advertisingId = {
@@ -1075,6 +1143,7 @@ function collectPrivacy(cb) {
               detail: msg('srv.privacy.adid.detail', 'A unique ID your TV hands to advertisers so they can target ads at you. Resetting it breaks the link to your past activity.'),
               present: !!id,
               limitTracking: !!(ad && String(ad.LMT).toLowerCase() === 'on'),
+              lmtKnown: adOk,
               limitTrackingLabel: msg('srv.privacy.lmt', 'Limit ad tracking'),
               limitTrackingDetail: msg('srv.privacy.lmt.detail', 'When on, apps are asked not to use this ID to profile you.')
             };
@@ -1086,15 +1155,27 @@ function collectPrivacy(cb) {
               platform: adBlockPlatform(),
               custom: customSummary()
             };
-            readMicSwitch(function (mic) {
-              if (mic) out.microphone = mic;
-              lgSettingsModule.collect('promotions', function (ls) {
-                out.lgSettings = ls.rows;
-                out.simple = simpleSummary(out);
-                cachedPrivacy = out;
-                lastPrivacyCheck = Date.now();
-                cb(out);
-              });
+            // With the ad service stopped, Limit ad tracking is read from the
+            // TV's setting, which the service reads when it starts.
+            var lmt = adIdle ? readLmt : function (done) { done(undefined); };
+            lmt(function (setting) {
+              if (adIdle) {
+                out.advertisingId.stopped = true;
+                if (setting !== null) {
+                  out.advertisingId.limitTracking = setting;
+                  out.advertisingId.lmtKnown = true;
+                }
+              }
+              readMicSwitch(function (mic) {
+                if (mic) out.microphone = mic;
+                lgSettingsModule.collect('promotions', function (ls) {
+                  out.lgSettings = ls.rows;
+                  out.simple = simpleSummary(out);
+                  cachedPrivacy = out;
+                  lastPrivacyCheck = Date.now();
+                  cb(out);
+                });
+              }, ps);
             });
           });
         });
@@ -1132,7 +1213,7 @@ function simpleSummary(p) {
     watching.push({ label: msg('srv.privacy.item.acr', 'Content recognition is running'), action: 'acr', value: false });
   }
   var ads = onIn('advertising');
-  if (ad.available && !ad.limitTracking && writable) {
+  if ((ad.available || ad.lmtKnown) && !ad.limitTracking && writable) {
     ads.push({ label: msg('srv.privacy.item.lmt', 'Limit ad tracking is off'), action: 'limitAdTracking', value: true });
   }
   if (mode === 'off') {
@@ -1165,8 +1246,19 @@ function simpleSummary(p) {
   return { total: total, areas: areas, kept: kept };
 }
 
+// then() unless the ad service is stopped, which calling it would undo.
+function unlessAdServiceStopped(cb, then) {
+  psArgs(function (ps) {
+    if (wouldStart('com.webos.service.admanager', ps)) {
+      return cb({ ok: false, error: msg('srv.privacy.adStopped', 'LG’s advertising service is not running, and this would start it.') });
+    }
+    then(ps);
+  });
+}
+
 function resetAdId(cb) {
   if (!luna) return cb({ ok: false, error: 'no luna wrapper' });
+  unlessAdServiceStopped(cb, function () {
   luna('com.webos.service.admanager/getAdid', {}, function (before) {
     var was = (before && before.IFA) ? String(before.IFA) : null;
     luna('com.webos.service.admanager/resetIFA', {}, function (r) {
@@ -1180,6 +1272,7 @@ function resetAdId(cb) {
       });
     });
   });
+  });
 }
 
 /*
@@ -1190,23 +1283,36 @@ function resetAdId(cb) {
  */
 function setLimitTracking(on, cb) {
   if (!luna) return cb({ ok: false, error: 'no luna wrapper' });
-  luna('com.webos.settingsservice/setSystemSettings',
-       { category: 'general', settings: { lmt: on ? 'on' : 'off' } }, function (r) {
-    if (!r || r.returnValue !== true) return cb({ ok: false, error: msg('srv.tvRefused', 'the TV would not change it') });
-    luna('com.webos.service.admanager/getAdid', {}, function (ad) {
-      clearCache();
-      var now = !!(ad && String(ad.LMT).toLowerCase() === 'on');
-      cb(now === !!on ? { ok: true, limitTracking: now }
-                      : { ok: false, error: msg('srv.notTaken', 'the setting did not take') });
+  // Not written where the TV has no such setting: what its settings service
+  // does with a key it never had is untried.
+  readLmt(function (was) {
+    if (was === null) return cb({ ok: false, error: msg('srv.privacy.lmt.none', 'This TV has no Limit ad tracking setting.') });
+    luna('com.webos.settingsservice/setSystemSettings',
+         { category: 'general', settings: { lmt: on ? 'on' : 'off' } }, function (r) {
+      if (!r || r.returnValue !== true) return cb({ ok: false, error: msg('srv.tvRefused', 'the TV would not change it') });
+      var answer = function (now) {
+        clearCache();
+        cb(now === !!on ? { ok: true, limitTracking: now }
+                        : { ok: false, error: msg('srv.notTaken', 'the setting did not take') });
+      };
+      psArgs(function (ps) {
+        // With the ad service stopped, the setting is what it reads when it starts.
+        if (wouldStart('com.webos.service.admanager', ps)) return readLmt(answer);
+        luna('com.webos.service.admanager/getAdid', {}, function (ad) {
+          answer(!!(ad && String(ad.LMT).toLowerCase() === 'on'));
+        });
+      });
     });
   });
 }
 
 function clearAdCookies(cb) {
   if (!luna) return cb({ ok: false, error: 'no luna wrapper' });
-  luna('com.webos.service.admanager/inactivateCookies', {}, function (r) {
-    clearCache();
-    cb({ ok: !!(r && r.returnValue !== false) });
+  unlessAdServiceStopped(cb, function () {
+    luna('com.webos.service.admanager/inactivateCookies', {}, function (r) {
+      clearCache();
+      cb({ ok: !!(r && r.returnValue !== false) });
+    });
   });
 }
 
@@ -1310,6 +1416,9 @@ module.exports = {
   clearAdCookies: clearAdCookies,
   collectPrivacy: collectPrivacy,
   readMicSwitch: readMicSwitch,
+  wouldStart: wouldStart,
+  _setBusDir: function (dir) { BUS_DIR = dir; onDemand = null; },
+  _setPs: function (fn) { psArgs = fn; },
   simpleSummary: simpleSummary,
   setConsent: setConsent,
   acrConsentKeys: acrConsentKeys,
