@@ -57,7 +57,11 @@ var PROTECTED_APP_IDS = {
   'com.webos.app.webapphost': true,
   'webapphost': true,
   // Its only tile is a bookmark it re-adds at boot; hiding it adds more.
-  'airplay': true
+  'airplay': true,
+  // Hidden, it never starts: sam accepts the launch and nothing opens, so saved
+  // pages and links in other apps stop working (a C2, webOS 9.2). Other hidden
+  // apps still open.
+  'com.webos.app.browser': true
 };
 
 /*
@@ -80,21 +84,37 @@ function dedupeAirPlay() {
   });
 }
 
-// A TV that hid AirPlay before it was protected still hides it at boot, since
-// the boot hook reads the hidden list itself.
-function releaseAirPlay() {
+/*
+ * A TV that hid an app before it was protected still hides it at boot, since
+ * the boot hook reads the hidden list itself. It comes off the list here.
+ * cb(true) when it was on it.
+ */
+function releaseProtected(appId, name, cb) {
   var lines = [];
-  try { lines = fs.readFileSync(HIDDEN_APPS_FILE, 'utf8').split('\n'); } catch (e) { return; }
-  if (lines.map(function (l) { return l.trim(); }).indexOf('airplay') === -1) return;
+  try { lines = fs.readFileSync(HIDDEN_APPS_FILE, 'utf8').split('\n'); } catch (e) { return cb(false); }
+  if (lines.map(function (l) { return l.trim(); }).indexOf(appId) === -1) return cb(false);
   try {
-    fs.writeFileSync(HIDDEN_APPS_FILE, lines.filter(function (l) { return l.trim() && l.trim() !== 'airplay'; })
+    fs.writeFileSync(HIDDEN_APPS_FILE, lines.filter(function (l) { return l.trim() && l.trim() !== appId; })
       .map(function (l) { return l.trim() + '\n'; }).join(''));
-    var ovr = path.join(OVERRIDE_DIR, 'airplay.json');
+    var ovr = path.join(OVERRIDE_DIR, appId + '.json');
     if (fs.existsSync(ovr)) fs.unlinkSync(ovr);
   } catch (e2) {
-    return console.error('apps: could not take AirPlay off the hidden list: ' + e2.message);
+    console.error('apps: could not take ' + name + ' off the hidden list: ' + e2.message);
+    return cb(false);
   }
-  console.log('apps: AirPlay can no longer be hidden; unhidden');
+  console.log('apps: ' + name + ' can no longer be hidden; unhidden');
+  cb(true);
+}
+
+// The browser is shown again now rather than at the next boot, as nothing
+// opens a web page until it is.
+function releaseBrowser() {
+  releaseProtected('com.webos.app.browser', 'the Web Browser', function (was) {
+    if (!was) return;
+    unmountAllForApp('com.webos.app.browser', function () {
+      restartSamShared(function () {}, { 'com.webos.app.browser': true });
+    });
+  });
 }
 
 var lunaFn = null;
@@ -105,7 +125,8 @@ function init(opts) {
   lunaFn = opts.luna;
   configObj = opts.config;
   if (lunaFn) {
-    releaseAirPlay();
+    releaseProtected('airplay', 'AirPlay', function () {});
+    releaseBrowser();
     dedupeAirPlay();
     setTimeout(dedupeAirPlay, 180000);
   }

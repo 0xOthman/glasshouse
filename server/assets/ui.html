@@ -1322,6 +1322,13 @@
       </div>
       <div class="prot-row">
         <div class="prot-main">
+          <div class="prot-title" data-t="server.updatePopup">Update pop-up</div>
+          <div class="prot-desc" data-t="server.updatePopup.desc">Shows a pop-up in this browser when a newer version is out, with a button to install it. Off until switched on here.</div>
+        </div>
+        <div class="prot-status"><button type="button" class="pill idle" id="upd-popup" onclick="toggleUpdatePopup()">&mdash;</button></div>
+      </div>
+      <div class="prot-row">
+        <div class="prot-main">
           <div class="prot-title" data-t="server.watch.title">Watch time</div>
           <div class="prot-desc" data-t="server.watch.desc">Counts how long the screen is on, per app and input, for the Metrics tab and Home Assistant. Kept on the TV for 13 months. It records what the household watches, so it stays off until turned on here.</div>
           <button type="button" class="link-btn" id="srv-watch-clear" hidden onclick="clearWatchTime()" data-t="server.watch.clear">Clear history</button>
@@ -1527,6 +1534,26 @@
 <footer>
   <span class="foot-end"><span id="activity-txrx" class="activity-txrx" aria-hidden="true"><span id="act-tx" class="txrx-pip"></span><span id="act-rx" class="txrx-pip"></span></span><a id="version" hidden target="_blank" rel="noopener noreferrer"></a><a id="version-new" hidden target="_blank" rel="noopener noreferrer"></a><button type="button" class="theme-toggle" id="theme-toggle">☾</button></span>
 </footer>
+
+<!-- Offered on load when "Update pop-up" is on in the Server tab; see offerUpdatePopup in ui/update.js. -->
+<div id="updpop" class="modal-backdrop" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="updpop-title">
+    <span class="updpop-st" data-t="server.popup.status">Update available</span>
+    <div class="updpop-t" id="updpop-title">&mdash;</div>
+    <p class="updpop-s" id="updpop-summary" hidden></p>
+    <p class="updpop-d" id="updpop-desc"></p>
+    <div class="updpop-v"><span data-t="server.popup.installed">Installed</span><b id="updpop-from">&mdash;</b><span aria-hidden="true">&rarr;</span><b id="updpop-to">&mdash;</b></div>
+    <div class="upd-prog" id="updpop-prog" hidden>
+      <div class="upd-step" id="updpop-step"></div>
+      <div class="track"><b id="updpop-bar"></b></div>
+    </div>
+    <div class="sub" id="updpop-msg" role="status" aria-live="polite"></div>
+    <div class="btns updpop-btns" id="updpop-btns">
+      <button type="button" id="updpop-dismiss" onclick="dismissUpdatePopup()" data-t="server.popup.dismiss">Dismiss</button>
+      <button type="button" class="on" id="updpop-install" onclick="installFromPopup()" data-t="server.popup.update">Update</button>
+    </div>
+  </div>
+</div>
 
 <script src="/assets/i18n.js"></script>
 <!-- The server puts these back inline as one script, in this order: see inlineUI in lib/routes.js. -->

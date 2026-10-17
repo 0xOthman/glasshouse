@@ -520,6 +520,11 @@ and others' work on webOS 10
 - `luna-send` run from an SSH shell can print nothing for
   `com.webos.applicationManager` calls, while the same call from a node child
   process answers.
+- The Web Browser (`com.webos.app.browser`, 2.0.7) hidden with `visible: false`
+  bound over its `appinfo.json` no longer starts: `launch`, with or without a
+  saved page's `params.target`, returns true and the system log has
+  `NL_APP_LAUNCH_BEGIN` and nothing after it. Shown again, the same launch
+  opens it. Other hidden LG apps (LG Channels, Media Discovery) still open.
 
 ## Screen saver timing (webOS 5.6.2, CX; webOS 10.3.1, C5)
 
