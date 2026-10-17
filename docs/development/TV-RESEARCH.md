@@ -337,6 +337,18 @@ app in front. Remote Keys puts its own filter first.
   `com.webos.service.config/getConfigs` gets a changed value about 0.1 s after
   `setConfigs`, on the B8 and the C2, so its behaviour can change with no
   rebuild.
+- **The voice assistants' buttons are ordinary hotkeys.** On a C2 (webOS 9.2.2)
+  `appLaunch.js` handles `Key_webOS_ALEXA` (IR 1094) and
+  `Key_webOS_GoogleVoice` (IR 1125) like the streaming buttons, launching the
+  assistant's app on a press, while the microphone button
+  (`Key_webOS_Voice`, RF 436) goes to voice control. The same file names about
+  20 regional streaming buttons (Hotstar, Stan, Wavve, U-Next, TVer and others).
+- **The voice assistants' buttons are ordinary hotkeys.** On a C2 (webOS 9.2.2)
+  `appLaunch.js` handles `Key_webOS_ALEXA` (IR 1094) and
+  `Key_webOS_GoogleVoice` (IR 1125) like the streaming buttons, launching the
+  assistant's app on a press, while the microphone button
+  (`Key_webOS_Voice`, RF 436) goes to voice control. The same file names about
+  20 regional streaming buttons (Hotstar, Stan, Wavve, U-Next, TVer and others).
 - **configd takes any name and cannot forget one.** `setConfigs` stores a key
   it has never heard of (`glasshouse.remoteKeys`) in
   `/mnt/lg/cmn_data/var/preferences/configd_factory_db.json`, kept across

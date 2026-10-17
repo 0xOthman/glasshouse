@@ -7014,5 +7014,9 @@
  "srv.saver.stockLater": {
   "text": "El salvapantallas de LG está elegido y la TV lo usará desde su próximo reinicio: no aceptó el cambio sin reiniciar su gestor de apps, algo que en algunas TV ha dejado la imagen o el sonido apagados.",
   "from": "LG's screen saver is set, and the TV uses it from its next restart: it did not take the change without restarting its app manager, which has left the picture or sound off on some TVs."
+ },
+ "apps.remoteKeys.assistant": {
+  "text": "Botones de asistentes de voz",
+  "from": "Voice assistant buttons"
  }
 }
