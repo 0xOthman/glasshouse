@@ -465,6 +465,21 @@ about:blank`) in front.
   launches the last app (`LAUNCH_LASTAPP on_foreground_null`). A Home that
   comes back that way closes the screen saver as it opens.
 
+## sam losing the screen saver app (webOS 9.2.2, C2)
+
+On 2026-10-17 a C2 with a custom screen saver mounted over
+`com.webos.app.screensaver` stopped starting it: tvpower's
+`turnOnScreenSaver` returned true, nothing came up, and sam's `getAppInfo` for
+the app answered `errorCode` 1, "Invalid appId specified OR Unsupported
+Application Type", although its `appinfo.json` (QML) and files were in place,
+nothing in `profile.blockedAppList` or `blockedSystemAppList` named it, and
+`listApps` left it out. One configd nudge (`profile.blockedAppList`) brought it
+back at once, and the screen saver then started. That morning had several
+deploys, sam rereads after hiding and showing tiles, a remote keys filter
+reload and a screen saver switch; none of these, repeated, lost it again, so
+the cause is not known. Start screensaver now checks `getAppInfo` first and
+rereads the apps where sam has lost it.
+
 ## Home's snapshot (webOS 5.6.2, CX)
 
 The webOS 9 entries above describe the home app's CRIU checkpoint. On a CX:
