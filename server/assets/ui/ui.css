@@ -831,6 +831,24 @@ button.pill.flash.idle[disabled]:hover{color:var(--w60);border-color:var(--edge)
 .modal-card{background:var(--bg);border:1px solid var(--w20);border-radius:10px;
   padding:24px 28px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;
   box-shadow:0 16px 40px rgba(0,0,0,0.6)}
+/* Update pop-up: the install modal's card, with a status line, the version change and a progress bar. */
+#updpop{animation:updpop-fade .18s ease}
+[data-theme="light"] #updpop{background:rgba(0,0,0,.35)}
+[data-theme="light"] #updpop .modal-card{box-shadow:0 16px 40px rgba(0,0,0,.18)}
+@keyframes updpop-fade{from{opacity:0}}
+.updpop-st{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--green)}
+.updpop-st::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px color-mix(in srgb,currentColor 20%,transparent)}
+.updpop-t{font-family:'Outfit';font-weight:300;font-size:clamp(22px,4vw,28px);line-height:1.15;color:var(--w100);margin:14px 0 8px}
+.updpop-s{font-size:15px;line-height:1.5;color:var(--w100);margin:0 0 8px;max-width:42ch}
+.updpop-d{font-size:14px;line-height:1.5;color:var(--w60);max-width:42ch}
+.updpop-v{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin-top:18px;padding-top:14px;border-top:1px solid var(--w12);
+  font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--w60);font-variant-numeric:tabular-nums}
+.updpop-v b{font-weight:500;overflow-wrap:anywhere;color:var(--w100)}
+#updpop-msg{margin-top:12px}
+#updpop-msg:empty{display:none}
+.updpop-btns{grid-template-columns:1fr 1fr;margin-top:20px}
+.updpop-btns.one{grid-template-columns:1fr}
+@media (prefers-reduced-motion:reduce){#updpop{animation:none}}
 .pv-d{border:0;margin:0}
 .pv-d>summary{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:16px;
   font-family:'Outfit';font-weight:300;font-size:clamp(20px,2.4vw,26px);color:var(--w100);
