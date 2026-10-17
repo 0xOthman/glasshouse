@@ -657,6 +657,1143 @@ WebOSWindow {
     }
 
     // -------------------------------------------------------------------------
+    // Reusable UI Components & Card Definitions
+    // -------------------------------------------------------------------------
+    function cardComponentFor(id) {
+        if (id === "panel") return panelCardComp;
+        if (id === "thermal") return thermalCardComp;
+        if (id === "signal") return signalCardComp;
+        if (id === "oledcare") return oledCareCardComp;
+        if (id === "silicon") return siliconCardComp;
+        if (id === "remote") return remoteCardComp;
+        if (id === "cpu") return cpuCardComp;
+        if (id === "memory") return memoryCardComp;
+        if (id === "storage") return storageCardComp;
+        if (id === "network") return networkCardComp;
+        if (id === "memwide") return memWideCardComp;
+        if (id === "netwide") return netWideCardComp;
+        return uptimeCardComp;
+    }
+
+    Component {
+        id: panelCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(24 * win.unit)
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                font.letterSpacing: Math.round(2.5 * win.unit)
+                color: win.inkMuted
+                text: win.isOled ? "OLED PANEL USAGE" : "SYSTEM RUNTIME"
+            }
+
+            Rectangle {
+                height: Math.round(24 * win.unit)
+                width: modelBadgeText.width + Math.round(18 * win.unit)
+                anchors.right: parent.right
+                y: -Math.round(3 * win.unit)
+                radius: height / 2
+                color: win.trackBg
+                border.width: 1
+                border.color: win.boxBorder
+
+                Text {
+                    id: modelBadgeText
+                    anchors.centerIn: parent
+                    font.family: win.boldLabelFamily
+                    font.pixelSize: Math.round(12 * win.unit)
+                    color: win.accCool
+                    text: win.tvModel
+                }
+            }
+
+            Row {
+                x: 0
+                y: Math.round(18 * win.unit)
+                spacing: Math.round(10 * win.unit)
+
+                Text {
+                    font.family: win.digitFamily
+                    font.pixelSize: Math.round(74 * win.unit)
+                    color: win.inkHero
+                    text: win.isOled ? win.grouped(win.panelHours) : win.bootUptimeStr
+                }
+                Text {
+                    visible: win.isOled
+                    y: Math.round(38 * win.unit)
+                    font.family: win.boldLabelFamily
+                    font.pixelSize: Math.round(19 * win.unit)
+                    color: win.accCool
+                    text: "HRS USED"
+                }
+            }
+
+            Text {
+                x: 0
+                y: Math.round(116 * win.unit)
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(15 * win.unit)
+                color: win.inkSub
+                text: win.isOled ? "Total cumulative power-on hours" : ("Active session: " + win.activeUptimeStr)
+            }
+
+            Row {
+                x: 0
+                anchors.bottom: parent.bottom
+                spacing: Math.round(8 * win.unit)
+
+                Repeater {
+                    model: win.panelPills
+                    Rectangle {
+                        height: Math.round(30 * win.unit)
+                        width: panelPillText.width + Math.round(22 * win.unit)
+                        radius: Math.round(8 * win.unit)
+                        color: win.trackBg
+                        border.width: 1
+                        border.color: index === 0 ? win.accBlue : win.boxBorder
+
+                        Text {
+                            id: panelPillText
+                            anchors.centerIn: parent
+                            font.family: win.boldLabelFamily
+                            font.pixelSize: Math.round(13 * win.unit)
+                            color: index === 0 ? win.accCool : win.inkHero
+                            text: String(modelData)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: thermalCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(24 * win.unit)
+
+            property color thermColor: win.socTemp >= 72 ? win.accRed
+                                     : win.socTemp >= 62 ? win.accAmber
+                                     : win.accCool
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                font.letterSpacing: Math.round(2.5 * win.unit)
+                color: win.inkMuted
+                text: "THERMAL TELEMETRY"
+            }
+
+            Rectangle {
+                height: Math.round(24 * win.unit)
+                width: thermStateText.width + Math.round(18 * win.unit)
+                anchors.right: parent.right
+                y: -Math.round(3 * win.unit)
+                radius: height / 2
+                color: win.trackBg
+                border.width: 1
+                border.color: parent.thermColor
+
+                Text {
+                    id: thermStateText
+                    anchors.centerIn: parent
+                    font.family: win.boldLabelFamily
+                    font.pixelSize: Math.round(12 * win.unit)
+                    color: parent.parent.thermColor
+                    text: win.socTemp >= 72 ? "HOT" : win.socTemp >= 62 ? "WARM" : "OPTIMAL"
+                }
+            }
+
+            Text {
+                x: 0
+                y: Math.round(30 * win.unit)
+                font.family: win.digitFamily
+                font.pixelSize: Math.round(86 * win.unit)
+                color: win.inkHero
+                text: win.socTemp > 0 ? (win.socTemp + "°") : "—"
+            }
+
+            Text {
+                x: 0
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(15 * win.unit)
+                color: win.inkSub
+                text: "SoC die sensor · Celsius"
+            }
+
+            Row {
+                anchors.right: parent.right
+                y: Math.round(48 * win.unit)
+                spacing: Math.round(4 * win.unit)
+
+                Repeater {
+                    model: 20
+                    Item {
+                        width: Math.round(8 * win.unit)
+                        height: Math.round(108 * win.unit)
+
+                        property real sampleVal: (win.tempHistory && index < win.tempHistory.length)
+                                                 ? win.tempHistory[index] : win.socTemp
+                        property real norm: Math.max(0.22, Math.min(1.0, (sampleVal - win.tempMin) / Math.max(1.0, win.tempSpan)))
+                        property int barH: Math.round(height * norm)
+
+                        Rectangle {
+                            width: parent.width
+                            height: parent.barH
+                            y: parent.height - height
+                            radius: Math.round(3 * win.unit)
+                            color: index === 19 ? win.accAmber
+                                 : index >= 16 ? win.accCool
+                                 : win.accBlue
+                            opacity: 0.35 + 0.65 * (index / 19.0)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: signalCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(24 * win.unit)
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                font.letterSpacing: Math.round(2.5 * win.unit)
+                color: win.inkMuted
+                text: "PICTURE & SIGNAL PIPELINE"
+            }
+
+            Rectangle {
+                height: Math.round(24 * win.unit)
+                width: srcPillText.width + Math.round(18 * win.unit)
+                anchors.right: parent.right
+                y: -Math.round(3 * win.unit)
+                radius: height / 2
+                color: win.trackBg
+                border.width: 1
+                border.color: win.boxBorder
+
+                Text {
+                    id: srcPillText
+                    anchors.centerIn: parent
+                    font.family: win.boldLabelFamily
+                    font.pixelSize: Math.round(12 * win.unit)
+                    color: win.accGreen
+                    text: win.inputLabel
+                }
+            }
+
+            Text {
+                x: 0
+                y: Math.round(42 * win.unit)
+                width: parent.width
+                elide: Text.ElideRight
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(40 * win.unit)
+                color: win.inkHero
+                text: win.signalHero
+            }
+
+            Text {
+                x: 0
+                y: Math.round(96 * win.unit)
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(16 * win.unit)
+                color: win.inkSub
+                text: "Picture mode: " + win.picModeLabel
+            }
+
+            Row {
+                x: 0
+                anchors.bottom: parent.bottom
+                spacing: Math.round(8 * win.unit)
+
+                Repeater {
+                    model: win.signalPills
+                    Rectangle {
+                        height: Math.round(30 * win.unit)
+                        width: sigTagText.width + Math.round(22 * win.unit)
+                        radius: Math.round(8 * win.unit)
+                        color: win.trackBg
+                        border.width: 1
+                        border.color: index === 0 ? win.accPurple : win.boxBorder
+
+                        Text {
+                            id: sigTagText
+                            anchors.centerIn: parent
+                            font.family: win.boldLabelFamily
+                            font.pixelSize: Math.round(13 * win.unit)
+                            color: index === 0 ? win.accPurple : win.inkHero
+                            text: String(modelData)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: oledCareCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(24 * win.unit)
+
+            property int revTrigger: win.statsRev
+            onRevTriggerChanged: compRingCanvas.requestPaint()
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                font.letterSpacing: Math.round(2.5 * win.unit)
+                color: win.inkMuted
+                text: "OLED PIXEL CARE"
+            }
+
+            Rectangle {
+                height: Math.round(24 * win.unit)
+                width: shiftBadgeText.width + Math.round(18 * win.unit)
+                anchors.right: parent.right
+                y: -Math.round(3 * win.unit)
+                radius: height / 2
+                color: win.trackBg
+                border.width: 1
+                border.color: win.boxBorder
+
+                Text {
+                    id: shiftBadgeText
+                    anchors.centerIn: parent
+                    font.family: win.boldLabelFamily
+                    font.pixelSize: Math.round(12 * win.unit)
+                    color: win.accGreen
+                    text: "SHIFT · " + win.screenShiftState.toUpperCase()
+                }
+            }
+
+            Item {
+                x: 0
+                y: Math.round(34 * win.unit)
+                width: Math.round(144 * win.unit)
+                height: Math.round(144 * win.unit)
+
+                Canvas {
+                    id: compRingCanvas
+                    anchors.fill: parent
+                    onPaint: {
+                        var frac = win.compInterval > 0 ? (win.hoursSinceComp / win.compInterval) : 0.75;
+                        var col = win.hoursUntilComp <= 0.2 ? win.accAmber : win.accGreen;
+                        win.paintProgressRing(compRingCanvas, frac, col);
+                    }
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: Math.round(2 * win.unit)
+
+                    Text {
+                        width: Math.round(110 * win.unit)
+                        horizontalAlignment: Text.AlignHCenter
+                        font.family: win.digitFamily
+                        font.pixelSize: Math.round(36 * win.unit)
+                        color: win.inkHero
+                        text: win.fmtHours(win.hoursUntilComp)
+                    }
+                    Text {
+                        width: Math.round(110 * win.unit)
+                        horizontalAlignment: Text.AlignHCenter
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(11 * win.unit)
+                        color: win.inkMuted
+                        text: "UNTIL CLEAN"
+                    }
+                }
+            }
+
+            Column {
+                x: Math.round(168 * win.unit)
+                y: Math.round(42 * win.unit)
+                spacing: Math.round(14 * win.unit)
+
+                Column {
+                    spacing: Math.round(3 * win.unit)
+                    Text {
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(12 * win.unit)
+                        color: win.inkMuted
+                        text: "SHORT COMPENSATION"
+                    }
+                    Text {
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(20 * win.unit)
+                        color: win.hoursUntilComp <= 0.2 ? win.accAmber : win.accGreen
+                        text: win.hoursUntilComp <= 0.05 ? "Ready on next standby" : ("In " + win.fmtHours(win.hoursUntilComp))
+                    }
+                }
+
+                Column {
+                    spacing: Math.round(3 * win.unit)
+                    Text {
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(12 * win.unit)
+                        color: win.inkMuted
+                        text: "2,000-HOUR PIXEL REFRESHER"
+                    }
+                    Text {
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(20 * win.unit)
+                        color: win.inkHero
+                        text: win.grouped(win.refresherRemaining) + " h remaining"
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: siliconCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(20 * win.unit)
+
+            Rectangle {
+                width: Math.round(124 * win.unit)
+                height: Math.round(124 * win.unit)
+                x: Math.round((parent.width - width) * 0.5 - 3 * win.unit)
+                y: Math.round(14 * win.unit)
+                radius: Math.round(18 * win.unit)
+                color: win.accPurple
+                opacity: 0.28
+            }
+            Rectangle {
+                width: Math.round(124 * win.unit)
+                height: Math.round(124 * win.unit)
+                x: Math.round((parent.width - width) * 0.5 + 3 * win.unit)
+                y: Math.round(20 * win.unit)
+                radius: Math.round(18 * win.unit)
+                color: win.accBlue
+                opacity: 0.28
+            }
+
+            Rectangle {
+                id: siliconDie
+                width: Math.round(120 * win.unit)
+                height: Math.round(120 * win.unit)
+                x: Math.round((parent.width - width) * 0.5)
+                y: Math.round(17 * win.unit)
+                radius: Math.round(14 * win.unit)
+                color: win.boxInnerBg
+                border.width: Math.max(1, Math.round(2 * win.unit))
+                border.color: win.accCool
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: Math.round(8 * win.unit)
+                    radius: Math.round(9 * win.unit)
+                    color: win.boxOuterBg
+                    border.width: 1
+                    border.color: win.boxBorder
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: Math.round(2 * win.unit)
+
+                    Text {
+                        width: siliconDie.width
+                        horizontalAlignment: Text.AlignHCenter
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(11 * win.unit)
+                        font.letterSpacing: Math.round(2 * win.unit)
+                        color: win.accAmber
+                        text: "LG SILICON"
+                    }
+                    Text {
+                        width: siliconDie.width
+                        horizontalAlignment: Text.AlignHCenter
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: win.socName.length > 4 ? Math.round(26 * win.unit) : Math.round(34 * win.unit)
+                        color: win.inkHero
+                        text: win.socName
+                    }
+                }
+            }
+
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                anchors.bottom: parent.bottom
+                elide: Text.ElideRight
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(15 * win.unit)
+                color: win.inkSub
+                text: win.socCaption
+            }
+        }
+    }
+
+    Component {
+        id: remoteCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(20 * win.unit)
+
+            property int revTrigger: win.statsRev
+            onRevTriggerChanged: remoteRingCanvas.requestPaint()
+
+            Item {
+                width: Math.round(126 * win.unit)
+                height: Math.round(126 * win.unit)
+                x: Math.round((parent.width - width) * 0.5)
+                y: Math.round(8 * win.unit)
+
+                Canvas {
+                    id: remoteRingCanvas
+                    anchors.fill: parent
+                    onPaint: {
+                        var pct = win.hasRemote ? win.remoteBatt : win.soundVol;
+                        var col = (win.hasRemote && win.remoteBatt <= 20) ? win.accAmber : win.accGreen;
+                        win.paintProgressRing(remoteRingCanvas, pct / 100.0, col);
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    font.family: win.digitFamily
+                    font.pixelSize: Math.round(40 * win.unit)
+                    color: win.inkHero
+                    text: win.hasRemote ? (win.remoteBatt + "%") : (win.soundMuted ? "MUTE" : (win.soundVol + ""))
+                }
+            }
+
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                y: Math.round(144 * win.unit)
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(16 * win.unit)
+                color: win.inkHero
+                text: win.hasRemote ? win.remoteModel : "Audio Stage"
+            }
+
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                color: win.hasRemote ? (win.remoteConnected ? win.accGreen : win.inkMuted) : win.inkSub
+                text: win.hasRemote ? (win.remoteConnected ? "● Connected · BLE" : "● Standby · Paired") : win.soundOutLabel
+            }
+        }
+    }
+
+    Component {
+        id: cpuCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(22 * win.unit)
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(13 * win.unit)
+                font.letterSpacing: Math.round(2 * win.unit)
+                color: win.inkMuted
+                text: "CPU CORES"
+            }
+
+            Text {
+                x: 0
+                y: Math.round(28 * win.unit)
+                font.family: win.digitFamily
+                font.pixelSize: Math.round(68 * win.unit)
+                color: win.inkHero
+                text: win.cpuLoad + "%"
+            }
+
+            Text {
+                x: 0
+                y: Math.round(104 * win.unit)
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                color: win.inkMuted
+                text: "Peak " + win.cpuPeak + "%"
+            }
+
+            Row {
+                anchors.right: parent.right
+                y: Math.round(30 * win.unit)
+                spacing: Math.round(10 * win.unit)
+
+                Repeater {
+                    model: win.cpuCores ? win.cpuCores.length : 4
+                    Column {
+                        spacing: Math.round(6 * win.unit)
+
+                        property int barW: (win.cpuCores && win.cpuCores.length <= 2)
+                                           ? Math.round(28 * win.unit)
+                                           : Math.round(18 * win.unit)
+
+                        Rectangle {
+                            width: parent.barW
+                            height: Math.round(112 * win.unit)
+                            radius: Math.round(6 * win.unit)
+                            color: win.trackBg
+
+                            property int cVal: (win.cpuCores && index < win.cpuCores.length) ? win.cpuCores[index] : 0
+                            Rectangle {
+                                width: parent.width
+                                height: parent.cVal > 0
+                                    ? Math.max(Math.round(10 * win.unit), Math.round(parent.height * (parent.cVal / 100.0)))
+                                    : Math.round(4 * win.unit)
+                                y: parent.height - height
+                                radius: Math.round(6 * win.unit)
+                                color: parent.cVal === 0 ? win.boxBorder
+                                     : (parent.cVal > 75 ? win.accAmber : win.accBlue)
+                            }
+                        }
+
+                        Text {
+                            width: parent.barW
+                            horizontalAlignment: Text.AlignHCenter
+                            font.family: win.boldLabelFamily
+                            font.pixelSize: Math.round(11 * win.unit)
+                            color: win.inkMuted
+                            text: "C" + index
+                        }
+                    }
+                }
+            }
+
+            Text {
+                x: 0
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                color: win.inkSub
+                text: win.cpuMhz > 0 ? (win.cpuMhz + " MHz clock") : ((win.cpuCores ? win.cpuCores.length : 4) + " Cores")
+            }
+        }
+    }
+
+    Component {
+        id: memoryCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(22 * win.unit)
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(13 * win.unit)
+                font.letterSpacing: Math.round(2 * win.unit)
+                color: win.inkMuted
+                text: win.hasSwap ? "MEMORY & ZRAM" : "SYSTEM MEMORY"
+            }
+
+            Row {
+                x: 0
+                y: Math.round(24 * win.unit)
+                spacing: Math.round(10 * win.unit)
+
+                Text {
+                    font.family: win.digitFamily
+                    font.pixelSize: Math.round(64 * win.unit)
+                    color: win.inkHero
+                    text: win.ramPct + "%"
+                }
+                Text {
+                    y: Math.round(32 * win.unit)
+                    font.family: win.labelFamily
+                    font.pixelSize: Math.round(15 * win.unit)
+                    color: win.inkSub
+                    text: win.ramUsedStr
+                }
+            }
+
+            Column {
+                x: 0
+                y: Math.round(108 * win.unit)
+                width: parent.width
+                spacing: Math.round(6 * win.unit)
+
+                Rectangle {
+                    width: parent.width
+                    height: win.hasSwap ? Math.round(12 * win.unit) : Math.round(18 * win.unit)
+                    radius: height / 2
+                    color: win.trackBg
+
+                    Rectangle {
+                        width: Math.max(parent.height, Math.round(parent.width * (win.ramPct / 100.0)))
+                        height: parent.height
+                        radius: parent.radius
+                        color: win.accPurple
+                    }
+                }
+
+                Rectangle {
+                    visible: win.hasSwap
+                    width: parent.width
+                    height: Math.round(8 * win.unit)
+                    radius: Math.round(4 * win.unit)
+                    color: win.trackBg
+
+                    Rectangle {
+                        width: Math.max(Math.round(8 * win.unit), Math.round(parent.width * (win.swapPct / 100.0)))
+                        height: parent.height
+                        radius: parent.radius
+                        color: win.accBlue
+                    }
+                }
+            }
+
+            Text {
+                x: 0
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                color: win.inkSub
+                text: "Total " + win.ramTotalStr + (win.swapStr ? ("  ·  " + win.swapStr) : "")
+            }
+        }
+    }
+
+    Component {
+        id: storageCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(22 * win.unit)
+
+            property int filledCells: win.hasEmmc
+                ? win.emmcHealthyBlocks
+                : Math.max(1, Math.min(10, Math.round(win.storageUsedPct / 10.0)))
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(13 * win.unit)
+                font.letterSpacing: Math.round(2 * win.unit)
+                color: win.inkMuted
+                text: win.hasEmmc ? "FLASH SILICON" : "APP STORAGE"
+            }
+
+            Text {
+                x: 0
+                y: Math.round(30 * win.unit)
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(40 * win.unit)
+                color: win.inkHero
+                text: win.hasEmmc ? win.emmcWearStr : (win.storageUsedPct + "%")
+            }
+
+            Text {
+                x: 0
+                y: Math.round(80 * win.unit)
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                color: win.hasEmmc ? win.accGreen : win.accCool
+                text: win.hasEmmc ? ("eMMC Wear · " + win.emmcEolStr) : "Apps Partition Used"
+            }
+
+            Row {
+                x: 0
+                y: Math.round(118 * win.unit)
+                spacing: Math.round(6 * win.unit)
+
+                Repeater {
+                    model: 10
+                    Rectangle {
+                        width: Math.round(19 * win.unit)
+                        height: Math.round(24 * win.unit)
+                        radius: Math.round(5 * win.unit)
+                        color: index < parent.parent.filledCells
+                            ? (win.hasEmmc ? win.accGreen : win.accBlue)
+                            : win.trackBg
+                        opacity: index < parent.parent.filledCells ? 0.85 : 0.45
+                    }
+                }
+            }
+
+            Text {
+                x: 0
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                color: win.inkSub
+                text: "Apps partition · " + win.storageFreeStr
+            }
+        }
+    }
+
+    Component {
+        id: networkCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(22 * win.unit)
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(13 * win.unit)
+                font.letterSpacing: Math.round(2 * win.unit)
+                color: win.inkMuted
+                text: win.hasAdblock ? "NETWORK & PRIVACY" : "NETWORK LINK"
+            }
+
+            Row {
+                visible: win.isWifi
+                x: 0
+                y: Math.round(36 * win.unit)
+                spacing: Math.round(8 * win.unit)
+
+                Repeater {
+                    model: 5
+                    Item {
+                        width: Math.round(14 * win.unit)
+                        height: Math.round(56 * win.unit)
+
+                        Rectangle {
+                            width: parent.width
+                            height: Math.round((16 + index * 10) * win.unit)
+                            y: parent.height - height
+                            radius: Math.round(4 * win.unit)
+                            color: index < win.wifiBars ? win.accCool : win.trackBg
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                visible: !win.isWifi
+                x: 0
+                y: Math.round(46 * win.unit)
+                width: Math.round(112 * win.unit)
+                height: Math.round(44 * win.unit)
+                radius: Math.round(12 * win.unit)
+                color: win.trackBg
+                border.width: 1
+                border.color: win.accBlue
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: Math.round(2 * win.unit)
+                    Text {
+                        width: Math.round(96 * win.unit)
+                        horizontalAlignment: Text.AlignHCenter
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(11 * win.unit)
+                        color: win.accCool
+                        text: win.netIfaceLabel
+                    }
+                    Text {
+                        width: Math.round(96 * win.unit)
+                        horizontalAlignment: Text.AlignHCenter
+                        font.family: win.labelFamily
+                        font.pixelSize: Math.round(12 * win.unit)
+                        color: win.inkHero
+                        text: "LINK ACTIVE"
+                    }
+                }
+            }
+
+            Rectangle {
+                anchors.right: parent.right
+                y: Math.round(46 * win.unit)
+                width: Math.round(118 * win.unit)
+                height: Math.round(44 * win.unit)
+                radius: Math.round(12 * win.unit)
+                color: win.trackBg
+                border.width: 1
+                border.color: (win.hasAdblock && win.adblockOn) ? win.accGreen : win.boxBorder
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: Math.round(2 * win.unit)
+                    Text {
+                        width: Math.round(100 * win.unit)
+                        horizontalAlignment: Text.AlignHCenter
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(11 * win.unit)
+                        color: (win.hasAdblock && win.adblockOn) ? win.accGreen : win.inkMuted
+                        text: win.hasAdblock ? (win.adblockOn ? "AD SHIELD ON" : "AD SHIELD") : "INTERFACE"
+                    }
+                    Text {
+                        width: Math.round(100 * win.unit)
+                        horizontalAlignment: Text.AlignHCenter
+                        font.family: win.labelFamily
+                        font.pixelSize: Math.round(12 * win.unit)
+                        color: win.inkHero
+                        text: win.hasAdblock ? (win.adblockOn ? (win.adblockCount + " blocked") : "Off") : win.netIfaceLabel
+                    }
+                }
+            }
+
+            Text {
+                x: 0
+                y: Math.round(112 * win.unit)
+                width: parent.width
+                elide: Text.ElideRight
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(16 * win.unit)
+                color: win.inkHero
+                text: win.wifiLabel
+            }
+
+            Text {
+                x: 0
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                color: win.inkSub
+                text: win.netRateStr
+            }
+        }
+    }
+
+    Component {
+        id: memWideCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(24 * win.unit)
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                font.letterSpacing: Math.round(2.5 * win.unit)
+                color: win.inkMuted
+                text: "MEMORY & SYSTEM STORAGE"
+            }
+
+            Row {
+                x: 0
+                y: Math.round(24 * win.unit)
+                spacing: Math.round(12 * win.unit)
+
+                Text {
+                    font.family: win.digitFamily
+                    font.pixelSize: Math.round(80 * win.unit)
+                    color: win.inkHero
+                    text: win.ramPct + "%"
+                }
+                Column {
+                    y: Math.round(24 * win.unit)
+                    spacing: Math.round(4 * win.unit)
+                    Text {
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(16 * win.unit)
+                        color: win.inkHero
+                        text: win.ramUsedStr + " / " + win.ramTotalStr
+                    }
+                    Text {
+                        font.family: win.labelFamily
+                        font.pixelSize: Math.round(14 * win.unit)
+                        color: win.inkSub
+                        text: win.swapStr
+                    }
+                }
+            }
+
+            Rectangle {
+                x: 0
+                y: Math.round(124 * win.unit)
+                width: parent.width
+                height: Math.round(12 * win.unit)
+                radius: Math.round(6 * win.unit)
+                color: win.trackBg
+
+                Rectangle {
+                    width: Math.max(Math.round(12 * win.unit), Math.round(parent.width * (win.ramPct / 100.0)))
+                    height: parent.height
+                    radius: parent.radius
+                    color: win.accPurple
+                }
+            }
+
+            Text {
+                x: 0
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(15 * win.unit)
+                color: win.inkSub
+                text: "Apps partition · " + win.storageFreeStr + (win.hasEmmc ? ("  ·  eMMC wear " + win.emmcWearStr) : "")
+            }
+        }
+    }
+
+    Component {
+        id: netWideCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(24 * win.unit)
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                font.letterSpacing: Math.round(2.5 * win.unit)
+                color: win.inkMuted
+                text: "NETWORK & DATA TRANSFER"
+            }
+
+            Rectangle {
+                height: Math.round(24 * win.unit)
+                width: netWideBadge.width + Math.round(18 * win.unit)
+                anchors.right: parent.right
+                y: -Math.round(3 * win.unit)
+                radius: height / 2
+                color: win.trackBg
+                border.width: 1
+                border.color: win.boxBorder
+
+                Text {
+                    id: netWideBadge
+                    anchors.centerIn: parent
+                    font.family: win.boldLabelFamily
+                    font.pixelSize: Math.round(12 * win.unit)
+                    color: win.accCool
+                    text: win.netIfaceLabel
+                }
+            }
+
+            Text {
+                x: 0
+                y: Math.round(38 * win.unit)
+                width: parent.width
+                elide: Text.ElideRight
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(36 * win.unit)
+                color: win.inkHero
+                text: win.wifiLabel
+            }
+
+            Text {
+                x: 0
+                y: Math.round(92 * win.unit)
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(16 * win.unit)
+                color: win.accCool
+                text: "Throughput: " + win.netRateStr
+            }
+
+            Text {
+                x: 0
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(15 * win.unit)
+                color: win.inkSub
+                text: "Session total: " + win.netTotalStr + (win.hasAdblock && win.adblockOn ? ("  ·  " + win.adblockCount + " ads blocked") : "")
+            }
+        }
+    }
+
+    Component {
+        id: uptimeCardComp
+        Item {
+            anchors.fill: parent
+            anchors.margins: Math.round(22 * win.unit)
+
+            Text {
+                x: 0; y: 0
+                font.family: win.boldLabelFamily
+                font.pixelSize: Math.round(13 * win.unit)
+                font.letterSpacing: Math.round(2 * win.unit)
+                color: win.inkMuted
+                text: "TIME & UPTIME"
+            }
+
+            Row {
+                x: 0
+                y: Math.round(26 * win.unit)
+                spacing: Math.round(6 * win.unit)
+
+                Text {
+                    font.family: win.digitFamily
+                    font.pixelSize: Math.round(72 * win.unit)
+                    color: win.inkHero
+                    text: win.clockH
+                }
+                Column {
+                    y: Math.round(26 * win.unit)
+                    spacing: Math.round(12 * win.unit)
+                    Rectangle {
+                        width: Math.round(6 * win.unit)
+                        height: width
+                        radius: width / 2
+                        color: win.accCool
+                    }
+                    Rectangle {
+                        width: Math.round(6 * win.unit)
+                        height: width
+                        radius: width / 2
+                        color: win.accCool
+                    }
+                }
+                Text {
+                    font.family: win.digitFamily
+                    font.pixelSize: Math.round(72 * win.unit)
+                    color: win.inkHero
+                    text: win.clockM
+                }
+            }
+
+            Row {
+                x: 0
+                y: Math.round(118 * win.unit)
+                spacing: Math.round(8 * win.unit)
+
+                Rectangle {
+                    height: Math.round(28 * win.unit)
+                    width: bootUpTxt.width + Math.round(18 * win.unit)
+                    radius: Math.round(8 * win.unit)
+                    color: win.trackBg
+                    Text {
+                        id: bootUpTxt
+                        anchors.centerIn: parent
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(12 * win.unit)
+                        color: win.inkSub
+                        text: "Boot " + win.bootUptimeStr
+                    }
+                }
+                Rectangle {
+                    height: Math.round(28 * win.unit)
+                    width: actUpTxt.width + Math.round(18 * win.unit)
+                    radius: Math.round(8 * win.unit)
+                    color: win.trackBg
+                    Text {
+                        id: actUpTxt
+                        anchors.centerIn: parent
+                        font.family: win.boldLabelFamily
+                        font.pixelSize: Math.round(12 * win.unit)
+                        color: win.accGreen
+                        text: "Active " + win.activeUptimeStr
+                    }
+                }
+            }
+
+            Text {
+                x: 0
+                anchors.bottom: parent.bottom
+                font.family: win.labelFamily
+                font.pixelSize: Math.round(14 * win.unit)
+                color: win.inkMuted
+                text: win.webosVer + (win.fwVer ? "  ·  " + win.fwVer : "")
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Bento Stage Container
     // -------------------------------------------------------------------------
     Item {
@@ -720,7 +1857,6 @@ WebOSWindow {
                         yScale: 1.0
                     }
 
-                    // Inner recessed well
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: Math.round(6 * win.unit)
@@ -730,7 +1866,6 @@ WebOSWindow {
                         border.color: win.boxWellBg
                     }
 
-                    // Top specular hairline highlight
                     Rectangle {
                         width: parent.width - Math.round(48 * win.unit)
                         height: 1
@@ -740,1161 +1875,9 @@ WebOSWindow {
                         opacity: 0.55
                     }
 
-                    // =========================================================
-                    // CARD 1: "panel" — OLED Panel Usage / System Runtime (Wide)
-                    // =========================================================
-                    Item {
+                    Loader {
                         anchors.fill: parent
-                        anchors.margins: Math.round(24 * win.unit)
-                        visible: tileSlot.cardId === "panel"
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            font.letterSpacing: Math.round(2.5 * win.unit)
-                            color: win.inkMuted
-                            text: win.isOled ? "OLED PANEL USAGE" : "SYSTEM RUNTIME"
-                        }
-
-                        // Model badge pill top-right
-                        Rectangle {
-                            height: Math.round(24 * win.unit)
-                            width: modelBadgeText.width + Math.round(18 * win.unit)
-                            anchors.right: parent.right
-                            y: -Math.round(3 * win.unit)
-                            radius: height / 2
-                            color: win.trackBg
-                            border.width: 1
-                            border.color: win.boxBorder
-
-                            Text {
-                                id: modelBadgeText
-                                anchors.centerIn: parent
-                                font.family: win.boldLabelFamily
-                                font.pixelSize: Math.round(12 * win.unit)
-                                color: win.accCool
-                                text: win.tvModel
-                            }
-                        }
-
-                        Row {
-                            x: 0
-                            y: Math.round(18 * win.unit)
-                            spacing: Math.round(10 * win.unit)
-
-                            Text {
-                                font.family: win.digitFamily
-                                font.pixelSize: Math.round(74 * win.unit)
-                                color: win.inkHero
-                                text: win.isOled ? win.grouped(win.panelHours) : win.bootUptimeStr
-                            }
-                            Text {
-                                visible: win.isOled
-                                y: Math.round(38 * win.unit)
-                                font.family: win.boldLabelFamily
-                                font.pixelSize: Math.round(19 * win.unit)
-                                color: win.accCool
-                                text: "HRS USED"
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(116 * win.unit)
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(15 * win.unit)
-                            color: win.inkSub
-                            text: win.isOled ? "Total cumulative power-on hours" : ("Active session: " + win.activeUptimeStr)
-                        }
-
-                        // Hardware capability & maintenance pills at bottom
-                        Row {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            spacing: Math.round(8 * win.unit)
-
-                            Repeater {
-                                model: win.panelPills
-                                Rectangle {
-                                    height: Math.round(30 * win.unit)
-                                    width: panelPillText.width + Math.round(22 * win.unit)
-                                    radius: Math.round(8 * win.unit)
-                                    color: win.trackBg
-                                    border.width: 1
-                                    border.color: index === 0 ? win.accBlue : win.boxBorder
-
-                                    Text {
-                                        id: panelPillText
-                                        anchors.centerIn: parent
-                                        font.family: win.boldLabelFamily
-                                        font.pixelSize: Math.round(13 * win.unit)
-                                        color: index === 0 ? win.accCool : win.inkHero
-                                        text: String(modelData)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 2: "thermal" — SoC Thermal & Live Sparkline (Wide)
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(24 * win.unit)
-                        visible: tileSlot.cardId === "thermal"
-
-                        property color thermColor: win.socTemp >= 72 ? win.accRed
-                                                 : win.socTemp >= 62 ? win.accAmber
-                                                 : win.accCool
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            font.letterSpacing: Math.round(2.5 * win.unit)
-                            color: win.inkMuted
-                            text: "THERMAL TELEMETRY"
-                        }
-
-                        Rectangle {
-                            height: Math.round(24 * win.unit)
-                            width: thermStateText.width + Math.round(18 * win.unit)
-                            anchors.right: parent.right
-                            y: -Math.round(3 * win.unit)
-                            radius: height / 2
-                            color: win.trackBg
-                            border.width: 1
-                            border.color: parent.thermColor
-
-                            Text {
-                                id: thermStateText
-                                anchors.centerIn: parent
-                                font.family: win.boldLabelFamily
-                                font.pixelSize: Math.round(12 * win.unit)
-                                color: parent.parent.thermColor
-                                text: win.socTemp >= 72 ? "HOT" : win.socTemp >= 62 ? "WARM" : "OPTIMAL"
-                            }
-                        }
-
-                        // Left: Big temperature figure
-                        Text {
-                            x: 0
-                            y: Math.round(30 * win.unit)
-                            font.family: win.digitFamily
-                            font.pixelSize: Math.round(86 * win.unit)
-                            color: win.inkHero
-                            text: win.socTemp > 0 ? (win.socTemp + "°") : "—"
-                        }
-
-                        Text {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(15 * win.unit)
-                            color: win.inkSub
-                            text: "SoC die sensor · Celsius"
-                        }
-
-                        // Right: 20-bar live thermal history sparkline
-                        Row {
-                            anchors.right: parent.right
-                            y: Math.round(48 * win.unit)
-                            spacing: Math.round(4 * win.unit)
-
-                            Repeater {
-                                model: 20
-                                Item {
-                                    width: Math.round(8 * win.unit)
-                                    height: Math.round(108 * win.unit)
-
-                                    property real sampleVal: (win.tempHistory && index < win.tempHistory.length)
-                                                             ? win.tempHistory[index] : win.socTemp
-                                    property real norm: Math.max(0.22, Math.min(1.0, (sampleVal - win.tempMin) / Math.max(1.0, win.tempSpan)))
-                                    property int barH: Math.round(height * norm)
-
-                                    Rectangle {
-                                        width: parent.width
-                                        height: parent.barH
-                                        y: parent.height - height
-                                        radius: Math.round(3 * win.unit)
-                                        color: index === 19 ? win.accAmber
-                                             : index >= 16 ? win.accCool
-                                             : win.accBlue
-                                        opacity: 0.35 + 0.65 * (index / 19.0)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 3: "signal" — Signal & Picture Engine (Wide)
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(24 * win.unit)
-                        visible: tileSlot.cardId === "signal"
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            font.letterSpacing: Math.round(2.5 * win.unit)
-                            color: win.inkMuted
-                            text: "PICTURE & SIGNAL PIPELINE"
-                        }
-
-                        Rectangle {
-                            height: Math.round(24 * win.unit)
-                            width: srcPillText.width + Math.round(18 * win.unit)
-                            anchors.right: parent.right
-                            y: -Math.round(3 * win.unit)
-                            radius: height / 2
-                            color: win.trackBg
-                            border.width: 1
-                            border.color: win.boxBorder
-
-                            Text {
-                                id: srcPillText
-                                anchors.centerIn: parent
-                                font.family: win.boldLabelFamily
-                                font.pixelSize: Math.round(12 * win.unit)
-                                color: win.accGreen
-                                text: win.inputLabel
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(42 * win.unit)
-                            width: parent.width
-                            elide: Text.ElideRight
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(40 * win.unit)
-                            color: win.inkHero
-                            text: win.signalHero
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(96 * win.unit)
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(16 * win.unit)
-                            color: win.inkSub
-                            text: "Picture mode: " + win.picModeLabel
-                        }
-
-                        // Feature badges row at bottom
-                        Row {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            spacing: Math.round(8 * win.unit)
-
-                            Repeater {
-                                model: win.signalPills
-                                Rectangle {
-                                    height: Math.round(30 * win.unit)
-                                    width: sigTagText.width + Math.round(22 * win.unit)
-                                    radius: Math.round(8 * win.unit)
-                                    color: win.trackBg
-                                    border.width: 1
-                                    border.color: index === 0 ? win.accPurple : win.boxBorder
-
-                                    Text {
-                                        id: sigTagText
-                                        anchors.centerIn: parent
-                                        font.family: win.boldLabelFamily
-                                        font.pixelSize: Math.round(13 * win.unit)
-                                        color: index === 0 ? win.accPurple : win.inkHero
-                                        text: String(modelData)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 4: "oledcare" — OLED Pixel Care & Ring Gauge (Wide)
-                    // =========================================================
-                    Item {
-                        id: oledCareCard
-                        anchors.fill: parent
-                        anchors.margins: Math.round(24 * win.unit)
-                        visible: tileSlot.cardId === "oledcare"
-
-                        property int revTrigger: win.statsRev
-                        onRevTriggerChanged: if (visible) compRingCanvas.requestPaint()
-                        onVisibleChanged: if (visible) compRingCanvas.requestPaint()
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            font.letterSpacing: Math.round(2.5 * win.unit)
-                            color: win.inkMuted
-                            text: "OLED PIXEL CARE"
-                        }
-
-                        // Screen Shift status badge pill top-right
-                        Rectangle {
-                            height: Math.round(24 * win.unit)
-                            width: shiftBadgeText.width + Math.round(18 * win.unit)
-                            anchors.right: parent.right
-                            y: -Math.round(3 * win.unit)
-                            radius: height / 2
-                            color: win.trackBg
-                            border.width: 1
-                            border.color: win.boxBorder
-
-                            Text {
-                                id: shiftBadgeText
-                                anchors.centerIn: parent
-                                font.family: win.boldLabelFamily
-                                font.pixelSize: Math.round(12 * win.unit)
-                                color: win.accGreen
-                                text: "SHIFT · " + win.screenShiftState.toUpperCase()
-                            }
-                        }
-
-                        // Left: Circular compensation progress ring
-                        Item {
-                            x: 0
-                            y: Math.round(34 * win.unit)
-                            width: Math.round(144 * win.unit)
-                            height: Math.round(144 * win.unit)
-
-                            Canvas {
-                                id: compRingCanvas
-                                anchors.fill: parent
-                                onPaint: {
-                                    var frac = win.compInterval > 0 ? (win.hoursSinceComp / win.compInterval) : 0.75;
-                                    var col = win.hoursUntilComp <= 0.2 ? win.accAmber : win.accGreen;
-                                    win.paintProgressRing(compRingCanvas, frac, col);
-                                }
-                            }
-
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: Math.round(2 * win.unit)
-
-                                Text {
-                                    width: Math.round(110 * win.unit)
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.family: win.digitFamily
-                                    font.pixelSize: Math.round(36 * win.unit)
-                                    color: win.inkHero
-                                    text: win.fmtHours(win.hoursUntilComp)
-                                }
-                                Text {
-                                    width: Math.round(110 * win.unit)
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(11 * win.unit)
-                                    color: win.inkMuted
-                                    text: "UNTIL CLEAN"
-                                }
-                            }
-                        }
-
-                        // Right: Refresher & protection readouts
-                        Column {
-                            x: Math.round(168 * win.unit)
-                            y: Math.round(42 * win.unit)
-                            spacing: Math.round(14 * win.unit)
-
-                            Column {
-                                spacing: Math.round(3 * win.unit)
-                                Text {
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(12 * win.unit)
-                                    color: win.inkMuted
-                                    text: "SHORT COMPENSATION"
-                                }
-                                Text {
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(20 * win.unit)
-                                    color: win.hoursUntilComp <= 0.2 ? win.accAmber : win.accGreen
-                                    text: win.hoursUntilComp <= 0.05 ? "Ready on next standby" : ("In " + win.fmtHours(win.hoursUntilComp))
-                                }
-                            }
-
-                            Column {
-                                spacing: Math.round(3 * win.unit)
-                                Text {
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(12 * win.unit)
-                                    color: win.inkMuted
-                                    text: "2,000-HOUR PIXEL REFRESHER"
-                                }
-                                Text {
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(20 * win.unit)
-                                    color: win.inkHero
-                                    text: win.grouped(win.refresherRemaining) + " h remaining"
-                                }
-                            }
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 5: "silicon" — SoC Silicon Die
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(20 * win.unit)
-                        visible: tileSlot.cardId === "silicon"
-
-                        // Offset rim glow behind the silicon die
-                        Rectangle {
-                            width: Math.round(124 * win.unit)
-                            height: Math.round(124 * win.unit)
-                            x: Math.round((parent.width - width) * 0.5 - 3 * win.unit)
-                            y: Math.round(14 * win.unit)
-                            radius: Math.round(18 * win.unit)
-                            color: win.accPurple
-                            opacity: 0.28
-                        }
-                        Rectangle {
-                            width: Math.round(124 * win.unit)
-                            height: Math.round(124 * win.unit)
-                            x: Math.round((parent.width - width) * 0.5 + 3 * win.unit)
-                            y: Math.round(20 * win.unit)
-                            radius: Math.round(18 * win.unit)
-                            color: win.accBlue
-                            opacity: 0.28
-                        }
-
-                        // Brushed dark silicon package die
-                        Rectangle {
-                            id: siliconDie
-                            width: Math.round(120 * win.unit)
-                            height: Math.round(120 * win.unit)
-                            x: Math.round((parent.width - width) * 0.5)
-                            y: Math.round(17 * win.unit)
-                            radius: Math.round(14 * win.unit)
-                            color: win.boxInnerBg
-                            border.width: Math.max(1, Math.round(2 * win.unit))
-                            border.color: win.accCool
-
-                            // Inner die substrate frame
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: Math.round(8 * win.unit)
-                                radius: Math.round(9 * win.unit)
-                                color: win.boxOuterBg
-                                border.width: 1
-                                border.color: win.boxBorder
-                            }
-
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: Math.round(2 * win.unit)
-
-                                Text {
-                                    width: siliconDie.width
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(11 * win.unit)
-                                    font.letterSpacing: Math.round(2 * win.unit)
-                                    color: win.accAmber
-                                    text: "LG SILICON"
-                                }
-                                Text {
-                                    width: siliconDie.width
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: win.socName.length > 4 ? Math.round(26 * win.unit) : Math.round(34 * win.unit)
-                                    color: win.inkHero
-                                    text: win.socName
-                                }
-                            }
-                        }
-
-                        Text {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            anchors.bottom: parent.bottom
-                            elide: Text.ElideRight
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(15 * win.unit)
-                            color: win.inkSub
-                            text: win.socCaption
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 6: "remote" — Magic Remote Battery Ring (or Audio)
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(20 * win.unit)
-                        visible: tileSlot.cardId === "remote"
-
-                        property int revTrigger: win.statsRev
-                        onRevTriggerChanged: if (visible) remoteRingCanvas.requestPaint()
-                        onVisibleChanged: if (visible) remoteRingCanvas.requestPaint()
-
-                        // Circular battery/level ring
-                        Item {
-                            width: Math.round(126 * win.unit)
-                            height: Math.round(126 * win.unit)
-                            x: Math.round((parent.width - width) * 0.5)
-                            y: Math.round(8 * win.unit)
-
-                            Canvas {
-                                id: remoteRingCanvas
-                                anchors.fill: parent
-                                onPaint: {
-                                    var pct = win.hasRemote ? win.remoteBatt : win.soundVol;
-                                    var col = (win.hasRemote && win.remoteBatt <= 20) ? win.accAmber : win.accGreen;
-                                    win.paintProgressRing(remoteRingCanvas, pct / 100.0, col);
-                                }
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                font.family: win.digitFamily
-                                font.pixelSize: Math.round(40 * win.unit)
-                                color: win.inkHero
-                                text: win.hasRemote ? (win.remoteBatt + "%") : (win.soundMuted ? "MUTE" : (win.soundVol + ""))
-                            }
-                        }
-
-                        Text {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            y: Math.round(144 * win.unit)
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(16 * win.unit)
-                            color: win.inkHero
-                            text: win.hasRemote ? win.remoteModel : "Audio Stage"
-                        }
-
-                        Text {
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            color: win.hasRemote ? (win.remoteConnected ? win.accGreen : win.inkMuted) : win.inkSub
-                            text: win.hasRemote ? (win.remoteConnected ? "● Connected · BLE" : "● Standby · Paired") : win.soundOutLabel
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 7: "cpu" — Multi-Core Processor Activity Meters
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(22 * win.unit)
-                        visible: tileSlot.cardId === "cpu"
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(13 * win.unit)
-                            font.letterSpacing: Math.round(2 * win.unit)
-                            color: win.inkMuted
-                            text: "CPU CORES"
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(28 * win.unit)
-                            font.family: win.digitFamily
-                            font.pixelSize: Math.round(68 * win.unit)
-                            color: win.inkHero
-                            text: win.cpuLoad + "%"
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(104 * win.unit)
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            color: win.inkMuted
-                            text: "Peak " + win.cpuPeak + "%"
-                        }
-
-                        // Right: dynamic N-core vertical gauges (adapts to 2-core or 4-core SoCs)
-                        Row {
-                            anchors.right: parent.right
-                            y: Math.round(30 * win.unit)
-                            spacing: Math.round(10 * win.unit)
-
-                            Repeater {
-                                model: win.cpuCores ? win.cpuCores.length : 4
-                                Column {
-                                    spacing: Math.round(6 * win.unit)
-
-                                    property int barW: (win.cpuCores && win.cpuCores.length <= 2)
-                                                       ? Math.round(28 * win.unit)
-                                                       : Math.round(18 * win.unit)
-
-                                    Rectangle {
-                                        width: parent.barW
-                                        height: Math.round(112 * win.unit)
-                                        radius: Math.round(6 * win.unit)
-                                        color: win.trackBg
-
-                                        property int cVal: (win.cpuCores && index < win.cpuCores.length) ? win.cpuCores[index] : 0
-                                        Rectangle {
-                                            width: parent.width
-                                            height: parent.cVal > 0
-                                                ? Math.max(Math.round(10 * win.unit), Math.round(parent.height * (parent.cVal / 100.0)))
-                                                : Math.round(4 * win.unit)
-                                            y: parent.height - height
-                                            radius: Math.round(6 * win.unit)
-                                            color: parent.cVal === 0 ? win.boxBorder
-                                                 : (parent.cVal > 75 ? win.accAmber : win.accBlue)
-                                        }
-                                    }
-
-                                    Text {
-                                        width: parent.barW
-                                        horizontalAlignment: Text.AlignHCenter
-                                        font.family: win.boldLabelFamily
-                                        font.pixelSize: Math.round(11 * win.unit)
-                                        color: win.inkMuted
-                                        text: "C" + index
-                                    }
-                                }
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            color: win.inkSub
-                            text: win.cpuMhz > 0 ? (win.cpuMhz + " MHz clock") : ((win.cpuCores ? win.cpuCores.length : 4) + " Cores")
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 8: "memory" — Unified Memory & zram Gauges
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(22 * win.unit)
-                        visible: tileSlot.cardId === "memory"
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(13 * win.unit)
-                            font.letterSpacing: Math.round(2 * win.unit)
-                            color: win.inkMuted
-                            text: win.hasSwap ? "MEMORY & ZRAM" : "SYSTEM MEMORY"
-                        }
-
-                        Row {
-                            x: 0
-                            y: Math.round(24 * win.unit)
-                            spacing: Math.round(10 * win.unit)
-
-                            Text {
-                                font.family: win.digitFamily
-                                font.pixelSize: Math.round(64 * win.unit)
-                                color: win.inkHero
-                                text: win.ramPct + "%"
-                            }
-                            Text {
-                                y: Math.round(32 * win.unit)
-                                font.family: win.labelFamily
-                                font.pixelSize: Math.round(15 * win.unit)
-                                color: win.inkSub
-                                text: win.ramUsedStr
-                            }
-                        }
-
-                        // RAM gauge bar (+ optional zram swap bar when present)
-                        Column {
-                            x: 0
-                            y: Math.round(108 * win.unit)
-                            width: parent.width
-                            spacing: Math.round(6 * win.unit)
-
-                            Rectangle {
-                                width: parent.width
-                                height: win.hasSwap ? Math.round(12 * win.unit) : Math.round(18 * win.unit)
-                                radius: height / 2
-                                color: win.trackBg
-
-                                Rectangle {
-                                    width: Math.max(parent.height, Math.round(parent.width * (win.ramPct / 100.0)))
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: win.accPurple
-                                }
-                            }
-
-                            // zram swap bar
-                            Rectangle {
-                                visible: win.hasSwap
-                                width: parent.width
-                                height: Math.round(8 * win.unit)
-                                radius: Math.round(4 * win.unit)
-                                color: win.trackBg
-
-                                Rectangle {
-                                    width: Math.max(Math.round(8 * win.unit), Math.round(parent.width * (win.swapPct / 100.0)))
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: win.accBlue
-                                }
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            color: win.inkSub
-                            text: "Total " + win.ramTotalStr + (win.swapStr ? ("  ·  " + win.swapStr) : "")
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 9: "storage" — eMMC Silicon Wear / App Storage Matrix
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(22 * win.unit)
-                        visible: tileSlot.cardId === "storage"
-
-                        property int filledCells: win.hasEmmc
-                            ? win.emmcHealthyBlocks
-                            : Math.max(1, Math.min(10, Math.round(win.storageUsedPct / 10.0)))
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(13 * win.unit)
-                            font.letterSpacing: Math.round(2 * win.unit)
-                            color: win.inkMuted
-                            text: win.hasEmmc ? "FLASH SILICON" : "APP STORAGE"
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(30 * win.unit)
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(40 * win.unit)
-                            color: win.inkHero
-                            text: win.hasEmmc ? win.emmcWearStr : (win.storageUsedPct + "%")
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(80 * win.unit)
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            color: win.hasEmmc ? win.accGreen : win.accCool
-                            text: win.hasEmmc ? ("eMMC Wear · " + win.emmcEolStr) : "Apps Partition Used"
-                        }
-
-                        // 10-cell visual matrix
-                        Row {
-                            x: 0
-                            y: Math.round(118 * win.unit)
-                            spacing: Math.round(6 * win.unit)
-
-                            Repeater {
-                                model: 10
-                                Rectangle {
-                                    width: Math.round(19 * win.unit)
-                                    height: Math.round(24 * win.unit)
-                                    radius: Math.round(5 * win.unit)
-                                    color: index < parent.parent.filledCells
-                                        ? (win.hasEmmc ? win.accGreen : win.accBlue)
-                                        : win.trackBg
-                                    opacity: index < parent.parent.filledCells ? 0.85 : 0.45
-                                }
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            color: win.inkSub
-                            text: "Apps partition · " + win.storageFreeStr
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 10: "network" — Wi-Fi / Ethernet Link & AdBlock Shield
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(22 * win.unit)
-                        visible: tileSlot.cardId === "network"
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(13 * win.unit)
-                            font.letterSpacing: Math.round(2 * win.unit)
-                            color: win.inkMuted
-                            text: win.hasAdblock ? "NETWORK & PRIVACY" : "NETWORK LINK"
-                        }
-
-                        // 5 ascending Wi-Fi signal bars when on Wi-Fi
-                        Row {
-                            visible: win.isWifi
-                            x: 0
-                            y: Math.round(36 * win.unit)
-                            spacing: Math.round(8 * win.unit)
-
-                            Repeater {
-                                model: 5
-                                Item {
-                                    width: Math.round(14 * win.unit)
-                                    height: Math.round(56 * win.unit)
-
-                                    Rectangle {
-                                        width: parent.width
-                                        height: Math.round((16 + index * 10) * win.unit)
-                                        y: parent.height - height
-                                        radius: Math.round(4 * win.unit)
-                                        color: index < win.wifiBars ? win.accCool : win.trackBg
-                                    }
-                                }
-                            }
-                        }
-
-                        // Wired Ethernet / non-Wi-Fi badge when Wi-Fi is off
-                        Rectangle {
-                            visible: !win.isWifi
-                            x: 0
-                            y: Math.round(46 * win.unit)
-                            width: Math.round(112 * win.unit)
-                            height: Math.round(44 * win.unit)
-                            radius: Math.round(12 * win.unit)
-                            color: win.trackBg
-                            border.width: 1
-                            border.color: win.accBlue
-
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: Math.round(2 * win.unit)
-                                Text {
-                                    width: Math.round(96 * win.unit)
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(11 * win.unit)
-                                    color: win.accCool
-                                    text: win.netIfaceLabel
-                                }
-                                Text {
-                                    width: Math.round(96 * win.unit)
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.family: win.labelFamily
-                                    font.pixelSize: Math.round(12 * win.unit)
-                                    color: win.inkHero
-                                    text: "LINK ACTIVE"
-                                }
-                            }
-                        }
-
-                        // AdBlock shield pill on the right (or session transfer pill if adblock not present)
-                        Rectangle {
-                            anchors.right: parent.right
-                            y: Math.round(46 * win.unit)
-                            width: Math.round(118 * win.unit)
-                            height: Math.round(44 * win.unit)
-                            radius: Math.round(12 * win.unit)
-                            color: win.trackBg
-                            border.width: 1
-                            border.color: (win.hasAdblock && win.adblockOn) ? win.accGreen : win.boxBorder
-
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: Math.round(2 * win.unit)
-                                Text {
-                                    width: Math.round(100 * win.unit)
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(11 * win.unit)
-                                    color: (win.hasAdblock && win.adblockOn) ? win.accGreen : win.inkMuted
-                                    text: win.hasAdblock ? (win.adblockOn ? "AD SHIELD ON" : "AD SHIELD") : "INTERFACE"
-                                }
-                                Text {
-                                    width: Math.round(100 * win.unit)
-                                    horizontalAlignment: Text.AlignHCenter
-                                    font.family: win.labelFamily
-                                    font.pixelSize: Math.round(12 * win.unit)
-                                    color: win.inkHero
-                                    text: win.hasAdblock ? (win.adblockOn ? (win.adblockCount + " blocked") : "Off") : win.netIfaceLabel
-                                }
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(112 * win.unit)
-                            width: parent.width
-                            elide: Text.ElideRight
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(16 * win.unit)
-                            color: win.inkHero
-                            text: win.wifiLabel
-                        }
-
-                        Text {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            color: win.inkSub
-                            text: win.netRateStr
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 12: "memwide" — Universal Wide Memory & Storage Card
-                    // (Used on LCD TVs or TVs without thermal sensors)
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(24 * win.unit)
-                        visible: tileSlot.cardId === "memwide"
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            font.letterSpacing: Math.round(2.5 * win.unit)
-                            color: win.inkMuted
-                            text: "MEMORY & SYSTEM STORAGE"
-                        }
-
-                        Row {
-                            x: 0
-                            y: Math.round(24 * win.unit)
-                            spacing: Math.round(12 * win.unit)
-
-                            Text {
-                                font.family: win.digitFamily
-                                font.pixelSize: Math.round(80 * win.unit)
-                                color: win.inkHero
-                                text: win.ramPct + "%"
-                            }
-                            Column {
-                                y: Math.round(24 * win.unit)
-                                spacing: Math.round(4 * win.unit)
-                                Text {
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(16 * win.unit)
-                                    color: win.inkHero
-                                    text: win.ramUsedStr + " / " + win.ramTotalStr
-                                }
-                                Text {
-                                    font.family: win.labelFamily
-                                    font.pixelSize: Math.round(14 * win.unit)
-                                    color: win.inkSub
-                                    text: win.swapStr
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            x: 0
-                            y: Math.round(124 * win.unit)
-                            width: parent.width
-                            height: Math.round(12 * win.unit)
-                            radius: Math.round(6 * win.unit)
-                            color: win.trackBg
-
-                            Rectangle {
-                                width: Math.max(Math.round(12 * win.unit), Math.round(parent.width * (win.ramPct / 100.0)))
-                                height: parent.height
-                                radius: parent.radius
-                                color: win.accPurple
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(15 * win.unit)
-                            color: win.inkSub
-                            text: "Apps partition · " + win.storageFreeStr + (win.hasEmmc ? ("  ·  eMMC wear " + win.emmcWearStr) : "")
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 13: "netwide" — Universal Wide Network & Throughput Card
-                    // (Used on LCD TVs or TVs without thermal sensors)
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(24 * win.unit)
-                        visible: tileSlot.cardId === "netwide"
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            font.letterSpacing: Math.round(2.5 * win.unit)
-                            color: win.inkMuted
-                            text: "NETWORK & DATA TRANSFER"
-                        }
-
-                        Rectangle {
-                            height: Math.round(24 * win.unit)
-                            width: netWideBadge.width + Math.round(18 * win.unit)
-                            anchors.right: parent.right
-                            y: -Math.round(3 * win.unit)
-                            radius: height / 2
-                            color: win.trackBg
-                            border.width: 1
-                            border.color: win.boxBorder
-
-                            Text {
-                                id: netWideBadge
-                                anchors.centerIn: parent
-                                font.family: win.boldLabelFamily
-                                font.pixelSize: Math.round(12 * win.unit)
-                                color: win.accCool
-                                text: win.netIfaceLabel
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(38 * win.unit)
-                            width: parent.width
-                            elide: Text.ElideRight
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(36 * win.unit)
-                            color: win.inkHero
-                            text: win.wifiLabel
-                        }
-
-                        Text {
-                            x: 0
-                            y: Math.round(92 * win.unit)
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(16 * win.unit)
-                            color: win.accCool
-                            text: "Throughput: " + win.netRateStr
-                        }
-
-                        Text {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(15 * win.unit)
-                            color: win.inkSub
-                            text: "Session total: " + win.netTotalStr + (win.hasAdblock && win.adblockOn ? ("  ·  " + win.adblockCount + " ads blocked") : "")
-                        }
-                    }
-
-                    // =========================================================
-                    // CARD 11: "uptime" — Live Clock & Dual Uptime
-                    // =========================================================
-                    Item {
-                        anchors.fill: parent
-                        anchors.margins: Math.round(22 * win.unit)
-                        visible: tileSlot.cardId === "uptime"
-
-                        Text {
-                            x: 0; y: 0
-                            font.family: win.boldLabelFamily
-                            font.pixelSize: Math.round(13 * win.unit)
-                            font.letterSpacing: Math.round(2 * win.unit)
-                            color: win.inkMuted
-                            text: "TIME & UPTIME"
-                        }
-
-                        // Large tabular clock with two-dot separator
-                        Row {
-                            x: 0
-                            y: Math.round(26 * win.unit)
-                            spacing: Math.round(6 * win.unit)
-
-                            Text {
-                                font.family: win.digitFamily
-                                font.pixelSize: Math.round(72 * win.unit)
-                                color: win.inkHero
-                                text: win.clockH
-                            }
-                            Column {
-                                y: Math.round(26 * win.unit)
-                                spacing: Math.round(12 * win.unit)
-                                Rectangle {
-                                    width: Math.round(6 * win.unit)
-                                    height: width
-                                    radius: width / 2
-                                    color: win.accCool
-                                }
-                                Rectangle {
-                                    width: Math.round(6 * win.unit)
-                                    height: width
-                                    radius: width / 2
-                                    color: win.accCool
-                                }
-                            }
-                            Text {
-                                font.family: win.digitFamily
-                                font.pixelSize: Math.round(72 * win.unit)
-                                color: win.inkHero
-                                text: win.clockM
-                            }
-                        }
-
-                        // Dual uptime badges
-                        Row {
-                            x: 0
-                            y: Math.round(118 * win.unit)
-                            spacing: Math.round(8 * win.unit)
-
-                            Rectangle {
-                                height: Math.round(28 * win.unit)
-                                width: bootUpTxt.width + Math.round(18 * win.unit)
-                                radius: Math.round(8 * win.unit)
-                                color: win.trackBg
-                                Text {
-                                    id: bootUpTxt
-                                    anchors.centerIn: parent
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(12 * win.unit)
-                                    color: win.inkSub
-                                    text: "Boot " + win.bootUptimeStr
-                                }
-                            }
-                            Rectangle {
-                                height: Math.round(28 * win.unit)
-                                width: actUpTxt.width + Math.round(18 * win.unit)
-                                radius: Math.round(8 * win.unit)
-                                color: win.trackBg
-                                Text {
-                                    id: actUpTxt
-                                    anchors.centerIn: parent
-                                    font.family: win.boldLabelFamily
-                                    font.pixelSize: Math.round(12 * win.unit)
-                                    color: win.accGreen
-                                    text: "Active " + win.activeUptimeStr
-                                }
-                            }
-                        }
-
-                        Text {
-                            x: 0
-                            anchors.bottom: parent.bottom
-                            font.family: win.labelFamily
-                            font.pixelSize: Math.round(14 * win.unit)
-                            color: win.inkMuted
-                            text: win.webosVer + (win.fwVer ? "  ·  " + win.fwVer : "")
-                        }
+                        sourceComponent: win.cardComponentFor(tileSlot.cardId)
                     }
                 }
             }
