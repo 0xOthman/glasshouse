@@ -391,6 +391,18 @@ step('a failed key or settings restore prevents removal until LG Home is restore
   run();
 });
 
+step('a TV that never switched it on has no settings written at start', function (done) {
+  start(null);
+  var writes = 0;
+  interceptLuna = function (uri) { if (/setSystemSettings$/.test(uri)) writes++; return false; };
+  home.start();
+  wait(50, function () {
+    assert.strictEqual(writes, 0);
+    assert.deepEqual(tv.settings, ORIGINAL);
+    done();
+  });
+});
+
 step('an app removed outside Glasshouse gives the Home key and saved settings back to LG at start', function (done) {
   // A snapshot from a build that switched the screen saver off over the view puts it back on.
   start({ enabled: true, snapshot: { takenAt: Date.now(), settings: ORIGINAL } });

@@ -1076,7 +1076,8 @@ function init(opts) {
  */
 function restoreLegacyScreenSaver() {
   var c = readConfig();
-  var saved = c.snapshot && c.snapshot.settings.screenSaverEnabled;
+  if (!c.snapshot) return;
+  var saved = c.snapshot.settings.screenSaverEnabled;
   if (saved === undefined) return;
   writeSettings({ screenSaverEnabled: saved }, function (ok) {
     if (!ok) return console.error('home: could not put the screen saver setting back');
