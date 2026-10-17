@@ -5,15 +5,15 @@
  * using ImageParticle ("star.png") and TrailEmitter — zero ItemParticle scene
  * nodes, zero Canvas FBOs, and zero per-frame JavaScript evaluations.
  *
- * Efficiency notes:
- *   - ImageParticle with "star.png" renders all particles and trails as
- *     hardware-accelerated OpenGL point-sprite batches in C++.
- *   - Each colour uses a SINGLE ImageParticle painter (for both head and tail
- *     groups) and a SINGLE TrailEmitter with zero velocity/acceleration jitter,
- *     cutting OpenGL draw calls in half and avoiding per-frame physics steps on
- *     stationary trail points.
- *   - maximumEmitted caps each group's C++ particle buffer size to the exact
- *     peak active particle count rather than Qt's default 300-particle pool.
+ * Efficiency architecture:
+ *   - Instead of instantiating 8 always-active colour ImageParticles and 24
+ *     always-active Emitters/TrailEmitters (which QtQuickParticleSystem would
+ *     iterate and submit to OpenGL every frame even when empty), we use ONLY
+ *     4 active colour channels ("head0".."head3", 2 per concurrent burst slot)
+ *     plus 2 shared channels (gold & silver) — 6 ImageParticle painters in total.
+ *   - Each slot dynamically tints its 2 channels from the 8-colour shellColors
+ *     table at burst time and disables its TrailEmitters as soon as its stars
+ *     finish burning (~2.4s), avoiding idle TrailEmitter scans between bursts.
  */
 import QtQuick 2.4
 import QtQuick.Particles 2.0
@@ -56,6 +56,8 @@ WebOSWindow {
     property color silverCol: level > 0 ? "#ffffff" : "#94908a"
 
     property var pistilPair: [ 1, 2, 6, 1, 2, 1, 2, 1 ]
+    property var chPainters: []
+    property var chTrails: []
     property var ringEmitters: []
     property var peonyEmitters: []
     property var pistilEmitters: []
@@ -68,16 +70,16 @@ WebOSWindow {
     }
 
     // -------------------------------------------------------------------------
-    // Reusable Particle Components (1 Painter + 1 TrailEmitter per Colour)
+    // Reusable Active-Channel Particle Components (4 Channels Instead of 8)
     // -------------------------------------------------------------------------
     Component {
-        id: colorParticleComp
+        id: channelParticleComp
         ImageParticle {
-            property int colorIdx: 0
+            property int chIdx: 0
             system: sys
-            groups: [ "head" + colorIdx, "tail" + colorIdx ]
+            groups: [ "head" + chIdx, "tail" + chIdx ]
             source: "star.png"
-            color: win.shellColors[colorIdx]
+            color: win.shellColors[chIdx]
             colorVariation: 0.08
             alpha: win.headAlpha
             alphaVariation: 0.08
@@ -86,17 +88,18 @@ WebOSWindow {
     }
 
     Component {
-        id: colorTailEmitterComp
+        id: channelTrailComp
         TrailEmitter {
-            property int colorIdx: 0
+            property int chIdx: 0
             system: sys
-            group: "tail" + colorIdx
-            follow: "head" + colorIdx
-            emitRatePerParticle: 48
-            maximumEmitted: 1400
-            lifeSpan: 420
-            lifeSpanVariation: 70
-            size: Math.round(12.0 * win.unit * win.grow)
+            group: "tail" + chIdx
+            follow: "head" + chIdx
+            enabled: false
+            emitRatePerParticle: 36
+            maximumEmitted: 720
+            lifeSpan: 390
+            lifeSpanVariation: 60
+            size: Math.round(12.5 * win.unit * win.grow)
             endSize: Math.round(3.0 * win.unit)
         }
     }
@@ -132,7 +135,7 @@ WebOSWindow {
         group: "flashCore"
         enabled: false
         emitRate: 0
-        maximumEmitted: 12
+        maximumEmitted: 8
         x: -500; y: -500
         lifeSpan: 240
         size: Math.round(58 * win.unit * win.grow)
@@ -185,10 +188,10 @@ WebOSWindow {
         system: sys
         group: "rocketTrail"
         follow: "rocketHead"
-        emitRatePerParticle: 90
-        maximumEmitted: 160
-        lifeSpan: 340
-        lifeSpanVariation: 80
+        emitRatePerParticle: 65
+        maximumEmitted: 100
+        lifeSpan: 320
+        lifeSpanVariation: 70
         size: Math.round(11.5 * win.unit * win.grow)
         endSize: Math.round(3 * win.unit)
     }
@@ -200,7 +203,7 @@ WebOSWindow {
         group: "willowHead"
         enabled: false
         emitRate: 0
-        maximumEmitted: 96
+        maximumEmitted: 64
         x: -500; y: -500
         lifeSpan: 2450
         lifeSpanVariation: 450
@@ -220,11 +223,11 @@ WebOSWindow {
         system: sys
         group: "willowTrail"
         follow: "willowHead"
-        emitRatePerParticle: 46
-        maximumEmitted: 1200
-        lifeSpan: 460
-        lifeSpanVariation: 100
-        size: Math.round(11.0 * win.unit * win.grow)
+        emitRatePerParticle: 34
+        maximumEmitted: 640
+        lifeSpan: 430
+        lifeSpanVariation: 80
+        size: Math.round(11.5 * win.unit * win.grow)
         endSize: Math.round(3.0 * win.unit)
     }
 
@@ -235,7 +238,7 @@ WebOSWindow {
         group: "crackleSilver"
         enabled: false
         emitRate: 0
-        maximumEmitted: 120
+        maximumEmitted: 80
         x: -500; y: -500
         lifeSpan: 1200
         lifeSpanVariation: 380
@@ -252,13 +255,13 @@ WebOSWindow {
     }
 
     // -------------------------------------------------------------------------
-    // Per-Colour Shell Emitters & Launch Slots
+    // 4 Active Colour Channels (2 Channels per Concurrent Shell Slot)
     // -------------------------------------------------------------------------
     Item {
         anchors.fill: parent
 
         Repeater {
-            model: 8
+            model: 4
 
             Item {
                 anchors.fill: parent
@@ -270,7 +273,7 @@ WebOSWindow {
                     group: "head" + index
                     enabled: false
                     emitRate: 0
-                    maximumEmitted: 90
+                    maximumEmitted: 64
                     x: -500; y: -500
                     lifeSpan: 2150
                     lifeSpanVariation: 380
@@ -293,7 +296,7 @@ WebOSWindow {
                     group: "head" + index
                     enabled: false
                     emitRate: 0
-                    maximumEmitted: 96
+                    maximumEmitted: 64
                     x: -500; y: -500
                     lifeSpan: 2300
                     lifeSpanVariation: 520
@@ -316,7 +319,7 @@ WebOSWindow {
                     group: "head" + index
                     enabled: false
                     emitRate: 0
-                    maximumEmitted: 90
+                    maximumEmitted: 64
                     x: -500; y: -500
                     lifeSpan: 1750
                     lifeSpanVariation: 360
@@ -340,23 +343,25 @@ WebOSWindow {
             }
         }
 
-        // 3 concurrent launch slots (Rocket Ascent -> Apex Bloom -> Crackle)
+        // 2 concurrent launch slots (Slot 0 uses channels 0..1, Slot 1 uses channels 2..3)
         Repeater {
-            model: 3
+            model: 2
 
             Item {
                 id: slotItem
+                property int pCh: index * 2
+                property int sCh: index * 2 + 1
                 property real targetX: 960
                 property real targetY: 360
-                property int primaryIdx: 0
-                property int secondaryIdx: 1
+                property int primaryColorIdx: 0
+                property int secondaryColorIdx: 1
                 property int burstStyle: 0
 
-                function schedule(tx, ty, pIdx, sIdx, style) {
+                function schedule(tx, ty, pColorIdx, sColorIdx, style) {
                     targetX = tx;
                     targetY = ty;
-                    primaryIdx = pIdx;
-                    secondaryIdx = sIdx;
+                    primaryColorIdx = pColorIdx;
+                    secondaryColorIdx = sColorIdx;
                     burstStyle = style;
                     burstTimer.restart();
                 }
@@ -367,8 +372,13 @@ WebOSWindow {
                     running: false
                     repeat: false
                     onTriggered: {
-                        win.triggerBurst(slotItem.targetX, slotItem.targetY, slotItem.primaryIdx, slotItem.secondaryIdx, slotItem.burstStyle);
+                        win.chPainters[slotItem.pCh].color = win.shellColors[slotItem.primaryColorIdx];
+                        win.chPainters[slotItem.sCh].color = win.shellColors[slotItem.secondaryColorIdx];
+                        win.chTrails[slotItem.pCh].enabled = true;
+                        win.chTrails[slotItem.sCh].enabled = true;
+                        win.triggerBurst(slotItem.targetX, slotItem.targetY, slotItem.pCh, slotItem.sCh, slotItem.burstStyle);
                         crackleTimer.restart();
+                        trailOffTimer.restart();
                     }
                 }
 
@@ -377,7 +387,18 @@ WebOSWindow {
                     interval: 240
                     running: false
                     repeat: false
-                    onTriggered: win.triggerCrackle(slotItem.targetX, slotItem.targetY, slotItem.primaryIdx, slotItem.burstStyle)
+                    onTriggered: win.triggerCrackle(slotItem.targetX, slotItem.targetY, slotItem.pCh, slotItem.burstStyle)
+                }
+
+                Timer {
+                    id: trailOffTimer
+                    interval: 2350
+                    running: false
+                    repeat: false
+                    onTriggered: {
+                        win.chTrails[slotItem.pCh].enabled = false;
+                        win.chTrails[slotItem.sCh].enabled = false;
+                    }
                 }
 
                 Component.onCompleted: win.launchSlots.push(slotItem)
@@ -388,53 +409,53 @@ WebOSWindow {
     // -------------------------------------------------------------------------
     // Modular Burst Style Helpers (Low Cyclomatic Complexity)
     // -------------------------------------------------------------------------
-    function burstPeonyPistil(x, y, pIdx, sIdx) {
+    function burstPeonyPistil(x, y, pCh, sCh) {
         // Style 0: Classic Peony + Contrasting Inner Pistil + Gold Core
-        ringEmitters[pIdx].burst(34, x, y);
-        peonyEmitters[pIdx].burst(38, x, y);
-        pistilEmitters[sIdx].burst(30, x, y);
-        willowEmitter.burst(16, x, y);
+        ringEmitters[pCh].burst(30, x, y);
+        peonyEmitters[pCh].burst(32, x, y);
+        pistilEmitters[sCh].burst(26, x, y);
+        willowEmitter.burst(14, x, y);
     }
 
-    function burstChrysanthemumWillow(x, y, pIdx, sIdx) {
+    function burstChrysanthemumWillow(x, y, pCh, sCh) {
         // Style 1: Chrysanthemum / Weeping Willow Gold Crown
-        peonyEmitters[pIdx].burst(46, x, y);
-        willowEmitter.burst(38, x, y);
-        pistilEmitters[sIdx].burst(26, x, y);
+        peonyEmitters[pCh].burst(40, x, y);
+        willowEmitter.burst(32, x, y);
+        pistilEmitters[sCh].burst(24, x, y);
     }
 
-    function burstDoubleRingDiadem(x, y, pIdx, sIdx) {
+    function burstDoubleRingDiadem(x, y, pCh, sCh) {
         // Style 2: Double-Ring Diadem (concentric outer & mid colour rings)
-        ringEmitters[pIdx].burst(42, x, y);
-        ringEmitters[sIdx].burst(30, x, y);
-        pistilEmitters[sIdx].burst(28, x, y);
-        crackleEmitter.burst(18, x, y);
-    }
-
-    function burstCrossetteBlossom(x, y, pIdx, sIdx) {
-        // Style 3: Crossette Multi-Blossom (central flower + 4 sub-clusters)
-        ringEmitters[pIdx].burst(36, x, y);
-        pistilEmitters[sIdx].burst(24, x, y);
-        var off = Math.round(52 * win.unit);
-        var pPistil = pistilEmitters[pIdx];
-        var sPistil = pistilEmitters[sIdx];
-        pPistil.burst(12, x - off, y - off);
-        pPistil.burst(12, x + off, y - off);
-        sPistil.burst(12, x - off, y + off);
-        sPistil.burst(12, x + off, y + off);
-    }
-
-    function burstTwinBrocade(x, y, pIdx, sIdx) {
-        // Style 4: Twin-Hue Brocade Canopy
-        peonyEmitters[pIdx].burst(38, x, y);
-        peonyEmitters[sIdx].burst(34, x, y);
-        willowEmitter.burst(26, x, y);
-    }
-
-    function triggerBurst(x, y, pIdx, sIdx, style) {
-        if (ringEmitters.length < 8) return;
-        flashEmitter.burst(2, x, y);
+        ringEmitters[pCh].burst(36, x, y);
+        ringEmitters[sCh].burst(26, x, y);
+        pistilEmitters[sCh].burst(24, x, y);
         crackleEmitter.burst(14, x, y);
+    }
+
+    function burstCrossetteBlossom(x, y, pCh, sCh) {
+        // Style 3: Crossette Multi-Blossom (central flower + 4 sub-clusters)
+        ringEmitters[pCh].burst(32, x, y);
+        pistilEmitters[sCh].burst(20, x, y);
+        var off = Math.round(52 * win.unit);
+        var pPistil = pistilEmitters[pCh];
+        var sPistil = pistilEmitters[sCh];
+        pPistil.burst(10, x - off, y - off);
+        pPistil.burst(10, x + off, y - off);
+        sPistil.burst(10, x - off, y + off);
+        sPistil.burst(10, x + off, y + off);
+    }
+
+    function burstTwinBrocade(x, y, pCh, sCh) {
+        // Style 4: Twin-Hue Brocade Canopy
+        peonyEmitters[pCh].burst(34, x, y);
+        peonyEmitters[sCh].burst(30, x, y);
+        willowEmitter.burst(22, x, y);
+    }
+
+    function triggerBurst(x, y, pCh, sCh, style) {
+        if (ringEmitters.length < 4) return;
+        flashEmitter.burst(2, x, y);
+        crackleEmitter.burst(12, x, y);
 
         var recipes = [
             burstPeonyPistil,
@@ -443,13 +464,13 @@ WebOSWindow {
             burstCrossetteBlossom,
             burstTwinBrocade
         ];
-        recipes[style % recipes.length](x, y, pIdx, sIdx);
+        recipes[style % recipes.length](x, y, pCh, sCh);
     }
 
-    function triggerCrackle(x, y, pIdx, style) {
-        if (pistilEmitters.length < 8) return;
-        crackleEmitter.burst(style === 1 ? 26 : 18, x, y);
-        pistilEmitters[pIdx].burst(12, x, y);
+    function triggerCrackle(x, y, pCh, style) {
+        if (pistilEmitters.length < 4) return;
+        crackleEmitter.burst(style === 1 ? 22 : 14, x, y);
+        pistilEmitters[pCh].burst(10, x, y);
     }
 
     // -------------------------------------------------------------------------
@@ -492,7 +513,7 @@ WebOSWindow {
             duetDelayTimer.restart();
             return;
         }
-        var soloSlot = (launchStep === 0) ? 0 : 2;
+        var soloSlot = (launchStep === 0) ? 0 : 1;
         launchSlot(soloSlot, mx, win.width - mx);
     }
 
@@ -511,15 +532,15 @@ WebOSWindow {
         onTriggered: win.fireSalvo()
     }
 
-    function initColorParticles() {
-        for (var i = 0; i < shellColors.length; i++) {
-            colorParticleComp.createObject(win, { colorIdx: i });
-            colorTailEmitterComp.createObject(win, { colorIdx: i });
+    function initColorChannels() {
+        for (var i = 0; i < 4; i++) {
+            chPainters.push(channelParticleComp.createObject(win, { chIdx: i }));
+            chTrails.push(channelTrailComp.createObject(win, { chIdx: i }));
         }
     }
 
     Component.onCompleted: {
-        initColorParticles();
+        initColorChannels();
         fireSalvo();
     }
 }
