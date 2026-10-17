@@ -67,20 +67,20 @@ function isServiceNotFound(uri, parsed) {
 var PARALLEL = 2;
 
 /*
- * "logCalls": true in config.json logs each call as it starts and ends, and
- * each subscription as it starts, for a TV that restarts itself (#746): the
- * last lines before the cut name what was running. Each line is flushed to
- * disk at once, since a watchdog reset loses what the page cache still holds.
+ * At the debug log level each call is logged as it starts and ends, and each
+ * subscription as it starts, for a TV that restarts itself (#746): the last
+ * lines before the cut name what was running. Each line is flushed to disk at
+ * once, since a watchdog reset loses what the page cache still holds.
  */
-var logCalls = false;
+var debugCalls = false;
 
-function setLogCalls(on) {
-  logCalls = !!on;
+function setDebug(on) {
+  debugCalls = !!on;
 }
 
 function noteCall(text) {
-  if (!logCalls) return;
-  console.log('luna: ' + text);
+  if (!debugCalls) return;
+  console.debug('luna: ' + text);
   try { fs.fsyncSync(1); } catch (e) {}
 }
 var running = 0;
@@ -364,7 +364,7 @@ function createCache(callFn) {
 }
 
 module.exports = {
-  setLogCalls: setLogCalls,
+  setDebug: setDebug,
   call: call,
   callUrgent: callUrgent,
   Subscription: Subscription,

@@ -387,13 +387,6 @@ function loadConfig() {
   }
 }
 loadConfig();
-// A diagnostic for a TV that restarts itself (#746): each luna call logged as
-// it starts and ends. File-only, and off unless asked for.
-if (CONFIG.logCalls === true) {
-  lunaTransport.setLogCalls(true);
-  console.log('config: logCalls on - each luna call is logged and flushed to disk');
-}
-
 // Old config keys folded or preserved on upgrade.
 (function migrateConfigFile() {
   var raw = readJson(CONFIG_FILE, null);
@@ -446,6 +439,9 @@ if (CONFIG.logCalls === true) {
     }
   }
 })();
+// At the debug level each luna call is logged as it starts and ends, flushed
+// to disk, for a TV that restarts itself (#746).
+lunaTransport.setDebug(getActiveLogLevel() === 'debug');
 
 /*
  * One-shot modes, behind `tvwebctl update` and `tvwebctl rollback`. They run

@@ -1,6 +1,7 @@
 /**
- * test/test-luna-logcalls.js - "logCalls" logs each luna call as it starts and
- * ends, and flushes each line to disk, for a TV that restarts itself (#746)
+ * test/test-luna-debug.js - at the debug log level each luna call is logged
+ * as it starts and ends, each line flushed to disk, for a TV that restarts
+ * itself (#746)
  *
  * Strict ES5: runs on node 0.12.
  */
@@ -30,20 +31,21 @@ var luna = require('../server/lib/luna');
 var lines = [];
 var realLog = console.log;
 console.log = function (s) { lines.push(String(s)); };
+console.debug = function (s) { lines.push(String(s)); };
 function done() {
   console.log = realLog;
 }
 
-realLog('Running test-luna-logcalls.js ...');
+realLog('Running test-luna-debug.js ...');
 
 // Off: nothing logged.
 replies.push({ out: '{"returnValue":true}' });
 luna.call('com.webos.service.tvpower/power/getPowerState', {}, function () {
   assert.deepEqual(lines, []);
   assert.strictEqual(syncs, 0);
-  realLog('  ✓ off by default: calls are not logged');
+  realLog('  ✓ below the debug level, calls are not logged');
 
-  luna.setLogCalls(true);
+  luna.setDebug(true);
   replies.push({ out: '{"returnValue":true}' });
   luna.call('com.webos.service.tvpower/power/getPowerState', {}, function () {
     assert.strictEqual(lines[0], 'luna: call com.webos.service.tvpower/power/getPowerState');
@@ -65,8 +67,8 @@ luna.call('com.webos.service.tvpower/power/getPowerState', {}, function () {
         assert.ok(lines.indexOf('luna: subscribe com.webos.applicationManager/getForegroundAppInfo') !== -1, lines.join('\n'));
         sub.stop();
         done();
-        console.log('  ✓ on: each call logs its start and end, a timeout says so, and a subscription logs its start');
-        console.log('ALL test-luna-logcalls.js assertions passed!\n');
+        console.log('  ✓ at the debug level, each call logs its start and end, a timeout says so, and a subscription logs its start');
+        console.log('ALL test-luna-debug.js assertions passed!\n');
         process.exit(0);
       }, 400);
     });
