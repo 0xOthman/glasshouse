@@ -74,6 +74,8 @@ var quickAccessModule = null;
 var remoteKeysModule = null;
 /** @type {typeof import('./homescreen')} */
 var homeScreenModule = null;
+/** @type {typeof import('./home')} */
+var homeModule = null;
 /** @type {typeof import('./screensavers')} */
 var screensaversModule = null;
 /** @type {typeof import('./updater')} */
@@ -1030,6 +1032,77 @@ function getSettingsPayload() {
   };
 }
 
+/*
+ * Glasshouse Home (lib/home.js). Its view runs on the TV and changes nothing
+ * but the layout and what is open, so it needs no allowControl; anything from
+ * the network does.
+ */
+function handleHomeRoute(req, res, u, pathname) {
+  function reply(r) { send(res, r && r.ok === false ? 400 : 200, JSON.stringify(r)); }
+  if (req.method === 'GET') {
+    // ?with=catalogue,channels adds what the TV app's Home section lists, in one answer.
+    if (pathname === '/api/home') {
+      var wants = String((u.query && u.query['with']) || '').split(',');
+      return homeModule.status(function (st) {
+        st.writable = !!config.allowControl || fromTV(req);
+        if (wants.indexOf('catalogue') === -1) return reply(st);
+        homeModule.catalogue(function (c) {
+          st.catalogue = c;
+          if (wants.indexOf('channels') === -1) return reply(st);
+          homeModule.channelList(function (list) {
+            st.channels = list;
+            reply(st);
+          });
+        });
+      });
+    }
+    if (pathname === '/api/home/catalogue') {
+      return homeModule.catalogue(function (c) {
+        homeModule.status(function (st) {
+          c.ok = true;
+          c.layout = st.layout;
+          c.enabled = st.enabled;
+          reply(c);
+        });
+      });
+    }
+    if (pathname === '/api/home/channels') {
+      return homeModule.channelList(function (list) { reply({ ok: true, channels: list, tuner: !!list }); });
+    }
+    if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
+    if (pathname === '/api/home/now') return homeModule.now(reply);
+    if (pathname === '/api/home/icon') {
+      return homeModule.iconPath(u.query && u.query.id, function (iconPath) {
+        if (!iconPath) return send(res, 404, JSON.stringify({ ok: false, error: 'icon not found' }));
+        sendIconFile(req, res, iconPath, function (status, error) {
+          send(res, status, JSON.stringify({ ok: false, error: error }));
+        });
+      });
+    }
+  }
+  if (req.method === 'POST') {
+    if (!config.allowControl && !fromTV(req)) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (pathname === '/api/home/beat') {
+      if (!postGuard(req, res, 'application/json', false)) return;
+      req.resume();
+      return reply(homeModule.beat());
+    }
+    return readJsonBody(req, res, function (body) {
+      if (pathname === '/api/home/layout') return homeModule.setLayout(body, reply);
+      if (pathname === '/api/home/install') return homeModule.install(reply);
+      if (pathname === '/api/home/remove') return homeModule.remove(reply);
+      if (pathname === '/api/home/enable') return homeModule.enable(reply);
+      if (pathname === '/api/home/disable') return homeModule.disable(reply);
+      if (pathname === '/api/home/open') return homeModule.open(body, reply);
+      if (pathname === '/api/home/screen-off') return homeModule.screenOff(reply);
+      send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+}
+
 function handleRequest(req, res) {
   var u = parseUrl(req.url);
   var pathname = u.pathname;
@@ -1588,6 +1661,10 @@ function handleRequest(req, res) {
     });
   }
 
+  if (pathname.indexOf('/api/home/') === 0 || pathname === '/api/home') {
+    if (homeModule) return handleHomeRoute(req, res, u, pathname);
+  }
+
   if (pathname === '/api/quickaccess' && req.method === 'POST') {
     if (!config.allowControl) {
       return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
@@ -1815,6 +1892,7 @@ function init(opts) {
   if (opts.quickAccess) quickAccessModule = opts.quickAccess;
   if (opts.remoteKeys) remoteKeysModule = opts.remoteKeys;
   if (opts.homeScreen) homeScreenModule = opts.homeScreen;
+  if (opts.home) homeModule = opts.home;
   if (opts.screensavers) screensaversModule = opts.screensavers;
   if (opts.updater) updaterModule = opts.updater;
   if (opts.logs) logsModule = opts.logs;
