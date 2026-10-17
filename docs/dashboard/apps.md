@@ -59,7 +59,7 @@ Switches parts of LG's Home screen off, for a Home screen with only the apps and
 
 At least one part stays. A change takes a few seconds, while the Home screen starts again, and lasts through restarts and power cuts. The rows further down, such as Live TV and LG Channels, come from LG's servers and stay.
 
-**Inputs on Home** adds a tile for each HDMI input, named as the TV names it. The input tiles go before the apps, in HDMI order; adding one moves any input tiles moved elsewhere back to the front, and starts the Home screen again to show it. It is LG's own tile for the input, so it can be moved or removed on the TV like any other.
+**Inputs on Home** shows each HDMI input as a tile, dimmed while it is not on Home; choosing one adds or removes the Home screen's tile for it, named as the TV names the input. The input tiles go before the apps, in HDMI order; adding one moves any input tiles moved elsewhere back to the front, and starts the Home screen again to show it. It is LG's own tile for the input, so it can be moved or removed on the TV like any other.
 
 **Put back LG's Home screen** shows every part again and takes off the input tiles added here; ones added on the TV stay. The TV app has the same switches.
 
@@ -101,9 +101,9 @@ It is experimental, and off until it is turned on under **Server** → **Advance
 
 ### Apps kept ready in the background
 
-![Apps kept ready in the background, each with the memory it takes when loaded, all switched off](../screenshots/apps-preload.png)
+![Apps kept ready in the background, each as a tile with the memory it takes when loaded, all switched off](../screenshots/apps-preload.png)
 
-LG keeps some apps loaded so they open faster, including ones that are never used, and each takes up memory. The list shows each one with roughly how much memory it takes once loaded, and which are loaded now.
+LG keeps some apps loaded so they open faster, including ones that are never used, and each takes up memory. Each app is a tile with roughly how much memory it takes once loaded, and whether it is loaded now; choosing one switches it off, or keeps it ready again. A switched-off app's tile is dimmed and marked in orange, the colour the Apps tab uses for a change from LG's own setting.
 
 Switching an app off frees its memory once the app is next closed or the TV restarts, and it then takes a few seconds longer to open. Switching it back on returns it to LG's setting. Home, Live TV, the HDMI inputs and the other parts the TV relies on are not listed, and the section only appears on TVs that keep such a list.
 

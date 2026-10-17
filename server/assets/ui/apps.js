@@ -242,7 +242,7 @@ function renderAppsPanel() {
         const state = pending ? (isHidden ? t('apps.tile.hiding', 'Hiding\u2026') : t('apps.tile.restoring', 'Restoring\u2026'))
           : isHidden ? t('apps.tile.hidden', 'Hidden') : t('apps.tile.shown', 'Shown');
         const name = tile.title || tile.id;
-        return `<button type="button" class="rk-key sys-tile${isHidden ? ' sys-hidden' : ''}" aria-pressed="${isHidden}"
+        return `<button type="button" class="rk-key sys-tile${isHidden ? ' sys-hidden sys-changed' : ''}" aria-pressed="${isHidden}"
             aria-label="${esc(name + ': ' + state)}" ${!d.writable || pending ? 'disabled' : ''}
             onclick="toggleTileVisibility('${jsq(tile.id)}', ${!isHidden})">
           <span class="rk-does">${rkIcon(tile.id)}<span translate="no">${esc(name)}</span></span>
@@ -686,18 +686,17 @@ function renderHomeScreen(d) {
   if (inputsHead) inputsHead.hidden = !showInputs;
   if (inputs) {
     inputs.hidden = !showInputs;
-    inputs.innerHTML = showInputs ? hs.inputs.map(i => `<div class="prot-row">
-      <div class="prot-main"><div class="prot-title">${esc(i.title)}</div></div>
-      <div class="prot-status">
-        ${renderToggle({
-          id: 'btn-home-' + esc(i.id),
-          cls: i.onHome ? 'good' : 'idle',
-          label: i.onHome ? t('apps.home.onHome', 'On Home') : t('apps.home.notOnHome', 'Not on Home'),
-          disabled: !usable,
-          onclick: "setHomeInput('" + esc(i.id) + "', " + (!i.onHome) + ")"
-        })}
-      </div>
-    </div>`).join('') : '';
+    // A tile per input, as for the system apps: choosing one adds or removes it.
+    inputs.innerHTML = showInputs ? `<div class="rk-grid">${hs.inputs.map(i => toggleTile({
+      id: 'btn-home-' + i.id,
+      appId: 'com.webos.app.' + i.id,
+      name: i.title,
+      state: i.onHome ? t('apps.home.onHome', 'On Home') : t('apps.home.notOnHome', 'Not on Home'),
+      dim: !i.onHome,
+      changed: false,
+      disabled: !usable,
+      onclick: "setHomeInput('" + jsq(i.id) + "', " + (!i.onHome) + ")"
+    })).join('')}</div>` : '';
   }
   const restore = q('btn-home-restore');
   if (restore) {
@@ -706,13 +705,35 @@ function renderHomeScreen(d) {
   }
 }
 
+/*
+ * A tile that switches one thing on or off: the app's icon and name, and its
+ * state beneath, dimmed while off. The state is orange where it is a change
+ * from LG's own setting. For the inputs on Home and the apps kept ready, as
+ * for the system apps.
+ */
+function toggleTile(o) {
+  return `<button type="button" class="rk-key sys-tile${o.dim ? ' sys-hidden' : ''}${o.changed ? ' sys-changed' : ''}" id="${esc(o.id)}"
+      aria-pressed="${!o.dim}" aria-label="${esc(o.name + ': ' + o.state)}" ${o.disabled ? 'disabled' : ''}
+      onclick="${o.onclick}">
+    <span class="rk-does">${rkIcon(o.appId)}<span translate="no">${esc(o.name)}</span></span>
+    ${o.note ? `<span class="qa-note">${esc(o.note)}</span>` : ''}
+    <span class="rk-name">${esc(o.state)}</span>
+  </button>`;
+}
+
+// While a change is on its way: a tile says so in its state line, a plain
+// button in its label.
+function markBusy(btn) {
+  if (!btn) return;
+  btn.disabled = true;
+  btn.classList.add('busy');
+  const state = btn.querySelector('.rk-name');
+  (state || btn).textContent = t('apps.service.updating', 'Updating\u2026');
+}
+
 async function postHomeScreen(btnId, body) {
   const btn = q(btnId);
-  if (btn) {
-    btn.disabled = true;
-    btn.classList.add('busy');
-    btn.textContent = t('apps.service.updating', 'Updating…');
-  }
+  markBusy(btn);
   let error = null;
   try {
     const res = await fetch(api('/api/homescreen'), {
@@ -759,37 +780,26 @@ function renderPreload(d) {
       : apps.length === 1 ? t('apps.preload.one', '1 app') : t('apps.preload.count', '{n} apps', { n: apps.length });
   }
   if (!list) return;
-  list.innerHTML = apps.map(a => {
-    const id = esc(a.id);
-    const size = a.memoryMb ? t('apps.preload.size', 'about {mb} MB when loaded', { mb: a.memoryMb }) : '';
-    const loadedNow = a.loaded ? ` <span class="prot-sub">&middot; ${esc(t('apps.preload.loaded', 'loaded now'))}</span>` : '';
-    const iconUrl = api('/api/apps/icon?id=' + encodeURIComponent(a.id));
-    // Some of LG's apps have no icon (Yandex Alice on a C2): the space stays, so the names line up.
-    return `<div class="prot-row">
-      <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.visibility='hidden'">
-      <div class="prot-main">
-        <div class="prot-title">${esc(a.title)}${size ? ` <span class="prot-sub">&middot; ${esc(size)}</span>` : ''}${loadedNow}</div>
-      </div>
-      <div class="prot-status">
-        ${renderToggle({
-          id: 'btn-preload-' + id,
-          cls: a.off ? 'idle' : 'good',
-          label: a.off ? t('apps.preload.off', 'Switched off') : t('apps.preload.kept', 'Kept ready'),
-          disabled: !d.writable,
-          onclick: "togglePreload('" + id + "', " + (!a.off) + ")"
-        })}
-      </div>
-    </div>`;
-  }).join('');
+  // A tile per app: choosing one switches it off or keeps it ready. Some of
+  // LG's apps have no icon (Yandex Alice on a C2); the space stays, so the
+  // names line up.
+  list.innerHTML = `<div class="rk-grid">${apps.map(a => toggleTile({
+    id: 'btn-preload-' + a.id,
+    appId: a.id,
+    name: a.title,
+    note: [a.memoryMb ? t('apps.preload.size', 'about {mb} MB when loaded', { mb: a.memoryMb }) : '',
+      a.loaded ? t('apps.preload.loaded', 'loaded now') : ''].filter(Boolean).join(' · '),
+    state: a.off ? t('apps.preload.off', 'Switched off') : t('apps.preload.kept', 'Kept ready'),
+    dim: a.off,
+    changed: a.off,
+    disabled: !d.writable,
+    onclick: "togglePreload('" + jsq(a.id) + "', " + (!a.off) + ")"
+  })).join('')}</div>`;
 }
 
 async function togglePreload(appId, makeOff) {
   const btn = q('btn-preload-' + appId);
-  if (btn) {
-    btn.disabled = true;
-    btn.classList.add('busy');
-    btn.textContent = t('apps.service.updating', 'Updating\u2026');
-  }
+  markBusy(btn);
   let error = null;
   try {
     const res = await fetch(api('/api/preload/toggle'), {
