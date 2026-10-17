@@ -97,11 +97,31 @@ async function loadPrivacy() {
      * green is it not. The description says what the row is, never what the
      * pill beside it already says.
      */
+    // Allowed and running are separate checks: on a CX with Live Plus off acr2
+    // was not running after boot, yet one question started it, and it then ran
+    // idle until stopped.
+    const allowedBy = [].concat(a.livePlus === null || a.livePlus === undefined ? [] : [t('pv.acr.livePlus', 'Live Plus')],
+      (a.consents || []).map(c => c.label));
+    const svc = a.active ? ['warn', t('pv.acr.recognizing', 'Recognizing')]
+      : a.running ? ['idle', t('pv.acr.idle', 'Running, idle')]
+      : ['good', t('pv.notRunning', 'Not running')];
     q('pv-live').innerHTML =
-      pvRow(esc(t('pv.acr', 'Content recognition')), esc(t('pv.acr.desc', 'LG\u2019s ACR captures what\u2019s on your screen to target ads at you.')),
-          `<span class="pill ${a.active ? 'warn' : 'good'}">${esc(a.active ? t('pv.running', 'Running') : t('pv.notRunning', 'Not running'))}</span>`) +
+      pvRow(esc(t('pv.acr.consents', 'Recognition consents')),
+          esc(allowedBy.length ? t('pv.acr.consents.desc', 'Whether LG\u2019s ACR is allowed: {names}.', { names: allowedBy.join(', ') })
+                               : t('pv.acr.consents.none', 'This TV has none of the switches LG\u2019s ACR reads.')),
+          `<span class="pill ${a.consentOn ? 'warn' : 'good'}">${esc(a.consentOn ? t('common.on', 'On') : t('common.off', 'Off'))}</span>`) +
+      pvRow(esc(t('pv.acr.service', 'Recognition service')),
+          esc(t('pv.acr.service.desc', 'LG\u2019s ACR program, acr2, which captures what\u2019s on your screen to target ads at you. Anything that asks it a question starts it.')),
+          `<span class="pill ${svc[0]}">${esc(svc[1])}</span>`) +
       pvRow(esc(t('pv.capture', 'Screen capturing')), esc(t('pv.capture.desc', 'Sampling frames from the screen for recognition.')),
           `<span class="pill ${a.capturing ? 'warn' : 'good'}">${esc(a.capturing ? t('pv.capturing', 'Capturing') : t('pv.stopped', 'Stopped'))}</span>`);
+
+    // The switch on the TV itself, on the models that have one. Off is the
+    // private setting, as everywhere in this panel.
+    const mic = d.microphone;
+    q('pv-mic-grp').hidden = !mic;
+    q('pv-mic').innerHTML = mic ? pvRow(esc(mic.label), esc(mic.detail),
+      `<span class="pill ${mic.on ? 'warn' : 'good'}">${esc(mic.on ? t('common.on', 'On') : t('common.off', 'Off'))}</span>`) : '';
 
     // advertising id
     const ad = d.advertisingId || {};
@@ -112,17 +132,21 @@ async function loadPrivacy() {
        gets a row and a pill. */
     // available === false means the call does not exist on this firmware, which
     // is not the same answer as "no identifier assigned".
+    // stopped: LG's ad service is not running, and asking would start it.
     const adOk = ad.available !== false;
+    const lmtOk = adOk || !!ad.lmtKnown;
     q('pv-adid').innerHTML = pvRow(esc(t('pv.adid.row', 'Advertising ID')),
-      esc(!adOk ? t('pv.adid.unreadable', 'This firmware does not answer the call that reads it.')
+      esc(ad.stopped ? t('pv.adid.stopped', 'LG\u2019s advertising service is not running, so it is not handing out an ID.')
+            : !adOk ? t('pv.adid.unreadable', 'This firmware does not answer the call that reads it.')
             : ad.present ? t('pv.adid.hidden', 'The value is deliberately not displayed here.')
                          : t('pv.adid.none', 'No identifier is currently assigned.')),
-      !adOk ? `<span class="pill idle">${esc(t('pv.notReadable', 'Not readable'))}</span>`
+      ad.stopped ? `<span class="pill good">${esc(t('pv.notRunning', 'Not running'))}</span>`
+            : !adOk ? `<span class="pill idle">${esc(t('pv.notReadable', 'Not readable'))}</span>`
             : `<span class="pill ${ad.present ? 'warn' : 'good'}">${esc(ad.present ? t('pv.adid.assigned', 'Assigned') : t('pv.adid.noneShort', 'None'))}</span>`);
     q('pv-lmt').innerHTML = pvRow(
       esc(ad.limitTrackingLabel || t('pv.lmt', 'Limit ad tracking')),
-      esc(adOk ? (ad.limitTrackingDetail || '') : t('pv.lmt.unknown', 'Read from the same call, so it is unknown here.')),
-      !adOk ? `<span class="pill idle">${esc(t('pv.unknown', 'Unknown'))}</span>`
+      esc(lmtOk ? (ad.limitTrackingDetail || '') : t('pv.lmt.unknown', 'Read from the same call, so it is unknown here.')),
+      !lmtOk ? `<span class="pill idle">${esc(t('pv.unknown', 'Unknown'))}</span>`
             : d.consentWritable
             ? renderToggle({
                 id: 'lmt-toggle',
@@ -131,7 +155,8 @@ async function loadPrivacy() {
                 next: ad.limitTracking ? '0' : '1'
               })
             : `<span class="pill ${ad.limitTracking ? 'good' : 'warn'}">${esc(ad.limitTracking ? t('common.on', 'On') : t('common.off', 'Off'))}</span>`);
-    // The two ad actions go through the same service, so they cannot work either.
+    // The two ad actions go through the same service, so they cannot work
+    // either, and with it stopped they would start it.
     for (const id of ['adid-reset', 'adcookies-clear']) {
       const btn = q(id);
       if (btn) btn.disabled = !adOk;
@@ -218,15 +243,12 @@ async function loadPrivacy() {
     }).join('');
     const liveOn = (d.acr && d.acr.active ? 1 : 0) + (d.acr && d.acr.capturing ? 1 : 0);
     const total = dae.length + 2;
-    /*
-     * Whether these can be switched off is a property of the firmware, not of
-     * the dashboard: webOS 9 has an initctl that lists no jobs, so the rows are
-     * read-only there and the note must not promise otherwise.
-     */
+    // The rows only report; switching off is the Apps tab's background
+    // services switch, which the note points to.
     q('pv-running-note').textContent = t('pv.runningNow.note',
       'A service can be running with its permission switched off \u2014 it simply has nothing it is allowed to send. ' +
       'They are switched off in the Apps tab, under Turn off background services, which keeps them off across reboots. ' +
-      'LG\'s recognition and advertising services are not listed: anything that asks them a question starts them, this panel included.');
+      'LG\'s recognition and advertising services are not listed: anything that asks them a question starts them, so this panel asks them only while they are running.');
 
     q('pv-running-cur').textContent = dae.length
       ? t('pv.runningOf', '{n} of {total} running', { n: dae.filter(x => x.running).length + liveOn, total }) : '';

@@ -483,22 +483,32 @@ function doControl(action, value, cb) {
 
     case 'acr':
       var acrOn = (value === true || value === 'on' || value === 'ON' || value === 'true');
-      return luna('com.webos.service.settings/setSystemSettings', {
-        category: 'option',
-        settings: { livePlus: acrOn ? 'on' : 'off' }
-      }, function (r) {
-        /* Whichever consent flags this firmware's ACR client reads. A flag
-           withdrawn takes its agreements with it, and with them any other
-           flag resting on them, counted in alsoChanged. */
-        privacy.acrConsentKeys(function (keys) {
-          var also = 0;
-          (function next(i) {
-            if (i >= keys.length) return cb({ ok: !!(r && r.returnValue), alsoChanged: also });
-            privacy.setConsent(keys[i], acrOn, function (c) {
-              if (c && c.alsoChanged) also += c.alsoChanged;
-              next(i + 1);
-            });
-          })(0);
+      /* livePlus only where the TV has it: what its settings service does
+         with a key it never had is untried. Without it, the switch is the
+         consent flags alone. */
+      return luna('com.webos.service.settings/getSystemSettings', { category: 'option', keys: ['livePlus'] }, function (have) {
+        var hasLive = !!(have && have.settings && have.settings.livePlus !== undefined);
+        var setLive = hasLive ? function (next) {
+          luna('com.webos.service.settings/setSystemSettings', {
+            category: 'option',
+            settings: { livePlus: acrOn ? 'on' : 'off' }
+          }, next);
+        } : function (next) { next(null); };
+        setLive(function (r) {
+          /* Whichever consent flags this firmware's ACR client reads. A flag
+             withdrawn takes its agreements with it, and with them any other
+             flag resting on them, counted in alsoChanged. */
+          privacy.acrConsentKeys(function (keys) {
+            var also = 0, flagOk = false;
+            (function next(i) {
+              if (i >= keys.length) return cb({ ok: hasLive ? !!(r && r.returnValue) : flagOk, alsoChanged: also });
+              privacy.setConsent(keys[i], acrOn, function (c) {
+                if (c && c.ok) flagOk = true;
+                if (c && c.alsoChanged) also += c.alsoChanged;
+                next(i + 1);
+              });
+            })(0);
+          });
         });
       });
 

@@ -3,6 +3,7 @@
  */
 
 var assert = require('assert');
+var fs = require('fs');
 var mockEnv = require('./mocks/mock-env').createMockEnv();
 mockEnv.install();
 
@@ -424,15 +425,253 @@ test('removing the list puts the tier\'s own back', function () {
   }
 });
 
-var failures = 0;
-tests.forEach(function (t) {
-  try {
-    t[1]();
-    console.log('  ✓ ' + t[0]);
-  } catch (e) {
-    failures++;
-    console.log('  ✗ ' + t[0] + '\n      ' + e.message);
-  }
+// Answers as the TV would: the model setting from configd, the switch from
+// the voice service, or "Service does not exist" where there is none.
+function micTv(support, status) {
+  var asked = [];
+  privacy.init({
+    luna: function (uri, params, cb) {
+      asked.push(uri);
+      if (uri === 'com.webos.service.voiceinput.sound/getMicSwitchStatus') {
+        return cb(status ? { returnValue: true, micSwitchStatus: status }
+                         : { returnValue: false, errorText: 'Service does not exist: com.webos.service.voiceinput.sound.' });
+      }
+      cb({ returnValue: true });
+    },
+    lunaCached: function (uri, params, ttl, cb) {
+      asked.push(uri);
+      var configs = {};
+      if (support) configs['tv.model.supportFarFieldVoice'] = support;
+      cb({ returnValue: true, configs: configs });
+    }
+  });
+  return asked;
+}
+
+test('the microphone switch is read on a TV that has one', function () {
+  micTv('on with switch', 'high');
+  var got;
+  privacy.readMicSwitch(function (m) { got = m; });
+  assert.strictEqual(got.on, true);
+  assert.ok(got.label && got.detail);
+  micTv('on with switch', 'low');
+  privacy.readMicSwitch(function (m) { got = m; });
+  assert.strictEqual(got.on, false);
 });
-mockEnv.restore();
-process.exit(failures ? 1 : 0);
+
+test('a TV without the switch shows nothing and is not asked for one', function () {
+  var asked = micTv(null, null);
+  var got = 'unset';
+  privacy.readMicSwitch(function (m) { got = m; });
+  assert.strictEqual(got, null);
+  assert.strictEqual(asked.indexOf('com.webos.service.voiceinput.sound/getMicSwitchStatus'), -1);
+});
+
+test('an answer that is not high or low shows nothing', function () {
+  micTv('on with switch', null);
+  var got = 'unset';
+  privacy.readMicSwitch(function (m) { got = m; });
+  assert.strictEqual(got, null);
+  micTv('on with switch', 'unknown');
+  privacy.readMicSwitch(function (m) { got = m; });
+  assert.strictEqual(got, null);
+});
+
+
+// The bus's service files as a CX and a C5 have them: acr2 and admanager
+// started on demand, the voice service not listed.
+var pathMod = require('path');
+var busDir = pathMod.join(__dirname, 'fixtures', 'bus-cx');
+privacy._setBusDir(busDir);
+var PS_NONE = 'COMMAND\n/usr/sbin/tvpowerd\n/usr/bin/node /media/developer/tvweb.js\n';
+var PS_BOTH = PS_NONE + '/usr/sbin/acr2\n/usr/sbin/admanager --flag\n';
+
+test('a service is taken as started by a call only where the bus starts it on demand and it is not running', function () {
+  assert.strictEqual(privacy.wouldStart('com.webos.service.acr', PS_NONE), true);
+  assert.strictEqual(privacy.wouldStart('com.webos.service.acr', PS_BOTH), false);
+  assert.strictEqual(privacy.wouldStart('com.webos.service.admanager', PS_BOTH), false);
+  assert.strictEqual(privacy.wouldStart('com.webos.service.tvpower', PS_NONE), false, 'not on demand');
+  assert.strictEqual(privacy.wouldStart('com.webos.service.voiceinput.sound', PS_NONE), false, 'not listed');
+});
+
+// A TV answering luna calls from answers, with ps reading psText; asked
+// collects every uri called.
+function busTv(psText, answers, services) {
+  var asked = [];
+  var answer = function (uri, params, cb) {
+    asked.push(uri);
+    var a = answers[uri];
+    cb(typeof a === 'function' ? a(params) : (a || { returnValue: true }));
+  };
+  privacy.init({
+    luna: answer,
+    lunaCached: function (uri, params, ttl, cb) { answer(uri, params, cb); },
+    lgSettings: { collect: function (section, cb) { cb({ rows: [] }); } },
+    config: { allowControl: true },
+    services: services || { available: function () { return false; }, isDisabled: function () { return false; } }
+  });
+  privacy._setPs(function (cb) { cb(psText); });
+  privacy.clearCache();
+  return asked;
+}
+var LMT_URI = 'com.webos.settingsservice/getSystemSettings';
+function askedOf(asked, re) { return asked.filter(function (u) { return re.test(u); }); }
+
+test('the privacy panel does not ask a stopped ACR or ad service, and reads Limit ad tracking from the setting', function () {
+  var lmtAnswer = { returnValue: true, settings: { lmt: 'off' } };
+  var got;
+  var asked = busTv(PS_NONE, (function () { var a = {}; a[LMT_URI] = lmtAnswer; return a; })());
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.deepEqual(askedOf(asked, /service\.(acr|admanager)\//), []);
+  assert.strictEqual(got.acr.active, false);
+  assert.strictEqual(got.acr.stopped, true);
+  assert.strictEqual(got.acr.captureState, 'stopped');
+  assert.strictEqual(got.advertisingId.available, false);
+  assert.strictEqual(got.advertisingId.stopped, true);
+  assert.strictEqual(got.advertisingId.lmtKnown, true);
+  assert.strictEqual(got.advertisingId.limitTracking, false);
+  var ads = got.simple.areas.filter(function (a) { return a.id === 'ads'; })[0];
+  assert.ok(ads.items.some(function (i) { return i.action === 'limitAdTracking'; }), 'Limit ad tracking off is still counted');
+});
+
+test('a process that only names a daemon in its arguments is not the daemon running', function () {
+  // An SSH session grepping for acr2 is in ps while the panel reads it.
+  busTv(PS_NONE + 'sh -c ps -eo args | grep -c "^/usr/sbin/acr2"\ngrep /usr/sbin/admanager\n', {});
+  var got;
+  privacy.collectPrivacy(function (p) { got = p; });
+  var acr2 = got.daemons.filter(function (d) { return d.name === 'acr2'; })[0];
+  assert.strictEqual(acr2.running, false);
+  assert.strictEqual(got.acr.running, false);
+  assert.strictEqual(got.acr.stopped, true);
+  busTv(PS_BOTH, {});
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.strictEqual(got.daemons.filter(function (d) { return d.name === 'acr2'; })[0].running, true, 'and the daemon itself is');
+});
+
+test('the privacy panel asks both services while they run', function () {
+  var asked = busTv(PS_BOTH, {
+    'com.webos.service.acr/getACRSolutionStatus': { returnValue: true, ACRSolutionStatus: true },
+    'com.webos.service.acr/getVideoCaptureStatus': { returnValue: true, status: 'capturing' },
+    'com.webos.service.admanager/getAdid': { returnValue: true, IFA: 'x', LMT: 'on' }
+  });
+  var got;
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.strictEqual(askedOf(asked, /service\.(acr|admanager)\//).length, 3);
+  assert.strictEqual(got.acr.active, true);
+  assert.strictEqual(got.acr.capturing, true);
+  assert.ok(!got.acr.stopped);
+  assert.strictEqual(got.advertisingId.present, true);
+  assert.ok(!got.advertisingId.stopped);
+});
+
+test('resetting the ID or clearing cookies does not start a stopped ad service', function () {
+  var asked = busTv(PS_NONE, {});
+  var r1, r2;
+  privacy.resetAdId(function (r) { r1 = r; });
+  privacy.clearAdCookies(function (r) { r2 = r; });
+  assert.strictEqual(r1.ok, false);
+  assert.strictEqual(r2.ok, false);
+  assert.deepEqual(askedOf(asked, /admanager/), []);
+});
+
+test('Limit ad tracking is not written on a TV without the setting', function () {
+  var none = {};
+  none[LMT_URI] = { returnValue: false, errorText: 'There is no matched result from DB' };
+  var asked = busTv(PS_BOTH, none);
+  var got;
+  privacy.setLimitTracking(true, function (r) { got = r; });
+  assert.strictEqual(got.ok, false);
+  assert.deepEqual(askedOf(asked, /setSystemSettings/), []);
+});
+
+test('with the ad service stopped, Limit ad tracking is checked from the setting', function () {
+  var lmt = 'off';
+  var a = {};
+  a[LMT_URI] = function () { return { returnValue: true, settings: { lmt: lmt } }; };
+  a['com.webos.settingsservice/setSystemSettings'] = function (p) { lmt = p.settings.lmt; return { returnValue: true }; };
+  var asked = busTv(PS_NONE, a);
+  var got;
+  privacy.setLimitTracking(true, function (r) { got = r; });
+  assert.deepEqual(got, { ok: true, limitTracking: true });
+  assert.deepEqual(askedOf(asked, /admanager/), []);
+});
+
+test('the microphone switch is read only on a TV that names one exactly, and never by starting the voice service', function () {
+  ['on', 'off', 'on without switch', 'with switch'].forEach(function (support) {
+    var asked = micTv(support, 'high');
+    var got = 'unset';
+    privacy.readMicSwitch(function (m) { got = m; }, PS_NONE);
+    assert.strictEqual(got, null, support);
+    assert.deepEqual(askedOf(asked, /voiceinput/), [], support);
+  });
+  privacy._setBusDir(pathMod.join(__dirname, 'fixtures', 'bus-voice'));
+  var asked2 = micTv('on with switch', 'high');
+  var got2 = 'unset';
+  privacy.readMicSwitch(function (m) { got2 = m; }, PS_NONE);
+  assert.strictEqual(got2, null);
+  assert.deepEqual(askedOf(asked2, /voiceinput/), []);
+  privacy.readMicSwitch(function (m) { got2 = m; }, PS_NONE + '/usr/sbin/voiceinput\n');
+  assert.strictEqual(got2.on, true, 'asked while it runs');
+  privacy._setBusDir(busDir);
+});
+
+
+test('the diagnostics daemons are stoppable and kept off as the background services switch has them', function () {
+  var services = {
+    available: function (id) { return id === 'uploadd' || id === 'rdxd'; },
+    isDisabled: function (id) { return id === 'rdxd'; }
+  };
+  busTv(PS_NONE + '/usr/sbin/uploadd -d\n', {}, services);
+  var got;
+  privacy.collectPrivacy(function (p) { got = p; });
+  var by = {};
+  got.daemons.forEach(function (d) { by[d.name] = d; });
+  assert.deepEqual([by.uploadd.running, by.uploadd.stoppable, by.uploadd.heldDown], [true, true, false]);
+  assert.deepEqual([by.rdxd.running, by.rdxd.stoppable, by.rdxd.heldDown], [false, true, true]);
+  assert.strictEqual(by.acr2.stoppable, false, 'started on demand, not stoppable');
+  var reports = got.simple.areas.filter(function (a) { return a.id === 'reports'; })[0];
+  assert.deepEqual(reports.items.map(function (i) { return i.service; }), ['uploadd']);
+});
+
+
+test('ACR reports its consents and its service separately', function () {
+  mockEnv.files['/var/luna/preferences/eula'] = '{"eulaStatus":{"acrAllowed":false,"cookiesAllowed":true}}';
+  var a = {};
+  a[LMT_URI] = function (p) { return p.category === 'option' ? { returnValue: true, settings: { livePlus: 'off' } } : { returnValue: true, settings: { lmt: 'on' } }; };
+  busTv(PS_NONE, a);
+  var got;
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.deepEqual([got.acr.livePlus, got.acr.consentOn, got.acr.running], [false, false, false]);
+  assert.deepEqual(got.acr.consents.map(function (c) { return c.key + ':' + c.on; }), ['acrAllowed:false']);
+
+  a[LMT_URI] = function (p) { return p.category === 'option' ? { returnValue: true, settings: { livePlus: 'on' } } : { returnValue: true, settings: { lmt: 'on' } }; };
+  busTv(PS_NONE, a);
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.deepEqual([got.acr.livePlus, got.acr.consentOn, got.acr.running], [true, true, false]);
+  var watching = got.simple.areas.filter(function (x) { return x.id === 'watching'; })[0];
+  assert.ok(watching.items.some(function (i) { return i.action === 'acr' && i.value === false; }), 'Live Plus on is counted');
+
+  a[LMT_URI] = { returnValue: false, errorText: 'There is no matched result from DB' };
+  busTv(PS_BOTH, a);
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.deepEqual([got.acr.livePlus, got.acr.consentOn, got.acr.running], [null, false, true]);
+  delete mockEnv.files['/var/luna/preferences/eula'];
+});
+
+// The ACR consent keys are read once, from acr2's binary; read them first so
+// the panel's collection completes in step.
+privacy._setAcrBinary(pathMod.join(__dirname, 'fixtures', 'no-acr2'));
+privacy.acrConsentKeys(function () {
+  var failures = 0;
+  tests.forEach(function (t) {
+    try {
+      t[1]();
+      console.log('  ✓ ' + t[0]);
+    } catch (e) {
+      failures++;
+      console.log('  ✗ ' + t[0] + '\n      ' + e.message);
+    }
+  });
+  mockEnv.restore();
+  process.exit(failures ? 1 : 0);
+});
