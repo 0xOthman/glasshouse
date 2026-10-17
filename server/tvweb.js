@@ -387,6 +387,12 @@ function loadConfig() {
   }
 }
 loadConfig();
+// A diagnostic for a TV that restarts itself (#746): each luna call logged as
+// it starts and ends. File-only, and off unless asked for.
+if (CONFIG.logCalls === true) {
+  lunaTransport.setLogCalls(true);
+  console.log('config: logCalls on - each luna call is logged and flushed to disk');
+}
 
 // Old config keys folded or preserved on upgrade.
 (function migrateConfigFile() {
