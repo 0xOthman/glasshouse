@@ -1334,8 +1334,18 @@ button.tools-jump:active{background:var(--w80)}
   .tools-toolbar-grp{flex-direction:column;align-items:flex-start;gap:6px}
 }
 /* Quick Access: the key's number before what it opens. */
-.qa-key{display:inline-block;min-width:1.4em;font-family:'Outfit';font-weight:300;font-size:20px;color:var(--w100);margin-right:6px}
-.qa-sel{max-width:240px}
+/* Quick Access: the remote's number pad, three keys to a row everywhere. */
+.rk-grid.qa-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:18px}
+.qa-num{font-family:'Outfit';font-weight:300;font-size:26px;line-height:1;color:var(--w100)}
+.qa-key-tile .rk-does{width:100%}
+.qa-note{font-size:12px;color:var(--w60);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Three to a row on a phone leaves no room beside the icon: the name goes
+   under it and wraps rather than being cut short. */
+@media (max-width:560px){
+  .qa-key-tile{padding:12px}
+  .qa-key-tile .rk-does{flex-direction:column;align-items:flex-start;gap:6px;font-size:13px}
+  .qa-key-tile .rk-does span:last-child{white-space:normal;overflow-wrap:break-word}
+}
 
 /* ---- Remote keys (apps.js): a tile per key, grouped as on the remote ---- */
 #apps-rk-list{margin-top:4px}

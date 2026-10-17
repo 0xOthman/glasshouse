@@ -69,9 +69,9 @@ On webOS 10 the section has a switch at the top, with its warning, and nothing i
 
 ### Quick Access
 
-![Quick Access, number keys 1 to 9, each with what it opens and a list to change it](../screenshots/apps-quick-access.png)
+![Quick Access, number keys 1 to 9, each with what it opens](../screenshots/apps-quick-access.png)
 
-Sets what each number key on the remote opens when it is held: an installed app, an HDMI input or Live TV, for keys 1 to 9. Holding 0 shows the list on the TV. A change applies straight away, the same as changing it in the TV's own Quick Access list, which shows it too.
+Sets what each number key on the remote opens when it is held: an installed app, an HDMI input or Live TV, for keys 1 to 9. The keys are tiles laid out as the remote's number pad, each showing what it opens; choosing one opens the choices under its row, as for Remote keys. Holding 0 shows the list on the TV. A change applies straight away, the same as changing it in the TV's own Quick Access list, which shows it too.
 
 **None** leaves a key opening nothing, including one LG set itself, such as its help on 9. A key LG set for an app that is not installed, as it does for some regions' channel apps, shows as **App not installed**, with the app's id beneath. A key set to a live TV channel on the TV shows the channel, and can be changed here but not set to another channel. The TV app lists the keys without changing them.
 
