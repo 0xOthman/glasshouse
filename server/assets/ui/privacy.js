@@ -97,9 +97,22 @@ async function loadPrivacy() {
      * green is it not. The description says what the row is, never what the
      * pill beside it already says.
      */
+    // Allowed and running are separate checks: on a CX with Live Plus off acr2
+    // was not running after boot, yet one question started it, and it then ran
+    // idle until stopped.
+    const allowedBy = [].concat(a.livePlus === null || a.livePlus === undefined ? [] : [t('pv.acr.livePlus', 'Live Plus')],
+      (a.consents || []).map(c => c.label));
+    const svc = a.active ? ['warn', t('pv.acr.recognizing', 'Recognizing')]
+      : a.running ? ['idle', t('pv.acr.idle', 'Running, idle')]
+      : ['good', t('pv.notRunning', 'Not running')];
     q('pv-live').innerHTML =
-      pvRow(esc(t('pv.acr', 'Content recognition')), esc(t('pv.acr.desc', 'LG\u2019s ACR captures what\u2019s on your screen to target ads at you.')),
-          `<span class="pill ${a.active ? 'warn' : 'good'}">${esc(a.active ? t('pv.running', 'Running') : t('pv.notRunning', 'Not running'))}</span>`) +
+      pvRow(esc(t('pv.acr.consents', 'Recognition consents')),
+          esc(allowedBy.length ? t('pv.acr.consents.desc', 'Whether LG\u2019s ACR is allowed: {names}.', { names: allowedBy.join(', ') })
+                               : t('pv.acr.consents.none', 'This TV has none of the switches LG\u2019s ACR reads.')),
+          `<span class="pill ${a.consentOn ? 'warn' : 'good'}">${esc(a.consentOn ? t('common.on', 'On') : t('common.off', 'Off'))}</span>`) +
+      pvRow(esc(t('pv.acr.service', 'Recognition service')),
+          esc(t('pv.acr.service.desc', 'LG\u2019s ACR program, acr2, which captures what\u2019s on your screen to target ads at you. Anything that asks it a question starts it.')),
+          `<span class="pill ${svc[0]}">${esc(svc[1])}</span>`) +
       pvRow(esc(t('pv.capture', 'Screen capturing')), esc(t('pv.capture.desc', 'Sampling frames from the screen for recognition.')),
           `<span class="pill ${a.capturing ? 'warn' : 'good'}">${esc(a.capturing ? t('pv.capturing', 'Capturing') : t('pv.stopped', 'Stopped'))}</span>`);
 

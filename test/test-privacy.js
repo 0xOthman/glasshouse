@@ -619,15 +619,45 @@ test('the diagnostics daemons are stoppable and kept off as the background servi
   assert.deepEqual(reports.items.map(function (i) { return i.service; }), ['uploadd']);
 });
 
-var failures = 0;
-tests.forEach(function (t) {
-  try {
-    t[1]();
-    console.log('  ✓ ' + t[0]);
-  } catch (e) {
-    failures++;
-    console.log('  ✗ ' + t[0] + '\n      ' + e.message);
-  }
+
+test('ACR reports its consents and its service separately', function () {
+  mockEnv.files['/var/luna/preferences/eula'] = '{"eulaStatus":{"acrAllowed":false,"cookiesAllowed":true}}';
+  var a = {};
+  a[LMT_URI] = function (p) { return p.category === 'option' ? { returnValue: true, settings: { livePlus: 'off' } } : { returnValue: true, settings: { lmt: 'on' } }; };
+  busTv(PS_NONE, a);
+  var got;
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.deepEqual([got.acr.livePlus, got.acr.consentOn, got.acr.running], [false, false, false]);
+  assert.deepEqual(got.acr.consents.map(function (c) { return c.key + ':' + c.on; }), ['acrAllowed:false']);
+
+  a[LMT_URI] = function (p) { return p.category === 'option' ? { returnValue: true, settings: { livePlus: 'on' } } : { returnValue: true, settings: { lmt: 'on' } }; };
+  busTv(PS_NONE, a);
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.deepEqual([got.acr.livePlus, got.acr.consentOn, got.acr.running], [true, true, false]);
+  var watching = got.simple.areas.filter(function (x) { return x.id === 'watching'; })[0];
+  assert.ok(watching.items.some(function (i) { return i.action === 'acr' && i.value === false; }), 'Live Plus on is counted');
+
+  a[LMT_URI] = { returnValue: false, errorText: 'There is no matched result from DB' };
+  busTv(PS_BOTH, a);
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.deepEqual([got.acr.livePlus, got.acr.consentOn, got.acr.running], [null, false, true]);
+  delete mockEnv.files['/var/luna/preferences/eula'];
 });
-mockEnv.restore();
-process.exit(failures ? 1 : 0);
+
+// The ACR consent keys are read once, from acr2's binary; read them first so
+// the panel's collection completes in step.
+privacy._setAcrBinary(pathMod.join(__dirname, 'fixtures', 'no-acr2'));
+privacy.acrConsentKeys(function () {
+  var failures = 0;
+  tests.forEach(function (t) {
+    try {
+      t[1]();
+      console.log('  ✓ ' + t[0]);
+    } catch (e) {
+      failures++;
+      console.log('  ✗ ' + t[0] + '\n      ' + e.message);
+    }
+  });
+  mockEnv.restore();
+  process.exit(failures ? 1 : 0);
+});

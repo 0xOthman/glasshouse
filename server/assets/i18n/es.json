@@ -2247,13 +2247,37 @@
   "text": "No se pudo alcanzar la TV. Comprueba que el teléfono está en la misma red.",
   "from": "Could not reach the TV. Check your phone is on the same network."
  },
- "pv.acr": {
-  "text": "Reconocimiento de contenido",
-  "from": "Content recognition"
+ "pv.acr.consents": {
+  "text": "Consentimientos de reconocimiento",
+  "from": "Recognition consents"
  },
- "pv.acr.desc": {
-  "text": "El ACR de LG captura lo que hay en tu pantalla para dirigirte anuncios.",
-  "from": "LG’s ACR captures what’s on your screen to target ads at you."
+ "pv.acr.consents.desc": {
+  "text": "Si el ACR de LG está permitido: {names}.",
+  "from": "Whether LG’s ACR is allowed: {names}."
+ },
+ "pv.acr.consents.none": {
+  "text": "Este televisor no tiene ninguno de los ajustes que lee el ACR de LG.",
+  "from": "This TV has none of the switches LG’s ACR reads."
+ },
+ "pv.acr.idle": {
+  "text": "En ejecución, inactivo",
+  "from": "Running, idle"
+ },
+ "pv.acr.livePlus": {
+  "text": "Live Plus",
+  "from": "Live Plus"
+ },
+ "pv.acr.recognizing": {
+  "text": "Reconociendo",
+  "from": "Recognizing"
+ },
+ "pv.acr.service": {
+  "text": "Servicio de reconocimiento",
+  "from": "Recognition service"
+ },
+ "pv.acr.service.desc": {
+  "text": "El programa ACR de LG, acr2, que captura lo que hay en tu pantalla para dirigirte anuncios. Cualquier cosa que le haga una pregunta lo inicia.",
+  "from": "LG’s ACR program, acr2, which captures what’s on your screen to target ads at you. Anything that asks it a question starts it."
  },
  "pv.adblock": {
   "text": "Bloqueador de anuncios y telemetría",
@@ -4507,6 +4531,10 @@
   "text": "Se pueden alcanzar los servidores de publicidad y seguimiento de LG",
   "from": "LG’s ad and tracking servers can be reached"
  },
+ "srv.privacy.item.livePlus": {
+  "text": "Live Plus está activado",
+  "from": "Live Plus is on"
+ },
  "srv.privacy.item.lmt": {
   "text": "El límite de seguimiento publicitario está desactivado",
   "from": "Limit ad tracking is off"
@@ -6034,6 +6062,10 @@
  "tv.privacy.acr.hint": {
   "text": "El ACR de LG capta lo que hay en pantalla, tanto de apps como de HDMI, para deducir qué ves y dirigirte anuncios.",
   "from": "LG’s ACR captures what is on screen, from apps and HDMI alike, to work out what you watch and target ads at you."
+ },
+ "tv.privacy.acrService.hint": {
+  "text": "acr2, el programa de reconocimiento de LG. El televisor lo inicia al arrancar, y cualquier cosa que le haga una pregunta lo vuelve a iniciar.",
+  "from": "acr2, LG’s recognition program. The TV starts it at boot, and anything that asks it a question starts it again."
  },
  "tv.privacy.adsTelemetry.hint": {
   "text": "Bloquea direcciones de publicidad, seguimiento y diagnóstico de LG. La app store y las actualizaciones de software siguen funcionando.",

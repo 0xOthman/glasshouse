@@ -946,11 +946,18 @@ function privacyRows(d) {
   if (d.acr) {
     r.push(head(t('tv.privacy.head.screenContentRecognition', 'Screen content recognition')));
     var canAcr = d.consentWritable !== false;
+    // The switch follows what allows ACR (Live Plus and its consents), not
+    // whether acr2 happens to be running; the service is its own row.
+    var acrOn = !!d.acr.consentOn;
     r.push({ label: d.acr.label || t('tv.privacy.acr', 'Screen content recognition'),
-             value: d.acr.active ? t('metrics.hdmi.active', 'Active') : t('common.off', 'Off'), cls: d.acr.active ? 'off' : 'on',
-             act: canAcr ? 'acr' : null, on: d.acr.active,
-             press: d.acr.active ? t('tv.press.switchOff', 'Press OK to switch off') : t('tv.press.switchOn', 'Press OK to switch on'),
+             value: acrOn ? t('common.on', 'On') : t('common.off', 'Off'), cls: acrOn ? 'off' : 'on',
+             act: canAcr ? 'acr' : null, on: acrOn,
+             press: acrOn ? t('tv.press.switchOff', 'Press OK to switch off') : t('tv.press.switchOn', 'Press OK to switch on'),
              hint: t('tv.privacy.acr.hint', 'LG’s ACR captures what is on screen, from apps and HDMI alike, to work out what you watch and target ads at you.') });
+    r.push({ label: t('pv.acr.service', 'Recognition service'),
+             value: d.acr.active ? t('pv.acr.recognizing', 'Recognizing') : d.acr.running ? t('pv.acr.idle', 'Running, idle') : t('pv.notRunning', 'Not running'),
+             cls: d.acr.active ? 'off' : d.acr.running ? '' : 'on',
+             hint: t('tv.privacy.acrService.hint', 'acr2, LG’s recognition program. The TV starts it at boot, and anything that asks it a question starts it again.') });
     if (d.acr.captureState)
       r.push({ label: t('tv.privacy.capture', 'Capture'), value: d.acr.capturing ? t('pv.capturing', 'Capturing') : t('pv.stopped', 'Stopped'),
                cls: d.acr.capturing ? 'off' : 'on',

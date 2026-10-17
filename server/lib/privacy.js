@@ -1086,6 +1086,28 @@ function readMicSwitch(cb, ps) {
   });
 }
 
+/*
+ * ACR as two separate checks: whether it is allowed (Live Plus, and the
+ * consent flags this firmware's acr2 reads) and whether acr2 runs. They
+ * differ: on a CX (webOS 5.6.2) with Live Plus off, acr2 was not running
+ * 15 hours after boot, yet one status query started it and it ran, idle,
+ * until stopped. livePlus is null where the TV has no such setting.
+ */
+function acrSwitch(acr, consent, daemons, cb) {
+  acr.running = (daemons || []).some(function (d) { return d.name === 'acr2' && d.running; });
+  var flags = consent ? (consent.known || []).concat(consent.other || []) : [];
+  acrConsentKeys(function (keys) {
+    acr.consents = flags.filter(function (f) { return keys.indexOf(f.key) !== -1; })
+      .map(function (f) { return { key: f.key, label: f.label || f.key, on: !!f.enabled }; });
+    luna('com.webos.settingsservice/getSystemSettings', { category: 'option', keys: ['livePlus'] }, function (r) {
+      var v = r && r.settings && r.settings.livePlus;
+      acr.livePlus = v === undefined || v === null ? null : String(v).toLowerCase() === 'on';
+      acr.consentOn = acr.livePlus === true || acr.consents.some(function (c) { return c.on; });
+      cb();
+    });
+  });
+}
+
 function collectPrivacy(cb) {
   var now = Date.now();
   if (cachedPrivacy && (now - lastPrivacyCheck < 20000)) return cb(cachedPrivacy);
@@ -1144,16 +1166,18 @@ function collectPrivacy(cb) {
                   out.advertisingId.lmtKnown = true;
                 }
               }
-              readMicSwitch(function (mic) {
-                if (mic) out.microphone = mic;
-                lgSettingsModule.collect('promotions', function (ls) {
-                  out.lgSettings = ls.rows;
-                  out.simple = simpleSummary(out);
-                  cachedPrivacy = out;
-                  lastPrivacyCheck = Date.now();
-                  cb(out);
-                });
-              }, ps);
+              acrSwitch(out.acr, out.consent, daemons, function () {
+                readMicSwitch(function (mic) {
+                  if (mic) out.microphone = mic;
+                  lgSettingsModule.collect('promotions', function (ls) {
+                    out.lgSettings = ls.rows;
+                    out.simple = simpleSummary(out);
+                    cachedPrivacy = out;
+                    lastPrivacyCheck = Date.now();
+                    cb(out);
+                  });
+                }, ps);
+              });
             });
           });
         });
@@ -1187,8 +1211,9 @@ function simpleSummary(p) {
   var mode = (p.adblock && p.adblock.mode) || 'off';
 
   var watching = onIn('watching');
-  if (p.acr && p.acr.active && writable) {
-    watching.push({ label: msg('srv.privacy.item.acr', 'Content recognition is running'), action: 'acr', value: false });
+  if (p.acr && (p.acr.active || p.acr.livePlus === true) && writable) {
+    watching.push({ label: p.acr.active ? msg('srv.privacy.item.acr', 'Content recognition is running')
+                                        : msg('srv.privacy.item.livePlus', 'Live Plus is on'), action: 'acr', value: false });
   }
   var ads = onIn('advertising');
   if ((ad.available || ad.lmtKnown) && !ad.limitTracking && writable) {
