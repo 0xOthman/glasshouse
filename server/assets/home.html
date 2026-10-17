@@ -202,6 +202,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   var idleTimer = null, panelTimer = null, driftTimer = null;
   var activityAt = Date.now();
   var beatFails = 0;
+  var layoutRevision = 0, layoutBusy = false;
 
   function $(id) { return document.getElementById(id); }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -440,19 +441,26 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
    */
   var movedRows = {};
   function saveLayout(extra) {
+    layoutRevision++;
+    layoutBusy = true;
     var order = {};
     for (var kind in movedRows) order[kind] = data.order[kind];
-    movedRows = {};
     var body = { rows: layout.rows, order: order, hidden: layout.hidden };
     for (var k in extra) body[k] = extra[k];
     postJson('/api/home/layout', body, function (r) {
+      layoutBusy = false;
+      layoutRevision++;
       if (!r || !r.ok || !r.layout) return toast(t('home.arrange.saveFailed', 'Layout could not be saved'));
+      movedRows = {};
       layout = r.layout;
       toast(t('home.arrange.saved', 'Layout saved'), t('home.arrange.savedDesc', 'The dashboard\'s Home tab shows it too'));
+      load();
     });
   }
 
   function setArranging(on) {
+    if (layoutBusy) return;
+    layoutRevision++;
     // The focus stays on the same item as hidden tiles appear or go.
     var kind = rowKey(), cur = items(kind)[colOf(kind)];
     state.arranging = on;
@@ -498,11 +506,17 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   }
 
   function resetLayout() {
+    if (layoutBusy) return;
+    layoutRevision++;
+    layoutBusy = true;
     postJson('/api/home/layout', { reset: true }, function (r) {
+      layoutBusy = false;
+      layoutRevision++;
       if (!r || !r.ok || !r.layout) return toast(t('home.arrange.resetFailed', 'Layout could not be reset'));
+      movedRows = {};
       layout = r.layout;
       state.row = 0; state.col = {}; state.held = false;
-      load(function () { toast(t('home.arrange.resetDone', 'Layout reset'), t('home.arrange.resetDesc', 'Apps, Inputs, then Channels, in their first order')); });
+      load(function () { render(); toast(t('home.arrange.resetDone', 'Layout reset'), t('home.arrange.resetDesc', 'Apps, Inputs, then Channels, in their first order')); }, true);
     });
   }
 
@@ -696,9 +710,13 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 
   // ---------------------------------------------------------------- data
 
-  function load(cb) {
+  function load(cb, whileArranging) {
+    if (layoutBusy || (state.arranging && !whileArranging)) return;
+    var revision = layoutRevision;
     getJson('/api/home/catalogue', function (r) {
       if (!r || !r.ok) return cb && cb(false);
+      // A reply sent before arranging or saving must not replace local edits.
+      if (revision !== layoutRevision || layoutBusy || (state.arranging && !whileArranging)) return;
       data = r;
       layout = r.layout;
       if (!state.arranging) render();
@@ -743,7 +761,10 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         beatFails = 0;
         $('fault').className = '';
         // A new release of the server: the page is the old one's until reloaded.
-        if (build && r.build && r.build !== build && !state.arranging) location.reload();
+        if (build && r.build && r.build !== build) {
+          if (!state.arranging && !layoutBusy) location.reload();
+          return;
+        }
         build = r.build || build;
         return;
       }

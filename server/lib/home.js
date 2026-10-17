@@ -723,14 +723,33 @@ function install(cb) {
 function remove(cb) {
   if (readConfig().enabled) return cb({ ok: false, error: msg('srv.home.removeWhileOn', 'Switch Glasshouse Home off before removing its app') });
   if (!installFn) return cb({ ok: false, error: msg('srv.home.cannotRemove', 'the app could not be removed') });
-  installFn('remove', function () {
-    homeInstalled = null;
-    appInstalled(function (now) {
-      if (now === true) return cb({ ok: false, error: msg('srv.home.cannotRemove', 'the app could not be removed') });
-      console.log('home: app removed');
-      cb({ ok: true, installed: false });
+  readSettings(['defaultApps', 'lastInputApp', 'physicalLastInputApp'], function (s) {
+    if (!s || !s.defaultApps) return cb({ ok: false, error: msg('srv.home.cannotRemove', 'the app could not be removed') });
+    if (s.defaultApps.home === HOME_APP || s.defaultApps.idleApp === HOME_APP ||
+        s.lastInputApp === HOME_APP || s.physicalLastInputApp === HOME_APP) {
+      return cb({ ok: false, error: msg('srv.home.removeStillTarget', 'Restore LG Home before removing the app; the TV still names Glasshouse Home as Home or its start-up app') });
+    }
+    removeApp(cb);
+  });
+}
+
+function removeApp(cb) {
+  // A failed switch-off may have left the compositor targeting this app.
+  setHomeKeyFn('', function (k) {
+    if (!k || !k.ok) return cb(homeKeyRestoreError());
+    installFn('remove', function () {
+      homeInstalled = null;
+      appInstalled(function (now) {
+        if (now !== false) return cb({ ok: false, error: msg('srv.home.cannotRemove', 'the app could not be removed') });
+        console.log('home: app removed');
+        cb({ ok: true, installed: false });
+      });
     });
   });
+}
+
+function homeKeyRestoreError() {
+  return { ok: false, error: msg('srv.home.keyRestoreFailed', 'the TV would not give the Home button back to LG; try switching Glasshouse Home off again') };
 }
 
 /*
@@ -749,7 +768,10 @@ function disable(cb) {
   stopGuard();
   setHomeKeyFn('', function (k) {
     if (!k || !k.ok) console.error('home: could not give the Home key back to LG\'s filters');
-    restoreAll(c, cb);
+    // Restore the other settings even when configd refuses the Home key.
+    restoreAll(c, function (r) {
+      cb(r.ok && (!k || !k.ok) ? homeKeyRestoreError() : r);
+    });
   });
 }
 
@@ -824,18 +846,17 @@ function reassert() {
   if (guardOn) readConfig();
   if (!guardOn) return;
   luna('com.webos.applicationManager/getAppInfo', { id: HOME_APP }, function (info) {
-    if (!info || typeof info.returnValue !== 'boolean') return;
+    if (!guardOn || !info || typeof info.returnValue !== 'boolean') return;
     homeInstalled = info.returnValue;
+    if (!info.returnValue) {
+      console.error('home: the Glasshouse Home app is not installed; restoring LG\'s Home');
+      return change(disable, function (r) {
+        if (!r.ok) console.error('home: ' + r.error);
+      });
+    }
     readSettings(['defaultApps'], function (s) {
       if (!guardOn || !s || !s.defaultApps || typeof s.defaultApps !== 'object') return;
       var apps = copy(s.defaultApps);
-      if (!info.returnValue) {
-        if (apps.home !== HOME_APP && apps.idleApp !== HOME_APP) return;
-        if (apps.home === HOME_APP) delete apps.home;
-        if (apps.idleApp === HOME_APP) delete apps.idleApp;
-        console.error('home: the Glasshouse Home app is not installed; LG\'s Home is Home again');
-        return writeSettings({ defaultApps: apps }, function () {});
-      }
       if (apps.home === HOME_APP) return;
       apps.home = HOME_APP;
       console.log('home: defaultApps.home was ' + (s.defaultApps.home || 'unset') + ', set back');

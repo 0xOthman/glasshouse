@@ -306,13 +306,25 @@ step(function (next) {
     assert.strictEqual(f.handle(2001, true, false), 'accepted');
     assert.strictEqual(f.handle(2001, false, false), 'accepted');
     assert.deepEqual(f.launched.map(function (l) { return l.id; }), ['com.tvweb.home']);
+    var unlink = fs.unlinkSync;
+    fs.unlinkSync = function (file) {
+      if (file !== MAP) return unlink.apply(fs, arguments);
+      var err = new Error('permission denied');
+      err.code = 'EACCES';
+      throw err;
+    };
     rk.setHome('', guard(function (s2) {
-      assert.strictEqual(s2.ok, true);
-      assert.strictEqual(tv.keys.home, undefined);
-      f.tell(tv.keys);
-      assert.strictEqual(f.handle(2001, true, false), 'next');
-      console.log('  \u2713 Glasshouse Home takes the Home key while it sets it, and gives it back to LG\'s filters');
-      next();
+      fs.unlinkSync = unlink;
+      assert.strictEqual(s2.ok, false, 'a persisted Home override that could not be deleted is not a successful clear');
+      assert.strictEqual(tv.keys.home, 'com.tvweb.home');
+      rk.setHome('', guard(function (s3) {
+        assert.strictEqual(s3.ok, true);
+        assert.strictEqual(tv.keys.home, undefined);
+        f.tell(tv.keys);
+        assert.strictEqual(f.handle(2001, true, false), 'next');
+        console.log('  \u2713 Glasshouse Home gives the Home key back, and reports a failed save without claiming it was cleared');
+        next();
+      }));
     }));
   }));
 });

@@ -63,6 +63,8 @@ menus. Uninstalling the dashboard leaves them as they are.
 
 Glasshouse Home saves its enabled state before changing the TV's Home. Its settings writes run in order, so switching off restores the snapshot after pending guard writes finish. A late screen-saver read cannot change the restored value.
 
+Switching Glasshouse Home off reports a Home-key restore failure, including a saved mapping that could not be deleted. App removal is refused until the key and Home and start-up settings no longer target it, and is confirmed only after the TV reports the app absent. A missing app found by the guard switches the feature off and restores its saved settings and Home key.
+
 ## Network
 
 The dashboard listens dual-stack on port 8080 (IPv4-only on a kernel without

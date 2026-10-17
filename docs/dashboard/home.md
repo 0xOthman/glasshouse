@@ -26,6 +26,8 @@ Before Glasshouse Home's app is on the TV the tab offers only **Install Glasshou
 
 While a switch or installation is in progress, further changes are refused with a retry message. A failed save is reported before changing the TV's Home. Switching off waits for pending settings writes before restoring the saved values.
 
+A failed Home-button restore is reported even when the other settings were restored. Removing the app first checks that neither the Home button nor the TV's Home and start-up settings still target it. If the app is removed elsewhere, the guard switches Glasshouse Home off and restores LG's settings and Home button.
+
 Three ways lead back to LG's Home without switching anything off:
 
 * the **LG Home** tile;
@@ -45,5 +47,7 @@ Over SSH, `tvwebctl restore-glasshouse-home` does what **Use LG Home** does. Swi
 The rows and tiles can be moved and hidden here, or on the TV by holding **OK** on Glasshouse Home. Both change the same layout. On the TV, OK picks a tile up or puts it down; while it is held, left and right move it, up and down move its row, and **Back** hides or shows it. **Reset** and **Done** are in the bar at the bottom. Hidden tiles show, dimmed, while arranging.
 
 The view confirms a save or reset only after the server accepts it, and reports a failure otherwise.
+
+A catalogue reply arriving during arranging cannot replace the edits. Reset leaves the Apps row following its default order. A server update waits until arranging and saving finish before reloading the view.
 
 ![Arranging on the TV: YouTube picked up, with the bar for hiding, resetting and finishing](../screenshots/home-arrange.jpg)

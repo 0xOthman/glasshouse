@@ -275,6 +275,67 @@ step('switching on points the Home key at Glasshouse Home, and switching off giv
   });
 });
 
+step('a failed key or settings restore prevents removal until LG Home is restored', function (done) {
+  var modes = ['key', 'settings'];
+  function run() {
+    if (!modes.length) return done();
+    start(null);
+    var mode = modes.shift(), refuse = false, removals = 0;
+    home.init({ luna: luna, liveState: liveState, stateDir: dir, webosVersion: '9.2.2',
+      setHomeKey: function (id, cb) { process.nextTick(function () { cb({ ok: !(refuse && mode === 'key') }); }); },
+      installApp: function (action, cb) { removals++; tv.homeInstalled = false; process.nextTick(cb); } });
+    interceptLuna = function (uri, p, cb) {
+      if (refuse && mode === 'settings' && /setSystemSettings$/.test(uri)) {
+        process.nextTick(function () { cb({ returnValue: false }); });
+        return true;
+      }
+      return false;
+    };
+    home.enable(function (r) {
+      assert.ok(r.ok, r.error);
+      refuse = true;
+      home.disable(function (r2) {
+        assert.strictEqual(r2.ok, false, 'an incomplete restore must report failure');
+        if (mode === 'key') assert.deepEqual(tv.settings, ORIGINAL, 'other settings restore despite the key failure');
+        home.remove(function (r3) {
+          assert.strictEqual(r3.ok, false);
+          assert.strictEqual(removals, 0, 'an app still targeted by Home or start-up must not be uninstalled');
+          refuse = false;
+          home.disable(function (r4) {
+            assert.ok(r4.ok, r4.error);
+            home.remove(function (r5) {
+              assert.ok(r5.ok, r5.error);
+              assert.strictEqual(removals, 1);
+              run();
+            });
+          });
+        });
+      });
+    });
+  }
+  run();
+});
+
+step('an app removed outside Glasshouse gives the Home key and saved settings back to LG at start', function (done) {
+  start({ enabled: true, snapshot: { takenAt: Date.now(), settings: ORIGINAL } });
+  var target = HOME_APP;
+  tv.homeInstalled = false;
+  tv.settings.defaultApps.home = HOME_APP;
+  tv.settings.lastInputApp = HOME_APP;
+  tv.settings.screenSaverEnabled = 'off';
+  home.init({ luna: luna, liveState: liveState, stateDir: dir, webosVersion: '9.2.2',
+    setHomeKey: function (id, cb) { target = id; process.nextTick(function () { cb({ ok: true }); }); } });
+  home.start();
+  wait(50, function () {
+    assert.strictEqual(home.enabled(), false);
+    assert.strictEqual(target, '');
+    assert.deepEqual(tv.settings, ORIGINAL);
+    foreground(LG_HOME);
+    assert.deepEqual(tv.launched, [], 'the guard no longer tries to launch the missing app');
+    done();
+  });
+});
+
 step('the app is added without switching anything on, and cannot be removed while on', function (done) {
   start(null);
   tv.homeInstalled = false;

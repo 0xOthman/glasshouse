@@ -171,7 +171,7 @@ function readMap() {
 
 function writeMap(map, home) {
   if (!Object.keys(map).length && !home) {
-    try { fs.unlinkSync(mapFile()); } catch (e) {}
+    try { fs.unlinkSync(mapFile()); } catch (e) { if (e.code !== 'ENOENT') throw e; }
     return;
   }
   var j = { keys: map, updated: new Date().toISOString() };

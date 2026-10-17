@@ -48,7 +48,9 @@ The worker itself stays Python 2.7 compatible for the TV.
 
 `test-window-state.js` checks that short gaps in window focus do not publish empty remote attributes, persistent gaps do, standby clears immediately, and reconnects republish the retained state. The server boot test checks that both SurfaceManager subscriptions start only with MQTT enabled.
 
-`test-home.js` checks restoration with delayed screen-saver reads and writes, overlapping switch and layout requests, failed state saves, and a healthy view whose heartbeats later stop.
+`test-home.js` checks restoration with delayed screen-saver reads and writes, overlapping switch and layout requests, failed state saves, failed key or settings restoration blocking removal, an externally removed Home app, and a healthy view whose heartbeats later stop. `test-remotekeys.js` checks that a mapping which could not be deleted is reported as a failed change.
+
+`test-routes.js` checks that an upload aborted before its file opens leaves no staged file, including a disconnect while disk space is being reserved.
 
 ## Home Assistant
 
@@ -74,7 +76,7 @@ script error, naming the tab. A function a page calls that has gone, or an
 element it reaches for that has moved, breaks only when that tab opens, which
 no unit test does. It runs when the server, the pages or the fake TV change.
 
-The Home view also runs through fifteen idle minutes with catalogue refreshes, then wakes by remote key. Its service replies are simulated; the page and its timers run in Chromium.
+The Home view also runs through fifteen idle minutes with catalogue refreshes, then wakes by remote key. Arranging checks cover a late catalogue reply, resetting after moving a tile, and an update noticed while arranging. Its service replies are simulated; the page and its timers run in Chromium.
 
 ## Documentation
 

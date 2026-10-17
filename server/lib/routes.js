@@ -816,7 +816,15 @@ function handleUpload(req, res) {
     return refuseUpload(req, res, msg('srv.install.upload.empty', 'the upload is empty or its size is not valid'), 400);
   }
   var len = parseInt(cl, 10);
+  // Reserving space can outlast the connection; keep the abort before its reply.
+  var endedEarly = false;
+  req.on('aborted', function () { endedEarly = true; });
+  req.on('close', function () { if (!req.complete) endedEarly = true; });
   installerModule.prepareUpload(len, function (err, file, status) {
+    if (endedEarly) {
+      if (file) installerModule.releaseUpload(file);
+      return;
+    }
     if (err) return refuseUpload(req, res, err, status || 400);
     var ws = fs.createWriteStream(file, { flags: 'wx', mode: parseInt('600', 8) });
     var got = 0, done = false;
