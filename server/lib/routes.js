@@ -1085,7 +1085,7 @@ function handleHomeRoute(req, res, u, pathname) {
       if (!wallpaper) return send(res, 404, JSON.stringify({ ok: false, error: 'wallpaper not downloaded' }));
       return sendIconFile(req, res, wallpaper, function (status, error) {
         send(res, status, JSON.stringify({ ok: false, error: error }));
-      });
+      }, /\.jpg$/.test(wallpaper) ? 'image/jpeg' : 'image/png');
     }
     if (pathname === '/api/home/icon') {
       return homeModule.iconPath(u.query && u.query.id, function (iconPath) {
@@ -1099,6 +1099,13 @@ function handleHomeRoute(req, res, u, pathname) {
   if (req.method === 'POST') {
     if (!config.allowControl && !fromTV(req)) {
       return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (pathname === '/api/home/wallpapers/upload') {
+      if (!postGuard(req, res, 'image/jpeg', true)) return;
+      return homeModule.uploadWallpaper(String(u.query && u.query.slot || ''), req, function (r) {
+        if (!r.ok) return refuseUpload(req, res, r.error, r.status || 400);
+        reply(r);
+      });
     }
     if (pathname === '/api/home/beat') {
       if (!postGuard(req, res, 'application/json', false)) return;

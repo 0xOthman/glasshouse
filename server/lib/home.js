@@ -1139,9 +1139,15 @@ module.exports = {
   homeKey: homeKey,
   iconPath: iconPath,
   wallpaperPath: wallpapers.image,
+  uploadWallpaper: function (slot, req, cb) {
+    var sup = supported();
+    if (!sup.ok) return cb({ ok: false, error: sup.reason });
+    wallpapers.upload(slot, req, cb);
+  },
   setWallpapers: function (body, cb) {
     var sup = supported();
     if (!sup.ok) return cb({ ok: false, error: sup.reason });
+    if (body && body.removeUploads === true) return wallpapers.removeUploads(cb);
     if (body && body.remove === true) return wallpapers.remove(cb);
     wallpapers.download(cb);
   },

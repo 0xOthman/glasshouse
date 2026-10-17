@@ -784,9 +784,9 @@ function homeRows(d) {
     var walls = d.wallpapers || {};
     r.push(head(t('home.wall.title', 'Wallpaper')));
     r.push({ label: walls.downloading ? t('home.wall.downloading', 'Downloading wallpapers…')
-               : walls.available ? t('home.wall.remove', 'Remove wallpapers') : t('home.wall.download', 'Download wallpapers'),
-             value: '', act: can && !walls.downloading ? 'homeWallpapers' : null, on: !!walls.available,
-             hint: walls.error || t('home.wall.optional', 'Optional: download four wallpapers from GitHub (19 MB). Until then, Home has a black background.') });
+               : walls.downloaded ? t('home.wall.removeDownloaded', 'Remove downloaded wallpapers') : t('home.wall.download', 'Download wallpapers'),
+             value: '', act: can && !walls.downloading ? 'homeWallpapers' : null, on: !!walls.downloaded,
+             hint: walls.error || t('home.wall.tvHint', 'Download four optional wallpapers (19 MB). Personal images can be uploaded for each time of day in the browser dashboard.') });
     clearTimeout(homeWallPoll);
     if (walls.downloading) homeWallPoll = setTimeout(function () { if (T().key === 'home') fetchTab(true); }, 2000);
     r.push(head(t('tv.home.head.more', 'More')));

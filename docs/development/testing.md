@@ -124,3 +124,5 @@ pip install homeassistant
 ```
 
 Home recovery checks cover failed restoration with a durable retry state, definite absent-app replies, HBC cleanup on a TV that never used Home, and backup partial failures. Browser checks cover pending/failed layout edits, first-catalogue failure, and delayed readiness. Wallpaper validation covers corrupt downloads and staging cleanup; a real pinned download and Office G3 deployment are recorded in the PR testing evidence.
+
+`test-home-wallpaper-upload.js` exercises the real HTTP boundary: rejected and interrupted uploads preserve the previous image, concurrent uploads are refused, the lock is released after an abort, and an uploaded JPEG survives reinitialisation and is served with its image type. The dashboard check prepares a PNG as JPEG, shows the uploaded slot and verifies that a second tab recovers after the first finishes uploading.

@@ -204,6 +204,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   var beatFails = 0;
   var layoutRevision = 0, layoutBusy = false;
   var loadRetry = null, wallAvailable = false, initialEscape = false;
+  var wallSlots = null, wallRevision = '';
 
   function $(id) { return document.getElementById(id); }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -707,20 +708,21 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     return slot;
   }
   function updateWall() {
-    if (!wallAvailable) {
+    var slot = wallSlot();
+    if (!wallAvailable || (wallSlots && !wallSlots[slot.key])) {
       var blank = $('wall').querySelectorAll('.layer');
       for (var b = 0; b < blank.length; b++) { blank[b].style.opacity = 0; blank[b].style.backgroundImage = ''; }
       wallShown = null;
       return;
     }
-    var slot = wallSlot(), id = slot.key + '@' + slot.strength;
+    var revision = wallRevision, id = slot.key + '@' + slot.strength + '@' + revision;
     if (id === wallShown) return;
     var layers = $('wall').querySelectorAll('.layer');
     var next = layers[1 - wallFront], prev = layers[wallFront];
-    var src = '/api/home/wallpaper?slot=' + slot.key;
+    var src = '/api/home/wallpaper?slot=' + slot.key + '&v=' + encodeURIComponent(revision);
     var img = new Image();
     img.onload = function () {
-      if (!wallAvailable || wallSlot().key !== slot.key) return;
+      if (!wallAvailable || wallRevision !== revision || wallSlot().key !== slot.key) return;
       wallShown = id;
       next.style.backgroundImage = 'url(' + src + ')';
       next.style.opacity = slot.strength;
@@ -756,6 +758,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       layout = r.layout;
       clearTimeout(loadRetry);
       wallAvailable = !!(r.wallpapers && r.wallpapers.available);
+      wallSlots = r.wallpapers && r.wallpapers.slots;
+      wallRevision = r.wallpapers && r.wallpapers.revision || '';
       updateWall();
       if (!state.arranging) render();
       if (firstLoad) beat();
@@ -801,6 +805,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       if (r && r.ok) {
         beatFails = 0;
         wallAvailable = !!(r.wallpapers && r.wallpapers.available);
+        wallSlots = r.wallpapers && r.wallpapers.slots;
+        wallRevision = r.wallpapers && r.wallpapers.revision || '';
         updateWall();
         $('fault').className = '';
         // A new release of the server: the page is the old one's until reloaded.

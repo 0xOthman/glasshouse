@@ -9,6 +9,7 @@ let homeArmTimer = null;
 let homeSaving = false;
 let homeLoadRevision = 0;
 let homeWallTimer = null;
+let homeWallUploading = false;
 
 const HOME_ROWS = {
   app: () => t('home.row.apps', 'Apps'),
@@ -335,14 +336,22 @@ function renderHomeWalls() {
   if (!box) return;
   const walls = homeStatus.wallpapers || {};
   const button = q('home-wall-download');
-  button.disabled = !homeWritable() || walls.downloading;
+  button.disabled = !homeWritable() || walls.downloading || homeWallUploading;
   button.textContent = walls.downloading ? t('home.wall.downloading', 'Downloading wallpapers…')
-    : walls.available ? t('home.wall.remove', 'Remove wallpapers') : t('home.wall.download', 'Download wallpapers');
+    : walls.downloaded ? t('home.wall.removeDownloaded', 'Remove downloaded wallpapers') : t('home.wall.download', 'Download wallpapers');
+  const custom = walls.custom || {};
+  const busy = !homeWritable() || homeWallUploading || walls.uploading;
+  q('home-wall-slot').disabled = busy;
+  q('home-wall-file').disabled = busy;
+  q('home-wall-upload').disabled = busy || !q('home-wall-file').files.length;
+  q('home-wall-upload').textContent = homeWallUploading || walls.uploading ? t('home.wall.uploading', 'Uploading…') : t('home.wall.upload', 'Upload image');
+  q('home-wall-clear').disabled = busy || !Object.values(custom).some(Boolean);
   q('home-wall-error').textContent = walls.error || '';
   clearTimeout(homeWallTimer);
-  if (walls.downloading) homeWallTimer = setTimeout(() => { if (activeTab === 'home') loadHome(); }, 2000);
-  if (!walls.available) { box.innerHTML = ''; return; }
-  if (box.children.length) return;
+  if (walls.downloading || walls.uploading) homeWallTimer = setTimeout(() => { if (activeTab === 'home') loadHome(); }, 2000);
+  if (!walls.available) { box.innerHTML = ''; delete box.dataset.revision; return; }
+  if (box.dataset.revision === walls.revision) return;
+  box.dataset.revision = walls.revision;
   const slots = [
     ['morning', t('home.wall.morning', 'Morning, 06:00 to 11:00')],
     ['afternoon', t('home.wall.afternoon', 'Afternoon, 11:00 to 17:00')],
@@ -350,13 +359,69 @@ function renderHomeWalls() {
     ['night', t('home.wall.night', 'Night, 21:00 to 06:00')]
   ];
   box.innerHTML = slots.map(([key, label]) => `<figure class="home-wall">
-    <img src="${esc(api('/api/home/wallpaper?slot=' + key))}" alt="" loading="lazy"><figcaption class="sub">${esc(label)}</figcaption></figure>`).join('');
+    ${walls.slots && !walls.slots[key] ? `<div class="home-wall-empty">${esc(t('home.wall.black', 'Black'))}</div>`
+      : `<img src="${esc(api('/api/home/wallpaper?slot=' + key + '&v=' + encodeURIComponent(walls.revision || '')))}" alt="" loading="lazy">`}
+    <figcaption class="sub">${esc(label)}${custom[key] ? ' · ' + esc(t('home.wall.uploaded', 'Uploaded')) : ''}</figcaption></figure>`).join('');
 }
 
 async function homeDownloadWalls() {
   if (!homeWritable()) return;
   q('home-wall-download').disabled = true;
-  try { await homePost('/api/home/wallpapers', { remove: !!(homeStatus.wallpapers && homeStatus.wallpapers.available) }); }
+  try { await homePost('/api/home/wallpapers', { remove: !!(homeStatus.wallpapers && homeStatus.wallpapers.downloaded) }); }
   catch (e) { showErr(e.message); }
   loadHome();
+}
+
+async function homeUploadWall() {
+  const file = q('home-wall-file').files[0];
+  if (!file || !homeWritable() || homeWallUploading) return;
+  const slot = q('home-wall-slot').value;
+  const note = q('home-wall-upload-note');
+  homeWallUploading = true;
+  note.textContent = '';
+  renderHomeWalls();
+  let url;
+  try {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 25 * 1024 * 1024) {
+      throw new Error(t('home.wall.chooseImage', 'Choose a JPEG, PNG or WebP image up to 25 MB.'));
+    }
+    url = URL.createObjectURL(file);
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error(t('home.wall.unreadable', 'The image could not be opened.')));
+      img.src = url;
+    });
+    const scale = Math.min(1, 3840 / img.naturalWidth, 2160 / img.naturalHeight);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+    if (!blob || blob.size > 5 * 1024 * 1024) throw new Error(t('home.wall.tooLarge', 'The prepared image is too large. Choose a smaller image.'));
+    const res = await fetch(api('/api/home/wallpapers/upload?slot=' + slot), {
+      method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob
+    });
+    const r = await res.json();
+    if (!res.ok || !r.ok) throw new Error(r.error || t('home.wall.uploadFailed', 'The image could not be uploaded.'));
+    q('home-wall-file').value = '';
+    note.textContent = t('home.wall.uploadDone', 'Image uploaded. Home updates within a few seconds.');
+  } catch (e) { note.textContent = e.message; }
+  finally {
+    if (url) URL.revokeObjectURL(url);
+    homeWallUploading = false;
+    await loadHome();
+    renderHomeWalls();
+  }
+}
+
+async function homeClearUploads() {
+  if (!homeWritable() || homeWallUploading) return;
+  q('home-wall-upload-note').textContent = '';
+  try { await homePost('/api/home/wallpapers', { removeUploads: true }); }
+  catch (e) { q('home-wall-upload-note').textContent = e.message; }
+  await loadHome();
 }

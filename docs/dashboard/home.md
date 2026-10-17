@@ -10,7 +10,13 @@ The screen has a clock and date, what was last on (an app, an input and the devi
 * **Inputs**: every HDMI input. An input with devices on it has a tile for each device the TV knows over HDMI-CEC, saying which device it is behind ("HDMI 2, through STEREO 70s"); an input with nothing connected is greyed out. Choosing a tile switches the TV to that input. Nothing is sent to the devices themselves.
 * **Channels**: the channels added here, in the order they are listed, with the programme on now where the TV's guide has it. Choosing one tunes it.
 
-**Download wallpapers** in either dashboard adds four optional images from GitHub (19 MB), checked against pinned SHA-256 hashes. Home has a black background until the download finishes. **Remove wallpapers** returns to black and frees the space. Downloads stay in `/var/lib/tvweb/home-wallpapers`, outside the update and rollback payload.
+**Download wallpapers** in either dashboard adds four optional images from GitHub (19 MB), checked against pinned SHA-256 hashes. These images were generated specifically for Glasshouse Home with OpenAI's image generation. Empty slots have a black background. **Remove downloaded wallpapers** frees their space; uploaded images stay in place. Downloads stay in `/var/lib/tvweb/home-wallpapers`, outside the update and rollback payload.
+
+The browser dashboard also accepts personal images. Choose a **Time of day**, select a JPEG, PNG or WebP file up to 25 MB, then press **Upload image**. The browser fits it within 3840 × 2160 pixels and prepares a JPEG before sending it to the TV. Images fill the screen and may be cropped. Each uploaded image takes precedence over the downloaded wallpaper for that slot. **Remove uploaded images** reveals the downloaded set again, or black where there is none.
+
+Uploads are stored separately in `/var/lib/tvweb/home-wallpaper-uploads`. A failed or interrupted upload leaves the previous image intact. Both directories are removed when Glasshouse is uninstalled; the layout backup does not include image files.
+
+![Personal wallpapers uploaded for all four time-of-day slots](../screenshots/home-wallpaper-upload.png)
 
 ![Home before downloading wallpapers: the same apps, inputs and channels on black](../screenshots/home-black.jpg)
 

@@ -42,12 +42,12 @@ function port() {
  * 304 for a client already holding it. fail(status, message) answers when the
  * file cannot be read, so each server words its own errors.
  */
-function sendIconFile(req, res, iconPath, fail) {
+function sendIconFile(req, res, iconPath, fail, contentType) {
   fs.stat(iconPath, function (err, st) {
     if (err || !st || !st.isFile()) return fail(404, 'icon read failed');
     var etag = '"' + st.size.toString(16) + '-' + Number(st.mtime).toString(16) + '"';
     var headers = {
-      'Content-Type': 'image/png',
+      'Content-Type': contentType || 'image/png',
       'Content-Length': st.size,
       'Cache-Control': 'public, max-age=86400',
       'ETag': etag

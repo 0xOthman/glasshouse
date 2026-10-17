@@ -324,6 +324,61 @@ async function visitHomeEditor(browser, base, problems) {
   } finally { await page.close(); }
 }
 
+async function visitHomeUploads(browser, base, problems) {
+  const context = await browser.newContext();
+  const page = await context.newPage(), observer = await context.newPage();
+  for (const p of [page, observer]) p.on('pageerror', e => problems.push('Home uploads: ' + e.message));
+  const layout = { rows: ['app', 'dev', 'ch'], order: { app: [], dev: [], ch: [] },
+    hidden: { app: [], dev: [], ch: [] }, channels: [], idle: { dimAfter: 120, panelOffAfter: 900 }, hintSeen: true };
+  let uploading = false, uploaded = false, release, image;
+  const wallpapers = () => ({ available: uploaded, downloaded: false, uploading,
+    custom: { morning: uploaded }, slots: { morning: uploaded }, revision: uploaded ? '1' : '0' });
+  await context.route('**/api/home**', async route => {
+    const pathname = new URL(route.request().url()).pathname;
+    let body;
+    if (pathname === '/api/home/wallpaper') return route.fulfill({ contentType: 'image/jpeg', body: image });
+    if (pathname.endsWith('/upload')) {
+      image = route.request().postDataBuffer();
+      if (!image || image.readUInt16BE(0) !== 0xffd8 || route.request().headers()['content-type'] !== 'image/jpeg') {
+        problems.push('Home uploads: PNG was not prepared as a JPEG');
+      }
+      uploading = true;
+      await new Promise(resolve => { release = resolve; });
+      uploading = false; uploaded = true;
+      body = { ok: true, wallpapers: wallpapers() };
+    } else if (pathname === '/api/home/wallpapers') {
+      if (route.request().postDataJSON().removeUploads) uploaded = false;
+      body = { ok: true, wallpapers: wallpapers() };
+    } else if (pathname === '/api/home') {
+      body = { ok: true, supported: { ok: true }, installed: true, enabled: false, writable: true, layout, wallpapers: wallpapers() };
+    } else {
+      body = { ok: true, layout, apps: [], devices: [], channels: [], order: { app: [], dev: [], ch: [] }, sources: { channels: 0 } };
+    }
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  try {
+    await page.goto(base + '/?tab=home');
+    await page.waitForFunction(() => typeof homeStatus !== 'undefined' && homeStatus && homeCat);
+    await page.waitForSelector('#home-wall-slot:not(:disabled)');
+    await page.locator('#home-wall-file').setInputFiles(path.join(ASSETS, 'dashboard-app/assets/icon130.png'));
+    const sent = page.waitForRequest(r => new URL(r.url()).pathname.endsWith('/wallpapers/upload'));
+    await page.locator('#home-wall-upload').click(); await sent;
+    await observer.goto(base + '/?tab=home');
+    await observer.getByRole('button', { name: 'Uploading…', exact: true }).waitFor();
+    if (!await observer.locator('#home-wall-slot').isDisabled()) problems.push('Home uploads: another tab did not show the pending upload');
+    release();
+    await observer.waitForSelector('#home-wall-slot:not(:disabled)');
+    await page.waitForSelector('#home-wall-slot:not(:disabled)');
+    await page.waitForFunction(() => {
+      const image = document.querySelector('#home-walls img');
+      return image && image.complete && image.naturalWidth;
+    });
+    if (!await page.locator('#home-walls').textContent().then(t => /Uploaded/.test(t))) problems.push('Home uploads: uploaded slot is not identified');
+    await page.locator('#home-wall-clear').click();
+    await page.waitForFunction(() => !document.querySelector('#home-walls img'));
+  } finally { await context.close(); }
+}
+
 async function visitHomeReadiness(browser, base, problems) {
   const page = await browser.newPage();
   page.on('pageerror', e => problems.push('Home readiness: ' + e.message));
@@ -372,10 +427,11 @@ async function visitHomeReadiness(browser, base, problems) {
   await visitHome(browser, base, problems);
   await visitHomeArrangement(browser, base, problems);
   await visitHomeEditor(browser, base, problems);
+  await visitHomeUploads(browser, base, problems);
   await visitHomeReadiness(browser, base, problems);
   await browser.close();
   for (const p of problems) console.log(p);
   console.log((web.length + tv.length) + ' tabs opened (' + web.length + ' web, ' + tv.length + ' TV app), ' +
-              'Home idle, wake, arranging, update, editing and readiness checked, ' + problems.length + ' problem' + (problems.length === 1 ? '' : 's'));
+              'Home idle, wake, arranging, update, editing, uploads and readiness checked, ' + problems.length + ' problem' + (problems.length === 1 ? '' : 's'));
   process.exit(problems.length ? 1 : 0);
 })().catch(e => { console.error(e.message); process.exit(1); });

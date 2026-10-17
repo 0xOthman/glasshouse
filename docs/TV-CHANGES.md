@@ -65,7 +65,7 @@ Glasshouse Home saves its enabled state before changing the TV's Home. Its setti
 
 Switching Glasshouse Home off reports a Home-key restore failure, including a saved mapping that could not be deleted. App removal is refused until the key and Home and start-up settings no longer target it, and is confirmed only after the TV reports the app absent. A missing app found by the guard switches the feature off and restores its saved settings and Home key.
 
-Optional Home wallpapers download only on request, with pinned SHA-256 checks, into `/var/lib/tvweb/home-wallpapers`. They are excluded from packages and rollback copies and removed with the server. Failed LG Home restoration remains visible and retryable on both dashboards.
+Optional Home wallpapers download only on request, with pinned SHA-256 checks, into `/var/lib/tvweb/home-wallpapers`. Personal images uploaded through the browser go into `/var/lib/tvweb/home-wallpaper-uploads` and override the matching time-of-day slot. Both directories are excluded from packages and rollback copies and removed with the server. Removing uploads reveals the downloaded set or black. Failed LG Home restoration remains visible and retryable on both dashboards.
 
 ## Network
 
