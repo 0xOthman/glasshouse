@@ -57,6 +57,7 @@ var preload = require('./lib/preload');
 var quickAccess = require('./lib/quickaccess');
 var remoteKeys = require('./lib/remotekeys');
 var homeScreen = require('./lib/homescreen');
+var glasshouseHome = require('./lib/home');
 var telemetry = require('./lib/telemetry');
 var controls = require('./lib/controls');
 var routes = require('./lib/routes');
@@ -591,6 +592,9 @@ var onRemoteButton = function (button, code) {
 remotebuttons.init({
   onButton: function (button, code) {
     onRemoteButton(button, code);
+  },
+  onHomeKey: function (down) {
+    glasshouseHome.homeKey(down);
   }
 });
 
@@ -726,32 +730,46 @@ function checkHomebrewChannelApp() {
   luna('com.webos.applicationManager/getAppInfo', { id: path.basename(dir) }, function (res, raw) {
     try { res = res || JSON.parse(raw); } catch (e) { res = null; }
     if (!res || res.returnValue !== false || !/Invalid appId/i.test(String(res.errorText))) return;
-    console.log('uninstall: the Homebrew Channel app is gone, removing the server');
+    console.log('uninstall: the Homebrew Channel app is gone, restoring Home before removing the server');
     // Inline rather than a script, since the files it deletes include every
     // script there is. 20-services.sh holds down the services switched off in
-    // the dashboard, and they come back once it goes. restore-keys runs first:
-    // the compositor's key filter chain is kept by configd, and would go on
+    // the dashboard, and they come back once it goes. Home and remote keys are
+    // restored before deletion: the compositor's key filter chain is kept by configd, and would go on
     // naming a filter file deleted here.
     var rule = devtools.RULE.join(' ');
-    forgetHomeAssistant(function () {
-      child_process.spawn('/bin/sh', ['-c',
-        '/var/lib/tvweb/tvwebctl stop >/dev/null 2>&1; /var/lib/tvweb/tvwebctl restore-keys >/dev/null 2>&1; ' +
-        'rm -rf /var/lib/tvweb /media/developer/temp/glasshouse-install; ' +
-        'PATH=/usr/sbin:/sbin:$PATH; iptables -D ' + rule + ' 2>/dev/null; ip6tables -D ' + rule + ' 2>/dev/null; ' +
-        'cd /var/lib/webosbrew/init.d && rm -f 50-tvweb 20-services.sh 20-tvweb-services; ' +
-        'rm -f /var/lib/webosbrew/tvweb-boot.log /var/lib/webosbrew/tvweb-boot.log.old'
-      ], { detached: true, stdio: 'ignore' }).unref();
+    glasshouseHome.uninstall(function (restored) {
+      if (!restored.ok) return console.error('uninstall: Home restore failed: ' + restored.error);
+      // The live owner stops the guard and verifies recovery before any file disappears.
+      remoteKeys.restore(function (keys) {
+        if (!keys) return console.error('uninstall: remote key restore failed; server kept for retry');
+        forgetHomeAssistant(function () {
+          child_process.spawn('/bin/sh', ['-c',
+            '/var/lib/tvweb/tvwebctl stop >/dev/null 2>&1; ' +
+            'rm -rf /var/lib/tvweb /media/developer/temp/glasshouse-install; ' +
+            'PATH=/usr/sbin:/sbin:$PATH; iptables -D ' + rule + ' 2>/dev/null; ip6tables -D ' + rule + ' 2>/dev/null; ' +
+            'cd /var/lib/webosbrew/init.d && rm -f 50-tvweb 20-services.sh 20-tvweb-services; ' +
+            'rm -f /var/lib/webosbrew/tvweb-boot.log /var/lib/webosbrew/tvweb-boot.log.old'
+          ], { detached: true, stdio: 'ignore' }).unref();
+        });
+      });
     });
   });
 }
 
-function tvApp(action, cb) {
+// appDir: another app the same script installs, Glasshouse Home's.
+function tvApp(action, cb, appDir) {
   if (installer.isWorking()) {
     return cb({ ok: false, error: msg('srv.install.busy.tvApp', 'an install is in progress; try again when it has finished') });
   }
   var script = assetPath('dashboard-app/install-app.sh');
   if (!script) return cb({ ok: true, supported: false, installed: false });
-  execFile('/bin/sh', [script, action], { timeout: 90000 }, function (err, stdout) {
+  var args = [script, action];
+  if (appDir) {
+    var dir = assetPath(appDir + '/appinfo.json');
+    if (!dir) return cb({ ok: true, supported: false, installed: false });
+    args.push(path.dirname(dir));
+  }
+  execFile('/bin/sh', args, { timeout: 90000 }, function (err, stdout) {
     var out = String(stdout || '').trim();
     var last = out.split('\n').pop();
     try { return cb(JSON.parse(last)); }
@@ -856,6 +874,7 @@ routes.init({
   quickAccess: quickAccess,
   remoteKeys: remoteKeys,
   homeScreen: homeScreen,
+  home: glasshouseHome,
   screensavers: screensavers,
   updater: updater,
   tvApp: tvApp,
@@ -881,6 +900,7 @@ routes.init({
 
 backup.init({
   lgSettings: lgSettings,
+  home: glasshouseHome,
   config: CONFIG,
   writeSettings: routes.writeSettings,
   about: function () { return { model: CONFIG.device && CONFIG.device.model, version: TVWEB_DISPLAY_VERSION }; },
@@ -944,12 +964,16 @@ if (CLI_MODE) {
     }
     oled.detectOled(function () {});   // resolve and log panel type up front
     telemetry.detectLogoLight(function () {});
+    // Glasshouse Home's app is refreshed after the dashboard's: the install
+    // service takes one at a time.
+    var refreshHomeApp = function () { glasshouseHome.refreshApp(); };
     if (fromHomebrewChannel()) {
       // The Homebrew Channel app is the tile, so the one deploy.sh added goes.
       // Boot is the moment to do it: nothing is open, and it is never removed
       // while open. Once it is gone this finds nothing to do.
       tvApp('retire', function (r) {
         if (r && r.retired) console.log('tvapp: old tile removed; Homebrew Channel replaces it');
+        refreshHomeApp();
       });
     } else {
       // The home-screen app packages its own loading screen, name and icons at
@@ -957,6 +981,7 @@ if (CLI_MODE) {
       // date with this release. A removed app is left removed.
       tvApp('refresh', function (r) {
         if (r && r.refreshed && r.ok) console.log('tvapp: refreshed to current release');
+        refreshHomeApp();
       });
     }
   });
@@ -1049,7 +1074,7 @@ function setupHomeAssistant() {
     mqttClient.publish(mqttTopics.eventsButton, payload, false);
   };
   if (remotebuttons.isSupported()) {
-    remotebuttons.start();
+    remotebuttons.want('mqtt', true);
   }
 
   MQTT_STATUS.broker = CONFIG.mqtt.host + ':' + mqttClient.opts.port;
@@ -1186,7 +1211,7 @@ function setupHomeAssistant() {
   // The client has no publish acknowledgement, so this waits a moment for the
   // messages to leave.
   forgetHomeAssistant = function (cb) {
-    remotebuttons.stop();
+    remotebuttons.want('mqtt', false);
     if (!mqttClient.connected) return cb();
     var topics = Object.keys(retained).filter(function (t) { return retained[t]; });
     topics.forEach(function (t) { mqttClient.publish(t, '', true); });
@@ -1680,6 +1705,20 @@ if (!CLI_MODE) {
   history.start();
   screentime.init({ config: CONFIG, liveState: liveState, control: controls.doControl, injectKey: controls.injectKey, keyBack: controls.KEY_BACK });
   screentime.start();
+
+  glasshouseHome.init({
+    luna: luna,
+    liveState: liveState,
+    history: history,
+    stateDir: __dirname,
+    webosVersion: telemetry.detectWebosVersion(),
+    port: CONFIG.port,
+    installApp: function (action, cb) { tvApp(action, cb, 'home-app'); },
+    setHomeKey: remoteKeys.setHome,
+    build: TVWEB_DISPLAY_VERSION + '@' + Date.now(),
+    homeKeys: function (on) { if (remotebuttons.isSupported()) remotebuttons.want('home', on); }
+  });
+  glasshouseHome.start();
   /*
    * Registered before the MQTT bridge's handlers, which exit, so it runs
    * first. With no bridge it is the only handler, and exits itself.

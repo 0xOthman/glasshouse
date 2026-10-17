@@ -74,6 +74,8 @@ var quickAccessModule = null;
 var remoteKeysModule = null;
 /** @type {typeof import('./homescreen')} */
 var homeScreenModule = null;
+/** @type {typeof import('./home')} */
+var homeModule = null;
 /** @type {typeof import('./screensavers')} */
 var screensaversModule = null;
 /** @type {typeof import('./updater')} */
@@ -814,7 +816,15 @@ function handleUpload(req, res) {
     return refuseUpload(req, res, msg('srv.install.upload.empty', 'the upload is empty or its size is not valid'), 400);
   }
   var len = parseInt(cl, 10);
+  // Reserving space can outlast the connection; keep the abort before its reply.
+  var endedEarly = false;
+  req.on('aborted', function () { endedEarly = true; });
+  req.on('close', function () { if (!req.complete) endedEarly = true; });
   installerModule.prepareUpload(len, function (err, file, status) {
+    if (endedEarly) {
+      if (file) installerModule.releaseUpload(file);
+      return;
+    }
     if (err) return refuseUpload(req, res, err, status || 400);
     var ws = fs.createWriteStream(file, { flags: 'wx', mode: parseInt('600', 8) });
     var got = 0, done = false;
@@ -1028,6 +1038,92 @@ function getSettingsPayload() {
       latencyMs: mqttStat.latencyMs || null
     }
   };
+}
+
+/*
+ * Glasshouse Home (lib/home.js). Its view runs on the TV and changes nothing
+ * but the layout and what is open, so it needs no allowControl; anything from
+ * the network does.
+ */
+function handleHomeRoute(req, res, u, pathname) {
+  function reply(r) { send(res, r && r.ok === false ? 400 : 200, JSON.stringify(r)); }
+  if (req.method === 'GET') {
+    // ?with=catalogue,channels adds what the TV app's Home section lists, in one answer.
+    if (pathname === '/api/home') {
+      var wants = String((u.query && u.query['with']) || '').split(',');
+      return homeModule.status(function (st) {
+        st.writable = !!config.allowControl || fromTV(req);
+        if (wants.indexOf('catalogue') === -1) return reply(st);
+        homeModule.catalogue(function (c) {
+          st.catalogue = c;
+          if (wants.indexOf('channels') === -1) return reply(st);
+          homeModule.channelList(function (list) {
+            st.channels = list;
+            reply(st);
+          });
+        });
+      });
+    }
+    if (pathname === '/api/home/catalogue') {
+      return homeModule.catalogue(function (c) {
+        homeModule.status(function (st) {
+          c.ok = true;
+          c.layout = st.layout;
+          c.enabled = st.enabled;
+          c.wallpapers = st.wallpapers;
+          reply(c);
+        });
+      });
+    }
+    if (pathname === '/api/home/channels') {
+      return homeModule.channelList(function (list) { reply({ ok: true, channels: list, tuner: !!list }); });
+    }
+    if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
+    if (pathname === '/api/home/now') return homeModule.now(reply);
+    if (pathname === '/api/home/wallpaper') {
+      var wallpaper = homeModule.wallpaperPath(String(u.query && u.query.slot || ''));
+      if (!wallpaper) return send(res, 404, JSON.stringify({ ok: false, error: 'no wallpaper uploaded' }));
+      return sendIconFile(req, res, wallpaper, function (status, error) {
+        send(res, status, JSON.stringify({ ok: false, error: error }));
+      }, 'image/jpeg');
+    }
+    if (pathname === '/api/home/icon') {
+      return homeModule.iconPath(u.query && u.query.id, function (iconPath) {
+        if (!iconPath) return send(res, 404, JSON.stringify({ ok: false, error: 'icon not found' }));
+        sendIconFile(req, res, iconPath, function (status, error) {
+          send(res, status, JSON.stringify({ ok: false, error: error }));
+        });
+      });
+    }
+  }
+  if (req.method === 'POST') {
+    if (!config.allowControl && !fromTV(req)) {
+      return send(res, 403, JSON.stringify({ ok: false, error: msg('srv.controlsOff', 'controls disabled in config') }));
+    }
+    if (pathname === '/api/home/wallpapers/upload') {
+      if (!postGuard(req, res, 'image/jpeg', true)) return;
+      return homeModule.uploadWallpaper(String(u.query && u.query.slot || ''), req, function (r) {
+        if (!r.ok) return refuseUpload(req, res, r.error, r.status || 400);
+        reply(r);
+      });
+    }
+    if (pathname === '/api/home/beat') {
+      if (!postGuard(req, res, 'application/json', false)) return;
+      req.resume();
+      return reply(homeModule.beat());
+    }
+    return readJsonBody(req, res, function (body) {
+      if (pathname === '/api/home/layout') return homeModule.setLayout(body, reply);
+      if (pathname === '/api/home/wallpapers') return homeModule.setWallpapers(body, reply);
+      if (pathname === '/api/home/install') return homeModule.install(reply);
+      if (pathname === '/api/home/remove') return homeModule.remove(reply);
+      if (pathname === '/api/home/enable') return homeModule.enable(reply);
+      if (pathname === '/api/home/disable') return homeModule.disable(reply);
+      if (pathname === '/api/home/open') return homeModule.open(body, reply);
+      send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
+    });
+  }
+  send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
 }
 
 function handleRequest(req, res) {
@@ -1448,6 +1544,8 @@ function handleRequest(req, res) {
       if (!d.tileHidingAvailable) { d.systemTiles = []; d.tileHidingEnabled = false; d.hiddenCount = 0; }
       d.tileHidingHeld = false;
       d.tileHidingOverridden = false;
+      // The TV app notes that LG's Home layout and hidden apps reach Glasshouse Home differently.
+      d.glasshouseHome = !!(homeModule && homeModule.enabled());
       servicesModule.getServices(function (sRes) {
         if (sRes && sRes.services) d.services = sRes.services;
         if (!preloadModule) return send(res, 200, JSON.stringify(d));
@@ -1586,6 +1684,10 @@ function handleRequest(req, res) {
       if (typeof body.input === 'string') return homeScreenModule.setInput(body.input, !!body.onHome, done);
       done({ ok: false, error: 'part, input or restore expected' });
     });
+  }
+
+  if (pathname.indexOf('/api/home/') === 0 || pathname === '/api/home') {
+    if (homeModule) return handleHomeRoute(req, res, u, pathname);
   }
 
   if (pathname === '/api/quickaccess' && req.method === 'POST') {
@@ -1815,6 +1917,7 @@ function init(opts) {
   if (opts.quickAccess) quickAccessModule = opts.quickAccess;
   if (opts.remoteKeys) remoteKeysModule = opts.remoteKeys;
   if (opts.homeScreen) homeScreenModule = opts.homeScreen;
+  if (opts.home) homeModule = opts.home;
   if (opts.screensavers) screensaversModule = opts.screensavers;
   if (opts.updater) updaterModule = opts.updater;
   if (opts.logs) logsModule = opts.logs;

@@ -9,6 +9,7 @@ const TABS = {
   control:     'tab-control',
   metrics:     'tab-metrics',
   apps:        'appspane',
+  home:        'homepane',
   oledcare:    'oledpane',
   game:        'gamepane',
   servicemenu: 'svcpane',
@@ -22,7 +23,7 @@ const TABS = {
 // Each tab's page on the docs site, for Help.
 const DOCS = 'https://rorygallagher2024.github.io/glasshouse/';
 const TAB_DOCS = {
-  control: 'dashboard/control/', metrics: 'dashboard/metrics/', apps: 'dashboard/apps/',
+  control: 'dashboard/control/', metrics: 'dashboard/metrics/', apps: 'dashboard/apps/', home: 'dashboard/home/',
   oledcare: 'dashboard/oled-care/', game: 'dashboard/game/', servicemenu: 'dashboard/service-menu/',
   screensaver: 'dashboard/screen-savers/', privacy: 'dashboard/privacy/', advanced: 'dashboard/advanced/',
   mqtt: 'HOME-ASSISTANT/', server: 'dashboard/server/', tools: 'dashboard/tools/'
@@ -64,6 +65,7 @@ function showTab(name) {
    * /?tab=oledcare off an OLED set every time.
    */
   if (name === 'oledcare' && isOledSet === false) name = 'control';
+  if (name === 'home' && homeAvailable === false) name = 'control';
   activeTab = name;
   for (const [key, id] of Object.entries(TABS)) {
     const el = q(id);
@@ -88,6 +90,7 @@ function showTab(name) {
   if (name === 'server') loadTvApp();
   if (name === 'server') loadSsh();
   if (name === 'oledcare') loadOledCare();
+  if (name === 'home') loadHome();
   gamePolling(name === 'game');
   if (name === 'advanced') { loadAdvSettings(); loadUpdate(); loadScreenTime(); }
   if (name === 'servicemenu') loadServiceMenu();
@@ -119,8 +122,9 @@ if (tabsNav) {
     if (!navIsDrawer()) showTab(tabs[nextIdx].dataset.tab);
   });
 }
-// Reveals the Game tab on TVs with LG's Game Optimizer.
+// Reveals the Game tab on TVs with LG's Game Optimizer, and Home where Glasshouse Home is offered.
 loadGame();
+loadHomeAvailable();
 
 // The menu bar names the tab on show, in the page's language: the strings are
 // put in at DOMContentLoaded, after the first showTab.

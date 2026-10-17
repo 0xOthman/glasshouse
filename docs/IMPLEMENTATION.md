@@ -363,7 +363,10 @@ publishes no mapping gets no toggles on undescribed flags at all.
 ## luna-send prints nothing without a tty
 
 Over a non-interactive ssh command it returns an empty string and exit 0, which
-reads as a call that succeeded silently. Use `ssh -tt`. Calls made by `tvweb.js`
+reads as a call that succeeded silently. What matters is its standard input: at
+end of file before the reply comes (`ssh -n`, `echo |`) it prints nothing, and
+held open it answers (a G3, webOS 9.2.2). Use `ssh -tt`, or
+`sleep 5 | luna-send ...`. Calls made by `tvweb.js`
 on the TV itself are unaffected - this bites when testing by hand, and it is an
 easy way to convince yourself a change worked when nothing ran.
 
@@ -1149,6 +1152,47 @@ overlay and the layout is one recognised from #612's dumps, and only once
 feature off, or `tvwebctl restore-home` before uninstalling, deletes the webOS
 9 file or takes the webOS 10 overlay away, and restarts the home app.
 
+## Glasshouse Home
+
+`lib/home.js` runs a home screen of Glasshouse's own in place of LG's, opt-in
+from the dashboard's Home tab (webOS 9 only). The view is `assets/home.html`,
+opened by a second small web app, `com.tvweb.home` (`assets/home-app/`),
+which `dashboard-app/install-app.sh` packages and installs as it does the
+dashboard's. Its `appinfo.json` declares `"appCategory": ["home"]`, which the
+settings service needs before it takes the app as `defaultApps.home`.
+
+webOS 9 opens LG's Home itself on Home and Back whatever `defaultApps` says
+([research](development/TV-RESEARCH.md#taking-over-home-g3-webos-922)). The
+Home key is taken first, in the compositor, by the same filter Remote keys
+uses (`lib/remotekeys.js`), whose configd value then carries `home` naming the
+app. Back cannot be taken from apps, so the server's guard watches the
+foreground app and sends LG's Home back to Glasshouse Home, at most eight
+times in ten seconds. While the view is in
+front it names it in `lastInputApp` and `physicalLastInputApp`, so the TV
+starts on it. The screen saver setting is left alone. Holding Home is read from `/dev/input` by the remote-button worker,
+which runs while MQTT or Glasshouse Home wants it.
+
+Every way the view can fail ends on LG's Home: the app's own page waits on
+black while the server starts, and opens LG's Home through
+`PalmServiceBridge` on OK or when the server has not answered within 90 s,
+and keeps asking it; the view does the same after three failed heartbeats;
+and the server opens LG's Home when the view in front has stopped sending
+its heartbeat for 10 s. A view that has not yet sent one is left alone: after
+a cold start a G3 names the app as in front while Live TV shows and its page
+never loads the view. The server opens the app itself 8 s after it starts
+where it is named in front with no heartbeat yet, which draws it. LG's Home in
+front when the server starts is sent back to Glasshouse Home once. The app is never reinstalled while it runs: after a cold start the
+TV opens it through its input app, and an install then waits on it forever.
+
+Switching on saves the five settings it changes into `home.json` once
+(a snapshot from an earlier build that switched the screen saver off over the
+view also holds `screenSaverEnabled`, written back once at server start and
+then dropped);
+switching off writes them back and reads them to check. The layout lives in
+the same file, shared by the Home tab and the view's arrange mode, and is
+re-read when the file changes, so `tvwebctl restore-glasshouse-home` over SSH
+also stops a running server's guard.
+
 ## Apps kept ready in the background
 
 webOS's preload manager keeps apps loaded so they open quickly, including ones
@@ -1231,3 +1275,7 @@ Custom QML screensavers are staged in `/var/lib/tvweb/screensaver` and bind-moun
 The server asks PicCap's service only where `/media/developer/apps/usr/palm/applications/org.webosbrew.piccap` exists, so a TV without it starts no `luna-send` for it. For Home Assistant it polls every `piccap.pollIntervalMs` milliseconds (30 seconds by default) while MQTT is connected and the `piccap` entity is not switched off in the entity settings. An old `"piccap": {"enabled": false}` is turned into exactly that at start-up, and the key removed. Telemetry includes boolean `piccap.power` while PicCap answers; the bridge publishes retained `ON` or `OFF` to `<prefix>/state/piccap/power`, and `<prefix>/command/piccap/power` accepts `ON` or `OFF` when `allowControl` is enabled. Discovery carries the `piccap` switch only while a status check has answered, and is republished when that changes. `/api/stats` adds `piccapCapture: {running}` where PicCap answers, for the Advanced tab's switch, which sends the `piccap` control.
 
 
+
+No Home wallpapers are packaged; the background is black until one is uploaded. The browser prepares personal JPEG/PNG/WebP images as JPEGs within 1920 × 1080 pixels, the `resolution` the Home app declares, which webOS web apps are drawn at. `/api/home/wallpapers/upload?slot=morning|afternoon|evening|night` accepts only `image/jpeg` with a declared size up to 5 MiB, under the usual authentication, control and Origin guards. One upload is buffered at a time, with a 30-second body deadline, frame/scan structure and dimension checks, a disk-space check and atomic replacement. The server does not decode JPEG pixels. The Apps tab hides a system app by setting `visible: false` in its appinfo, and the TV's launch points, which the Apps row is built from, have no tile for such an app (AirPlay's appinfo has it from LG), so it is hidden on both Homes. On a G3 no launch point carries a `visible` field; the Apps row skips any that says `false` all the same. `home-wallpaper-uploads/<slot>.jpg`, outside the updater payload and rollback copy, is that slot's image. File revisions invalidate the browser and TV image URLs after replacement. Uploads are excluded from layout backups.
+
+A failed Home restore persists `restorePending` with the guard stopped; both dashboards keep a retry action until all settings and the Home key are restored. HBC uninstall uses the same owner before removing the app, and skips Home service writes on TVs that never used it. App absence requires the specific `Invalid appId` response, including raw replies accompanying a non-zero luna-send exit. A failed Home layout restore makes the backup result report partial failure.

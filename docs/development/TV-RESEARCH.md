@@ -28,6 +28,73 @@ physical Home screen displayed the title immediately, without a Home restart
 or QML modification. Updating the title can therefore show the port and EIM's
 CEC names on LG's own Home screen. Long titles use LG's scrolling text.
 
+## Taking over Home (G3, webOS 9.2.2)
+
+- The Home button opens `com.webos.app.home` whatever `general.defaultApps`
+  names: surface-manager launches it with `mode: "hotKey"`. Back out of an app
+  opens it through SAM's `last_input_handler`, `mode: "last_input"`. Unlike
+  webOS 10.3 (above), a replacement Home has to bring itself back after LG's
+  appears: LG's showed for 0.17 s after Back and 0.31 s after Home before
+  Glasshouse Home replaced it.
+- `defaultApps.home` was gone after each full restart, other entries kept.
+  `defaultApps.idleApp` naming another app does not change where Back out of
+  the last app goes: still `com.webos.app.home` through `last_input_handler`.
+- A compositor key filter ahead of LG's that accepts `Qt.Key_Super_L` (the
+  Home key) and launches an app replaces LG's Home entirely: surface-manager
+  launches that app in `hotKey` mode, and LG's Home never shows. The filter
+  is loaded from configd at boot, before any Glasshouse process runs.
+- An app declaring `"appCategory": ["home"]` installs through the developer
+  install service and is accepted as `defaultApps.home`.
+- The TV starts on the app `physicalLastInputApp` and `lastInputApp` name, and
+  a web app is accepted there. After a cold start the web app is opened through
+  `com.webos.app.inputcommon`, and SAM lists the input app's process as the web
+  app's. `closeByAppId` then answers true without closing it, and an install
+  over it waits in `appInstallService/status` state `"app closing"` with the
+  app locked (`launch` answers "app is locked") until the TV restarts. Opened
+  any other way, the same app closes and reinstalls normally.
+- From suspend, the TV comes back on whatever was in front.
+- The Home button is evdev code 773 (`IR_KEY_HOME`, 781, in
+  `/usr/share/X11/xkb/keycodes/lg`, less xkb's 8), as on a B4 with webOS 10.3.
+  A web app never sees it; held, it reaches `/dev/input` as down and, later, up.
+- A web app gets OK (13) down and up, and Back (461).
+- A web app's page renders at 3840x2160: `devicePixelRatio` is 2 at 1920x1080.
+- `PalmServiceBridge` in the app's own page, `file://` or `http://localhost`,
+  can launch `com.webos.app.home`, but called about 23 s after a cold start
+  it opened nothing.
+- `luna-send` run over SSH with stdin at end of file exits 0 and prints
+  nothing; with stdin held open (`sleep 5 | luna-send ...`), or from node's
+  `execFile`, it answers.
+
+
+### Cold start with Glasshouse Home as the start-up app (webOS 9.2.2, G3)
+
+Measured on 17 October 2026 by rebooting over SSH with `lastInputApp` naming `com.tvweb.home`, capturing the screen with `com.webos.service.capture/executeOneShot` (method `DISPLAY`) about once a second:
+
+- SSH answers about 36 s after the reboot, and the Glasshouse server about 45 s after it.
+- From about 36 s the application manager names `com.tvweb.home` as the foreground app, but the screen shows the input or channel the TV was last on (Live TV, or HDMI 4), and the app's page never loads the view: no heartbeat arrives, while the same page opened later loads it within a second.
+- `applicationManager/launch` of `com.tvweb.home` from the server after that (about 52 s) draws it.
+- The TV's own `defaultApps.home` is unset after each of these reboots.
+- Home pressed (over SSAP) at about 37 s brought LG's Home to the front: drawn in one run, black for about 6 s in another. The compositor key filter that sends Home to `com.tvweb.home` from the server's start onwards had not done so.
+- `/var/log` holds CRIU dump and restore logs for `com.webos.app.home` and `com.webos.app.inputcommon`, so those two are restored from snapshots at boot; whether that is why the started app is not drawn is not established.
+
+## Channels and the guide (G3, webOS 9.2.2)
+
+- `com.webos.service.apiadapter/tv/getChannelList` (the method behind SSAP's
+  `tv/getChannelList`) lists the tuner's channels with `channelId`,
+  `channelNumber`, `channelName`, `Radio`, `skipped` and `Invisible`: 182
+  terrestrial channels in London. `com.webos.service.iepg/getChannelList`
+  answered with none.
+- `com.webos.service.apiadapter/tv/openChannel { channelId }` tunes and
+  brings Live TV to the front, from any app. Launching `com.webos.app.livetv`
+  with `channelId` or `channelNumber` does not change the channel while Live
+  TV is open.
+- `com.webos.service.apiadapter/tv/getChannelCurrentProgramInfo { channelId }`
+  gives the programme on now for any channel, with `startTime` and `endTime`
+  in UTC as `"2026,10,17,13,40,00"` and `localStartTime`/`localEndTime` in the
+  TV's zone, once a channel has been tuned since the TV started; before that it
+  has no programme. `tv/getChannelProgramInfo` and `iepg/getEventList` returned
+  empty programme lists throughout.
+
 ## Which window has the remote (webOS 6.4.0, C1)
 
 - `com.webos.applicationManager/getForegroundAppInfo` names only the app
