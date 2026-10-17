@@ -350,14 +350,14 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       scrollTrack(rowEl, tiles[c], instant);
     }
     var btns = ['btnHide', 'btnReset', 'btnDone'];
-    // Apps and inputs come from the TV and can only be hidden; channels were added, so they are removed.
-    $('btnHide').textContent = state.last && state.last.kind === 'ch'
-      ? t('home.arrange.removeChannel', 'Remove channel') : t('home.arrange.hide', 'Hide or show');
     for (var b = 0; b < btns.length; b++) $(btns[b]).className = 'btn' + (state.bar === b ? ' focus' : '');
     if (state.bar < 0) {
       var focused = items(rowKey())[colOf(rowKey())];
       state.last = focused ? { kind: rowKey(), id: focused.id } : null;
     }
+    // Apps and inputs come from the TV and can only be hidden; channels were added, so they are removed.
+    $('btnHide').textContent = state.last && state.last.kind === 'ch'
+      ? t('home.arrange.removeChannel', 'Remove channel') : t('home.arrange.hide', 'Hide or show');
     if (state.arranging) {
       var it = items(rowKey())[colOf(rowKey())];
       $('bannerState').textContent = !it ? t('home.arrange.emptyRow', 'This row is empty')

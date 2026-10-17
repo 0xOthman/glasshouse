@@ -38,9 +38,9 @@ The Home button opens Glasshouse Home directly: while it is on, Glasshouse's rem
 
 Over SSH, `tvwebctl restore-glasshouse-home` does what **Use LG Home** does. Switch Glasshouse Home off before uninstalling Glasshouse.
 
-![The Home tab in the browser dashboard](../screenshots/home-dashboard.png)
+![The Home tab in the browser dashboard: the Channels row with its added channels, and Add channels below them](../screenshots/home-dashboard.png)
 
-![The Home section of the TV app](../screenshots/home-tv-app.jpg)
+![The Home section of the TV app: inputs shown or hidden, channels removed with OK, and Add channels](../screenshots/home-tv-app.jpg)
 
 ## Arranging
 
@@ -52,4 +52,4 @@ The view confirms a save or reset only after the server accepts it, and reports 
 
 A catalogue reply arriving during arranging cannot replace the edits. Reset leaves the Apps row following its default order. A server update waits until arranging and saving finish before reloading the view.
 
-![Arranging on the TV: YouTube picked up, with the bar for hiding, resetting and finishing](../screenshots/home-arrange.jpg)
+![Arranging on the TV: ITV1 focused in the Channels row, with the bar for removing it, resetting and finishing](../screenshots/home-arrange.jpg)

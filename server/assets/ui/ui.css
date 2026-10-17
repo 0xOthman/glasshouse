@@ -1393,6 +1393,7 @@ button.tools-jump:active{background:var(--w80)}
 .sys-tile.sys-changed .rk-name{color:var(--cand)}
 
 /* The Home tab */
+#home-rows{margin-top:14px}
 .home-row{border-top:1px solid var(--edge);padding:10px 0}
 .home-row summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;padding:6px 0}
 .home-row-move{display:flex;gap:6px}
