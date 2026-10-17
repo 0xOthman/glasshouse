@@ -1387,3 +1387,6 @@ button.tools-jump:active{background:var(--w80)}
 .err-note b{font-weight:600;margin-right:6px}
 /* Under a long catalog list: how many show, and the button for more. */
 .catalog-more{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 0 4px}
+/* Hide home screen system apps: a hidden app's tile is dimmed. */
+.sys-tile.sys-hidden .rk-does{opacity:.45}
+.sys-tile.sys-hidden .rk-name{color:var(--cand)}

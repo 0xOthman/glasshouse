@@ -202,8 +202,10 @@ function renderAppsPanel() {
     btnOff.disabled = !d.writable;
     btnOn.disabled = !d.writable || (!!d.tileHidingHeld && !tileHidingEnabled);
   }
+  // Only where the TV has no nudge: there each cold boot restarts sam to hide
+  // the tiles again, which is what blanks the screen for a moment.
   if (warningBox) {
-    warningBox.hidden = !tileHidingEnabled || !!d.tileHidingHeld;
+    warningBox.hidden = !tileHidingEnabled || !!d.tileHidingHeld || d.tileHidingNudge === true;
   }
   q('tile-hiding-held').hidden = !d.tileHidingHeld;
   q('tile-hiding-overridden').hidden = !d.tileHidingOverridden;
@@ -233,30 +235,20 @@ function renderAppsPanel() {
     } else if (tiles.length === 0) {
       tilesList.innerHTML = `<div class="sub" style="padding:16px 0">${esc(t('apps.tiles.none', 'No eligible system apps found.'))}</div>`;
     } else {
-      tilesList.innerHTML = tiles.map(tile => {
-        const title = esc(tile.title || tile.id);
-        const id = esc(tile.id);
-        const iconUrl = api('/api/apps/icon?id=' + encodeURIComponent(tile.id));
+      // A tile per app, as Remote keys has: choosing one hides or shows it.
+      tilesList.innerHTML = `<div class="rk-grid">${tiles.map(tile => {
         const pending = tilePending.hasOwnProperty(tile.id);
         const isHidden = willHide(tile);
-        return `<div class="prot-row">
-          <img src="${iconUrl}" width="38" height="38" style="border-radius:8px;object-fit:contain;background:var(--w06);flex-shrink:0" onerror="this.style.display='none'">
-          <div class="prot-main">
-            <div class="prot-title">${title}</div>
-            <div class="prot-desc">${esc(isHidden ? t('apps.tile.hidden.desc', 'Hidden from home launcher ribbon') : t('apps.tile.visible.desc', 'Visible on home launcher ribbon'))}</div>
-          </div>
-          <div class="prot-status">
-            ${renderToggle({
-              id: 'btn-tile-' + id,
-              cls: isHidden ? 'warn' : 'good',
-              label: pending ? (isHidden ? t('apps.tile.hiding', 'Hiding\u2026') : t('apps.tile.restoring', 'Restoring\u2026'))
-                : isHidden ? t('apps.tile.hidden', 'Hidden') : t('apps.tile.visible', 'Visible'),
-              disabled: !d.writable || pending,
-              onclick: "toggleTileVisibility('" + id + "', " + (!isHidden) + ")"
-            })}
-          </div>
-        </div>`;
-      }).join('');
+        const state = pending ? (isHidden ? t('apps.tile.hiding', 'Hiding\u2026') : t('apps.tile.restoring', 'Restoring\u2026'))
+          : isHidden ? t('apps.tile.hidden', 'Hidden') : t('apps.tile.shown', 'Shown');
+        const name = tile.title || tile.id;
+        return `<button type="button" class="rk-key sys-tile${isHidden ? ' sys-hidden' : ''}" aria-pressed="${isHidden}"
+            aria-label="${esc(name + ': ' + state)}" ${!d.writable || pending ? 'disabled' : ''}
+            onclick="toggleTileVisibility('${jsq(tile.id)}', ${!isHidden})">
+          <span class="rk-does">${rkIcon(tile.id)}<span translate="no">${esc(name)}</span></span>
+          <span class="rk-name">${esc(state)}</span>
+        </button>`;
+      }).join('')}</div>`;
     }
   }
 

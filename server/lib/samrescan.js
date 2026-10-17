@@ -127,6 +127,18 @@ function restore(lg, tries, cb) {
 }
 
 /*
+ * cb(true) where the TV has the setting a nudge uses, cb(false) where it has
+ * not, cb(null) where that is not known. Read once; a nudge also records it.
+ */
+function canNudge(cb) {
+  if (supported !== null || !lunaFn) return cb(supported);
+  readList(function (list) {
+    if (supported === null) supported = !!list;
+    cb(supported);
+  });
+}
+
+/*
  * Nudges sam, then waits until check(done) says the change has taken, for up
  * to CHECK_POLLS polls. cb(true) once it has; cb(false) where the TV cannot be
  * nudged or sam did not catch up, so the caller restarts sam instead.
@@ -219,6 +231,7 @@ function rereadApp(appId, check, cb) {
 module.exports = {
   init: init,
   refresh: refresh,
+  canNudge: canNudge,
   rereadApp: rereadApp,
   KEY: KEY,
   NUDGE_ID: NUDGE_ID
