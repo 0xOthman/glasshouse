@@ -123,46 +123,12 @@ async function visitAll(browser, jobs, problems) {
   await Promise.all([worker(), worker(), worker(), worker()]);
 }
 
-// Catalogue refreshes are background work, so they must not postpone panel off.
-async function visitHome(browser, base, problems) {
-  const page = await browser.newPage();
-  page.on('pageerror', e => problems.push('Home view: ' + e.message));
-  let screenOff = 0;
-  await page.route('**/api/home/**', route => {
-    const pathname = new URL(route.request().url()).pathname;
-    let body = { ok: true };
-    if (pathname === '/api/home/catalogue') body = {
-      ok: true, apps: [], devices: [], channels: [],
-      order: { app: ['lg-home'], dev: [], ch: [] }, sources: { channels: 0 },
-      layout: { rows: ['app', 'dev', 'ch'], hidden: { app: [], dev: [], ch: [] },
-        channels: [], idle: { dimAfter: 120, panelOffAfter: 900 }, hintSeen: true }
-    };
-    if (pathname === '/api/home/screen-off') screenOff++;
-    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
-  });
-  try {
-    await page.clock.install();
-    await page.goto(base + '/assets/home.html');
-    await page.waitForSelector('.tile');
-    for (let i = 0; i < 3; i++) {
-      const refreshed = page.waitForResponse(r => new URL(r.url()).pathname === '/api/home/catalogue');
-      await page.clock.fastForward(5 * 60000);
-      await refreshed;
-      await page.waitForTimeout(50);
-    }
-    if (!screenOff) problems.push('Home view: catalogue refreshes prevented panel off after fifteen idle minutes');
-    await page.keyboard.press('ArrowRight');
-    if (await page.locator('#idle').getAttribute('class') === 'show') problems.push('Home view: a remote key did not wake the idle screen');
-  } finally { await page.close(); }
-}
-
 async function visitHomeArrangement(browser, base, problems) {
   const page = await browser.newPage();
   page.on('pageerror', e => problems.push('Home arranging: ' + e.message));
   const layout = {
     rows: ['app', 'dev', 'ch'], order: { app: [], dev: [], ch: [] },
-    hidden: { app: [], dev: [], ch: [] }, channels: [],
-    idle: { dimAfter: 0, panelOffAfter: 0 }, hintSeen: true
+    hidden: { app: [], dev: [], ch: [] }, channels: [], hintSeen: true
   };
   const defaultOrder = ['netflix', 'youtube', 'lg-home'];
   const saves = [];
@@ -261,7 +227,7 @@ async function visitHomeEditor(browser, base, problems) {
   const page = await browser.newPage();
   page.on('pageerror', e => problems.push('Home editor: ' + e.message));
   let layout = { rows: ['app', 'dev', 'ch'], order: { app: [], dev: [], ch: [] },
-    hidden: { app: [], dev: [], ch: [] }, channels: ['a'], idle: { dimAfter: 120, panelOffAfter: 900 }, hintSeen: true };
+    hidden: { app: [], dev: [], ch: [] }, channels: ['a'], hintSeen: true };
   const channels = ['a', 'b', 'c'].map(id => ({ id, name: id.toUpperCase(), number: id }));
   const saves = [];
   let release = null, refuse = false, pendingRestore = false, portChanged = false;
@@ -329,10 +295,10 @@ async function visitHomeUploads(browser, base, problems) {
   const page = await context.newPage(), observer = await context.newPage();
   for (const p of [page, observer]) p.on('pageerror', e => problems.push('Home uploads: ' + e.message));
   const layout = { rows: ['app', 'dev', 'ch'], order: { app: [], dev: [], ch: [] },
-    hidden: { app: [], dev: [], ch: [] }, channels: [], idle: { dimAfter: 120, panelOffAfter: 900 }, hintSeen: true };
+    hidden: { app: [], dev: [], ch: [] }, channels: [], hintSeen: true };
   let uploading = false, uploaded = false, release, image;
-  const wallpapers = () => ({ available: uploaded, downloaded: false, uploading,
-    custom: { morning: uploaded }, slots: { morning: uploaded }, revision: uploaded ? '1' : '0' });
+  const wallpapers = () => ({ available: uploaded, uploading,
+    slots: { morning: uploaded }, revision: uploaded ? '1' : '0' });
   await context.route('**/api/home**', async route => {
     const pathname = new URL(route.request().url()).pathname;
     let body;
@@ -373,10 +339,32 @@ async function visitHomeUploads(browser, base, problems) {
       const image = document.querySelector('#home-walls img');
       return image && image.complete && image.naturalWidth;
     });
-    if (!await page.locator('#home-walls').textContent().then(t => /Uploaded/.test(t))) problems.push('Home uploads: uploaded slot is not identified');
     await page.locator('#home-wall-clear').click();
     await page.waitForFunction(() => !document.querySelector('#home-walls img'));
   } finally { await context.close(); }
+}
+
+// Where Glasshouse Home is not offered its tab is left out; where it is on, the Apps tab says what LG's settings reach.
+async function visitHomeAvailability(browser, base, problems) {
+  for (const st of [{ available: false, enabled: false }, { available: true, enabled: true }]) {
+    const page = await browser.newPage();
+    page.on('pageerror', e => problems.push('Home availability: ' + e.message));
+    await page.route('**/api/home**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify(Object.assign({
+      ok: true, supported: { ok: st.available }, installed: true, restorePending: false, writable: true,
+      layout: { rows: ['app', 'dev', 'ch'], order: { app: [], dev: [], ch: [] }, hidden: { app: [], dev: [], ch: [] }, channels: [], hintSeen: true },
+      apps: [], devices: [], channels: [], order: { app: [], dev: [], ch: [] }, sources: { channels: 0 }, wallpapers: { slots: {} }
+    }, st)) }));
+    try {
+      await page.goto(base + '/?tab=home');
+      await page.waitForFunction(() => homeAvailable !== null);
+      await page.waitForTimeout(100);
+      const hidden = await page.locator('#tab-btn-home').isHidden();
+      if (hidden === st.available) problems.push('Home availability: tab ' + (hidden ? 'hidden' : 'shown') + ' with available ' + st.available);
+      if (!st.available && await page.evaluate(() => activeTab) !== 'control') problems.push('Home availability: an unavailable Home tab stayed open');
+      const notes = await page.locator('[data-glasshouse-home-note]:not([hidden])').count();
+      if (notes !== (st.enabled ? 2 : 0)) problems.push('Home availability: ' + notes + ' Apps tab notes with Glasshouse Home ' + (st.enabled ? 'on' : 'off'));
+    } finally { await page.close(); }
+  }
 }
 
 async function visitHomeReadiness(browser, base, problems) {
@@ -393,7 +381,7 @@ async function visitHomeReadiness(browser, base, problems) {
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, apps: [], devices: [], channels: [],
         order: { app: ['lg-home'], dev: [], ch: [] }, sources: { channels: 0 },
         layout: { rows: ['app', 'dev', 'ch'], hidden: { app: [], dev: [], ch: [] }, order: { app: [], dev: [], ch: [] },
-          channels: [], idle: { dimAfter: 120, panelOffAfter: 900 }, hintSeen: true } }) });
+          channels: [], hintSeen: true } }) });
     }
     return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ok: true, build: 'one', kind: null }) });
   });
@@ -424,14 +412,14 @@ async function visitHomeReadiness(browser, base, problems) {
   const web = webTabs(), tv = tvTabs();
   await visitAll(browser, web.map(t => ({ url: base + '/?tab=' + t, label: 'web ' + t }))
     .concat(tv.map(t => ({ url: base + '/assets/dashboard.html?tab=' + t, label: 'TV ' + t }))), problems);
-  await visitHome(browser, base, problems);
   await visitHomeArrangement(browser, base, problems);
   await visitHomeEditor(browser, base, problems);
   await visitHomeUploads(browser, base, problems);
   await visitHomeReadiness(browser, base, problems);
+  await visitHomeAvailability(browser, base, problems);
   await browser.close();
   for (const p of problems) console.log(p);
   console.log((web.length + tv.length) + ' tabs opened (' + web.length + ' web, ' + tv.length + ' TV app), ' +
-              'Home idle, wake, arranging, update, editing, uploads and readiness checked, ' + problems.length + ' problem' + (problems.length === 1 ? '' : 's'));
+              'Home arranging, update, editing, uploads, readiness and availability checked, ' + problems.length + ' problem' + (problems.length === 1 ? '' : 's'));
   process.exit(problems.length ? 1 : 0);
 })().catch(e => { console.error(e.message); process.exit(1); });

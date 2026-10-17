@@ -9,7 +9,7 @@
 /* Glasshouse Home: the TV's home screen, driven by the remote. A 1920x1080
    stage scaled to the window. Warm white on true black, never full white on
    the panel; amber only for what was last on and for arranging. The rows sit
-   low over a darkened wallpaper that changes with the time of day. */
+   low over black, or over a darkened uploaded wallpaper for the time of day. */
 @font-face{font-family:'Outfit';src:url('/assets/fonts/Outfit-Light.ttf') format('truetype');font-weight:300;font-display:swap}
 @font-face{font-family:'Outfit';src:url('/assets/fonts/Outfit-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
 @font-face{font-family:'Manrope';src:url('/assets/fonts/Manrope-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
@@ -113,22 +113,13 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 #toast small{display:block;font-size:18px;color:#a39d93;margin-top:4px}
 .arranging #toast{bottom:96px}
 
-/* The idle screen: true black and a dim clock that moves, so nothing stays lit
-   in one place. Later the panel is switched off. */
-#idle{position:absolute;left:0;top:0;right:0;bottom:0;background:#000;opacity:0;pointer-events:none;
-  -webkit-transition:opacity 1.2s;transition:opacity 1.2s}
-#idle.show{opacity:1;pointer-events:auto}
-#idleT{position:absolute;font-family:'Outfit',sans-serif;font-size:120px;font-weight:300;color:#4a4741;
-  -webkit-transition:left 3s ease-in-out,top 3s ease-in-out;transition:left 3s ease-in-out,top 3s ease-in-out}
-#idleT small{display:block;font-family:'Manrope',sans-serif;font-size:24px;color:#34322e;margin-top:4px}
-
 #fault{position:absolute;left:112px;top:420px;width:1200px;display:none}
 #fault.show{display:block}
 #fault h1{font-family:'Outfit',sans-serif;font-weight:300;font-size:56px;margin-bottom:18px}
 #fault p{font-size:26px;color:#a39d93}
 
 @media (prefers-reduced-motion:reduce){
-  .track,#idleT,#toast,.tile,#idle{-webkit-transition:none;transition:none}
+  .track,#toast,.tile{-webkit-transition:none;transition:none}
   #wall .layer{-webkit-animation:none;animation:none}
 }
 </style>
@@ -165,8 +156,6 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     <h1 data-t="home.fault.title">Glasshouse is not answering</h1>
     <p data-t="home.fault.desc">Opening LG's Home instead. Glasshouse Home comes back when it answers again.</p>
   </div>
-
-  <div id="idle"><div id="idleT"></div></div>
 </div>
 
 <script src="/assets/i18n.js"></script>
@@ -192,15 +181,13 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   var BEAT_MS = 5000;
 
   var data = null;       // the catalogue: apps, devices, channels, order
-  var layout = null;     // rows, order, hidden, channels, idle, hintSeen
+  var layout = null;     // rows, order, hidden, channels, hintSeen
   var guideData = {};
   var lastOn = { kind: null };
   // last: the tile focused last, which the bar's Hide or show acts on.
   var state = { row: 0, col: {}, arranging: false, held: false, bar: -1, last: null };
   var build = null;
   var okDownAt = 0, okTimer = null, okLong = false;
-  var idleTimer = null, panelTimer = null, driftTimer = null;
-  var activityAt = Date.now();
   var beatFails = 0;
   var layoutRevision = 0, layoutBusy = false;
   var loadRetry = null, wallAvailable = false, initialEscape = false;
@@ -566,7 +553,6 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   function onKeyDown(e) {
     if (!data || !layout) return;
     var k = e.keyCode;
-    if (wake()) { e.preventDefault(); return; }
     if (k === KEY.ok) {
       // Acted on at release, unless held: a long press arranges.
       e.preventDefault();
@@ -615,7 +601,6 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     return null;
   }
   function onPointer(e) {
-    noteActivity();
     var tile = tileAt(e.target);
     if (!tile || state.held) return;
     var rowEl = tile.parentNode;
@@ -628,7 +613,6 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   }
   function onClick(e) {
     if (!data || !layout) return;
-    if (wake()) return;
     var btn = e.target && e.target.id;
     if (btn === 'btnHide') return pressBar(0);
     if (btn === 'btnReset') return pressBar(1);
@@ -636,46 +620,6 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (!tileAt(e.target)) return;
     if (state.arranging) { state.held = !state.held; applyFocus(); }
     else activate();
-  }
-
-  // ---------------------------------------------------------------- idle
-
-  function placeIdle() {
-    var el = $('idleT'), d = new Date();
-    el.innerHTML = esc(hm(d)) + '<small>' + esc(dateText(d)) + '</small>';
-    el.style.left = (120 + Math.random() * 1360) + 'px';
-    el.style.top = (90 + Math.random() * 760) + 'px';
-  }
-  function showIdle() {
-    if (state.arranging) return noteActivity();
-    placeIdle();
-    $('idle').className = 'show';
-    clearInterval(driftTimer);
-    driftTimer = setInterval(placeIdle, 10000);
-  }
-  function noteActivity() {
-    activityAt = Date.now();
-    scheduleIdle();
-  }
-  function scheduleIdle() {
-    clearTimeout(idleTimer);
-    clearTimeout(panelTimer);
-    var idle = layout ? layout.idle : { dimAfter: 120, panelOffAfter: 900 };
-    var elapsed = Math.max(0, Date.now() - activityAt);
-    if (idle.dimAfter > 0 && $('idle').className !== 'show') {
-      idleTimer = setTimeout(showIdle, Math.max(0, idle.dimAfter * 1000 - elapsed));
-    }
-    if (idle.panelOffAfter > 0) {
-      panelTimer = setTimeout(function () { postJson('/api/home/screen-off', {}); }, Math.max(0, idle.panelOffAfter * 1000 - elapsed));
-    }
-  }
-  // The first key after the idle screen only wakes the page.
-  function wake() {
-    var was = $('idle').className === 'show';
-    $('idle').className = '';
-    clearInterval(driftTimer);
-    noteActivity();
-    return was;
   }
 
   // ---------------------------------------------------------------- wallpaper
@@ -769,7 +713,6 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         layout.hintSeen = true;
       }
       refreshGuide();
-      scheduleIdle();
       if (cb) cb(true);
     });
     refreshNow();
@@ -837,7 +780,6 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     updateWall();
     state.row = 0; state.col = {}; state.bar = -1;
     if (state.arranging) setArranging(false);
-    wake();
     beat();
     load();
   }

@@ -53,6 +53,8 @@ function luna(uri, p, cb) {
       { id: 'netflix', title: 'Netflix', icon: '/x/netflix.png' },
       { id: 'youtube.leanback.v4', title: 'YouTube', icon: '/x/yt.png' },
       { id: 'cdp-30', title: 'Plex', icon: '/x/plex.png' },
+      // Hidden on the Apps tab: visible false in its appinfo.
+      { id: 'com.webos.app.music', title: 'Music', icon: '/x/music.png', visible: false },
       { id: 'com.webos.app.hdmi1', title: 'HDMI 1', lptype: 'bookmark' },
       { id: HOME_APP, title: 'Glasshouse Home' }
     ];
@@ -91,7 +93,7 @@ function start(file) {
   try { fs.unlinkSync(path.join(dir, 'home.json')); } catch (e) {}
   if (file) fs.writeFileSync(path.join(dir, 'home.json'), JSON.stringify(file));
   home.stop();
-  home.init({ luna: luna, liveState: liveState, stateDir: dir, webosVersion: '9.2.2', uptime: function () { return 99999; } });
+  home.init({ luna: luna, liveState: liveState, stateDir: dir, webosVersion: '9.2.2' });
 }
 
 function wait(ms, fn) { setTimeout(fn, ms); }
@@ -107,7 +109,7 @@ function next() {
 step('the saved layout keeps its order, drops what has gone and appends what is new', function (done) {
   start({ order: { app: ['cdp-30', 'gone.app', 'netflix'], dev: [], ch: [] }, hidden: { app: [], dev: [], ch: [] } });
   home.catalogue(function (c) {
-    assert.deepEqual(c.order.app, ['cdp-30', 'netflix', 'youtube.leanback.v4', 'lg-home']);
+    assert.deepEqual(c.order.app, ['cdp-30', 'netflix', 'youtube.leanback.v4', 'lg-home'], 'an app hidden on the Apps tab is left out');
     assert.deepEqual(c.order.dev, ['hdmi1', 'hdmi2:stereo-70s', 'hdmi2:playstation-5']);
     assert.strictEqual(c.devices[0].unused, true, 'an empty input is listed, marked unused');
     assert.strictEqual(c.devices[2].via, 'STEREO 70s');
@@ -143,12 +145,10 @@ step('channels are added and removed, never hidden, and their list is their orde
   });
 });
 
-step('the LG Home tile cannot be hidden, and timings are kept in range', function (done) {
+step('the LG Home tile cannot be hidden, and unknown rows are dropped', function (done) {
   start(null);
-  home.setLayout({ hidden: { app: ['lg-home', 'netflix'] }, idle: { dimAfter: -5, panelOffAfter: 1e9 }, rows: ['ch', 'bogus'] }, function (r) {
+  home.setLayout({ hidden: { app: ['lg-home', 'netflix'] }, rows: ['ch', 'bogus'] }, function (r) {
     assert.deepEqual(r.layout.hidden.app, ['netflix']);
-    assert.strictEqual(r.layout.idle.dimAfter, 120);
-    assert.strictEqual(r.layout.idle.panelOffAfter, 6 * 3600);
     assert.deepEqual(r.layout.rows, ['ch', 'app', 'dev']);
     done();
   });
@@ -160,19 +160,19 @@ step('switching on keeps the settings once, and switching off puts them back exa
     assert.ok(r.ok, r.error);
     assert.strictEqual(tv.settings.defaultApps.home, HOME_APP);
     assert.strictEqual(tv.settings.defaultApps.MembershipApp, 'com.webos.app.overlaymembership');
-    // The view in front: the TV starts on it, and LG's screen saver is off.
+    // The view in front: the TV starts on it, and its screen saver setting is left alone.
     foreground(HOME_APP);
     wait(50, function () {
       assert.strictEqual(tv.settings.lastInputApp, HOME_APP);
-      assert.strictEqual(tv.settings.screenSaverEnabled, 'off');
+      assert.strictEqual(tv.settings.screenSaverEnabled, 'on');
       home.disable(function (r2) {
         assert.ok(r2.ok, r2.error);
         assert.deepEqual(tv.settings, ORIGINAL);
         // Changed while off, then on and off again: still the first snapshot.
-        tv.settings.screenSaverEnabled = 'off';
+        tv.settings.lastInputAppType = 'HDMI_3';
         home.enable(function () {
           home.disable(function () {
-            assert.strictEqual(tv.settings.screenSaverEnabled, 'on');
+            assert.strictEqual(tv.settings.lastInputAppType, 'HDMI_2');
             done();
           });
         });
@@ -249,14 +249,16 @@ step('overlapping layout and switch requests cannot lose the settings snapshot',
     assert.ok(r.ok, r.error);
     var saved = JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8'));
     assert.strictEqual(saved.enabled, true);
-    assert.deepEqual(saved.snapshot.settings, ORIGINAL);
+    var expected = copy(ORIGINAL);
+    delete expected.screenSaverEnabled;
+    assert.deepEqual(saved.snapshot.settings, expected, 'the screen saver setting is not taken');
     home.disable(function (r2) { assert.ok(r2.ok, r2.error); done(); });
   });
   home.setLayout({ hintSeen: true }, function (r) { assert.strictEqual(r.ok, false); });
   home.disable(function (r) { assert.strictEqual(r.ok, false); });
 });
 
-step('switching off waits for pending screen-saver writes and cancels pending reads', function (done) {
+step('switching off waits for pending guard writes and cancels pending reads', function (done) {
   var modes = ['read', 'write'];
   function run() {
     if (!modes.length) return done();
@@ -264,12 +266,13 @@ step('switching off waits for pending screen-saver writes and cancels pending re
     start(null);
     home.enable(function () {
       interceptLuna = function (uri, p, cb) {
-        if (mode === 'read' && /getSystemSettings$/.test(uri) && p.keys.length === 1 && p.keys[0] === 'screenSaverEnabled') {
-          pending = function () { cb({ returnValue: true, settings: { screenSaverEnabled: 'on' } }); };
+        // The guard making the TV start on the view.
+        if (mode === 'read' && /getSystemSettings$/.test(uri) && p.keys.join() === 'lastInputApp,physicalLastInputApp') {
+          pending = function () { cb({ returnValue: true, settings: { lastInputApp: 'com.webos.app.hdmi2', physicalLastInputApp: 'com.webos.app.hdmi2' } }); };
           return true;
         }
-        if (mode === 'write' && /setSystemSettings$/.test(uri) && p.settings.screenSaverEnabled === 'off') {
-          pending = function () { tv.settings.screenSaverEnabled = 'off'; cb({ returnValue: true }); };
+        if (mode === 'write' && /setSystemSettings$/.test(uri) && p.settings.lastInputApp === HOME_APP) {
+          pending = function () { tv.settings.lastInputApp = tv.settings.physicalLastInputApp = HOME_APP; cb({ returnValue: true }); };
           return true;
         }
         return false;
@@ -277,7 +280,7 @@ step('switching off waits for pending screen-saver writes and cancels pending re
       foreground(HOME_APP);
       wait(30, function () {
         var restored = false;
-        assert.ok(pending, 'the TV has a pending saver ' + mode);
+        assert.ok(pending, 'the TV has a pending ' + mode);
         home.disable(function (r) { assert.ok(r.ok, r.error); restored = true; });
         wait(30, function () {
           pending();
@@ -389,6 +392,7 @@ step('a failed key or settings restore prevents removal until LG Home is restore
 });
 
 step('an app removed outside Glasshouse gives the Home key and saved settings back to LG at start', function (done) {
+  // A snapshot from a build that switched the screen saver off over the view puts it back on.
   start({ enabled: true, snapshot: { takenAt: Date.now(), settings: ORIGINAL } });
   var target = HOME_APP;
   tv.homeInstalled = false;
@@ -440,6 +444,61 @@ step('LG\'s Home is sent back at most eight times in ten seconds, then left', fu
     foreground(LG_HOME);
     wait(50, function () {
       assert.strictEqual(tv.launched.filter(function (id) { return id === HOME_APP; }).length, 8);
+      home.disable(function () { done(); });
+    });
+  });
+});
+
+step('LG\'s Home in front when the server starts is sent back to Glasshouse Home', function (done) {
+  start({ enabled: true, snapshot: { takenAt: Date.now(), settings: ORIGINAL } });
+  home.start();
+  foreground(LG_HOME);
+  wait(50, function () {
+    assert.deepEqual(tv.launched, [HOME_APP]);
+    home.disable(function () { done(); });
+  });
+});
+
+step('an app named in front that has never beaten is left alone, as after a cold start', function (done) {
+  start(null);
+  home.enable(function () {
+    foreground(HOME_APP);
+    tv.launched = [];
+    wait(10500, function () {
+      assert.deepEqual(tv.launched, []);
+      home.disable(function () { done(); });
+    });
+  });
+});
+
+step('after a cold start the app named in front without a view is opened once', function (done) {
+  start({ enabled: true, snapshot: { takenAt: Date.now(), settings: ORIGINAL } });
+  home.start();
+  foreground(HOME_APP);
+  wait(8500, function () {
+    assert.deepEqual(tv.launched, [HOME_APP]);
+    // A view that loaded in time is not opened again.
+    start({ enabled: true, snapshot: { takenAt: Date.now(), settings: ORIGINAL } });
+    home.start();
+    foreground(HOME_APP);
+    home.beat();
+    wait(8500, function () {
+      assert.deepEqual(tv.launched, []);
+      home.disable(function () { done(); });
+    });
+  });
+});
+
+step('a view that stops beating in standby is left alone', function (done) {
+  start(null);
+  home.enable(function () {
+    foreground(HOME_APP);
+    home.beat();
+    tv.launched = [];
+    listeners.forEach(function (fn) { fn({ group: 'power', key: 'screenOn', value: false }); });
+    wait(10500, function () {
+      assert.deepEqual(tv.launched, []);
+      listeners.forEach(function (fn) { fn({ group: 'power', key: 'screenOn', value: true }); });
       home.disable(function () { done(); });
     });
   });

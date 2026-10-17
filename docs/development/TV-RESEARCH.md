@@ -65,6 +65,18 @@ CEC names on LG's own Home screen. Long titles use LG's scrolling text.
   nothing; with stdin held open (`sleep 5 | luna-send ...`), or from node's
   `execFile`, it answers.
 
+
+### Cold start with Glasshouse Home as the start-up app (webOS 9.2.2, G3)
+
+Measured on 17 October 2026 by rebooting over SSH with `lastInputApp` naming `com.tvweb.home`, capturing the screen with `com.webos.service.capture/executeOneShot` (method `DISPLAY`) about once a second:
+
+- SSH answers about 36 s after the reboot, and the Glasshouse server about 45 s after it.
+- From about 36 s the application manager names `com.tvweb.home` as the foreground app, but the screen shows the input or channel the TV was last on (Live TV, or HDMI 4), and the app's page never loads the view: no heartbeat arrives, while the same page opened later loads it within a second.
+- `applicationManager/launch` of `com.tvweb.home` from the server after that (about 52 s) draws it.
+- The TV's own `defaultApps.home` is unset after each of these reboots.
+- Home pressed (over SSAP) at about 37 s brought LG's Home to the front: drawn in one run, black for about 6 s in another. The compositor key filter that sends Home to `com.tvweb.home` from the server's start onwards had not done so.
+- `/var/log` holds CRIU dump and restore logs for `com.webos.app.home` and `com.webos.app.inputcommon`, so those two are restored from snapshots at boot; whether that is why the started app is not drawn is not established.
+
 ## Channels and the guide (G3, webOS 9.2.2)
 
 - `com.webos.service.apiadapter/tv/getChannelList` (the method behind SSAP's

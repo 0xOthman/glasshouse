@@ -269,7 +269,7 @@ var TABS = [
   { key: 'oled',    label: t('tab.oledCare', 'OLED Care'),    url: '/api/oledcare',    build: oledRows, optional: true },
   { key: 'game',    label: t('tab.game', 'Game'),         url: '/api/game',        build: gameRows, optional: true },
   { key: 'saver',   label: t('tv.tab.screenSaver', 'Screen Saver'), url: '/api/screensaver', build: saverRows, optional: true },
-  { key: 'home',    label: t('tab.home', 'Home'),         url: '/api/home?with=catalogue,channels', build: homeRows },
+  { key: 'home',    label: t('tab.home', 'Home'),         url: '/api/home?with=catalogue,channels', build: homeRows, optional: true },
   { key: 'privacy', label: t('tab.privacy', 'Privacy'),      url: '/api/privacy',     build: privacyRows },
   { key: 'service', label: t('tv.tab.serviceMenu', 'Service Menu'), url: '/api/servicemenu', build: svcRows },
   { key: 'options', label: t('tv.tab.system', 'System'),       url: '/api/stats?with=settings', build: optionRows, poll: 5000 },
@@ -677,19 +677,7 @@ function saverRows(d) {
  * its app is on the TV the section offers to add it; after, everything the
  * browser dashboard's Home tab changes is here too, editing the same layout.
  */
-var HOME_DIM = [60, 120, 300, 0], HOME_OFF = [600, 900, 1800, 0];
 var homeData = null;
-var homeWallPoll = null;
-
-function homeDuration(sec) {
-  if (!sec) return t('home.idle.never', 'Never');
-  return sec < 3600 ? t('tv.home.minutes', '{n} min', { n: Math.round(sec / 60) }) : t('tv.home.hours', '{n} h', { n: Math.round(sec / 3600) });
-}
-
-function homeNextOf(list, cur) {
-  var i = list.indexOf(cur);
-  return list[(i + 1) % list.length];
-}
 
 function homeItemTitle(kind, id) {
   var c = homeData.catalogue, list = kind === 'app' ? c.apps : kind === 'dev' ? c.devices : c.channels, i;
@@ -772,23 +760,10 @@ function homeRows(d) {
                           : t('tv.home.tile.hint', 'Hold OK on Glasshouse Home to change the order of tiles.') });
       });
     });
-    r.push(head(t('home.idle.title', 'Idle screen')));
-    r.push({ label: t('home.idle.dim', 'Dim clock after'), value: homeDuration(lay.idle.dimAfter), cls: 'act',
-             act: can ? 'homeIdle' : null, key: 'dimAfter', next: homeNextOf(HOME_DIM, lay.idle.dimAfter),
-             press: t('tv.home.idle.press', 'Press OK to change'),
-             hint: t('home.idle.desc', 'Only while Glasshouse Home is in front. LG\'s screen saver works as before everywhere else.') });
-    r.push({ label: t('home.idle.off', 'Switch the panel off after'), value: homeDuration(lay.idle.panelOffAfter), cls: 'act',
-             act: can ? 'homeIdle' : null, key: 'panelOffAfter', next: homeNextOf(HOME_OFF, lay.idle.panelOffAfter),
-             press: t('tv.home.idle.press', 'Press OK to change'),
-             hint: t('home.idle.desc', 'Only while Glasshouse Home is in front. LG\'s screen saver works as before everywhere else.') });
     var walls = d.wallpapers || {};
     r.push(head(t('home.wall.title', 'Wallpaper')));
-    r.push({ label: walls.downloading ? t('home.wall.downloading', 'Downloading wallpapers…')
-               : walls.downloaded ? t('home.wall.removeDownloaded', 'Remove downloaded wallpapers') : t('home.wall.download', 'Download wallpapers'),
-             value: '', act: can && !walls.downloading ? 'homeWallpapers' : null, on: !!walls.downloaded,
-             hint: walls.error || t('home.wall.tvHint', 'Download four optional wallpapers (19 MB). Personal images can be uploaded for each time of day in the browser dashboard.') });
-    clearTimeout(homeWallPoll);
-    if (walls.downloading) homeWallPoll = setTimeout(function () { if (T().key === 'home') fetchTab(true); }, 2000);
+    r.push({ label: t('home.wall.title', 'Wallpaper'), value: walls.available ? t('home.wall.uploadedValue', 'Uploaded') : t('home.wall.black', 'Black'),
+             hint: t('home.wall.tvHint', 'Images for each time of day are uploaded on the browser dashboard\u2019s Home tab.') });
     r.push(head(t('tv.home.head.more', 'More')));
     r.push({ label: t('home.reset', 'Reset the layout'), value: '', act: can ? 'homeReset' : null,
              press: t('tv.home.reset.press', 'Press OK, then again, to reset'),
@@ -880,6 +855,11 @@ function appsRows(d) {
   var hs = d.homeScreen;
   if (hs && hs.parts) {
     r.push(head(t('apps.home', 'Home screen layout')));
+    if (d.glasshouseHome) {
+      r.push({ label: t('tv.apps.glasshouseHome', 'Glasshouse Home is on'), value: '',
+               hint: t('apps.glasshouseHomeNote', 'Glasshouse Home is switched on, so this applies only to LG\u2019s Home, seen from its tile, by holding Home, or while Glasshouse starts.') + ' ' +
+                     t('tv.apps.glasshouseHomeWhere', 'Glasshouse Home is arranged in its own Home section.') });
+    }
     // Experimental on webOS 10: switched on from the dashboard in a browser,
     // where its warning is.
     var locked = !!(hs.experimental && !hs.experimental.allowed);
@@ -950,6 +930,10 @@ function appsRows(d) {
   var sys = d.systemTiles || [];
   if (sys.length > 0) {
     r.push(head(t('tv.apps.head.hideHomeScreenSystem', 'Hide Home Screen System Apps')));
+    if (d.glasshouseHome) {
+      r.push({ label: t('tv.apps.glasshouseHome', 'Glasshouse Home is on'), value: '',
+               hint: t('tv.apps.glasshouseHomeTilesNote', 'Glasshouse Home is switched on. Apps hidden here are hidden on it too; its Home section hides others on Glasshouse Home only.') });
+    }
     var tileHidingEnabled = !!d.tileHidingEnabled;
     var tilesHeld = !!d.tileHidingHeld;
     r.push({
@@ -2295,12 +2279,6 @@ function activate() {
       var chNow = homeData.layout.channels.filter(function (id) { return id !== r.key; });
       if (!r.on) chNow.push(r.key);
       return homeLayout({ channels: chNow }, r.on ? t('tv.home.ch.removed', 'Removed from Home') : t('tv.home.ch.added', 'Added to Home'));
-    case 'homeIdle':
-      var idleNow = { dimAfter: homeData.layout.idle.dimAfter, panelOffAfter: homeData.layout.idle.panelOffAfter };
-      idleNow[r.key] = r.next;
-      return homeLayout({ idle: idleNow });
-    case 'homeWallpapers':
-      return sendPost('/api/home/wallpapers', { remove: r.on });
     case 'homeReset':
       if (confirmFirst(r, t('tv.home.reset.again', 'Press OK again to reset'))) return;
       return homeLayout({ reset: true }, t('home.arrange.resetDone', 'Layout reset'));

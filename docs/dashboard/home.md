@@ -1,38 +1,32 @@
 # Home
 
-**Experimental.** Glasshouse Home is a home screen of Glasshouse's own, shown in place of LG's when the remote's Home or Back button is pressed and when the TV switches on. The Home tab switches it on and off and arranges it. It has been tried on webOS 9 only, and requires the dashboard on port 8080; on other versions the tab says why it is unavailable.
+**Experimental.** Glasshouse Home is a home screen of Glasshouse's own, shown in place of LG's when the remote's Home or Back button is pressed and when the TV switches on. The Home tab switches it on and off and arranges it. It has been tried on webOS 9 only, and requires the dashboard on port 8080. Elsewhere neither dashboard shows it, unless it is still switched on or LG's Home has not yet been fully restored.
 
-![Glasshouse Home on an OLED55G36LA (webOS 9.2): clock and the Apps, Inputs and Channels rows over the optional afternoon wallpaper](../screenshots/home.jpg)
+![Glasshouse Home on an OLED55G36LA (webOS 9.2): clock and the Apps, Inputs and Channels rows over an uploaded afternoon wallpaper](../screenshots/home.jpg)
 
 The screen has a clock and date, what was last on (an app, an input and the devices on it, or a channel and its programme), and three rows:
 
-* **Apps**: every app on LG's Home, with each app's own icon. LG's own promotions (LG Channels, Sports, Always Ready, Alexa, Camera) start hidden. With [History](advanced.md) on, new apps are placed by how much each is used; otherwise they follow LG's order. The last tile, **LG Home**, opens LG's Home screen and cannot be hidden.
+* **Apps**: every app on LG's Home, with each app's own icon. LG's own promotions (LG Channels, Sports, Always Ready, Alexa, Camera) start hidden. An app hidden under [Hide home screen system apps](apps.md) is hidden here too; hiding an app on this tab hides it on Glasshouse Home only. With [History](advanced.md) on, new apps are placed by how much each is used; otherwise they follow LG's order. The last tile, **LG Home**, opens LG's Home screen and cannot be hidden.
 * **Inputs**: every HDMI input. An input with devices on it has a tile for each device the TV knows over HDMI-CEC, saying which device it is behind ("HDMI 2, through STEREO 70s"); an input with nothing connected is greyed out. Choosing a tile switches the TV to that input. Nothing is sent to the devices themselves.
 * **Channels**: the channels added here, in the order they are listed, with the programme on now where the TV's guide has it. Choosing one tunes it.
 
-**Download wallpapers** in either dashboard adds four optional images from GitHub (19 MB), checked against pinned SHA-256 hashes. These images were generated specifically for Glasshouse Home with OpenAI's image generation. Empty slots have a black background. **Remove downloaded wallpapers** frees their space; uploaded images stay in place. Downloads stay in `/var/lib/tvweb/home-wallpapers`, outside the update and rollback payload.
+The background is black. The browser dashboard can add an image for each time of day (morning 06:00, afternoon 11:00, evening 17:00, night 21:00): choose a **Time of day**, select a JPEG, PNG or WebP file up to 25 MB, then press **Upload image**. The browser fits it within 1920 × 1080 pixels, the size Glasshouse Home is drawn at, and prepares a JPEG before sending it to the TV. Images fill the screen, may be cropped, and drift slowly. **Remove uploaded images** puts black back. None are included with Glasshouse.
 
-The browser dashboard also accepts personal images. Choose a **Time of day**, select a JPEG, PNG or WebP file up to 25 MB, then press **Upload image**. The browser fits it within 3840 × 2160 pixels and prepares a JPEG before sending it to the TV. Images fill the screen and may be cropped. Each uploaded image takes precedence over the downloaded wallpaper for that slot. **Remove uploaded images** reveals the downloaded set again, or black where there is none.
-
-Uploads are stored separately in `/var/lib/tvweb/home-wallpaper-uploads`. A failed or interrupted upload leaves the previous image intact. Both directories are removed when Glasshouse is uninstalled; the layout backup does not include image files.
+Uploads are stored in `/var/lib/tvweb/home-wallpaper-uploads`, outside the update and rollback payload. A failed or interrupted upload leaves the previous image intact. The directory is removed when Glasshouse is uninstalled; the layout backup does not include image files.
 
 ![Personal wallpapers uploaded for all four time-of-day slots](../screenshots/home-wallpaper-upload.png)
 
-![Home before downloading wallpapers: the same apps, inputs and channels on black](../screenshots/home-black.jpg)
+![Home with no wallpaper uploaded: the same apps, inputs and channels on black](../screenshots/home-black.jpg)
 
-The picture behind changes with the time of day (morning 06:00, afternoon 11:00, evening 17:00, night 21:00) and drifts slowly. While Glasshouse Home is in front, it has an idle screen of its own: after the chosen time a dim clock that moves, and later the panel switched off. LG's screen saver is off only while Glasshouse Home is in front.
+![An uploaded evening wallpaper](../screenshots/home-evening.jpg)
 
-Background catalogue refreshes preserve the time since the last remote or pointer activity, including when an idle timing changes.
-
-![The evening wallpaper](../screenshots/home-evening.jpg)
-
-![The idle screen: a dim clock that moves, on black](../screenshots/home-idle.jpg)
+The TV's screen saver, LG's or one chosen on the [Screensaver](screen-savers.md) tab, is left as it is set.
 
 ## Installing, and switching it on and off
 
 Before Glasshouse Home's app is on the TV the tab offers only **Install Glasshouse Home**. Installing changes nothing else: LG's Home stays the TV's Home until it is switched on. With Glasshouse Home switched off, the app can be removed again from the same place. The TV app's own **Home** section offers the same, driven by the remote.
 
-**Use Glasshouse Home** asks for a second press, then makes it the TV's Home. Before changing anything it saves the TV's own Home settings (which app is Home, the input the TV starts on, and whether the screen saver is on), once: switching on again later keeps that first copy. **Use LG Home** puts every saved setting back as it was and reads them back to check.
+**Use Glasshouse Home** asks for a second press, then makes it the TV's Home. Before changing anything it saves the TV's own Home settings (which app is Home, and the input the TV starts on), once: switching on again later keeps that first copy. **Use LG Home** puts every saved setting back as it was and reads them back to check.
 
 While a switch or installation is in progress, further changes are refused with a retry message. A failed save is reported before changing the TV's Home. Switching off waits for pending settings writes before restoring the saved values.
 
@@ -42,9 +36,13 @@ Three ways lead back to LG's Home without switching anything off:
 
 * the **LG Home** tile;
 * holding the remote's **Home** button for a second or more; a short press then brings Glasshouse Home back;
-* Glasshouse Home not answering: if the view stops sending its heartbeat for ten seconds, or the Glasshouse server is not running when it opens, LG's Home opens instead.
+* Glasshouse Home not answering: if the view stops sending its heartbeat for ten seconds, LG's Home opens instead. A view that has not yet sent one is left alone.
 
-The Home button opens Glasshouse Home directly: while it is on, Glasshouse's remote key filter sends the key to it, as [Remote keys](apps.md#remote-keys) does for the buttons set there. Back out of an app still shows LG's Home for a moment (about 0.2 seconds on a G3) before Glasshouse Home replaces it, since the TV opens LG's Home itself on Back. The Home button does this from the moment the TV starts. For about the first 45 seconds after the TV is restarted or loses power, before the Glasshouse server is running, Back out of an app stays on LG's Home.
+The Home button opens Glasshouse Home directly: while it is on, Glasshouse's remote key filter sends the key to it, as [Remote keys](apps.md#remote-keys) does for the buttons set there. Back out of an app still shows LG's Home for a moment (about 0.2 seconds on a G3) before Glasshouse Home replaces it, since the TV opens LG's Home itself on Back.
+
+After the TV starts from cold, the Glasshouse server takes about 45 seconds to answer (a G3). Until then the TV shows the input or channel it was last on, and Glasshouse Home opens by itself about 8 seconds after the server starts, about 53 seconds in on a G3. Home pressed before the server answers can open LG's Home, which Glasshouse Home replaces once the server is running. Back out of an app stays on LG's Home in that time. With Quick Boot on (Advanced → Power & standby), switching the TV off with the remote does not stop the server, so there is no wait when it switches on again.
+
+Whenever Glasshouse Home opens while the server is not running, as during an update, it shows a black screen saying Glasshouse Home is starting, and opens once the server answers. OK on that screen opens LG's Home until then, as does no answer within 90 seconds; holding Home needs the server.
 
 Over SSH, `tvwebctl restore-glasshouse-home` does what **Use LG Home** does. Uninstalling Glasshouse from the Homebrew Channel restores LG Home and removes its replacement app before deleting the server. A failed restore keeps the server for another attempt. Removal through the general Apps tab is blocked; the Home section owns removal.
 

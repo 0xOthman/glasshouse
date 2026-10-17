@@ -10,6 +10,8 @@ let homeSaving = false;
 let homeLoadRevision = 0;
 let homeWallTimer = null;
 let homeWallUploading = false;
+// null until the server says; false on a TV Glasshouse Home is not offered on.
+let homeAvailable = null;
 
 const HOME_ROWS = {
   app: () => t('home.row.apps', 'Apps'),
@@ -34,6 +36,17 @@ async function homePost(path, body) {
   return r;
 }
 
+// The tab, as Game's, only where the server offers Glasshouse Home.
+function setHomeAvailable(st) {
+  homeAvailable = st.available !== false;
+  if (q('tab-btn-home')) q('tab-btn-home').hidden = !homeAvailable;
+  document.querySelectorAll('[data-glasshouse-home-note]').forEach(note => { note.hidden = !st.enabled; });
+}
+
+async function loadHomeAvailable() {
+  try { setHomeAvailable(await homeGet('/api/home')); } catch (e) {}
+}
+
 async function loadHome(afterSave) {
   if (homeSaving && afterSave !== true) return;
   const revision = ++homeLoadRevision;
@@ -44,6 +57,8 @@ async function loadHome(afterSave) {
     homeCat = cat;
     homeLayout = st.layout;
   } catch (e) { showErr(e.message); return; }
+  setHomeAvailable(homeStatus);
+  if (!homeAvailable && activeTab === 'home') return showTab('control');
   renderHome();
 }
 
@@ -101,11 +116,10 @@ function renderHome() {
     snap.hidden = !st.snapshot;
     if (st.snapshot) {
       const s = st.snapshot.settings;
-      snap.textContent = t('home.snapshot', 'Saved {when}: Home was {home}, the TV started on {input}, and the screen saver was {saver}.', {
+      snap.textContent = t('home.snapshotSaved', 'Saved {when}: Home was {home}, and the TV started on {input}.', {
         when: new Date(st.snapshot.takenAt).toLocaleString(),
         home: (s.defaultApps && s.defaultApps.home) || t('home.lgHome', 'LG Home'),
-        input: homeAppName(s.lastInputApp),
-        saver: s.screenSaverEnabled || '—'
+        input: homeAppName(s.lastInputApp)
       });
     }
   }
@@ -113,7 +127,6 @@ function renderHome() {
   if (hist) hist.hidden = st.history;
   renderHomeRows();
   renderHomeChannels();
-  renderHomeIdle();
   renderHomeWalls();
   q('home-reset').disabled = !homeWritable();
 }
@@ -317,38 +330,19 @@ function homeToggleChannel(id) {
   homeSaveLayout({ channels: list });
 }
 
-function renderHomeIdle() {
-  const dim = q('home-idle-dim');
-  const off = q('home-idle-off');
-  if (!dim || !homeLayout) return;
-  if (document.activeElement !== dim) dim.value = String(homeLayout.idle.dimAfter);
-  if (document.activeElement !== off) off.value = String(homeLayout.idle.panelOffAfter);
-  dim.disabled = off.disabled = !homeWritable();
-}
-
-function homeSetIdle() {
-  homeSaveLayout({ idle: { dimAfter: +q('home-idle-dim').value, panelOffAfter: +q('home-idle-off').value } });
-}
-
 // The four wallpapers, by the hours each is shown.
 function renderHomeWalls() {
   const box = q('home-walls');
   if (!box) return;
   const walls = homeStatus.wallpapers || {};
-  const button = q('home-wall-download');
-  button.disabled = !homeWritable() || walls.downloading || homeWallUploading;
-  button.textContent = walls.downloading ? t('home.wall.downloading', 'Downloading wallpapers…')
-    : walls.downloaded ? t('home.wall.removeDownloaded', 'Remove downloaded wallpapers') : t('home.wall.download', 'Download wallpapers');
-  const custom = walls.custom || {};
   const busy = !homeWritable() || homeWallUploading || walls.uploading;
   q('home-wall-slot').disabled = busy;
   q('home-wall-file').disabled = busy;
   q('home-wall-upload').disabled = busy || !q('home-wall-file').files.length;
   q('home-wall-upload').textContent = homeWallUploading || walls.uploading ? t('home.wall.uploading', 'Uploading…') : t('home.wall.upload', 'Upload image');
-  q('home-wall-clear').disabled = busy || !Object.values(custom).some(Boolean);
-  q('home-wall-error').textContent = walls.error || '';
+  q('home-wall-clear').disabled = busy || !walls.available;
   clearTimeout(homeWallTimer);
-  if (walls.downloading || walls.uploading) homeWallTimer = setTimeout(() => { if (activeTab === 'home') loadHome(); }, 2000);
+  if (walls.uploading) homeWallTimer = setTimeout(() => { if (activeTab === 'home') loadHome(); }, 2000);
   if (!walls.available) { box.innerHTML = ''; delete box.dataset.revision; return; }
   if (box.dataset.revision === walls.revision) return;
   box.dataset.revision = walls.revision;
@@ -361,15 +355,7 @@ function renderHomeWalls() {
   box.innerHTML = slots.map(([key, label]) => `<figure class="home-wall">
     ${walls.slots && !walls.slots[key] ? `<div class="home-wall-empty">${esc(t('home.wall.black', 'Black'))}</div>`
       : `<img src="${esc(api('/api/home/wallpaper?slot=' + key + '&v=' + encodeURIComponent(walls.revision || '')))}" alt="" loading="lazy">`}
-    <figcaption class="sub">${esc(label)}${custom[key] ? ' · ' + esc(t('home.wall.uploaded', 'Uploaded')) : ''}</figcaption></figure>`).join('');
-}
-
-async function homeDownloadWalls() {
-  if (!homeWritable()) return;
-  q('home-wall-download').disabled = true;
-  try { await homePost('/api/home/wallpapers', { remove: !!(homeStatus.wallpapers && homeStatus.wallpapers.downloaded) }); }
-  catch (e) { showErr(e.message); }
-  loadHome();
+    <figcaption class="sub">${esc(label)}</figcaption></figure>`).join('');
 }
 
 async function homeUploadWall() {
@@ -392,7 +378,8 @@ async function homeUploadWall() {
       img.onerror = () => reject(new Error(t('home.wall.unreadable', 'The image could not be opened.')));
       img.src = url;
     });
-    const scale = Math.min(1, 3840 / img.naturalWidth, 2160 / img.naturalHeight);
+    // Glasshouse Home is drawn at 1920 x 1080; the server refuses anything larger.
+    const scale = Math.min(1, 1920 / img.naturalWidth, 1080 / img.naturalHeight);
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
     canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));

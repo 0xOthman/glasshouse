@@ -1082,10 +1082,10 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/now') return homeModule.now(reply);
     if (pathname === '/api/home/wallpaper') {
       var wallpaper = homeModule.wallpaperPath(String(u.query && u.query.slot || ''));
-      if (!wallpaper) return send(res, 404, JSON.stringify({ ok: false, error: 'wallpaper not downloaded' }));
+      if (!wallpaper) return send(res, 404, JSON.stringify({ ok: false, error: 'no wallpaper uploaded' }));
       return sendIconFile(req, res, wallpaper, function (status, error) {
         send(res, status, JSON.stringify({ ok: false, error: error }));
-      }, /\.jpg$/.test(wallpaper) ? 'image/jpeg' : 'image/png');
+      }, 'image/jpeg');
     }
     if (pathname === '/api/home/icon') {
       return homeModule.iconPath(u.query && u.query.id, function (iconPath) {
@@ -1120,7 +1120,6 @@ function handleHomeRoute(req, res, u, pathname) {
       if (pathname === '/api/home/enable') return homeModule.enable(reply);
       if (pathname === '/api/home/disable') return homeModule.disable(reply);
       if (pathname === '/api/home/open') return homeModule.open(body, reply);
-      if (pathname === '/api/home/screen-off') return homeModule.screenOff(reply);
       send(res, 404, JSON.stringify({ ok: false, error: 'not found' }));
     });
   }
@@ -1545,6 +1544,8 @@ function handleRequest(req, res) {
       if (!d.tileHidingAvailable) { d.systemTiles = []; d.tileHidingEnabled = false; d.hiddenCount = 0; }
       d.tileHidingHeld = false;
       d.tileHidingOverridden = false;
+      // The TV app notes that LG's Home layout and hidden apps reach Glasshouse Home differently.
+      d.glasshouseHome = !!(homeModule && homeModule.enabled());
       servicesModule.getServices(function (sRes) {
         if (sRes && sRes.services) d.services = sRes.services;
         if (!preloadModule) return send(res, 200, JSON.stringify(d));

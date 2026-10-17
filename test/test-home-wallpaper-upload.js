@@ -33,7 +33,7 @@ var steps = [
     upload(jpeg, {}, function (code, body) {
       assert.strictEqual(code, 200, body.toString());
       var st = JSON.parse(body);
-      assert.ok(st.wallpapers.custom.morning);
+      assert.ok(st.wallpapers.slots.morning);
       assert.strictEqual(st.wallpapers.slots.evening, false);
       unchanged(); next();
     });

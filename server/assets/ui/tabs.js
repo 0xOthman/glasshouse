@@ -65,6 +65,7 @@ function showTab(name) {
    * /?tab=oledcare off an OLED set every time.
    */
   if (name === 'oledcare' && isOledSet === false) name = 'control';
+  if (name === 'home' && homeAvailable === false) name = 'control';
   activeTab = name;
   for (const [key, id] of Object.entries(TABS)) {
     const el = q(id);
@@ -121,8 +122,9 @@ if (tabsNav) {
     if (!navIsDrawer()) showTab(tabs[nextIdx].dataset.tab);
   });
 }
-// Reveals the Game tab on TVs with LG's Game Optimizer.
+// Reveals the Game tab on TVs with LG's Game Optimizer, and Home where Glasshouse Home is offered.
 loadGame();
+loadHomeAvailable();
 
 // The menu bar names the tab on show, in the page's language: the strings are
 // put in at DOMContentLoaded, after the first showTab.

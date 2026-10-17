@@ -19,9 +19,8 @@
  *     BOUNCE_MAX times in BOUNCE_WINDOW_MS, after which LG's is left alone;
  *   - while the view is in front, lastInputApp and physicalLastInputApp name
  *     it, so the TV starts on it. Switched off on an input, the TV sets them
- *     to the input, and starts there;
- *   - LG's screen saver is off only while the view is in front, since the view
- *     has an idle screen of its own.
+ *     to the input, and starts there.
+ * The TV's screen saver setting is left alone.
  * Three ways lead back to LG's Home without switching anything off: the view's
  * LG Home tile, holding the remote's Home button, and the view not answering.
  * Each opens LG's Home and stops the guard sending it back until something
@@ -54,13 +53,11 @@ var PROMO_APPS = ['com.webos.app.lgchannels', 'com.webos.app.sportsteamsettings'
   'com.webos.app.lifeonscreen', 'amazon.alexa.view', 'com.webos.app.camera'];
 // The view's own way back to LG's Home: last in the Apps row, and never hidden.
 var LG_HOME_TILE = 'lg-home';
-var IDLE_DEFAULT = { dimAfter: 120, panelOffAfter: 900 };
-var IDLE_LIMIT = 6 * 3600;
 var MAX_CHANNELS = 40;
 
 // The settings switching on changes, read before it does and written back as read.
 var SNAPSHOT_KEYS = ['defaultApps', 'lastInputApp', 'physicalLastInputApp',
-  'lastInputAppType', 'physicalLastInputType', 'screenSaverEnabled'];
+  'lastInputAppType', 'physicalLastInputType'];
 
 /*
  * Minimal Home measured LG's Home pushing itself back up to a few times in a
@@ -70,16 +67,25 @@ var SNAPSHOT_KEYS = ['defaultApps', 'lastInputApp', 'physicalLastInputApp',
 var BOUNCE_MAX = 8;
 var BOUNCE_WINDOW_MS = 10000;
 var REASSERT_MS = 10 * 60 * 1000;
-// The view says it is alive every 5 s; twice that with none is a dead view.
+/*
+ * The view says it is alive every 5 s; twice that with none, after a first
+ * beat, is a dead view. Before its first beat the app's own page and the view
+ * fall back themselves: after a cold start a G3 (webOS 9.2) names the app as
+ * in front while Live TV shows and the page never loads the view, and a watchdog
+ * started then replaced Live TV with LG's Home with nothing pressed.
+ */
 var BEAT_GRACE_MS = 10000;
+/*
+ * That app is opened again once, this long after the server starts, if it is
+ * named in front and its view has not beaten: opened by the server it draws,
+ * and the TV shows Glasshouse Home rather than Live TV after a cold start.
+ */
+var START_OPEN_MS = 8000;
 // Holding Home this long opens LG's Home.
 var HOLD_MS = 1200;
 var PIN_MIN_MS = 3000;
 var GUIDE_TTL_MS = 60000;
 var LIST_TTL_MS = 30000;
-// A server started this soon after the TV was finds LG's Home in front by
-// the view falling back while it was still starting, so sends it back once.
-var BOOT_WINDOW_S = 600;
 
 var lunaFn = null;
 var liveState = null;
@@ -101,7 +107,6 @@ var setHomeKeyFn = function (id, cb) { cb({ ok: true, none: true }); };
 // This release, which the view compares to reload itself after an update.
 var buildId = '';
 var nowMs = Date.now;
-var uptimeFn = readUptime;
 
 var config = null;
 var configMtime = 0;
@@ -112,10 +117,10 @@ var escaped = false;
 var foreground = '';
 var lastSource = null;
 var beatTimer = null;
+var lastBeatAt = 0;
+var startTimer = null;
 var holdTimer = null;
 var homeDownAt = 0;
-var saverWant = null;
-var saverBusy = false;
 var pinnedAt = 0;
 var powerActive = true;
 var guideCache = { at: 0, data: {} };
@@ -123,10 +128,6 @@ var listCache = {};
 var changing = false;
 var settingsQueue = [];
 var settingsBusy = false;
-
-function readUptime() {
-  try { return parseFloat(fs.readFileSync('/proc/uptime', 'utf8')) || 0; } catch (e) { return 0; }
-}
 
 function configFile() { return path.join(stateDir, 'home.json'); }
 
@@ -148,12 +149,6 @@ function stringList(v, max) {
   return out;
 }
 
-function seconds(v, dflt) {
-  var n = typeof v === 'number' ? v : parseInt(v, 10);
-  if (isNaN(n) || n < 0) return dflt;
-  return Math.min(IDLE_LIMIT, Math.floor(n));
-}
-
 function defaults() {
   return {
     enabled: false,
@@ -162,7 +157,6 @@ function defaults() {
     order: { app: [], dev: [], ch: [] },
     hidden: { app: PROMO_APPS.slice(), dev: [], ch: [] },
     channels: [],
-    idle: { dimAfter: IDLE_DEFAULT.dimAfter, panelOffAfter: IDLE_DEFAULT.panelOffAfter },
     hintSeen: false,
     snapshot: null
   };
@@ -170,7 +164,7 @@ function defaults() {
 
 /*
  * A layout as stored or as sent, made whole: every row once, in a known
- * order, lists of strings, and timings in range. What it cannot use is
+ * order, and lists of strings. What it cannot use is
  * dropped rather than refused, so a file from another version still loads.
  */
 function normalise(raw) {
@@ -195,9 +189,6 @@ function normalise(raw) {
     .filter(function (id) { return chHidden.indexOf(id) === -1; });
   d.order.ch = [];
   d.hidden.ch = [];
-  var idle = raw.idle && typeof raw.idle === 'object' ? raw.idle : {};
-  d.idle.dimAfter = seconds(idle.dimAfter, IDLE_DEFAULT.dimAfter);
-  d.idle.panelOffAfter = seconds(idle.panelOffAfter, IDLE_DEFAULT.panelOffAfter);
   d.enabled = raw.enabled === true;
   d.restorePending = raw.restorePending === true;
   d.hintSeen = raw.hintSeen === true;
@@ -273,7 +264,6 @@ function setLayout(body, cb) {
     // A moved Channels row reorders the channels themselves.
     channels: ordered(body.order && isArray(body.order.ch) ? body.order.ch : [],
                       body.channels !== undefined ? stringList(body.channels, MAX_CHANNELS) : c.channels),
-    idle: body.idle !== undefined ? body.idle : c.idle,
     hintSeen: body.hintSeen !== undefined ? body.hintSeen : c.hintSeen
   });
   if (body.reset === true) {
@@ -291,7 +281,7 @@ function setLayout(body, cb) {
 }
 
 function layoutOf(c) {
-  return { rows: c.rows, order: c.order, hidden: c.hidden, channels: c.channels, idle: c.idle, hintSeen: c.hintSeen };
+  return { rows: c.rows, order: c.order, hidden: c.hidden, channels: c.channels, hintSeen: c.hintSeen };
 }
 
 // ---------------------------------------------------------------- what it shows
@@ -310,7 +300,8 @@ function isInputApp(id) { return /^com\.webos\.app\.(hdmi\d|livetv|av\d|comp\d)/
 /*
  * The apps on LG's Home, in its order, as { id, title, icon }. Saved web
  * pages and input tiles are bookmarks, left out: the Inputs row has the
- * inputs.
+ * inputs. An app the Apps tab hides has visible false in its appinfo and no
+ * launch point; one reporting visible false is skipped all the same.
  */
 function launchPoints(cb) {
   cached('lp', LIST_TTL_MS, function (done) {
@@ -318,7 +309,7 @@ function launchPoints(cb) {
       if (!r || !isArray(r.launchPoints)) return done(null);
       var out = [];
       r.launchPoints.forEach(function (p) {
-        if (!p || typeof p.id !== 'string' || p.lptype === 'bookmark') return;
+        if (!p || typeof p.id !== 'string' || p.lptype === 'bookmark' || p.visible === false) return;
         if (p.id === HOME_APP || p.id === LG_HOME || isInputApp(p.id)) return;
         out.push({ id: p.id, title: String(p.title || p.id), icon: p.largeIcon || p.icon || '' });
       });
@@ -843,7 +834,7 @@ function restoreSnapshot(snap, cb) {
   var want = copy(snap.settings);
   writeSettings(want, function (ok) {
     if (!ok) return cb({ ok: false, error: msg('srv.home.restoreFailed', 'the TV would not take its earlier Home settings back') });
-    readSettings(SNAPSHOT_KEYS, function (got) {
+    readSettings(Object.keys(want), function (got) {
       var differ = Object.keys(want).filter(function (k) {
         return !got || JSON.stringify(got[k]) !== JSON.stringify(want[k]);
       });
@@ -857,6 +848,11 @@ function restoreSnapshot(snap, cb) {
 
 // ---------------------------------------------------------------- the guard
 
+/*
+ * At server start, LG's Home in front is sent back to Glasshouse Home, once:
+ * the Home button pressed in the first seconds after a cold start opens LG's
+ * Home (a G3, webOS 9.2), as does OK on the app's starting page.
+ */
 function startGuard() {
   if (guardOn) return;
   guardOn = true;
@@ -868,11 +864,12 @@ function startGuard() {
   reassertTimer = setInterval(reassert, REASSERT_MS);
   var snap = liveState ? liveState.state.snapshot() : {};
   var fg = snap.application && snap.application.app_id;
-  if (fg) foregroundChanged(fg, uptimeFn() < BOOT_WINDOW_S);
+  if (fg) foregroundChanged(fg);
 }
 
 function stopGuard() {
-  saverWant = null;
+  if (startTimer) clearTimeout(startTimer);
+  startTimer = null;
   if (!guardOn) return;
   guardOn = false;
   if (liveState) liveState.stopGroup('application');
@@ -920,7 +917,7 @@ function bounceAllowed() {
   return true;
 }
 
-function foregroundChanged(id, atBoot) {
+function foregroundChanged(id) {
   var was = foreground;
   foreground = id;
   if (id !== HOME_APP && id !== LG_HOME && id) lastSource = { appId: id, at: nowMs() };
@@ -929,10 +926,11 @@ function foregroundChanged(id, atBoot) {
   if (id !== LG_HOME && id !== HOME_APP) escaped = false;
   if (id === HOME_APP) {
     pinLastInput();
-    watchBeat();
+    // Armed again by the view's next beat.
+    if (beatTimer) clearTimeout(beatTimer);
+    beatTimer = null;
   }
-  if (id !== was || atBoot) setScreenSaver(id === HOME_APP);
-  if (id === LG_HOME && !escaped && (was !== LG_HOME || atBoot) && powerActive) {
+  if (id === LG_HOME && !escaped && was !== LG_HOME && powerActive) {
     if (!bounceAllowed()) {
       escaped = true;
       console.error('home: LG\'s Home keeps coming back; leaving it in front');
@@ -961,65 +959,23 @@ function pinLastInput() {
   });
 }
 
-/*
- * LG's screen saver off while the view is in front, and as the snapshot had
- * it otherwise. The real value is read each time, so one changed elsewhere is
- * corrected at the next change of app rather than remembered wrongly.
- */
-function setScreenSaver(viewInFront) {
-  var c = readConfig();
-  var before = c.snapshot && c.snapshot.settings.screenSaverEnabled;
-  if (before !== 'on') return;
-  saverWant = viewInFront ? 'off' : 'on';
-  applyScreenSaver();
-}
-
-/*
- * One read and write at a time, and the latest wish wins: Home pressed in an
- * app brings LG's Home and then the view in front within a second, and calls
- * for each overlapping could finish in the wrong order.
- */
-function applyScreenSaver() {
-  if (saverBusy || !saverWant) return;
-  saverBusy = true;
-  var want = saverWant;
-  function done() {
-    saverBusy = false;
-    if (saverWant !== want) applyScreenSaver();
-  }
-  readSettings(['screenSaverEnabled'], function (s) {
-    if (!s || s.screenSaverEnabled === want || saverWant !== want) return done();
-    writeSettings({ screenSaverEnabled: want }, done);
-  });
-}
-
 // ---------------------------------------------------------------- the view
 
 function watchBeat() {
   if (beatTimer) clearTimeout(beatTimer);
   beatTimer = setTimeout(function () {
     beatTimer = null;
-    if (!guardOn || foreground !== HOME_APP) return;
+    // Switched off into standby the view stops beating; nothing is on screen to replace.
+    if (!guardOn || foreground !== HOME_APP || !powerActive) return;
     console.error('home: the Glasshouse Home view is not answering');
     toLgHome('view not answering');
   }, BEAT_GRACE_MS);
 }
 
 function beat() {
+  lastBeatAt = nowMs();
   if (guardOn && foreground === HOME_APP) watchBeat();
   return { ok: true, enabled: readConfig().enabled, build: buildId, wallpapers: wallpapers.status() };
-}
-
-/*
- * The panel off, asked for by the view's idle screen. Only while the view is
- * in front and the TV is on, so it cannot blank something being watched. Any
- * key on the remote switches the panel back on.
- */
-function screenOff(cb) {
-  if (!guardOn || foreground !== HOME_APP || !powerActive) return cb({ ok: true, done: false });
-  luna('com.webos.service.tvpower/power/turnOffScreen', {}, function (r) {
-    cb({ ok: true, done: !!(r && r.returnValue) });
-  });
 }
 
 // The remote's Home button, as remotebuttons reports it: held, LG's Home.
@@ -1056,9 +1012,12 @@ function status(cb) {
   appInstalled(function (installed) {
     readSettings(['defaultApps'], function (s) {
       var apps = s && s.defaultApps;
+      var sup = supported();
       cb({
         ok: true,
-        supported: supported(),
+        // Both dashboards leave Home out where it is false, as for other features a TV lacks.
+        available: sup.ok || c.enabled || c.restorePending,
+        supported: sup,
         installed: installed === true,
         enabled: c.enabled,
         restorePending: c.restorePending,
@@ -1087,7 +1046,6 @@ function init(opts) {
   setHomeKeyFn = opts.setHomeKey || function (id, cb) { cb({ ok: true, none: true }); };
   buildId = opts.build || '';
   nowMs = opts.now || Date.now;
-  uptimeFn = opts.uptime || readUptime;
   config = null;
   configMtime = 0;
   guardOn = false;
@@ -1097,8 +1055,7 @@ function init(opts) {
   bounces = [];
   pinnedAt = 0;
   powerActive = true;
-  saverWant = null;
-  saverBusy = false;
+  lastBeatAt = 0;
   guideCache = { at: 0, data: {} };
   listCache = {};
   changing = false;
@@ -1112,9 +1069,35 @@ function init(opts) {
   }
 }
 
+/*
+ * An earlier build switched the screen saver off while the view was in front
+ * and kept screenSaverEnabled in the snapshot. It is put back once, as the
+ * snapshot had it, and dropped from the snapshot.
+ */
+function restoreLegacyScreenSaver() {
+  var c = readConfig();
+  var saved = c.snapshot && c.snapshot.settings.screenSaverEnabled;
+  if (saved === undefined) return;
+  writeSettings({ screenSaverEnabled: saved }, function (ok) {
+    if (!ok) return console.error('home: could not put the screen saver setting back');
+    delete readConfig().snapshot.settings.screenSaverEnabled;
+    saveConfig();
+    console.log('home: screen saver setting put back as ' + saved);
+  });
+}
+
 // At start: a guard for a Glasshouse Home left switched on.
 function start() {
-  if (readConfig().enabled) startGuard();
+  restoreLegacyScreenSaver();
+  if (!readConfig().enabled) return;
+  startGuard();
+  var startedAt = nowMs();
+  startTimer = setTimeout(function () {
+    startTimer = null;
+    if (!guardOn || foreground !== HOME_APP || lastBeatAt >= startedAt || !powerActive) return;
+    console.log('home: the app is named in front but its view has not loaded; opening it');
+    launch(HOME_APP, null, function () {});
+  }, START_OPEN_MS);
 }
 
 module.exports = {
@@ -1135,7 +1118,6 @@ module.exports = {
   remove: function (cb) { change(remove, cb); },
   uninstall: function (cb) { change(uninstall, cb); },
   beat: beat,
-  screenOff: screenOff,
   homeKey: homeKey,
   iconPath: iconPath,
   wallpaperPath: wallpapers.image,
@@ -1148,8 +1130,7 @@ module.exports = {
     var sup = supported();
     if (!sup.ok) return cb({ ok: false, error: sup.reason });
     if (body && body.removeUploads === true) return wallpapers.removeUploads(cb);
-    if (body && body.remove === true) return wallpapers.remove(cb);
-    wallpapers.download(cb);
+    cb({ ok: false, error: 'removeUploads expected' });
   },
   normalise: normalise,
   layout: function () { return layoutOf(readConfig()); },

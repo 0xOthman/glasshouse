@@ -76,7 +76,7 @@ script error, naming the tab. A function a page calls that has gone, or an
 element it reaches for that has moved, breaks only when that tab opens, which
 no unit test does. It runs when the server, the pages or the fake TV change.
 
-The Home view also runs through fifteen idle minutes with catalogue refreshes, then wakes by remote key. Arranging checks cover a late catalogue reply, resetting after moving a tile, and an update noticed while arranging. Its service replies are simulated; the page and its timers run in Chromium.
+For the Home view, arranging checks cover a late catalogue reply, resetting after moving a tile, and an update noticed while arranging. Its service replies are simulated; the page and its timers run in Chromium.
 
 ## Documentation
 
@@ -123,6 +123,6 @@ pip install homeassistant
 ./scripts/check-ha-discovery.py
 ```
 
-Home recovery checks cover failed restoration with a durable retry state, definite absent-app replies, HBC cleanup on a TV that never used Home, and backup partial failures. Browser checks cover pending/failed layout edits, first-catalogue failure, and delayed readiness. Wallpaper validation covers corrupt downloads and staging cleanup; a real pinned download and Office G3 deployment are recorded in the PR testing evidence.
+Home recovery checks cover failed restoration with a durable retry state, definite absent-app replies, HBC cleanup on a TV that never used Home, and backup partial failures. Browser checks cover pending/failed layout edits, first-catalogue failure, delayed readiness, the Home tab left out where Glasshouse Home is not offered, and the Apps tab's notes while it is on.
 
-`test-home-wallpaper-upload.js` exercises the real HTTP boundary: rejected and interrupted uploads preserve the previous image, concurrent uploads are refused, the lock is released after an abort, and an uploaded JPEG survives reinitialisation and is served with its image type. The dashboard check prepares a PNG as JPEG, shows the uploaded slot and verifies that a second tab recovers after the first finishes uploading.
+`test-home-wallpaper-upload.js` exercises the real HTTP boundary: rejected and interrupted uploads preserve the previous image, concurrent uploads are refused, the lock is released after an abort, and an uploaded JPEG survives reinitialisation and is served with its image type. The dashboard check prepares a PNG as JPEG, shows the uploaded image and verifies that a second tab recovers after the first finishes uploading.
