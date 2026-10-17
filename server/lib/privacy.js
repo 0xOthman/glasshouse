@@ -283,14 +283,22 @@ function onDemandPrograms() {
 
 // Whether a call to service would start it: started on demand, and its
 // program not among psText's (ps -eo args).
+// The commands running, as the first word of each ps -eo args line: a process
+// that only names a program in its arguments (a grep, a shell) is not it.
+function psCommands(psText) {
+  var cmds = {};
+  String(psText || '').split('\n').forEach(function (line) {
+    var cmd = line.trim().split(/\s+/)[0];
+    if (cmd) cmds[cmd] = true;
+  });
+  return cmds;
+}
+
 function wouldStart(service, psText) {
   var prog = onDemandPrograms()[service];
   if (!prog) return false;
-  var base = prog.split('/').pop();
-  return !String(psText || '').split('\n').some(function (line) {
-    var cmd = line.trim().split(/\s+/)[0];
-    return cmd === prog || cmd === base;
-  });
+  var cmds = psCommands(psText);
+  return !(cmds[prog] || cmds[prog.split('/').pop()]);
 }
 
 var psArgs = function (cb) {
@@ -1043,6 +1051,7 @@ function readConsentFlags() {
 function runningDaemons(cb) {
   psArgs(function (txt) {
     var list = [];
+    var cmds = psCommands(txt);
     for (var name in PRIVACY_DAEMONS) {
       if (!PRIVACY_DAEMONS.hasOwnProperty(name)) continue;
       var d = PRIVACY_DAEMONS[name];
@@ -1051,7 +1060,7 @@ function runningDaemons(cb) {
         name: name,
         label: d[0],
         detail: d[1],
-        running: txt.indexOf('/usr/sbin/' + name) !== -1,
+        running: !!(cmds['/usr/sbin/' + name] || cmds[name]),
         onDemand: onDemand,
         stoppable: !onDemand && !!servicesModule && servicesModule.available(name),
         heldDown: !!servicesModule && servicesModule.isDisabled(name)

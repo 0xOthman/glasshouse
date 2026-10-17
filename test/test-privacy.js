@@ -534,6 +534,20 @@ test('the privacy panel does not ask a stopped ACR or ad service, and reads Limi
   assert.ok(ads.items.some(function (i) { return i.action === 'limitAdTracking'; }), 'Limit ad tracking off is still counted');
 });
 
+test('a process that only names a daemon in its arguments is not the daemon running', function () {
+  // An SSH session grepping for acr2 is in ps while the panel reads it.
+  busTv(PS_NONE + 'sh -c ps -eo args | grep -c "^/usr/sbin/acr2"\ngrep /usr/sbin/admanager\n', {});
+  var got;
+  privacy.collectPrivacy(function (p) { got = p; });
+  var acr2 = got.daemons.filter(function (d) { return d.name === 'acr2'; })[0];
+  assert.strictEqual(acr2.running, false);
+  assert.strictEqual(got.acr.running, false);
+  assert.strictEqual(got.acr.stopped, true);
+  busTv(PS_BOTH, {});
+  privacy.collectPrivacy(function (p) { got = p; });
+  assert.strictEqual(got.daemons.filter(function (d) { return d.name === 'acr2'; })[0].running, true, 'and the daemon itself is');
+});
+
 test('the privacy panel asks both services while they run', function () {
   var asked = busTv(PS_BOTH, {
     'com.webos.service.acr/getACRSolutionStatus': { returnValue: true, ACRSolutionStatus: true },
