@@ -496,6 +496,11 @@ function showUpdatePopup(d) {
   const canInstall = d.writable && !d.viaHomebrewChannel;
   box.dataset.v = d.latest;
   q('updpop-title').textContent = t('server.popup.title', 'v{version} is out', { version: d.latest });
+  // The release's own one-line summary, written to be read at a glance.
+  const news = (d.whatsNew || []).filter(r => r.summary);
+  const latest = news.find(r => r.version === d.latest) || news[0];
+  q('updpop-summary').textContent = latest ? latest.summary : '';
+  q('updpop-summary').hidden = !latest;
   q('updpop-desc').textContent = d.viaHomebrewChannel
     ? t('server.popup.desc.hbc', 'Update Glasshouse in the Homebrew Channel, or sideload the latest .ipk from GitHub releases.')
     : !d.writable
