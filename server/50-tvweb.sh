@@ -75,8 +75,13 @@ sam_nudge() {
 # second, sam kept its pid, and LG's blockedSystemAppList file was byte-identical
 # afterwards. The release goes out whatever the block answered, so an app is
 # never left blocked by a run cut short. Mirrors lib/samrescan.js.
+# webOS 11 refuses the block without forceBlockSystemApp, which its schema
+# requires (#768); it is sent only where the schema names it.
 sam_reread_app() {
-  luna-send -n 1 luna://com.webos.applicationManager/blockSystemApp "{\"id\":\"$1\"}" 2>/dev/null |
+  force=
+  grep -q '"forceBlockSystemApp"' /etc/palm/schemas/sam/applicationManager.blockSystemApp.schema 2>/dev/null &&
+    force=',"forceBlockSystemApp":false'
+  luna-send -n 1 luna://com.webos.applicationManager/blockSystemApp "{\"id\":\"$1\"$force}" 2>/dev/null |
     grep -q '"returnValue": *true'
   blocked=$?
   for _ in 1 2 3; do
