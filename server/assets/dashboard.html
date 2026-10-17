@@ -464,7 +464,7 @@ function optionRows(d) {
   for (var di = 0; di < dev.length; di++) r.push(lgRow(dev[di]));
   if (d.deviceDetection !== undefined) {
     r.push(toggle(t('adv.deviceDetection', 'Auto device detection'), d.deviceDetection, 'deviceDetection',
-      t('tv.options.deviceDetection.hint', 'Finds devices to show on the Home Dashboard and control: a set-top box, and smart lights, plugs and switches such as Philips Hue, LIFX and TP-Link Kasa. Newer TVs look up every address on your home network each time they switch on to do it. Switched off, the scans stop and the TV no longer finds devices by itself.')));
+      t('tv.options.deviceDetection.hint', 'Finds devices to show on the Home Dashboard and control: a set-top box, and smart lights, plugs and switches. Newer TVs look up every address on your home network each time they switch on to do it. Switched off, the scans stop and the TV no longer finds devices by itself.')));
   }
   if (lights.standby !== undefined || lights.hasLogo) {
     r.push(head(t('adv.frontLights', 'Front lights')));

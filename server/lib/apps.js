@@ -801,14 +801,19 @@ function getApps(cb) {
       installed.sort(function (x, y) { return String(x.title || '').localeCompare(String(y.title || '')); });
       systemTiles.sort(function (x, y) { return String(x.title || '').localeCompare(String(y.title || '')); });
 
-      cb({
-        ok: true,
-        installed: installed,
-        systemTiles: systemTiles,
-        savedPages: savedPages,
-        hiddenCount: Object.keys(hiddenMap).length,
-        tileHidingEnabled: isTileHidingEnabled(),
-        writable: !!(configObj && configObj.allowControl)
+      // Where sam can be nudged, hidden tiles come back at boot without a sam
+      // restart, so the brief blank screen the restart causes does not happen.
+      samrescan.canNudge(function (nudge) {
+        cb({
+          ok: true,
+          installed: installed,
+          systemTiles: systemTiles,
+          savedPages: savedPages,
+          hiddenCount: Object.keys(hiddenMap).length,
+          tileHidingEnabled: isTileHidingEnabled(),
+          tileHidingNudge: nudge,
+          writable: !!(configObj && configObj.allowControl)
+        });
       });
     });
   });

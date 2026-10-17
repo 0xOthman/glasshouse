@@ -31,8 +31,15 @@
  * since an app left blocked cannot launch. A running instance is not stopped:
  * the caller relaunches it.
  *
+ * webOS 11 refuses the block with "invalid parameters" unless it also has
+ * forceBlockSystemApp, which its schema requires (a G3 on 11.2.0, #768); with
+ * false it blocks and releases as on webOS 10. It goes only where the TV's own
+ * schema names it, since older firmware has not been tried with it.
+ *
  * Strict ES5: runs on node 0.12.
  */
+var fs = require('fs');
+var BLOCK_SCHEMA = '/etc/palm/schemas/sam/applicationManager.blockSystemApp.schema';
 var KEY = 'profile.blockedAppList';
 // Not an app: blocking it blocks nothing.
 var NUDGE_ID = 'io.github.rorygallagher2024.lg-webos-dashboard.rescan';
@@ -42,6 +49,8 @@ var CHECK_POLLS = 16;
 
 var lunaFn = null;
 var supported = null;
+var blockSchema = BLOCK_SCHEMA;
+var forceParam = null;   // whether the block needs forceBlockSystemApp, read once
 var running = false;
 var waiting = [];
 
@@ -49,6 +58,8 @@ function init(opts) {
   opts = opts || {};
   lunaFn = opts.luna || null;
   supported = null;
+  forceParam = null;
+  if (opts.blockSchema) blockSchema = opts.blockSchema;
   if (opts.nudgeMs !== undefined) NUDGE_MS = opts.nudgeMs;
   if (opts.pollMs !== undefined) CHECK_POLL_MS = opts.pollMs;
 }
@@ -91,7 +102,7 @@ function nudgeOnce(cb) {
   readList(function (list) {
     if (!list) {
       supported = false;
-      console.log('samrescan: no ' + KEY + ' on this TV - sam is restarted instead');
+      console.log('samrescan: no ' + KEY + ' on this TV, so sam cannot be nudged');
       return cb(false);
     }
     supported = true;
@@ -112,6 +123,18 @@ function restore(lg, tries, cb) {
       return cb(false);
     }
     setTimeout(function () { restore(lg, tries - 1, cb); }, 1000);
+  });
+}
+
+/*
+ * cb(true) where the TV has the setting a nudge uses, cb(false) where it has
+ * not, cb(null) where that is not known. Read once; a nudge also records it.
+ */
+function canNudge(cb) {
+  if (supported !== null || !lunaFn) return cb(supported);
+  readList(function (list) {
+    if (supported === null) supported = !!list;
+    cb(supported);
   });
 }
 
@@ -145,9 +168,26 @@ function waitFor(check, what, cb) {
   })();
 }
 
+function needsForce() {
+  if (forceParam === null) {
+    try { forceParam = fs.readFileSync(blockSchema, 'utf8').indexOf('"forceBlockSystemApp"') !== -1; }
+    catch (e) { forceParam = false; }
+  }
+  return forceParam;
+}
+
+// The block, and only the block, carries forceBlockSystemApp where the TV
+// asks for it. A refusal is logged as sam gave it.
 function samCall(method, appId, cb) {
-  lunaFn('com.webos.applicationManager/' + method, { id: appId }, function (r) {
-    cb(!!(r && r.returnValue));
+  var payload = { id: appId };
+  if (method === 'blockSystemApp' && needsForce()) payload.forceBlockSystemApp = false;
+  lunaFn('com.webos.applicationManager/' + method, payload, function (r) {
+    var ok = !!(r && r.returnValue);
+    if (!ok && r && (r.errorText || r.errorCode !== undefined)) {
+      console.log('samrescan: ' + method + ' for ' + appId + ' refused: ' + (r.errorText || '') +
+                  (r.errorCode !== undefined ? ' (' + r.errorCode + ')' : ''));
+    }
+    cb(ok);
   });
 }
 
@@ -191,6 +231,7 @@ function rereadApp(appId, check, cb) {
 module.exports = {
   init: init,
   refresh: refresh,
+  canNudge: canNudge,
   rereadApp: rereadApp,
   KEY: KEY,
   NUDGE_ID: NUDGE_ID

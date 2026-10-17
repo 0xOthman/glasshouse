@@ -16,8 +16,8 @@
   "from": "Auto device detection"
  },
  "adv.deviceDetection.desc": {
-  "text": "Permite que la TV encuentre dispositivos en casa que pueda mostrar en su panel de inicio y controlar: un descodificador en una entrada HDMI, y luces, enchufes e interruptores inteligentes de tu red, como Philips Hue, LIFX o TP-Link Kasa. En las TV más recientes consulta cada dirección de tu red doméstica cada vez que la TV se enciende, lo que un bloqueador de anuncios de toda la red como Pi-hole muestra como cientos de peticiones. Desactivado, los escaneos cesan y la TV ya no encuentra dispositivos por sí sola.",
-  "from": "Lets the TV find devices at home that it can show on its Home Dashboard and control: a set-top box on an HDMI input, and smart lights, plugs and switches on your network, such as Philips Hue, LIFX and TP-Link Kasa. On newer TVs it looks up every address on your home network each time the TV switches on, which a network-wide ad blocker such as Pi-hole shows as hundreds of requests. Switched off, the scans stop and the TV no longer finds devices by itself."
+  "text": "Permite que la TV encuentre dispositivos en casa que pueda mostrar en su panel de inicio y controlar: un descodificador en una entrada HDMI, y luces, enchufes e interruptores inteligentes de tu red. En las TV más recientes consulta cada dirección de tu red doméstica cada vez que la TV se enciende, lo que un bloqueador de anuncios de toda la red como Pi-hole muestra como cientos de peticiones. Desactivado, los escaneos cesan y la TV ya no encuentra dispositivos por sí sola.",
+  "from": "Lets the TV find devices at home that it can show on its Home Dashboard and control: a set-top box on an HDMI input, and smart lights, plugs and switches on your network. On newer TVs it looks up every address on your home network each time the TV switches on, which a network-wide ad blocker such as Pi-hole shows as hundreds of requests. Switched off, the scans stop and the TV no longer finds devices by itself."
  },
  "adv.devices": {
   "text": "Dispositivos",
@@ -987,10 +987,6 @@
   "text": "Oculta",
   "from": "Hidden"
  },
- "apps.tile.hidden.desc": {
-  "text": "Oculta de la cinta de inicio",
-  "from": "Hidden from home launcher ribbon"
- },
  "apps.tile.hiding": {
   "text": "Ocultando…",
   "from": "Hiding…"
@@ -1002,10 +998,6 @@
  "apps.tile.visible": {
   "text": "Visible",
   "from": "Visible"
- },
- "apps.tile.visible.desc": {
-  "text": "Visible en la cinta de inicio",
-  "from": "Visible on home launcher ribbon"
  },
  "apps.tiles": {
   "text": "Ocultar apps de sistema de la pantalla de inicio",
@@ -4691,6 +4683,14 @@
   "text": "Estallidos de color sobre negro, cada pocos segundos.",
   "from": "Bursts of colour on black, a few seconds apart."
  },
+ "srv.saver.harmonograph": {
+  "text": "Harmonógrafo",
+  "from": "Harmonograph"
+ },
+ "srv.saver.harmonograph.desc": {
+  "text": "Cintas de luz pendulares que se entrelazan y desvanecen sobre negro.",
+  "from": "Pendulum ribbons of light weaving and fading on black."
+ },
  "srv.saver.held": {
   "text": "Los salvapantallas personalizados están desactivados en esta TV por ahora, ya que no se han probado en su versión de webOS. Antes de la 0.98.1, en webOS 10, podían dejar la imagen, el sonido y el control HDMI apagados hasta desenchufar la TV. Uno que ya esté en uso sigue hasta que la TV se reinicie por completo.",
   "from": "Custom screen savers are turned off on this TV for now, as they have not been tried on its webOS version. Before 0.98.1, on webOS 10, they could leave the picture, the sound and HDMI control off until the TV was unplugged. One already in use stays until the TV is next fully restarted."
@@ -5916,8 +5916,8 @@
   "from": "Switched off with the remote, the TV shows LG's Always Ready screen, such as a clock or artwork, instead of going dark, from the next time it is switched off. Uses about 30 W on an LG C2, close to what it uses when on. Home turns the TV back on from the clock; the power button switches it fully off."
  },
  "tv.options.deviceDetection.hint": {
-  "text": "Busca dispositivos para mostrar en el tablero de inicio y controlarlos: un descodificador, y luces, enchufes e interruptores inteligentes como Philips Hue, LIFX y TP-Link Kasa. Las TV más recientes consultan cada dirección de tu red doméstica cada vez que se encienden para hacerlo. Desactivada, los escaneos se detienen y la TV ya no encuentra dispositivos por sí sola.",
-  "from": "Finds devices to show on the Home Dashboard and control: a set-top box, and smart lights, plugs and switches such as Philips Hue, LIFX and TP-Link Kasa. Newer TVs look up every address on your home network each time they switch on to do it. Switched off, the scans stop and the TV no longer finds devices by itself."
+  "text": "Busca dispositivos para mostrar en el tablero de inicio y controlarlos: un descodificador, y luces, enchufes e interruptores inteligentes. Las TV más recientes consultan cada dirección de tu red doméstica cada vez que se encienden para hacerlo. Desactivada, los escaneos se detienen y la TV ya no encuentra dispositivos por sí sola.",
+  "from": "Finds devices to show on the Home Dashboard and control: a set-top box, and smart lights, plugs and switches. Newer TVs look up every address on your home network each time they switch on to do it. Switched off, the scans stop and the TV no longer finds devices by itself."
  },
  "tv.options.lgLogo.hide": {
   "text": "Pulsa OK para ocultarlo",
@@ -7014,6 +7014,10 @@
  "srv.saver.stockLater": {
   "text": "El salvapantallas de LG está elegido y la TV lo usará desde su próximo reinicio: no aceptó el cambio sin reiniciar su gestor de apps, algo que en algunas TV ha dejado la imagen o el sonido apagados.",
   "from": "LG's screen saver is set, and the TV uses it from its next restart: it did not take the change without restarting its app manager, which has left the picture or sound off on some TVs."
+ },
+ "apps.tile.shown": {
+  "text": "Visible",
+  "from": "Shown"
  },
  "apps.remoteKeys.assistant": {
   "text": "Botones de asistentes de voz",

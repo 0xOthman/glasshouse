@@ -198,6 +198,18 @@ MAIN sink with `activation: true`). The same calls have run at every boot of an
 LG Home replacement on that C5 since 2026-10-11. A reboot between the two calls
 would leave the app blocked, so they stay together and the release is retried.
 
+webOS 11 changes the block's parameters. On a G3 (OLED65G36LA, webOS 11.2.0,
+firmware 43.21.71) `/etc/palm/schemas/sam/applicationManager.blockSystemApp.schema`
+requires `forceBlockSystemApp` as well as `id` ("force blocking system app for
+WEE platfrom"), and `{"id":...}` alone is answered `errorCode` 2, "invalid
+parameters"; a C2 on webOS 10.3.1 requires only `id`. With
+`"forceBlockSystemApp": false` the block returned true, the release (still `id`
+alone) took it out, `blockedSystemAppList/GRC.json` was byte-identical
+afterwards and sam kept its pid. A QML screen saver over the Flutter one was then
+reported as `type: qml`, ran, and held through standby and a full reboot, with
+ARC sound and HDMI-CEC working afterwards (#768). The same G3 has no
+`profile.blockedAppList`: `getConfigs` lists it in `missingConfigs`.
+
 On that C5 a standby after about a day of uptime ends in LG's own refresh
 reboot (`PowerOnReason: rebootByOnRegular`, next to "Instant Boot Refresh
 Timeout" in `tvpowerd`), which clears tmpfs and bind mounts; and sam came back

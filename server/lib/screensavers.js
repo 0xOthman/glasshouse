@@ -61,6 +61,11 @@ var SCREENSAVERS = {
     description: msg('srv.saver.bokeh.desc', 'Soft circles of light drifting in and out on black.'),
     qml: 'screensavers/bokeh.qml'
   },
+  harmonograph: {
+    label: msg('srv.saver.harmonograph', 'Harmonograph'),
+    description: msg('srv.saver.harmonograph.desc', 'Pendulum ribbons of light weaving and fading on black.'),
+    qml: 'screensavers/harmonograph.qml'
+  },
   vitals: {
     label: msg('srv.saver.vitals', 'Panel vitals'),
     description: msg('srv.saver.vitals.desc', 'The TV\'s own readings - panel hours, pixel refresher countdown, temperature.'),
