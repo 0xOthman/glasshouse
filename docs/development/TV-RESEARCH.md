@@ -699,6 +699,26 @@ name.
   running `acr2` is not a sign ACR is on. Idle, it used 0.08 s of CPU in about
   15 minutes, 3.5 MB, and only bus sockets, with `libvtcapture` mapped and the
   Alphonso library (`libalphonsosolution.so`) not.
+- **What starts it on a stock TV.** The activity manager's
+  `/etc/palm/activities/com.webos.service.acr/activity-com.webos.service.acr.start.json`
+  ("Start ACR service when TV on") calls `acr/startAcr` once
+  `bootManager/getBootStatus` reports `rest-boot-done`. LG's input app
+  (`com.webos.app.inputcommon`) and the `com.webos.app.acr*` apps call the
+  service as well; in `/usr/sbin` only `livepick-plus` names it.
+- **With Live Plus off it does not stay running after boot.** On a CX with
+  `livePlus` off and the ACR consents off, `acr2` was not running 15 hours
+  after boot, and its data folder has no record of a run. Its strings include
+  a `Quit` path, the eula check it logs (`generalTerms`, `livePlus`, `IBA`,
+  `DPA`), and an activity `acr_wake_up_by_liveplus_on` ("ACR service as
+  dynamic for live plus menu"), which reads as a trigger to start it again
+  when Live Plus is switched on. That it ran and quit was not seen: the
+  activity list was not readable and nothing was logged.
+- **Started by a call, it stays.** On the same CX a single
+  `getACRSolutionStatus` started it (answer `ACRSolutionStatus: false`), and it
+  was still running 5 minutes 20 seconds later: no CPU time, 3.5 MB, 8 sockets,
+  no `/tmp/acr.xml`. A SIGTERM ended it, and nothing started it again within
+  30 s. So a status query undoes what switching Live Plus off achieves until
+  the next reboot; Glasshouse's Privacy panel asks it only while it runs.
 - **`/tmp/acr.xml` is a downloaded configuration**, not a switch. Its strings
   in `acr2` are "[Configuration] Initialize : downloading config file", with
   `/mnt/lg/cmn_data/acr.xml` as a fallback that does not exist. On a CX and
