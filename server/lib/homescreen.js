@@ -76,18 +76,19 @@ function cecInputTitle(id, device) {
     if (name && names.indexOf(name) === -1) names.push(name);
   });
   var port = msg('srv.home.hdmi', 'HDMI {n}', { n: id.slice(4) });
+  // With no CEC names, the TV's own current name for the input, where it has
+  // one beyond the port's ("Mac" while a Mac is connected).
+  var label = typeof device.label === 'string' ? device.label.trim() : '';
+  if (!names.length && label && label !== port && label !== device.id) names.push(label);
   if (names.length) return msg('srv.home.hdmiDevices', '{devices} — {port}', { port: port, devices: names.join(' / ') });
-  if (device.hdmiPlugIn === false || (device.hdmiPlugIn === undefined && device.connected === false)) {
-    return msg('srv.home.hdmiEmpty', '{port} — Empty', { port: port });
-  }
-  // No CEC names: the TV's own name for the input, as the tile was added with.
-  // EIM's label is only the port ("HDMI 2") where the TV calls it "Mac".
-  return inputTitle(id);
+  return port;
 }
 
 /*
  * webOS 9 hides bookmark titles unless titleVisible is set. Only tiles recorded
  * in home-inputs.json are changed; an input added on the TV stays its owner's.
+ * EIM has no subscription for input changes, so tvweb.js calls this when the
+ * Home screen opens, when the TV switches on and at start, never in standby.
  */
 function refreshInputTitles(cb) {
   cb = typeof cb === 'function' ? cb : function () {};

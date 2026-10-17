@@ -7030,9 +7030,5 @@
  "srv.home.hdmiDevices": {
   "text": "{devices} — {port}",
   "from": "{devices} — {port}"
- },
- "srv.home.hdmiEmpty": {
-  "text": "{port} — Vacía",
-  "from": "{port} — Empty"
  }
 }

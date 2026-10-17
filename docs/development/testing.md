@@ -103,9 +103,6 @@ for s in check-es5 check-module-calls check-ui-ids check-strings check-screensav
 node scripts/check-upgrade.js
 ```
 
-`test-homescreen.js` checks visible native input titles, CEC chains, ownership,
-discovery failure and avoiding repeated title writes.
-
 The dashboard check needs Playwright and its browser:
 
 ```bash
