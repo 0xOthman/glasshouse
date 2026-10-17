@@ -71,6 +71,11 @@ var SCREENSAVERS = {
     label: msg('srv.saver.vitals', 'Panel vitals'),
     description: msg('srv.saver.vitals.desc', 'The TV\'s own readings - panel hours, pixel refresher countdown, temperature.'),
     qml: 'screensavers/vitals.qml'
+  },
+  fireflies: {
+    label: msg('srv.saver.fireflies', 'Fireflies'),
+    description: msg('srv.saver.fireflies.desc', 'Bioluminescent fireflies drifting and pulsing through a dark glade.'),
+    qml: 'screensavers/fireflies.qml'
   }
 };
 

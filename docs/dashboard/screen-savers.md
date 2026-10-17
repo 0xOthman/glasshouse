@@ -1,6 +1,6 @@
 # Screen savers
 
-The **Screensaver** tab, `/?tab=screensaver`, provides six alternatives to LG's default:
+The **Screensaver** tab, `/?tab=screensaver`, provides seven alternatives to LG's default:
 
 * Clock
 * Starfield
@@ -8,6 +8,7 @@ The **Screensaver** tab, `/?tab=screensaver`, provides six alternatives to LG's 
 * Bokeh, soft circles of light drifting in and out
 * Harmonograph, pendulum ribbons of light weaving and fading on black
 * Panel vitals, showing the TV's own panel hours and refresher countdown
+* Fireflies, bioluminescent fireflies drifting and pulsing through a dark glade
 
 Each mode offers dim and bright variants, and visual elements continuously drift across the screen to prevent OLED burn-in or image retention.
 

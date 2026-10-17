@@ -4767,6 +4767,14 @@
   "text": "Un reloj digital sobre negro, que cambia de posición cada minuto.",
   "from": "A digital clock on black, moving to a new position every minute."
  },
+ "srv.saver.fireflies": {
+  "text": "Luciérnagas",
+  "from": "Fireflies"
+ },
+ "srv.saver.fireflies.desc": {
+  "text": "Luciérnagas bioluminiscentes que flotan y pulsan en un claro oscuro.",
+  "from": "Bioluminescent fireflies drifting and pulsing through a dark glade."
+ },
  "srv.saver.fireworks": {
   "text": "Fuegos artificiales",
   "from": "Fireworks"
