@@ -131,33 +131,39 @@ function renderHomeRows() {
   const box = q('home-rows');
   if (!box || !homeCat) return;
   const usable = homeWritable();
+  // Redrawing after each change keeps the rows that were open, and what was typed in the channel search.
+  const open = box.children.length ? [...box.querySelectorAll('details[open]')].map(d => d.dataset.kind) : [homeLayout.rows[0]];
+  const filter = q('home-ch-filter') ? q('home-ch-filter').value : '';
   box.innerHTML = homeLayout.rows.map((kind, ri) => {
     const order = homeCat.order[kind] || [];
     const tiles = order.map((id, i) => {
       const it = homeItem(kind, id);
       if (!it) return '';
-      const hidden = homeLayout.hidden[kind].includes(id);
+      const hidden = kind !== 'ch' && homeLayout.hidden[kind].includes(id);
       const icon = it.icon ? `<img class="rk-ico" src="${esc(api(it.icon))}" alt="">` : '';
       return `<div class="prot-row home-tile${hidden ? ' home-hidden' : ''}">
         <div class="prot-main"><div class="prot-title">${icon}<span translate="no">${esc(it.title)}</span></div>
           ${it.sub ? `<div class="prot-desc">${esc(it.sub)}</div>` : ''}</div>
         <div class="prot-status">
-          <button type="button" class="pill idle" ${usable && i > 0 ? '' : 'disabled'} onclick="homeMoveTile('${kind}', ${i}, -1)" aria-label="${esc(t('home.earlier', 'Earlier'))}">↑</button>
-          <button type="button" class="pill idle" ${usable && i < order.length - 1 ? '' : 'disabled'} onclick="homeMoveTile('${kind}', ${i}, 1)" aria-label="${esc(t('home.later', 'Later'))}">↓</button>
+          <button type="button" class="pill idle home-move" ${usable && i > 0 ? '' : 'disabled'} onclick="homeMoveTile('${kind}', ${i}, -1)" aria-label="${esc(t('home.earlier', 'Earlier'))}">↑</button>
+          <button type="button" class="pill idle home-move" ${usable && i < order.length - 1 ? '' : 'disabled'} onclick="homeMoveTile('${kind}', ${i}, 1)" aria-label="${esc(t('home.later', 'Later'))}">↓</button>
           ${it.lg ? `<span class="pill idle">${esc(t('home.alwaysShown', 'Always shown'))}</span>` :
+            kind === 'ch' ? `<button type="button" class="pill idle" ${usable ? '' : 'disabled'} onclick="homeToggleChannel('${jsq(id)}')">${esc(t('home.ch.remove', 'Remove'))}</button>` :
             renderToggle({ cls: hidden ? 'idle' : 'good', label: hidden ? t('home.hidden', 'Hidden') : t('home.shown', 'Shown'),
               disabled: !usable, onclick: `homeToggleTile('${kind}', '${jsq(id)}')` })}
         </div></div>`;
     }).join('');
-    return `<details class="home-row"${ri === 0 ? ' open' : ''}>
+    return `<details class="home-row" data-kind="${kind}"${open.includes(kind) ? ' open' : ''}>
       <summary><span class="prot-title">${esc(HOME_ROWS[kind]())}</span>
         <span class="home-row-move">
           <button type="button" class="pill idle" ${usable && ri > 0 ? '' : 'disabled'} onclick="event.preventDefault(); homeMoveRow(${ri}, -1)">${esc(t('home.rowUp', 'Row up'))}</button>
           <button type="button" class="pill idle" ${usable && ri < homeLayout.rows.length - 1 ? '' : 'disabled'} onclick="event.preventDefault(); homeMoveRow(${ri}, 1)">${esc(t('home.rowDown', 'Row down'))}</button>
         </span></summary>
-      <div class="prot-table">${tiles || `<div class="sub">${esc(t('home.rowEmpty', 'Nothing to show in this row yet.'))}</div>`}</div>
+      <div class="prot-table">${tiles || `<div class="sub">${esc(kind === 'ch' ? t('home.ch.empty', 'No channels yet. Add them below.') : t('home.rowEmpty', 'Nothing to show in this row yet.'))}</div>`}</div>
+      ${kind === 'ch' ? homeChannelPicker() : ''}
     </details>`;
   }).join('');
+  if (q('home-ch-filter')) q('home-ch-filter').value = filter;
 }
 
 async function homeSaveLayout(patch) {
@@ -243,6 +249,15 @@ async function homeSwitch() {
   loadHome();
 }
 
+// Added channels are the Channels row; this finds more to add. Built once, then only its list redraws.
+function homeChannelPicker() {
+  return `<div class="home-ch-add">
+    <div class="prot-title">${esc(t('home.ch.addTitle', 'Add channels'))}</div>
+    <input type="search" id="home-ch-filter" class="home-ch-filter" placeholder="${esc(t('home.ch.find', 'Find a channel'))}" oninput="renderHomeChannels()">
+    <div class="prot-table home-ch-list" id="home-ch-list"></div>
+  </div>`;
+}
+
 async function homeLoadChannels() {
   const box = q('home-ch-list');
   if (box) box.innerHTML = `<div class="sub">${esc(t('home.ch.loading', 'Reading the TV’s channels…'))}</div>`;
@@ -255,10 +270,10 @@ async function homeLoadChannels() {
 
 function renderHomeChannels() {
   const box = q('home-ch-list');
-  const note = q('home-ch-note');
+  const filterBox = q('home-ch-filter');
   if (!box || !homeLayout) return;
   const picked = homeLayout.channels;
-  if (note) note.textContent = t('home.ch.picked', '{n} picked. They show in this order unless moved in the Channels row.', { n: picked.length });
+  if (filterBox) filterBox.hidden = !homeChannels || !homeChannels.length;
   if (!homeChannels) {
     box.innerHTML = `<button type="button" class="pill idle" onclick="homeLoadChannels()">${esc(t('home.ch.show', 'Show the TV’s channels'))}</button>`;
     return;
@@ -267,17 +282,15 @@ function renderHomeChannels() {
     box.innerHTML = `<div class="sub">${esc(t('home.ch.none', 'This TV has no channels tuned, so the Channels row stays empty.'))}</div>`;
     return;
   }
-  const filter = (q('home-ch-filter') && q('home-ch-filter').value || '').toLowerCase();
+  const filter = (filterBox && filterBox.value || '').toLowerCase();
   const usable = homeWritable();
-  box.innerHTML = homeChannels
+  const rows = homeChannels
+    .filter(c => !picked.includes(c.id))
     .filter(c => !filter || (c.number + ' ' + c.name).toLowerCase().includes(filter))
-    .map(c => {
-      const on = picked.includes(c.id);
-      return `<div class="prot-row"><div class="prot-main"><div class="prot-title"><span class="num">${esc(c.number)}</span> ${esc(c.name)}</div>
+    .map(c => `<div class="prot-row"><div class="prot-main"><div class="prot-title"><span class="num">${esc(c.number)}</span> ${esc(c.name)}</div>
         ${c.radio ? `<div class="prot-desc">${esc(t('home.ch.radio', 'Radio'))}</div>` : ''}</div>
-        <div class="prot-status">${renderToggle({ cls: on ? 'good' : 'idle', label: on ? t('home.ch.onHome', 'On Home') : t('home.ch.add', 'Add'),
-          disabled: !usable, onclick: `homeToggleChannel('${jsq(c.id)}')` })}</div></div>`;
-    }).join('');
+        <div class="prot-status"><button type="button" class="pill idle" ${usable ? '' : 'disabled'} onclick="homeToggleChannel('${jsq(c.id)}')">${esc(t('home.ch.add', 'Add'))}</button></div></div>`);
+  box.innerHTML = rows.join('') || `<div class="sub">${esc(filter ? t('home.ch.noMatch', 'No channel matches that.') : t('home.ch.allAdded', 'Every channel is on Home.'))}</div>`;
 }
 
 function homeToggleChannel(id) {

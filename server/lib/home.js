@@ -183,7 +183,16 @@ function normalise(raw) {
       d.hidden[r] = stringList(raw.hidden[r]).filter(function (id) { return !(r === 'app' && id === LG_HOME_TILE); });
     }
   });
-  d.channels = stringList(raw.channels, MAX_CHANNELS);
+  /*
+   * Channels are added and removed rather than hidden, and their list is
+   * their order. A file from before that keeps a hidden channel off the row
+   * by removing it, and its moved order becomes the list's.
+   */
+  var chOrder = d.order.ch, chHidden = d.hidden.ch;
+  d.channels = ordered(chOrder, stringList(raw.channels, MAX_CHANNELS))
+    .filter(function (id) { return chHidden.indexOf(id) === -1; });
+  d.order.ch = [];
+  d.hidden.ch = [];
   var idle = raw.idle && typeof raw.idle === 'object' ? raw.idle : {};
   d.idle.dimAfter = seconds(idle.dimAfter, IDLE_DEFAULT.dimAfter);
   d.idle.panelOffAfter = seconds(idle.panelOffAfter, IDLE_DEFAULT.panelOffAfter);
@@ -257,7 +266,9 @@ function setLayout(body, cb) {
     rows: body.rows !== undefined ? body.rows : c.rows,
     order: perRow(body.order, c.order),
     hidden: perRow(body.hidden, c.hidden),
-    channels: body.channels !== undefined ? body.channels : c.channels,
+    // A moved Channels row reorders the channels themselves.
+    channels: ordered(body.order && isArray(body.order.ch) ? body.order.ch : [],
+                      body.channels !== undefined ? stringList(body.channels, MAX_CHANNELS) : c.channels),
     idle: body.idle !== undefined ? body.idle : c.idle,
     hintSeen: body.hintSeen !== undefined ? body.hintSeen : c.hintSeen
   });
@@ -422,7 +433,7 @@ function catalogue(cb) {
           order: {
             app: ordered(c.order.app, appIds),
             dev: ordered(c.order.dev, devIds),
-            ch: ordered(c.order.ch, picked.map(function (p) { return p.id; }))
+            ch: picked.map(function (p) { return p.id; })
           },
           sources: { apps: !!apps, devices: !!devs, channels: chans ? chans.length : null }
         });

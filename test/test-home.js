@@ -125,6 +125,23 @@ step('a layout naming one row leaves the other rows as they were saved', functio
   });
 });
 
+step('channels are added and removed, never hidden, and their list is their order', function (done) {
+  // A file from before: a moved Channels row and a hidden channel.
+  start({ channels: ['a', 'b', 'c'], order: { app: [], dev: [], ch: ['c', 'a', 'b'] }, hidden: { app: [], dev: [], ch: ['b'] } });
+  home.setLayout({}, function (r) {
+    assert.deepEqual(r.layout.channels, ['c', 'a'], 'the hidden channel is removed, the moved order kept');
+    assert.deepEqual(r.layout.order.ch, []);
+    assert.deepEqual(r.layout.hidden.ch, []);
+    home.setLayout({ order: { ch: ['a', 'c'] } }, function (r2) {
+      assert.deepEqual(r2.layout.channels, ['a', 'c'], 'moving the Channels row reorders the channels');
+      home.setLayout({ channels: ['a', 'c', 'd'], order: { ch: ['c', 'a'] } }, function (r3) {
+        assert.deepEqual(r3.layout.channels, ['c', 'a', 'd'], 'a moved row and an added channel in one save');
+        done();
+      });
+    });
+  });
+});
+
 step('the LG Home tile cannot be hidden, and timings are kept in range', function (done) {
   start(null);
   home.setLayout({ hidden: { app: ['lg-home', 'netflix'] }, idle: { dimAfter: -5, panelOffAfter: 1e9 }, rows: ['ch', 'bogus'] }, function (r) {

@@ -8,7 +8,7 @@ The screen has a clock and date, what was last on (an app, an input and the devi
 
 * **Apps**: every app on LG's Home, with each app's own icon. LG's own promotions (LG Channels, Sports, Always Ready, Alexa, Camera) start hidden. With [History](advanced.md) on, new apps are placed by how much each is used; otherwise they follow LG's order. The last tile, **LG Home**, opens LG's Home screen and cannot be hidden.
 * **Inputs**: every HDMI input. An input with devices on it has a tile for each device the TV knows over HDMI-CEC, saying which device it is behind ("HDMI 2, through STEREO 70s"); an input with nothing connected is greyed out. Choosing a tile switches the TV to that input. Nothing is sent to the devices themselves.
-* **Channels**: the channels picked on this tab, with the programme on now where the TV's guide has it. Choosing one tunes it.
+* **Channels**: the channels added here, in the order they are listed, with the programme on now where the TV's guide has it. Choosing one tunes it.
 
 The picture behind changes with the time of day (morning 06:00, afternoon 11:00, evening 17:00, night 21:00) and drifts slowly. While Glasshouse Home is in front, it has an idle screen of its own: after the chosen time a dim clock that moves, and later the panel switched off. LG's screen saver is off only while Glasshouse Home is in front.
 
@@ -44,7 +44,9 @@ Over SSH, `tvwebctl restore-glasshouse-home` does what **Use LG Home** does. Swi
 
 ## Arranging
 
-The rows and tiles can be moved and hidden here, or on the TV by holding **OK** on Glasshouse Home. Both change the same layout. On the TV, OK picks a tile up or puts it down; while it is held, left and right move it, up and down move its row, and **Back** hides or shows it. **Reset** and **Done** are in the bar at the bottom. Hidden tiles show, dimmed, while arranging.
+Apps and inputs come from the TV, so they are shown or hidden rather than added. Channels are the other way round: none is on Home until it is added, and one no longer wanted is removed. The Channels row on this tab lists those added, each with **Remove**, and below them **Add channels** finds the rest of the TV's channels by name or number. The TV app's Home section does the same with OK.
+
+Rows and tiles can be moved here, or on the TV by holding **OK** on Glasshouse Home. Both change the same layout. On the TV, OK picks a tile up or puts it down; while it is held, left and right move it, up and down move its row, and **Back** hides or shows it, or removes a channel. **Hide or show** (**Remove channel** on a channel), **Reset** and **Done** are in the bar at the bottom. Hidden tiles show, dimmed, while arranging. **Reset the layout** puts the rows, apps and inputs back in their first order with LG's promotions hidden again, and leaves the channels as they are.
 
 The view confirms a save or reset only after the server accepts it, and reports a failure otherwise.
 

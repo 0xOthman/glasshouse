@@ -154,7 +154,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 
   <div id="banner">
     <span><b data-t="home.arrange.title">Arranging</b><span id="bannerState">&mdash;</span></span>
-    <span class="keys" data-t="home.arrange.keys">OK picks a tile up or puts it down. Held, the arrows move it or its row, and Back hides or shows it.</span>
+    <span class="keys" data-t="home.arrange.keys">OK picks a tile up or puts it down. Held, the arrows move it or its row, and Back hides or shows it, or removes a channel.</span>
     <span class="btn" id="btnHide" data-t="home.arrange.hide">Hide or show</span>
     <span class="btn" id="btnReset" data-t="home.arrange.reset">Reset</span>
     <span class="btn" id="btnDone" data-t="home.arrange.done">Done</span>
@@ -285,8 +285,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         : t('home.row.inputsNote', 'Devices on {n} HDMI inputs', { n: ports.length });
     }
     if (data.sources.channels === 0) return t('home.row.noTuner', 'This TV has no channels tuned');
-    if (!list.length) return t('home.row.pickChannels', 'Pick channels in the Home tab of the Glasshouse dashboard');
-    return t('home.row.channelsNote', '{n} picked', { n: list.length });
+    if (!list.length) return t('home.row.addChannels', 'Add channels in Glasshouse\u2019s Home settings');
+    return t('home.row.channelsNote', '{n} added', { n: list.length });
   }
 
   function render() {
@@ -350,6 +350,9 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       scrollTrack(rowEl, tiles[c], instant);
     }
     var btns = ['btnHide', 'btnReset', 'btnDone'];
+    // Apps and inputs come from the TV and can only be hidden; channels were added, so they are removed.
+    $('btnHide').textContent = state.last && state.last.kind === 'ch'
+      ? t('home.arrange.removeChannel', 'Remove channel') : t('home.arrange.hide', 'Hide or show');
     for (var b = 0; b < btns.length; b++) $(btns[b]).className = 'btn' + (state.bar === b ? ' focus' : '');
     if (state.bar < 0) {
       var focused = items(rowKey())[colOf(rowKey())];
@@ -439,19 +442,21 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
    * Only the rows whose tiles were moved send their order: a row left alone
    * keeps following its default, the Apps row most-used first.
    */
-  var movedRows = {};
+  var movedRows = {}, channelsChanged = false;
   function saveLayout(extra) {
     layoutRevision++;
     layoutBusy = true;
     var order = {};
     for (var kind in movedRows) order[kind] = data.order[kind];
     var body = { rows: layout.rows, order: order, hidden: layout.hidden };
+    if (channelsChanged) body.channels = layout.channels;
     for (var k in extra) body[k] = extra[k];
     postJson('/api/home/layout', body, function (r) {
       layoutBusy = false;
       layoutRevision++;
       if (!r || !r.ok || !r.layout) return toast(t('home.arrange.saveFailed', 'Layout could not be saved'));
       movedRows = {};
+      channelsChanged = false;
       layout = r.layout;
       toast(t('home.arrange.saved', 'Layout saved'), t('home.arrange.savedDesc', 'The dashboard\'s Home tab shows it too'));
       load();
@@ -500,6 +505,12 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (!last || (last.kind === 'app' && last.id === LG_HOME_TILE)) return;
     var kind = last.kind, it = byId(kind, last.id);
     if (!it) return;
+    if (kind === 'ch') {
+      layout.channels = layout.channels.filter(function (id) { return id !== it.id; });
+      data.order.ch = data.order.ch.filter(function (id) { return id !== it.id; });
+      channelsChanged = true;
+      return render();
+    }
     var h = layout.hidden[kind], i = h.indexOf(it.id);
     if (i >= 0) h.splice(i, 1); else h.push(it.id);
     render();
@@ -514,6 +525,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
       layoutRevision++;
       if (!r || !r.ok || !r.layout) return toast(t('home.arrange.resetFailed', 'Layout could not be reset'));
       movedRows = {};
+      channelsChanged = false;
       layout = r.layout;
       state.row = 0; state.col = {}; state.held = false;
       load(function () { render(); toast(t('home.arrange.resetDone', 'Layout reset'), t('home.arrange.resetDesc', 'Apps, Inputs, then Channels, in their first order')); }, true);

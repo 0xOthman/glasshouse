@@ -729,7 +729,7 @@ function homeRows(d) {
 
   var c = d.catalogue, lay = d.layout;
   if (c && lay) {
-    r.push(head(t('home.layout', 'Rows and tiles')));
+    r.push(head(t('tv.home.rowOrder', 'Row order')));
     var names = { app: t('home.row.apps', 'Apps'), dev: t('home.row.inputs', 'Inputs'), ch: t('home.row.channels', 'Channels') };
     lay.rows.forEach(function (kind, i) {
       r.push({ label: names[kind], value: t('tv.home.rowPlace', '{n} of {total}', { n: i + 1, total: lay.rows.length }), cls: 'act',
@@ -737,8 +737,26 @@ function homeRows(d) {
                press: i > 0 ? t('tv.home.rowUp.press', 'Press OK to move this row up') : t('tv.home.rowFirst', 'First row'),
                hint: t('tv.home.rowUp.hint', 'The order of the rows on Glasshouse Home.') });
     });
+    // One section per row, in the rows' order. Apps and inputs come from the TV, so they are hidden or shown;
+    // channels are added, so they are removed.
+    var hasChannels = !!(d.channels && d.channels.length);
     lay.rows.forEach(function (kind) {
       var order = c.order[kind] || [];
+      if (kind === 'ch') {
+        r.push(head(names.ch));
+        order.forEach(function (id) {
+          var title = homeItemTitle('ch', id);
+          if (title === null) return;
+          r.push({ label: title, value: t('home.ch.onHome', 'On Home'), cls: 'on', act: can ? 'homeChannel' : null, key: id, on: true,
+                   press: t('tv.home.ch.remove', 'Press OK to remove it'),
+                   hint: t('tv.home.ch.order.hint', 'Hold OK on Glasshouse Home to change the order of channels.') });
+        });
+        r.push({ label: t('home.ch.addTitle', 'Add channels'), value: t('tv.apps.install.browse', 'Browse'), cls: 'act',
+                 act: hasChannels ? 'open' : null, key: 'homeChannels',
+                 press: hasChannels ? t('tv.home.ch.press', 'Press OK to choose') : t('home.ch.none', 'This TV has no channels tuned, so the Channels row stays empty.'),
+                 hint: t('tv.home.ch.hint', 'From the TV\u2019s own channel list. Each one added goes on the end of the Channels row.') });
+        return;
+      }
       if (!order.length) return;
       r.push(head(names[kind]));
       order.forEach(function (id) {
@@ -752,11 +770,6 @@ function homeRows(d) {
                           : t('tv.home.tile.hint', 'Hold OK on Glasshouse Home to change the order of tiles.') });
       });
     });
-    r.push(head(t('home.ch.title', 'Channels')));
-    r.push({ label: t('tv.home.ch.pick', 'Pick channels'), value: t('home.ch.count', '{n} picked', { n: lay.channels.length }), cls: 'act',
-             act: d.channels && d.channels.length ? 'open' : null, key: 'homeChannels',
-             press: d.channels && d.channels.length ? t('tv.home.ch.press', 'Press OK to choose') : t('home.ch.none', 'This TV has no channels tuned, so the Channels row stays empty.'),
-             hint: t('tv.home.ch.hint', 'The channels the Channels row shows, from the TV\u2019s own list.') });
     r.push(head(t('home.idle.title', 'Idle screen')));
     r.push({ label: t('home.idle.dim', 'Dim clock after'), value: homeDuration(lay.idle.dimAfter), cls: 'act',
              act: can ? 'homeIdle' : null, key: 'dimAfter', next: homeNextOf(HOME_DIM, lay.idle.dimAfter),
@@ -769,7 +782,7 @@ function homeRows(d) {
     r.push(head(t('tv.home.head.more', 'More')));
     r.push({ label: t('home.reset', 'Reset the layout'), value: '', act: can ? 'homeReset' : null,
              press: t('tv.home.reset.press', 'Press OK, then again, to reset'),
-             hint: t('home.arrange.resetDesc', 'Apps, Inputs, then Channels, in their first order') });
+             hint: t('home.resetDesc', 'The rows, apps and inputs go back to their first order, with LG\u2019s promotions hidden again. Channels stay as they are.') });
   }
   if (!d.enabled) {
     r.push({ label: t('home.remove', 'Remove the Glasshouse Home app'), value: '', act: can ? 'homeRemove' : null,
@@ -779,7 +792,7 @@ function homeRows(d) {
   return r;
 }
 
-// The TV's channels, each added to or taken off the Channels row.
+// The TV's channels not yet on Glasshouse Home. Adding one takes it off this list; the Home tab lists those added.
 function homeChannelRows(d) {
   // Each change reloads this list, and the next one is made from what it loaded.
   homeData = d;
@@ -787,12 +800,12 @@ function homeChannelRows(d) {
              hint: t('tv.backRow.home.hint', 'Back to the Home tab.') }];
   var picked = (d && d.layout && d.layout.channels) || [];
   ((d && d.channels) || []).forEach(function (c) {
-    var on = picked.indexOf(c.id) !== -1;
-    r.push({ label: c.number + ' ' + c.name, value: on ? t('home.ch.onHome', 'On Home') : '', cls: on ? 'on' : '',
-             act: d.writable !== false ? 'homeChannel' : null, key: c.id, on: on,
-             press: on ? t('tv.home.ch.remove', 'Press OK to take it off') : t('tv.home.ch.add', 'Press OK to add it'),
-             hint: t('tv.home.ch.hint', 'The channels the Channels row shows, from the TV\u2019s own list.') });
+    if (picked.indexOf(c.id) !== -1) return;
+    r.push({ label: c.number + ' ' + c.name, value: '', act: d.writable !== false ? 'homeChannel' : null, key: c.id, on: false,
+             press: t('tv.home.ch.add', 'Press OK to add it'),
+             hint: t('tv.home.ch.hint', 'From the TV\u2019s own channel list. Each one added goes on the end of the Channels row.') });
   });
+  if (r.length === 1) r.push({ label: t('home.ch.allAdded', 'Every channel is on Home.'), value: '' });
   return r;
 }
 
@@ -2271,7 +2284,7 @@ function activate() {
     case 'homeChannel':
       var chNow = homeData.layout.channels.filter(function (id) { return id !== r.key; });
       if (!r.on) chNow.push(r.key);
-      return homeLayout({ channels: chNow });
+      return homeLayout({ channels: chNow }, r.on ? t('tv.home.ch.removed', 'Removed from Home') : t('tv.home.ch.added', 'Added to Home'));
     case 'homeIdle':
       var idleNow = { dimAfter: homeData.layout.idle.dimAfter, panelOffAfter: homeData.layout.idle.panelOffAfter };
       idleNow[r.key] = r.next;
