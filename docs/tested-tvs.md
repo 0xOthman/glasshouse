@@ -95,9 +95,9 @@ The Luna service names and `/proc/lg` paths this relies on may differ across web
 | 42LX3Q6LA   | —            | 33.31.68 | OLED  | Flex; model number has no OLED prefix                          |
 | 43UT73006LA | —            | —        | LCD   | Reported working                                               |
 | 43NU800BPSC | 11.0.0       | 43.02.50 | LCD   | Rooted with slopbro; privacy controls confirmed                |
-| OLED65G36LA | 11.2.0       | 43.21.71 | OLED  | Rooted with DualBro; privacy and app installs confirmed        |
+| OLED65G36LA | 11.2.0       | 43.21.71 | OLED  | Rooted with DualBro; privacy, app installs and custom screen savers confirmed |
 | OLED83G5WUA | 11.2.0       | 43.21.71 | OLED  | Rooted with DualBro; runs with internet access blocked         |
-| OLED42C35LA | 11.2.0       | 43.21.71 | OLED  | Working; Screensaver tab hidden, as screen savers are experimental there |
+| OLED42C35LA | 11.2.0       | 43.21.71 | OLED  | Working                                                        |
 
 </details>
 

@@ -159,17 +159,17 @@ function slowSwitch() {
 // screen savers were followed by the picture muted, HDMI-CEC and ARC dead and
 // sound on the TV speakers only, until a power cut (#366), when switching to
 // one restarted sam. Since 0.98.1 the switch asks sam to reread the one app
-// instead (ensureScreensaverRunner), which has held on a C5 (webOS 10.3.1) and
-// a C2 (webOS 10.3), so they are on there by default (#768). webOS 11 and later
-// are untried and stay held back: the boot hook does not apply them and nothing
-// here restarts sam. "allowOnWebos10": true in config.json turns them on
+// instead (ensureScreensaverRunner), which has held on a C5 (webOS 10.3.1), a
+// C2 (webOS 10.3) and a G3 (webOS 11.2, with forceBlockSystemApp), so they are
+// on there by default (#768). Later versions are untried and stay held back:
+// the boot hook does not apply them and nothing here restarts sam. "allowOnWebos10": true in config.json turns them on
 // anywhere; it does not let sam be restarted.
 function heldBack() {
   return slowSwitch() && !onByDefault() && !allowedAnyway();
 }
 
 function onByDefault() {
-  return slowSwitch() && /^10\./.test(String(webosVersion || ''));
+  return slowSwitch() && /^1[01]\./.test(String(webosVersion || ''));
 }
 
 // Where custom screen savers are experimental: held back, or turned on anyway.
