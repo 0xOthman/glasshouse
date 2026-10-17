@@ -1,28 +1,11 @@
 /*
- * Panel vitals screen saver — Keynote Bento Edition.
+ * Panel vitals screen saver.
  *
- * Presents the TV's live hardware telemetry (/api/stats) as an asymmetric
- * 6-tile Bento grid inspired by Apple Keynote hardware slides and the
- * Glasshouse Metrics tab:
- *   - Wide Hero tiles: OLED Panel Life (with milestone bar), Thermal Telemetry
- *     (with 20-bar live temperature history chart), Signal & Picture Engine
- *     (with HDR/colorimetry/HDMI link pills), and OLED Pixel Care (with
- *     circular compensation progress ring).
- *   - Standard tiles: LG SoC Silicon Die (A-series style chip package with
- *     neon bevel glow), Magic Remote Battery Ring, 4-Core CPU Activity Meters,
- *     Unified Memory & zram Bars, eMMC Flash Silicon Matrix, Network & AdBlock
- *     Shield, and System Clock & Dual Uptime.
- *
- * Burn-in prevention:
- *   1. Compact 6-box Bento stage (1112x488) on pure #000000 OLED black.
- *   2. Every 4 seconds, a single Bento box flips out, swaps to the next metric
- *      card in the deck, and flips back in.
- *   3. Every 24 seconds, all 6 boxes stagger-fade out to pure black, the stage
- *      relocates to a new quadrant of the 1920x1080 screen, permutes its
- *      Wide/Standard column geometry so borders never land on the same pixels,
- *      and stagger-builds back in.
- *
- * Strictly QtQuick 2.4 and Eos.Window 0.1 for webOS 2 through webOS 11.
+ * Shows the TV's readings from /api/stats as a 6-box Bento grid (two wide and
+ * four standard boxes). Every 4.2 seconds one box flips to the next reading in
+ * its deck; every 24 seconds the whole grid fades to black, moves to a new part
+ * of the 1920x1080 screen, and permutes its column layout so box borders do not
+ * stay on the same pixels.
  */
 import QtQuick 2.4
 import Eos.Window 0.1
@@ -678,7 +661,6 @@ WebOSWindow {
                     }
                 }
 
-                // Sculpted Keynote Bento Chamber
                 Rectangle {
                     id: cardChamber
                     anchors.fill: parent
@@ -695,7 +677,7 @@ WebOSWindow {
                         yScale: 1.0
                     }
 
-                    // Inner recessed well (gives the Keynote 3D bento box depth)
+                    // Inner recessed well
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: Math.round(6 * win.unit)
@@ -753,7 +735,6 @@ WebOSWindow {
                             }
                         }
 
-                        // Giant Keynote figure
                         Row {
                             x: 0
                             y: Math.round(18 * win.unit)
@@ -1136,14 +1117,14 @@ WebOSWindow {
                     }
 
                     // =========================================================
-                    // CARD 5: "silicon" — Apple Keynote A18-Style Silicon Die
+                    // CARD 5: "silicon" — SoC Silicon Die
                     // =========================================================
                     Item {
                         anchors.fill: parent
                         anchors.margins: Math.round(20 * win.unit)
                         visible: tileSlot.cardId === "silicon"
 
-                        // Iridescent Keynote rim glow behind the silicon die
+                        // Offset rim glow behind the silicon die
                         Rectangle {
                             width: Math.round(124 * win.unit)
                             height: Math.round(124 * win.unit)
@@ -1233,7 +1214,7 @@ WebOSWindow {
                         onRevTriggerChanged: if (visible) remoteRingCanvas.requestPaint()
                         onVisibleChanged: if (visible) remoteRingCanvas.requestPaint()
 
-                        // Glowing circular battery/level ring (Keynote top-left style)
+                        // Circular battery/level ring
                         Item {
                             width: Math.round(126 * win.unit)
                             height: Math.round(126 * win.unit)
