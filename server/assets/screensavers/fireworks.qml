@@ -5,16 +5,15 @@
  * using ImageParticle ("star.png") and TrailEmitter — zero ItemParticle scene
  * nodes, zero Canvas FBOs, and zero per-frame JavaScript evaluations.
  *
- * Why ImageParticle + TrailEmitter instead of ItemParticle:
- *   - ItemParticle creates and moves a full QQuickItem scene-graph subtree on
- *     the CPU for every particle, which caps particle count and costs ~38% CPU.
- *   - ImageParticle with "star.png" renders all particles and trails as a
- *     single hardware-accelerated OpenGL point-sprite batch in C++, allowing
- *     thousands of fine luminous sparks and continuous parabolic silk trails
- *     at a locked 60 FPS with minimal CPU load on both webOS 4 and webOS 9+.
- *   - Note on star.png sizing: star.png has a tight bright core (~25% of its
- *     64x64 texture) surrounded by a soft radial falloff, so a 14-18px sprite
- *     renders as a crisp ~3.5-4.5px incandescent pinpoint with a natural glow.
+ * Efficiency notes:
+ *   - ImageParticle with "star.png" renders all particles and trails as
+ *     hardware-accelerated OpenGL point-sprite batches in C++.
+ *   - Each colour uses a SINGLE ImageParticle painter (for both head and tail
+ *     groups) and a SINGLE TrailEmitter with zero velocity/acceleration jitter,
+ *     cutting OpenGL draw calls in half and avoiding per-frame physics steps on
+ *     stationary trail points.
+ *   - maximumEmitted caps each group's C++ particle buffer size to the exact
+ *     peak active particle count rather than Qt's default 300-particle pool.
  */
 import QtQuick 2.4
 import QtQuick.Particles 2.0
@@ -40,7 +39,6 @@ WebOSWindow {
     property int level: __TVWEB_LEVEL__
     property real grow: level > 0 ? 1.25 : 1.0
     property real headAlpha: level > 0 ? 1.00 : 0.72
-    property real trailAlpha: level > 0 ? 0.86 : 0.54
 
     // 8-colour pyrotechnic colours (with explicit dim-mode RGB values):
     property var shellColors: [
@@ -70,33 +68,20 @@ WebOSWindow {
     }
 
     // -------------------------------------------------------------------------
-    // Reusable Particle Components (Eliminates Per-Colour Boilerplate)
+    // Reusable Particle Components (1 Painter + 1 TrailEmitter per Colour)
     // -------------------------------------------------------------------------
     Component {
-        id: colorHeadParticleComp
+        id: colorParticleComp
         ImageParticle {
             property int colorIdx: 0
             system: sys
-            groups: [ "head" + colorIdx ]
+            groups: [ "head" + colorIdx, "tail" + colorIdx ]
             source: "star.png"
             color: win.shellColors[colorIdx]
             colorVariation: 0.08
             alpha: win.headAlpha
             alphaVariation: 0.08
-        }
-    }
-
-    Component {
-        id: colorTailParticleComp
-        ImageParticle {
-            property int colorIdx: 0
-            system: sys
-            groups: [ "pistil" + colorIdx, "tail" + colorIdx ]
-            source: "star.png"
-            color: win.shellColors[colorIdx]
-            colorVariation: 0.06
-            alpha: win.trailAlpha
-            alphaVariation: 0.10
+            entryEffect: ImageParticle.Fade
         }
     }
 
@@ -107,30 +92,12 @@ WebOSWindow {
             system: sys
             group: "tail" + colorIdx
             follow: "head" + colorIdx
-            emitRatePerParticle: 74
-            lifeSpan: 440
-            lifeSpanVariation: 80
-            size: Math.round(11.5 * win.unit * win.grow)
+            emitRatePerParticle: 48
+            maximumEmitted: 1400
+            lifeSpan: 420
+            lifeSpanVariation: 70
+            size: Math.round(12.0 * win.unit * win.grow)
             endSize: Math.round(3.0 * win.unit)
-            velocity: AngleDirection {
-                angle: 0
-                angleVariation: 360
-                magnitude: Math.round(2 * win.unit)
-            }
-        }
-    }
-
-    Component {
-        id: headSparkEmitterComp
-        TrailEmitter {
-            property int colorIdx: 0
-            system: sys
-            group: "headSpark"
-            follow: "head" + colorIdx
-            emitRatePerParticle: 14
-            lifeSpan: 90
-            size: Math.round(9.5 * win.unit * win.grow)
-            endSize: Math.round(4.0 * win.unit)
         }
     }
 
@@ -144,16 +111,18 @@ WebOSWindow {
         color: win.goldCol
         colorVariation: 0.08
         alpha: win.headAlpha
+        entryEffect: ImageParticle.Fade
     }
 
     ImageParticle {
         system: sys
-        groups: [ "crackleSilver", "flashCore", "headSpark" ]
+        groups: [ "crackleSilver", "flashCore" ]
         source: "star.png"
         color: win.silverCol
         colorVariation: 0.04
         alpha: win.headAlpha
         alphaVariation: 0.12
+        entryEffect: ImageParticle.Fade
     }
 
     // Brief incandescent ignition flash at burst apex
@@ -163,6 +132,7 @@ WebOSWindow {
         group: "flashCore"
         enabled: false
         emitRate: 0
+        maximumEmitted: 12
         x: -500; y: -500
         lifeSpan: 240
         size: Math.round(58 * win.unit * win.grow)
@@ -176,6 +146,7 @@ WebOSWindow {
         group: "rocketHead"
         enabled: false
         emitRate: 0
+        maximumEmitted: 4
         x: -500; y: -500
         lifeSpan: 760
         size: Math.round(18 * win.unit * win.grow)
@@ -195,6 +166,7 @@ WebOSWindow {
         group: "rocketHead"
         enabled: false
         emitRate: 0
+        maximumEmitted: 4
         x: -500; y: -500
         lifeSpan: 760
         size: Math.round(18 * win.unit * win.grow)
@@ -213,18 +185,12 @@ WebOSWindow {
         system: sys
         group: "rocketTrail"
         follow: "rocketHead"
-        emitRatePerParticle: 140
-        lifeSpan: 360
-        lifeSpanVariation: 90
-        size: Math.round(11 * win.unit * win.grow)
+        emitRatePerParticle: 90
+        maximumEmitted: 160
+        lifeSpan: 340
+        lifeSpanVariation: 80
+        size: Math.round(11.5 * win.unit * win.grow)
         endSize: Math.round(3 * win.unit)
-        velocity: AngleDirection {
-            angle: 90
-            angleVariation: 24
-            magnitude: Math.round(40 * win.unit)
-            magnitudeVariation: Math.round(16 * win.unit)
-        }
-        acceleration: PointDirection { y: Math.round(80 * win.unit) }
     }
 
     // Weeping willow / brocade gold crown stars + trailing gold filaments
@@ -234,6 +200,7 @@ WebOSWindow {
         group: "willowHead"
         enabled: false
         emitRate: 0
+        maximumEmitted: 96
         x: -500; y: -500
         lifeSpan: 2450
         lifeSpanVariation: 450
@@ -253,25 +220,22 @@ WebOSWindow {
         system: sys
         group: "willowTrail"
         follow: "willowHead"
-        emitRatePerParticle: 68
-        lifeSpan: 480
-        lifeSpanVariation: 110
-        size: Math.round(10.5 * win.unit * win.grow)
+        emitRatePerParticle: 46
+        maximumEmitted: 1200
+        lifeSpan: 460
+        lifeSpanVariation: 100
+        size: Math.round(11.0 * win.unit * win.grow)
         endSize: Math.round(3.0 * win.unit)
-        velocity: AngleDirection {
-            angle: 90
-            angleVariation: 180
-            magnitude: Math.round(3 * win.unit)
-        }
     }
 
-    // Fine white-silver crackle micro-sparks
+    // Fine white-silver crackle micro-sparks (also used for incandescent burst core)
     Emitter {
         id: crackleEmitter
         system: sys
         group: "crackleSilver"
         enabled: false
         emitRate: 0
+        maximumEmitted: 120
         x: -500; y: -500
         lifeSpan: 1200
         lifeSpanVariation: 380
@@ -306,6 +270,7 @@ WebOSWindow {
                     group: "head" + index
                     enabled: false
                     emitRate: 0
+                    maximumEmitted: 90
                     x: -500; y: -500
                     lifeSpan: 2150
                     lifeSpanVariation: 380
@@ -328,6 +293,7 @@ WebOSWindow {
                     group: "head" + index
                     enabled: false
                     emitRate: 0
+                    maximumEmitted: 96
                     x: -500; y: -500
                     lifeSpan: 2300
                     lifeSpanVariation: 520
@@ -350,6 +316,7 @@ WebOSWindow {
                     group: "head" + index
                     enabled: false
                     emitRate: 0
+                    maximumEmitted: 90
                     x: -500; y: -500
                     lifeSpan: 1750
                     lifeSpanVariation: 360
@@ -467,6 +434,7 @@ WebOSWindow {
     function triggerBurst(x, y, pIdx, sIdx, style) {
         if (ringEmitters.length < 8) return;
         flashEmitter.burst(2, x, y);
+        crackleEmitter.burst(14, x, y);
 
         var recipes = [
             burstPeonyPistil,
@@ -480,7 +448,7 @@ WebOSWindow {
 
     function triggerCrackle(x, y, pIdx, style) {
         if (pistilEmitters.length < 8) return;
-        crackleEmitter.burst(style === 1 ? 30 : 22, x, y);
+        crackleEmitter.burst(style === 1 ? 26 : 18, x, y);
         pistilEmitters[pIdx].burst(12, x, y);
     }
 
@@ -545,10 +513,8 @@ WebOSWindow {
 
     function initColorParticles() {
         for (var i = 0; i < shellColors.length; i++) {
-            colorHeadParticleComp.createObject(win, { colorIdx: i });
-            colorTailParticleComp.createObject(win, { colorIdx: i });
+            colorParticleComp.createObject(win, { colorIdx: i });
             colorTailEmitterComp.createObject(win, { colorIdx: i });
-            headSparkEmitterComp.createObject(win, { colorIdx: i });
         }
     }
 
