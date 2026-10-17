@@ -176,10 +176,10 @@ var CONFIG = {
   // ?k=<token>. Keeps casual LAN devices out.
   token: '',
 
-  // Custom screen savers are held back on webOS 10 and later, where they have
-  // left the picture, sound and HDMI control off until a power cut (#366).
-  // Set here or from the Server tab.
-  allowOnWebos10: false,
+  // Custom screen savers are held back on webOS 12 and later, where they are
+  // untried (#366, #768). Set here or from the Server tab. It was named
+  // allowOnWebos10 until 0.105, and migrateConfigFile() renames that.
+  allowExperimentalScreensavers: false,
 
   // Hiding built-in system tiles is experimental: restarting the app manager
   // mid-boot can lock up the display engine on some TVs, leaving the picture
@@ -402,6 +402,16 @@ loadConfig();
       changed = true;
       CONFIG.allowTileHiding = true;
       console.log('config: existing tile hiding preserved (allowTileHiding: true)');
+    }
+    // After tile hiding's step, which reads the old name. Held back only past
+    // webOS 11 now, so the name no longer said what it covers.
+    if ('allowOnWebos10' in raw) {
+      if (!('allowExperimentalScreensavers' in raw)) raw.allowExperimentalScreensavers = raw.allowOnWebos10 === true;
+      delete raw.allowOnWebos10;
+      CONFIG.allowExperimentalScreensavers = raw.allowExperimentalScreensavers === true;
+      delete CONFIG.allowOnWebos10;
+      changed = true;
+      console.log('config: allowOnWebos10 renamed allowExperimentalScreensavers');
     }
     if (!changed) return;
     writeJsonAtomic(CONFIG_FILE, raw, parseInt('600', 8));

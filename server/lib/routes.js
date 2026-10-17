@@ -192,7 +192,7 @@ function setupPending() {
  * those decide who may reach this server at all, and a UI that can widen its
  * own exposure defeats the point of setting them. The one exception is host,
  * from the TV itself during setup - see setNetworkAccess. Experimental feature
- * toggles (allowTileHiding, allowOnWebos10), allowNetworkDebugger and
+ * toggles (allowTileHiding, allowExperimentalScreensavers), allowNetworkDebugger and
  * prometheus.enabled are writable from the Server tab, and iconServer from the
  * MQTT tab: its port answers nothing but the icons the dashboard serves.
  */
@@ -601,7 +601,7 @@ function updateSummary() {
   s.devtools = devtools.status();
   s.allowNetworkDebugger = !!(config && config.allowNetworkDebugger);
   s.allowTileHiding = !!(appsModule && appsModule.tileHidingAllowed && appsModule.tileHidingAllowed());
-  s.allowOnWebos10 = !!(screensaversModule && screensaversModule.allowedAnyway && screensaversModule.allowedAnyway());
+  s.allowExperimentalScreensavers = !!(screensaversModule && screensaversModule.allowedAnyway && screensaversModule.allowedAnyway());
   // Where the Server tab offers the switch: custom screen savers are experimental there.
   s.isWebos10 = !!(screensaversModule && screensaversModule.experimental && screensaversModule.experimental());
   s.homeLayout = homeScreenModule ? homeScreenModule.experimental() : null;

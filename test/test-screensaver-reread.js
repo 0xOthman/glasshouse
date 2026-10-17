@@ -79,7 +79,7 @@ var samrescan = require('../server/lib/samrescan');
 
 console.log('Running test-screensaver-reread.js ...');
 
-var config = { port: 8080, allowControl: true, allowOnWebos10: true };
+var config = { port: 8080, allowControl: true, allowExperimentalScreensavers: true };
 samrescan.init({ luna: env.mockLuna, nudgeMs: 1, pollMs: 1 });
 screensavers.init({
   luna: env.mockLuna,
@@ -113,7 +113,7 @@ process.nextTick(function () {
       assert.strictEqual(restarts.length, 0);
       console.log('  ✓ switching back to the LG default rereads it the same way');
 
-      // 3. sam does not take it: even with allowOnWebos10 set, sam is not
+      // 3. sam does not take it: even with allowExperimentalScreensavers set, sam is not
       // restarted (#366); the switch is undone and LG's kept.
       samStuck = true;
       screensavers.setScreensaver('clock', 'dim', function (u) {
@@ -122,7 +122,7 @@ process.nextTick(function () {
         assert.strictEqual(u.current, 'stock');
         assert.ok(!mounted, 'ours is taken off again');
         assert.strictEqual(restarts.length, 0, 'sam is never restarted');
-        console.log('  ✓ a switch sam does not take is undone, and sam is not restarted, even with allowOnWebos10');
+        console.log('  ✓ a switch sam does not take is undone, and sam is not restarted, even with allowExperimentalScreensavers0');
         console.log('ALL test-screensaver-reread.js assertions passed!\n');
         env.restore();
       });

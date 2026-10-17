@@ -119,12 +119,12 @@ realNextTick(function () {
             // custom screen savers on, and they are still held back.
             assert.strictEqual(screensavers.screensaverList().available, true);
             assert.strictEqual(screensavers.screensaverList().held, true);
-            assert.strictEqual(restarts.length, 0, 'sam is never restarted without allowOnWebos10');
+            assert.strictEqual(restarts.length, 0, 'sam is never restarted without allowExperimentalScreensavers');
             assert.strictEqual(s.switching, false);
             console.log('  ✓ switching back to the LG default does not restart sam, and says it applies from the next restart');
 
-            // 5. allowOnWebos10 in config.json turns them back on, flagged
-            config.allowOnWebos10 = true;
+            // 5. allowExperimentalScreensavers in config.json turns them back on, flagged
+            config.allowExperimentalScreensavers = true;
             assert.strictEqual(screensavers.heldBack(), false);
             var over = screensavers.screensaverList();
             assert.strictEqual(over.held, false);
@@ -132,10 +132,10 @@ realNextTick(function () {
             over.modes.forEach(function (m) {
               assert.strictEqual(m.available, m.id === 'stock' || m.id === 'clock', m.id);
             });
-            console.log('  ✓ allowOnWebos10 turns them back on and is reported');
+            console.log('  ✓ allowExperimentalScreensavers turns them back on and is reported');
 
             // 6. On webOS 10 they are on without it, and not experimental (#768)
-            config.allowOnWebos10 = false;
+            config.allowExperimentalScreensavers = false;
             screensavers.init({ luna: env.mockLuna, config: config, webosVersion: '10.3.1',
               assetPath: function (qml) { return qml === 'screensavers/clock.qml' ? '/tmp/tvweb-test/clock.qml' : null; } });
             assert.strictEqual(screensavers.heldBack(), false);

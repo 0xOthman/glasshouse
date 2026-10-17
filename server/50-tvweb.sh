@@ -108,7 +108,8 @@ sam_reports() {
 # when switching to one restarted sam (#366). A block and release of the one
 # app has replaced the restart, and has held on webOS 10 and 11 (#768), so
 # they are applied there; later versions are untried and held back, unless
-# config.json has "allowOnWebos10": true. sam is never restarted for one. The
+# config.json has "allowExperimentalScreensavers": true (allowOnWebos10 until
+# 0.105, still read). sam is never restarted for one. The
 # type is recorded for the server, which cannot
 # read the stock manifest while one of ours is mounted over it.
 ssapp=/usr/palm/applications/com.webos.app.screensaver
@@ -124,8 +125,8 @@ fi
 held=0
 webos_major=$(sed -n 's/.*webOS[^0-9]*\([0-9][0-9]*\)\..*/\1/p' /etc/issue 2>/dev/null | head -n 1)
 if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ] && [ "$webos_major" != "10" ] && [ "$webos_major" != "11" ]; then
-  if grep -q '"allowOnWebos10"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then
-    echo "$(date): allowOnWebos10 set - custom screen saver not held back"
+  if grep -Eq '"(allowExperimentalScreensavers|allowOnWebos10)"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then
+    echo "$(date): allowExperimentalScreensavers set - custom screen saver not held back"
   else
     held=1
   fi
@@ -170,12 +171,13 @@ fi
 # this restart coincided with an Apple TV switching to 4K Dolby Vision (#366).
 # Before the server first writes the key, an install where tile hiding was
 # running keeps it. On webOS 10 and later (a Flutter stock screen saver) it was
-# already held back unless allowOnWebos10 was set.
+# already held back unless allowOnWebos10 (now allowExperimentalScreensavers)
+# was set.
 tile_hiding_allowed=0
 if grep -q '"allowTileHiding"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then
   tile_hiding_allowed=1
 elif { [ -z "$stock_type" ] || [ "$stock_type" = "qml" ] ||
-       grep -q '"allowOnWebos10"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; } &&
+       grep -Eq '"(allowExperimentalScreensavers|allowOnWebos10)"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; } &&
      ! grep -q '"allowTileHiding"' /var/lib/tvweb/config.json 2>/dev/null &&
      [ "$(cat /var/lib/tvweb/tile_hiding_enabled 2>/dev/null)" = "1" ]; then
   tile_hiding_allowed=1

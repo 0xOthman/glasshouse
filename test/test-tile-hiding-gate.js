@@ -1,6 +1,6 @@
 /**
  * test/test-tile-hiding-gate.js - Unit tests for experimental tile hiding gating,
- * config migration, UI suppression, and decoupling from allowOnWebos10 (#366).
+ * config migration, UI suppression, and decoupling from allowExperimentalScreensavers (#366).
  *
  * Strict ES5 for Node 0.12.
  */
@@ -60,10 +60,10 @@ apps.setTileHidingEnabled(true, function (res) {
       assert.strictEqual(restarts.length, 0);
       console.log('  ✓ tile hiding is disabled by default and refuses enable/hide/restart');
 
-      // 2. Decoupled from allowOnWebos10
-      config.allowOnWebos10 = true;
-      assert.strictEqual(apps.tileHidingAllowed(), false, 'allowOnWebos10 must not enable tile hiding');
-      console.log('  ✓ allowOnWebos10 does not enable tile hiding');
+      // 2. Decoupled from allowExperimentalScreensavers
+      config.allowExperimentalScreensavers = true;
+      assert.strictEqual(apps.tileHidingAllowed(), false, 'allowExperimentalScreensavers must not enable tile hiding');
+      console.log('  ✓ allowExperimentalScreensavers does not enable tile hiding');
 
       // 3. /api/apps hides tile hiding section when disallowed
       routes.init({
@@ -146,6 +146,8 @@ apps.setTileHidingEnabled(true, function (res) {
               assert.strictEqual(heldCfg.allowTileHiding, undefined);
               var overriddenCfg = { port: 8080, allowOnWebos10: true };
               assert.strictEqual(apps.migrateConfig(overriddenCfg), true, 'running under allowOnWebos10, kept');
+              var renamedCfg = { port: 8080, allowExperimentalScreensavers: true };
+              assert.strictEqual(apps.migrateConfig(renamedCfg), true, 'and under its new name, kept');
               assert.strictEqual(overriddenCfg.allowTileHiding, true);
               env.files['/var/lib/tvweb/screensaver-stock-type'] = null;
               console.log('  ✓ migrateConfig grandfathers active installs without overwriting user choices');
@@ -160,7 +162,7 @@ apps.setTileHidingEnabled(true, function (res) {
 
               var controls = require('../server/lib/controls');
               var mockScreensavers = {
-                allowedAnyway: function () { return !!config.allowOnWebos10; },
+                allowedAnyway: function () { return !!config.allowExperimentalScreensavers; },
                 slowSwitch: function () { return true; },
                 experimental: function () { return true; }
               };
@@ -195,9 +197,9 @@ apps.setTileHidingEnabled(true, function (res) {
 
                   // Toggle webOS 10 screensavers via controls
                   controls.doControl('setWebos10ScreensaversAllowed', true, function (summarySs) {
-                    assert.deepEqual(writtenSettings, { allowOnWebos10: true });
-                    assert.strictEqual(config.allowOnWebos10, true);
-                    assert.strictEqual(summarySs.allowOnWebos10, true);
+                    assert.deepEqual(writtenSettings, { allowExperimentalScreensavers: true, allowOnWebos10: undefined });
+                    assert.strictEqual(config.allowExperimentalScreensavers, true);
+                    assert.strictEqual(summarySs.allowExperimentalScreensavers, true);
                     assert.strictEqual(summarySs.isWebos10, true);
                     console.log('  ✓ controls toggle experimental features and update config and summary');
 

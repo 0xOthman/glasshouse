@@ -162,7 +162,7 @@ function slowSwitch() {
 // instead (ensureScreensaverRunner), which has held on a C5 (webOS 10.3.1), a
 // C2 (webOS 10.3) and a G3 (webOS 11.2, with forceBlockSystemApp), so they are
 // on there by default (#768). Later versions are untried and stay held back:
-// the boot hook does not apply them and nothing here restarts sam. "allowOnWebos10": true in config.json turns them on
+// the boot hook does not apply them and nothing here restarts sam. "allowExperimentalScreensavers": true in config.json turns them on
 // anywhere; it does not let sam be restarted.
 function heldBack() {
   return slowSwitch() && !onByDefault() && !allowedAnyway();
@@ -178,7 +178,8 @@ function experimental() {
 }
 
 function allowedAnyway() {
-  return !!(configObj && configObj.allowOnWebos10);
+  // The old name, until migrateConfigFile() has renamed it.
+  return !!(configObj && (configObj.allowExperimentalScreensavers === true || configObj.allowOnWebos10 === true));
 }
 
 // Held back but turned back on, so the dashboards can say so.
