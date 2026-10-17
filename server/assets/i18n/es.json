@@ -2824,12 +2824,12 @@
   "from": "Experimental features"
  },
  "server.experimental.screensaver": {
-  "text": "Salvapantallas personalizados (webOS 11+)",
-  "from": "Custom screen savers (webOS 11+)"
+  "text": "Salvapantallas personalizados (webOS 12+)",
+  "from": "Custom screen savers (webOS 12+)"
  },
  "server.experimental.screensaver.short": {
-  "text": "Permite los salvapantallas propios del panel en webOS 11 y posteriores, en la pestaña Salvapantallas.",
-  "from": "Allows the dashboard's own screen savers on webOS 11 and later, on the Screensaver tab."
+  "text": "Permite los salvapantallas propios del panel en webOS 12 y posteriores, en la pestaña Salvapantallas.",
+  "from": "Allows the dashboard's own screen savers on webOS 12 and later, on the Screensaver tab."
  },
  "server.experimental.tileHiding": {
   "text": "Ocultación de iconos de la pantalla de inicio",

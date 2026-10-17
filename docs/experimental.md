@@ -6,11 +6,11 @@ Three features are experimental and off by default. They are turned on under **S
 
 Hides built-in LG apps, such as Gallery, Music and Sports, from the Home screen ribbon. Once it is turned on, the apps to hide are chosen on the **Apps** tab. It is experimental on every TV.
 
-## Custom screen savers on webOS 11 and later
+## Custom screen savers on webOS 12 and later
 
-Replaces LG's screen saver with one of the dashboard's own, chosen on the **Screensaver** tab. It is experimental only on webOS 11 and later, where it has not been tried, and where the Screensaver tab itself also has the switch, above the list. On webOS 10 and earlier, custom screen savers work without turning anything on.
+Replaces LG's screen saver with one of the dashboard's own, chosen on the **Screensaver** tab. It is experimental only on webOS 12 and later, where it has not been tried, and where the Screensaver tab itself also has the switch, above the list. On webOS 11 and earlier, custom screen savers work without turning anything on.
 
-On webOS 10 they were experimental too, until enough TVs had run them. Switching to one there no longer restarts the app manager: since 0.98.1 it rereads the screen saver app alone, which held through switching, standby and restarts on a C5 (webOS 10.3.1) and a C2 (webOS 10.3) ([#768](https://github.com/rorygallagher2024/glasshouse/issues/768)). If the app manager does not take the switch that way, the switch is undone and LG's screen saver kept, rather than the app manager restarted; at start-up, likewise. The same holds on webOS 11 with the switch on: Glasshouse never restarts the app manager for a screen saver.
+On webOS 10 and 11 they were experimental too, until TVs had run them. Switching to one there no longer restarts the app manager: since 0.98.1 it rereads the screen saver app alone, which held through switching, standby and restarts on a C5 (webOS 10.3.1), a C2 (webOS 10.3) and, from 0.102.2, a G3 (webOS 11.2) ([#768](https://github.com/rorygallagher2024/glasshouse/issues/768)). If the app manager does not take the switch that way, the switch is undone and LG's screen saver kept, rather than the app manager restarted; at start-up, likewise. Glasshouse never restarts the app manager for a screen saver.
 
 ## Home screen layout on webOS 10
 

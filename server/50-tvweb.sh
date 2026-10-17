@@ -106,9 +106,10 @@ sam_reports() {
 # On the Flutter TVs, custom screen savers were followed by the picture muted,
 # HDMI-CEC and ARC dead and sound on the TV speakers only, until a power cut,
 # when switching to one restarted sam (#366). A block and release of the one
-# app has replaced the restart, and has held on webOS 10 (#768), so they are
-# applied there; webOS 11 and later are untried and held back, unless
-# config.json has "allowOnWebos10": true. sam is never restarted for one. The type is recorded for the server, which cannot
+# app has replaced the restart, and has held on webOS 10 and 11 (#768), so
+# they are applied there; later versions are untried and held back, unless
+# config.json has "allowOnWebos10": true. sam is never restarted for one. The
+# type is recorded for the server, which cannot
 # read the stock manifest while one of ours is mounted over it.
 ssapp=/usr/palm/applications/com.webos.app.screensaver
 stock_type=$(sed -n 's/.*"type"[^"]*"\([^"]*\)".*/\1/p' "$ssapp/appinfo.json" 2>/dev/null)
@@ -122,7 +123,7 @@ if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ]; then
 fi
 held=0
 webos_major=$(sed -n 's/.*webOS[^0-9]*\([0-9][0-9]*\)\..*/\1/p' /etc/issue 2>/dev/null | head -n 1)
-if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ] && [ "$webos_major" != "10" ]; then
+if [ -n "$stock_type" ] && [ "$stock_type" != "qml" ] && [ "$webos_major" != "10" ] && [ "$webos_major" != "11" ]; then
   if grep -q '"allowOnWebos10"[[:space:]]*:[[:space:]]*true' /var/lib/tvweb/config.json 2>/dev/null; then
     echo "$(date): allowOnWebos10 set - custom screen saver not held back"
   else

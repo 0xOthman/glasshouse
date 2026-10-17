@@ -145,8 +145,11 @@ realNextTick(function () {
             assert.strictEqual(ten.held, false);
             assert.strictEqual(ten.heldOverridden, false);
             screensavers.init({ luna: env.mockLuna, config: config, webosVersion: '11.2.0' });
-            assert.strictEqual(screensavers.heldBack(), true, 'webOS 11 is untried and stays held back');
-            console.log('  ✓ on webOS 10 they are on by default; webOS 11 stays held back');
+            assert.strictEqual(screensavers.heldBack(), false, 'webOS 11 is on by default too');
+            assert.strictEqual(screensavers.experimental(), false);
+            screensavers.init({ luna: env.mockLuna, config: config, webosVersion: '12.0.0' });
+            assert.strictEqual(screensavers.heldBack(), true, 'a later webOS is untried and stays held back');
+            console.log('  ✓ on webOS 10 and 11 they are on by default; later versions stay held back');
             console.log('ALL test-screensaver-switch.js assertions passed!\n');
             env.restore();
           });

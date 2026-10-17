@@ -622,7 +622,7 @@ function saverRows(d) {
   var slow = d.slowSwitch && d.current === 'stock' ? function (m) { return m.id !== 'stock'; }
            : d.slowSwitch ? function (m) { return m.id === 'stock'; }
            : function () { return false; };
-  // On webOS 11 and later custom screen savers are experimental (#366, #768): the
+  // On webOS 12 and later custom screen savers are experimental (#366, #768): the
   // switch is here too, and turning it on takes a second press.
   if (d.held || d.heldOverridden) {
     var ssOn = !!d.heldOverridden;
