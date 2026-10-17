@@ -104,7 +104,10 @@ it before exposing it more widely.
   `http://localhost:9998`. Where the kernel has no `ip6_tables` (a C1, webOS 6)
   the rule covers IPv4 only, which leaves the port open on any IPv6 address the
   TV has. Some kernels have no firewall at all (a 50QNED80A6A, webOS 10): there
-  the port stays open, and the Server tab says so in place of its switch. Turning Developer Mode off
+  the port stays open, and the Server tab says so in place of its switch.
+  WebAppMgr has no setting to listen only on the TV itself, so on such a TV
+  keep it on a network untrusted devices cannot reach, such as its own VLAN or
+  a guest network that keeps devices apart. Turning Developer Mode off
   closes it, but on a rooted TV it also stops the Homebrew Channel starting. `{ "allowNetworkDebugger": true }` in `config.json` (or toggled
   from the Server tab) leaves the port open for `ares-inspect`, and the server
   takes out a rule left by an earlier start. Uninstalling from the Homebrew
