@@ -214,9 +214,18 @@ every few seconds:
 "mqtt": { "tls": true, "port": 8883 }
 ```
 
+On TVs whose Node is 0.12, such as a B7 on webOS 3.9, Node does not trust
+Let's Encrypt certificates: its built-in root list predates ISRG Root X1, and the connection
+fails with "unable to get local issuer certificate". Copy the root that signs
+the broker's chain (for Let's Encrypt, ISRG Root X1) to
+`/var/lib/tvweb/mqtt-ca.pem` and restart tvweb; the broker is then verified
+against that file instead of the built-in list. The same file works for a
+broker with a self-signed certificate or a private CA.
+
 Set `"tlsRejectUnauthorized": false` only if your broker uses a self-signed
-certificate &mdash; the traffic stays encrypted, but the broker is no longer
-authenticated, so only do it on a network you trust.
+certificate and the TV cannot be given its CA &mdash; the traffic stays
+encrypted, but the broker is no longer authenticated, so only do it on a
+network you trust.
 
 **3. Consider network segmentation.** Putting the TV on its own VLAN that can
 reach only the broker is sound defence in depth. It does not replace the ACL:

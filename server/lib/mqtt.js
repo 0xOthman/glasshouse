@@ -2,9 +2,24 @@
  * MiniMQTT - minimal zero-dependency MQTT 3.1.1 client for Node 0.12+.
  * ES5 only: runs on webOS TV Node runtime.
  */
+var fs = require('fs');
 var net = require('net');
+var path = require('path');
 var tls = require('tls');
 var toBuffer = require('./util').toBuffer;
+
+// Node 0.12's built-in root list predates ISRG Root X1 (2015), so a broker
+// with a Let's Encrypt certificate fails with "unable to get local issuer
+// certificate". A PEM file here replaces the built-in list for the broker.
+var BROKER_CA_FILE = path.join(__dirname, '..', 'mqtt-ca.pem');
+
+function readBrokerCa() {
+  try {
+    return fs.readFileSync(BROKER_CA_FILE);
+  } catch (e) {
+    return undefined;
+  }
+}
 
 var CONNACK_ERRORS = {
   1: 'unacceptable protocol version',
@@ -121,6 +136,7 @@ MiniMQTT.prototype.connect = function() {
       host: this.opts.host,
       port: this.opts.port || 8883,
       servername: this.opts.host,
+      ca: readBrokerCa(),
       // Self-signed broker certs are common on home networks. Turning this
       // off keeps the traffic encrypted but stops authenticating the broker,
       // so only do it on a network you trust.
@@ -364,6 +380,7 @@ MiniMQTT.testConnection = function(opts, cb) {
         host: host,
         port: port,
         servername: host,
+        ca: readBrokerCa(),
         rejectUnauthorized: opts.tlsRejectUnauthorized !== false
       });
     } else {
