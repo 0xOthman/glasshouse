@@ -146,11 +146,11 @@ function renderUpdate(d) {
   const ssRow = q('exp-screensaver-row');
   if (ssRow) {
     ssRow.hidden = !d.isWebos10;
-    if (typeof d.allowOnWebos10 === 'boolean') {
+    if (typeof d.allowExperimentalScreensavers === 'boolean') {
       updateToggle('exp-screensaver', {
-        cls: d.allowOnWebos10 ? 'good' : 'idle',
-        label: d.allowOnWebos10 ? t('common.on', 'On') : t('common.off', 'Off'),
-        on: d.allowOnWebos10,
+        cls: d.allowExperimentalScreensavers ? 'good' : 'idle',
+        label: d.allowExperimentalScreensavers ? t('common.on', 'On') : t('common.off', 'Off'),
+        on: d.allowExperimentalScreensavers,
         disabled: !d.writable
       });
     }

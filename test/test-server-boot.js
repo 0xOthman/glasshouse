@@ -130,6 +130,8 @@ function phase(name, chaos, next, mqttDisabled) {
       var cfg = path.join(root, 'var/lib/tvweb/config.json');
       fs.writeFileSync(cfg, JSON.stringify({
         port: port, host: '127.0.0.1',
+        // The old name, renamed allowExperimentalScreensavers at start.
+        allowOnWebos10: true,
         mqtt: { enabled: !mqttDisabled, host: '127.0.0.1', port: broker.port, topicPrefix: 'boot', telemetryIntervalMs: 2000 }
       }));
       var env = {};
@@ -162,6 +164,10 @@ function phase(name, chaos, next, mqttDisabled) {
       waitFor('the dashboard to answer', function () { return up || exited; }, 30000, function () {
         clearInterval(upTimer);
         if (exited) return fail('server exited at start: ' + JSON.stringify(exited));
+        var saved = JSON.parse(fs.readFileSync(cfg, 'utf8'));
+        if (saved.allowExperimentalScreensavers !== true || 'allowOnWebos10' in saved) {
+          return fail('allowOnWebos10 was not renamed in config.json: ' + JSON.stringify(saved));
+        }
         var beat = path.join(root, 'var/run/tvweb.beat');
         waitFor('the heartbeat', function () { return fs.existsSync(beat); }, 5000, function () {
           waitFor('telemetry at the broker', function () { return mqttDisabled ? out.indexOf('mqtt: disabled') !== -1 : broker.last(/^boot\/telemetry$/); }, 20000, function () {

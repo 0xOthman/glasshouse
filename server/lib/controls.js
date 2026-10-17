@@ -907,9 +907,10 @@ function doControl(action, value, cb) {
     case 'setWebos10ScreensaversAllowed':
       var allowSs = (value === true || value === 'on' || value === 'true');
       if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });
-      return writeSettingsFn({ allowOnWebos10: allowSs }, function (err) {
+      // allowOnWebos10 is the old name: undefined leaves it out of the file.
+      return writeSettingsFn({ allowExperimentalScreensavers: allowSs, allowOnWebos10: undefined }, function (err) {
         if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
-        if (config) config.allowOnWebos10 = allowSs;
+        if (config) { config.allowExperimentalScreensavers = allowSs; delete config.allowOnWebos10; }
         cb(getUpdateSummary());
       });
 
