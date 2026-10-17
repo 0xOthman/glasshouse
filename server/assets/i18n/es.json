@@ -2979,6 +2979,38 @@
   "text": "Poner el reloj con un servidor de hora",
   "from": "Set the clock from a time server"
  },
+ "server.popup.desc": {
+  "text": "Al instalarla, el servidor se sustituye y se reinicia. La versión anterior queda en la TV para poder volver a ella.",
+  "from": "Installing it replaces the server and restarts it. The previous version stays on the TV for rollback."
+ },
+ "server.popup.desc.hbc": {
+  "text": "Actualiza Glasshouse en el Homebrew Channel o instala el último .ipk desde GitHub releases.",
+  "from": "Update Glasshouse in the Homebrew Channel, or sideload the latest .ipk from GitHub releases."
+ },
+ "server.popup.desc.noControls": {
+  "text": "Los controles están desactivados en la configuración, así que no se puede instalar desde aquí.",
+  "from": "Controls are turned off in the config, so it cannot be installed from here."
+ },
+ "server.popup.dismiss": {
+  "text": "Descartar",
+  "from": "Dismiss"
+ },
+ "server.popup.installed": {
+  "text": "Instalada",
+  "from": "Installed"
+ },
+ "server.popup.status": {
+  "text": "Actualización disponible",
+  "from": "Update available"
+ },
+ "server.popup.title": {
+  "text": "Ya está disponible la v{version}",
+  "from": "v{version} is out"
+ },
+ "server.popup.update": {
+  "text": "Actualizar",
+  "from": "Update"
+ },
  "server.prometheus.short": {
   "text": "Permite que un servidor Prometheus de la red recoja las lecturas de la TV, en /api/prometheus/metrics. Desactivado, la dirección no existe.",
   "from": "Lets a Prometheus server on the network collect the TV's readings, at /api/prometheus/metrics. While off, the address does not exist."
@@ -3134,6 +3166,14 @@
  "server.updateFailed": {
   "text": "La actualización falló.",
   "from": "The update failed."
+ },
+ "server.updatePopup": {
+  "text": "Aviso de actualización",
+  "from": "Update pop-up"
+ },
+ "server.updatePopup.desc": {
+  "text": "Muestra un aviso en este navegador cuando hay una versión nueva, con un botón para instalarla. Desactivado hasta que se active aquí.",
+  "from": "Shows a pop-up in this browser when a newer version is out, with a button to install it. Off until switched on here."
  },
  "server.version": {
   "text": "Versión {version}",

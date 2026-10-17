@@ -245,6 +245,7 @@ async function loadUpdate() {
     if (d && d.ok) {
       renderUpdate(d);
       noteArrival(d);
+      offerUpdatePopup(d);
     }
   } catch (e) { /* the footer hint is not worth an error banner */ }
 }
@@ -328,13 +329,14 @@ const updControl = (action, value) => fetchJson(api('/api/control'), {
  * Waits for the server to answer on `version`, then reloads - this page belongs
  * to the version that was replaced. `confirmed` is false when the request itself
  * never came back; then the server answering on its old version, with nothing in
- * progress, means the change did not happen.
+ * progress, means the change did not happen. `prog` and `msgEl` are the bar and
+ * the message of whatever started it: the Server tab, or the update pop-up.
  */
-async function awaitRestart(version, doneLabel, param, confirmed, oldVersion) {
+async function awaitRestart(version, doneLabel, param, confirmed, oldVersion, prog = updProg, msgEl = q('upd-msg')) {
   updRestarting = true;
   // The work is done by now; what is left is waiting.
-  updProg.set(Math.max(updProg.pct, 60));
-  updProg.step(t('server.step.restarting', 'Restarting the server'), 95, 20000);
+  prog.set(Math.max(prog.pct, 60));
+  prog.step(t('server.step.restarting', 'Restarting the server'), 95, 20000);
   const t0 = Date.now();
   for (;;) {
     await new Promise(res => setTimeout(res, 1500));
@@ -343,18 +345,18 @@ async function awaitRestart(version, doneLabel, param, confirmed, oldVersion) {
     if (d && !confirmed && d.installed === oldVersion && !/checking|downloading|installing/.test(d.state)) {
       updRestarting = false;
       updBusy = false;
-      updProg.show(false);
+      prog.show(false);
       renderUpdate(d);
-      q('upd-msg').textContent = t('server.notFinished', 'That did not finish. The TV is still on v{version}.', { version: oldVersion });
+      msgEl.textContent = t('server.notFinished', 'That did not finish. The TV is still on v{version}.', { version: oldVersion });
       return;
     }
     const waited = Date.now() - t0;
-    q('upd-msg').textContent = waited > 240000 ? t('server.notBack', 'The server has not come back. See Updating in the README to roll back.')
+    msgEl.textContent = waited > 240000 ? t('server.notBack', 'The server has not come back. See Updating in the README to roll back.')
       : waited > 30000 ? t('server.slow', 'Taking longer than usual - it can take up to two minutes.')
       : '';
   }
-  q('upd-msg').textContent = '';
-  updProg.done(doneLabel);
+  msgEl.textContent = '';
+  prog.done(doneLabel);
   const u = new URL(location.href);
   u.searchParams.set('tab', 'server');
   u.searchParams.set(param, version);
@@ -397,29 +399,36 @@ async function checkNow() {
   }
 }
 
-async function installUpdate() {
-  const v = q('upd-install').dataset.v, from = updInstalled;
+function installUpdate() {
+  const v = q('upd-install').dataset.v;
   if (!confirm(t('server.install.confirm', 'Install v{version}?\n\nThe server is replaced and restarted, and the previous version stays on the TV so it can be rolled back.', { version: v }))) return;
+  return runInstall(v, updInstalled, updProg, q('upd-msg'));
+}
+
+// The install the Server tab's button and the update pop-up both run, each
+// reporting on its own bar and message.
+async function runInstall(v, from, prog, msgEl) {
   updBusy = true;
   updArrival = '';
   q('upd-msg').textContent = '';
-  updProg.show(true);
-  updProg.step(t('server.step.downloading', 'Downloading v{version}', { version: v }), 45, 1500);
+  msgEl.textContent = '';
+  prog.show(true);
+  prog.step(t('server.step.downloading', 'Downloading v{version}', { version: v }), 45, 1500);
   let installing = false;
   const watch = setInterval(async () => {
     const d = await fetchJson(api('/api/update'), {}, 2500);
     if (!installing && d && d.state === 'installing') {
       installing = true;
-      updProg.step(t('server.step.installing', 'Installing v{version}', { version: v }), 58, 1500);
+      prog.step(t('server.step.installing', 'Installing v{version}', { version: v }), 58, 1500);
     }
   }, 1000);
   const r = await updControl('update');
   clearInterval(watch);
-  if (!r || (r.ok && r.updated)) return awaitRestart(v, t('server.step.updated', 'Updated to v{version}', { version: v }), 'updated', !!r, from);
+  if (!r || (r.ok && r.updated)) return awaitRestart(v, t('server.step.updated', 'Updated to v{version}', { version: v }), 'updated', !!r, from, prog, msgEl);
   updBusy = false;
-  updProg.show(false);
+  prog.show(false);
   await loadUpdate();
-  q('upd-msg').textContent = r.ok ? (r.note || t('server.nothingNewer', 'Nothing newer to install.'))
+  msgEl.textContent = r.ok ? (r.note || t('server.nothingNewer', 'Nothing newer to install.'))
     : (r.error || t('server.updateFailed', 'The update failed.'));
 }
 
@@ -436,6 +445,104 @@ async function toggleAutoCheck() {
   const r = await sendCommand('updateAutoCheck', !b.dataset.on);
   if (r && r.ok) renderUpdate(r); else loadUpdate();
 }
+
+// ---- update pop-up ----
+/*
+ * Off until switched on, and kept in this browser: the pop-up only ever shows
+ * here, and so does dismissing it. A dismissed version is not offered again; the
+ * next release is.
+ */
+const updPopProg = makeProgress('updpop-prog', 'updpop-step', 'updpop-bar', on => { q('updpop-btns').hidden = on; });
+let updPopupOpener = null;
+
+function updPopupOn() {
+  try { return localStorage.getItem('updPopup') === '1'; } catch (e) { return false; }
+}
+
+function updPopupDismissedVersion() {
+  try { return localStorage.getItem('updPopupDismissed') || ''; } catch (e) { return ''; }
+}
+
+function renderUpdatePopupToggle() {
+  const on = updPopupOn();
+  updateToggle('upd-popup', {
+    cls: on ? 'good' : 'idle',
+    label: on ? t('common.on', 'On') : t('common.off', 'Off'),
+    on,
+    disabled: false
+  });
+}
+
+function toggleUpdatePopup() {
+  const on = !updPopupOn();
+  try {
+    localStorage.setItem('updPopup', on ? '1' : '0');
+    // Switching it on again offers the release that was dismissed before.
+    if (on) localStorage.removeItem('updPopupDismissed');
+  } catch (e) { /* private window */ }
+  renderUpdatePopupToggle();
+}
+
+// Not while an install is under way, nor while the server is already busy with one.
+function offerUpdatePopup(d) {
+  if (!d.available || !updPopupOn() || !q('updpop').hidden || updBusy || updRestarting) return;
+  if (d.state === 'downloading' || d.state === 'installing' || d.state === 'installed') return;
+  if (updPopupDismissedVersion() === String(d.latest)) return;
+  showUpdatePopup(d);
+}
+
+function showUpdatePopup(d) {
+  const box = q('updpop');
+  const canInstall = d.writable && !d.viaHomebrewChannel;
+  box.dataset.v = d.latest;
+  q('updpop-title').textContent = t('server.popup.title', 'v{version} is out', { version: d.latest });
+  q('updpop-desc').textContent = d.viaHomebrewChannel
+    ? t('server.popup.desc.hbc', 'Update Glasshouse in the Homebrew Channel, or sideload the latest .ipk from GitHub releases.')
+    : !d.writable
+    ? t('server.popup.desc.noControls', 'Controls are turned off in the config, so it cannot be installed from here.')
+    : t('server.popup.desc', 'Installing it replaces the server and restarts it. The previous version stays on the TV for rollback.');
+  q('updpop-from').textContent = 'v' + d.installed;
+  q('updpop-to').textContent = 'v' + d.latest;
+  q('updpop-msg').textContent = '';
+  q('updpop-install').hidden = !canInstall;
+  q('updpop-btns').classList.toggle('one', !canInstall);
+  updPopupOpener = document.activeElement;
+  box.hidden = false;
+  document.addEventListener('keydown', updPopupKeys);
+  (canInstall ? q('updpop-install') : q('updpop-dismiss')).focus();
+}
+
+function closeUpdatePopup() {
+  document.removeEventListener('keydown', updPopupKeys);
+  q('updpop').hidden = true;
+  if (updPopupOpener && updPopupOpener.focus) updPopupOpener.focus();
+  updPopupOpener = null;
+}
+
+function dismissUpdatePopup() {
+  if (updBusy || updRestarting) return;
+  try { localStorage.setItem('updPopupDismissed', q('updpop').dataset.v); } catch (e) { /* private window */ }
+  closeUpdatePopup();
+}
+
+// Escape dismisses; Tab stays inside, as the page behind it is not reachable.
+function updPopupKeys(e) {
+  if (e.key === 'Escape') return dismissUpdatePopup();
+  if (e.key !== 'Tab') return;
+  const open = Array.from(q('updpop').querySelectorAll('button')).filter(b => !b.hidden && !b.disabled && b.offsetParent !== null);
+  if (!open.length) return;
+  const first = open[0], last = open[open.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+}
+
+// The same install as the Server tab's button; the pop-up is the confirmation.
+function installFromPopup() {
+  return runInstall(q('updpop').dataset.v, updInstalled, updPopProg, q('updpop-msg'));
+}
+
+q('updpop').addEventListener('click', e => { if (e.target === q('updpop')) dismissUpdatePopup(); });
+renderUpdatePopupToggle();
 
 async function toggleExpTileHiding() {
   const b = q('exp-tilehiding');
