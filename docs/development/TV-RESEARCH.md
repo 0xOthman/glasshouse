@@ -719,6 +719,12 @@ name.
   no `/tmp/acr.xml`. A SIGTERM ended it, and nothing started it again within
   30 s. So a status query undoes what switching Live Plus off achieves until
   the next reboot; Glasshouse's Privacy panel asks it only while it runs.
+- **Started that way, it collects nothing.** With Live Plus and
+  `acrOnAllowed` off, an `acr2` started by `getACRSolutionStatus` was watched
+  for 2 minutes: no CPU time, 5 threads throughout, `libvtcapture` mapped and
+  the Alphonso library not, no network sockets (8 local bus sockets), no
+  `/tmp/acr.xml`, `getVideoCaptureStatus` `stopped` with `captureSpeed` 0, and
+  `ACRSolutionStatus` false at the start and the end.
 - **`/tmp/acr.xml` is a downloaded configuration**, not a switch. Its strings
   in `acr2` are "[Configuration] Initialize : downloading config file", with
   `/mnt/lg/cmn_data/acr.xml` as a fallback that does not exist. On a CX and
@@ -740,6 +746,27 @@ name.
 - `/etc/pmlog.d/acr.conf` points the `acr` context at `/var/log/acr.log`,
   which is never created; even at debug level nothing reached
   `/var/log/messages`.
+
+## LG's other privacy daemons with the consents off (webOS 5.6.2, CX)
+
+On a CX with every ad, voice, diagnostics and marketing consent off,
+`acr2` is the only one of these that the consents keep from running. The
+others start whatever the consents say, and sit idle:
+
+| Daemon | Started by | After 16 hours |
+|---|---|---|
+| `admanager` | activity `com.webos.service.admanager.start`: `admanager/start` once `connectionmanager` reports the internet up; also on demand (`Type=dynamic`) | running, 1 s CPU |
+| `adoverlay-service` | activity `com.webos.service.adoverlay.start`: `startAdoverlay` at `rest-boot-done`; also on demand | running, under 1 s CPU |
+| `livepick-plus` | activity `com.webos.service.livepickplus.start`: `livepickplus/wakeup` once the internet is up | running, 1 s CPU |
+| `voiceinput`, `voiceconductor`, `nlpmanager` | systemd units | running; 14 s, 1 s and 42 s CPU |
+
+None had a network socket open. None of their start activities names a
+consent, so there is no consent to switch off that stops them; what keeps
+`uploadd`, `rdxd`, `nudge`, `contentminer` and `remotelogger` stopped is
+Glasshouse's background services switch, which masks their units.
+Glasshouse calls only `admanager` (the advertising ID, its reset and cookies)
+and `voiceinput.sound` (the microphone switch), and asks either only while
+it runs.
 
 ## The microphone switch (webOS 10.3.1, C5)
 
