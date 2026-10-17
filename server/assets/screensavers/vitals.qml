@@ -275,156 +275,197 @@ WebOSWindow {
         win.nextStdIdx = (sIdx + 1) % win.stdDeck.length;
     }
 
-    // Ensure no currently displayed slot holds a card that isn't supported on this TV
+    function cardInList(list, cardId) {
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] === cardId) return true;
+        }
+        return false;
+    }
+
+    function isCardVisibleExcept(cardId, ignoreSlot) {
+        for (var j = 0; j < 6; j++) {
+            if (j !== ignoreSlot && getSlotCard(j) === cardId) return true;
+        }
+        return false;
+    }
+
+    function pickUnusedCard(deck, startIdx, ignoreSlot) {
+        for (var k = 0; k < deck.length; k++) {
+            var idx = (startIdx + k) % deck.length;
+            if (!isCardVisibleExcept(deck[idx], ignoreSlot)) {
+                return { card: deck[idx], nextIdx: (idx + 1) % deck.length };
+            }
+        }
+        return { card: deck[0], nextIdx: (startIdx + 1) % deck.length };
+    }
+
     function sanitizeVisibleSlots() {
         for (var i = 0; i < 6; i++) {
-            var wide = isSlotWide(i);
-            var deck = wide ? win.wideDeck : win.stdDeck;
-            var cur = getSlotCard(i);
-            var valid = false;
-            for (var k = 0; k < deck.length; k++) {
-                if (deck[k] === cur) { valid = true; break; }
-            }
-            if (!valid) {
-                for (var m = 0; m < deck.length; m++) {
-                    var cand = deck[m];
-                    var alreadyShown = false;
-                    for (var j = 0; j < 6; j++) {
-                        if (i !== j && getSlotCard(j) === cand) { alreadyShown = true; break; }
-                    }
-                    if (!alreadyShown) {
-                        setSlotCard(i, cand);
-                        break;
-                    }
-                }
+            var deck = isSlotWide(i) ? win.wideDeck : win.stdDeck;
+            if (!cardInList(deck, getSlotCard(i))) {
+                setSlotCard(i, pickUnusedCard(deck, 0, i).card);
             }
         }
     }
 
-    function collect(d) {
-        if (!d) return;
+    function paintProgressRing(canvas, frac, ringColor) {
+        var ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        var cx = canvas.width * 0.5;
+        var cy = canvas.height * 0.5;
+        var r = canvas.width * 0.41;
+        var lw = Math.max(6, Math.round(10 * win.unit));
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2, false);
+        ctx.lineWidth = lw;
+        ctx.strokeStyle = win.trackBg;
+        ctx.stroke();
+
+        var startA = -Math.PI * 0.5;
+        var endA = startA + Math.max(0.06, Math.min(1.0, frac)) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startA, endA, false);
+        ctx.lineCap = "round";
+        ctx.lineWidth = lw;
+        ctx.strokeStyle = ringColor;
+        ctx.stroke();
+    }
+
+    function resolveCoreCount(d) {
+        if (d.coresTotal && d.coresTotal > 0) return Math.min(8, Number(d.coresTotal));
+        if (d.cores && d.cores.length > 0) return Math.min(8, d.cores.length);
+        return 4;
+    }
+
+    function collectDeviceAndSystem(d) {
         var modelRaw = (d.device && d.device.model) ? String(d.device.model) : String(d.model || "LG WEBOS TV");
         win.tvModel = modelRaw.split(".")[0].toUpperCase();
-
         if (d.system && d.system.webos) win.webosVer = "webOS " + d.system.webos;
         if (d.system && d.system.firmware) win.fwVer = "FW " + d.system.firmware;
+    }
 
-        var totalCores = (d.coresTotal && d.coresTotal > 0) ? Math.min(8, Number(d.coresTotal))
-                       : ((d.cores && d.cores.length > 0) ? Math.min(8, d.cores.length) : 4);
-
+    function collectSilicon(d, totalCores) {
         win.cpuMhz = d.mhz || 0;
         var mhzPart = win.cpuMhz > 0 ? (win.cpuMhz + " MHz") : (totalCores + "-Core");
-
-        if (d.hardware && d.hardware.soc_arch) {
-            var rawSoc = String(d.hardware.soc_arch);
-            var paren = rawSoc.match(/\(([^)]+)\)/);
-            if (paren && paren[1]) {
-                win.socName = paren[1].trim().toUpperCase().slice(0, 6);
-                var outerName = rawSoc.replace(/\s*\([^)]*\)/, "").trim();
-                win.socCaption = (outerName ? outerName : (totalCores + "-Core")) + (win.cpuMhz > 0 ? (" · " + win.cpuMhz + " MHz") : "");
-            } else if (rawSoc.length <= 6) {
-                win.socName = rawSoc.toUpperCase();
-                win.socCaption = totalCores + "-Core · " + mhzPart;
-            } else {
-                win.socName = rawSoc.split(/[\s-]/)[0].toUpperCase().slice(0, 6);
-                win.socCaption = rawSoc;
-            }
-        } else {
+        if (!d.hardware || !d.hardware.soc_arch) {
             win.socName = "ARM";
             win.socCaption = totalCores + "-Core · " + mhzPart;
+            return;
         }
+        var rawSoc = String(d.hardware.soc_arch);
+        var paren = rawSoc.match(/\(([^)]+)\)/);
+        if (paren && paren[1]) {
+            win.socName = paren[1].trim().toUpperCase().slice(0, 6);
+            var outerName = rawSoc.replace(/\s*\([^)]*\)/, "").trim();
+            win.socCaption = (outerName || (totalCores + "-Core")) + (win.cpuMhz > 0 ? (" · " + win.cpuMhz + " MHz") : "");
+        } else if (rawSoc.length <= 6) {
+            win.socName = rawSoc.toUpperCase();
+            win.socCaption = totalCores + "-Core · " + mhzPart;
+        } else {
+            win.socName = rawSoc.split(/[\s-]/)[0].toUpperCase().slice(0, 6);
+            win.socCaption = rawSoc;
+        }
+    }
 
-        win.cpuLoad = d.load !== undefined && d.load !== null ? Math.round(d.load) : 0;
-        win.cpuPeak = d.loadPeak !== undefined && d.loadPeak !== null ? Math.round(d.loadPeak) : win.cpuLoad;
-
+    function collectCpu(d, totalCores) {
+        win.cpuLoad = (d.load !== undefined && d.load !== null) ? Math.round(d.load) : 0;
+        win.cpuPeak = (d.loadPeak !== undefined && d.loadPeak !== null) ? Math.round(d.loadPeak) : win.cpuLoad;
+        var hasCoreArr = !!(d.cores && d.cores.length > 0);
         var cList = [];
         for (var ci = 0; ci < totalCores; ci++) {
-            if (d.cores && ci < d.cores.length && d.cores[ci] !== null && d.cores[ci] !== undefined) {
-                cList.push(Math.max(4, Math.min(100, Math.round(d.cores[ci]))));
-            } else if (!d.cores || d.cores.length === 0) {
+            if (!hasCoreArr) {
                 cList.push(Math.max(4, Math.min(100, win.cpuLoad)));
+            } else if (ci < d.cores.length && d.cores[ci] !== null && d.cores[ci] !== undefined) {
+                cList.push(Math.max(4, Math.min(100, Math.round(d.cores[ci]))));
             } else {
-                // Core is parked / offline by kernel hotplug
                 cList.push(0);
             }
         }
         win.cpuCores = cList;
+    }
 
-        if (d.temp !== undefined && d.temp !== null && Number(d.temp) > 0) {
-            win.hasThermal = true;
-            win.socTemp = Math.round(Number(d.temp));
-            var tOut = [];
-            var count = 20;
-            if (d.temps && d.temps.length > 0) {
-                var start = Math.max(0, d.temps.length - count);
-                for (var ti = start; ti < d.temps.length; ti++) {
-                    var tv = Number(d.temps[ti]);
-                    tOut.push(tv > 0 ? tv : win.socTemp);
-                }
-            }
-            while (tOut.length < count) tOut.unshift(tOut.length > 0 ? tOut[0] : win.socTemp);
-            var minT = tOut[0];
-            var maxT = tOut[0];
-            for (var tk = 1; tk < tOut.length; tk++) {
-                if (tOut[tk] < minT) minT = tOut[tk];
-                if (tOut[tk] > maxT) maxT = tOut[tk];
-            }
-            var midT = (minT + maxT) * 0.5;
-            var span = Math.max(10.0, (maxT - minT) * 1.6);
-            win.tempMin = midT - span * 0.5;
-            win.tempSpan = span;
-            win.tempHistory = tOut;
-        } else {
+    function updateThermalBounds(samples) {
+        var minT = samples[0];
+        var maxT = samples[0];
+        for (var i = 1; i < samples.length; i++) {
+            if (samples[i] < minT) minT = samples[i];
+            if (samples[i] > maxT) maxT = samples[i];
+        }
+        var midT = (minT + maxT) * 0.5;
+        var span = Math.max(10.0, (maxT - minT) * 1.6);
+        win.tempMin = midT - span * 0.5;
+        win.tempSpan = span;
+    }
+
+    function collectThermal(d) {
+        if (d.temp === undefined || d.temp === null || Number(d.temp) <= 0) {
             win.hasThermal = false;
             win.socTemp = 0;
+            return;
         }
+        win.hasThermal = true;
+        win.socTemp = Math.round(Number(d.temp));
+        var tOut = [];
+        var count = 20;
+        if (d.temps && d.temps.length > 0) {
+            var start = Math.max(0, d.temps.length - count);
+            for (var ti = start; ti < d.temps.length; ti++) {
+                var tv = Number(d.temps[ti]);
+                tOut.push(tv > 0 ? tv : win.socTemp);
+            }
+        }
+        while (tOut.length < count) tOut.unshift(tOut.length > 0 ? tOut[0] : win.socTemp);
+        updateThermalBounds(tOut);
+        win.tempHistory = tOut;
+    }
 
+    function collectUptime(d) {
         win.bootUptimeStr = fmtUptime(d.uptime);
-        if (d.powerState && d.powerState.onTime && d.powerState.onTime.ontime !== undefined) {
-            win.activeUptimeStr = fmtUptime(d.powerState.onTime.ontime);
-        } else {
-            win.activeUptimeStr = win.bootUptimeStr;
+        var onTime = d.powerState && d.powerState.onTime;
+        win.activeUptimeStr = (onTime && onTime.ontime !== undefined) ? fmtUptime(onTime.ontime) : win.bootUptimeStr;
+    }
+
+    function buildOledPills(oled, d) {
+        var pPills = [];
+        if (oled.comp_cycles !== undefined && oled.comp_cycles !== null && oled.comp_cycles > 0) {
+            pPills.push(grouped(oled.comp_cycles) + " Short Cleans");
+        } else if (oled.last_compensation_hours !== undefined && oled.last_compensation_hours !== null) {
+            pPills.push("Last Clean @ " + grouped(oled.last_compensation_hours) + " h");
         }
+        if (d.panel_silicon && d.panel_silicon.cell) pPills.push("Cell " + d.panel_silicon.cell);
+        if (oled.tpc_enabled && oled.gsr_enabled) pPills.push("TPC · GSR Active");
+        else if (oled.tpc_enabled) pPills.push("TPC Active");
+        if (pPills.length < 3 && oled.logo_dimming && oled.logo_dimming !== "off") {
+            pPills.push("Logo Dim: " + capFirst(oled.logo_dimming));
+        }
+        if (pPills.length === 0) pPills.push("OLED Care Active");
+        return pPills.slice(0, 3);
+    }
 
+    function collectOled(d) {
         var oled = d.oled;
-        if (oled && oled.panel_hours !== undefined && oled.panel_hours !== null) {
-            win.isOled = true;
-            win.panelHours = Math.round(oled.panel_hours);
-            win.hasOledCare = (oled.hours_until_comp !== undefined && oled.hours_until_comp !== null);
-            win.hoursUntilComp = win.hasOledCare ? Number(oled.hours_until_comp) : 4.0;
-            win.hoursSinceComp = oled.hours_since_comp !== undefined && oled.hours_since_comp !== null ? Number(oled.hours_since_comp) : 0.0;
-            win.compInterval = oled.comp_interval_hours ? Number(oled.comp_interval_hours) : 4.0;
-            win.refresherRemaining = oled.hours_until_refresher !== undefined && oled.hours_until_refresher !== null ? Math.round(oled.hours_until_refresher) : 2000;
-            win.screenShiftState = oled.screen_shift === "on" ? "On" : "Off";
-
-            var pPills = [];
-            if (oled.comp_cycles !== undefined && oled.comp_cycles !== null && oled.comp_cycles > 0) {
-                pPills.push(grouped(oled.comp_cycles) + " Short Cleans");
-            } else if (oled.last_compensation_hours !== undefined && oled.last_compensation_hours !== null) {
-                pPills.push("Last Clean @ " + grouped(oled.last_compensation_hours) + " h");
-            }
-            if (d.panel_silicon && d.panel_silicon.cell) {
-                pPills.push("Cell " + d.panel_silicon.cell);
-            }
-            if (oled.tpc_enabled && oled.gsr_enabled) {
-                pPills.push("TPC · GSR Active");
-            } else if (oled.tpc_enabled) {
-                pPills.push("TPC Active");
-            }
-            if (pPills.length < 3 && oled.logo_dimming && oled.logo_dimming !== "off") {
-                pPills.push("Logo Dim: " + capFirst(oled.logo_dimming));
-            }
-            if (pPills.length === 0) pPills.push("OLED Care Active");
-            win.panelPills = pPills.slice(0, 3);
-        } else {
+        if (!oled || oled.panel_hours === undefined || oled.panel_hours === null) {
             win.isOled = false;
             win.hasOledCare = false;
             var sysPills = [win.webosVer];
             if (win.fwVer) sysPills.push(win.fwVer);
             if (win.socName) sysPills.push(win.socName + " Silicon");
             win.panelPills = sysPills.slice(0, 3);
+            return;
         }
+        win.isOled = true;
+        win.panelHours = Math.round(oled.panel_hours);
+        win.hasOledCare = (oled.hours_until_comp !== undefined && oled.hours_until_comp !== null);
+        win.hoursUntilComp = win.hasOledCare ? Number(oled.hours_until_comp) : 4.0;
+        win.hoursSinceComp = (oled.hours_since_comp !== undefined && oled.hours_since_comp !== null) ? Number(oled.hours_since_comp) : 0.0;
+        win.compInterval = oled.comp_interval_hours ? Number(oled.comp_interval_hours) : 4.0;
+        win.refresherRemaining = (oled.hours_until_refresher !== undefined && oled.hours_until_refresher !== null) ? Math.round(oled.hours_until_refresher) : 2000;
+        win.screenShiftState = oled.screen_shift === "on" ? "On" : "Off";
+        win.panelPills = buildOledPills(oled, d);
+    }
 
+    function collectMemory(d) {
         if (d.mem && d.mem.total) {
             var usedKb = Math.max(0, d.mem.total - (d.mem.avail || 0));
             win.ramPct = Math.round((usedKb / d.mem.total) * 100);
@@ -442,7 +483,9 @@ WebOSWindow {
             win.swapPct = 0;
             win.swapStr = win.ramAvailStr;
         }
+    }
 
+    function collectRemoteAndAudio(d) {
         if (d.remote && d.remote.battery !== undefined && d.remote.battery !== null) {
             win.hasRemote = true;
             win.remoteBatt = Math.max(0, Math.min(100, Math.round(d.remote.battery)));
@@ -451,18 +494,15 @@ WebOSWindow {
         } else {
             win.hasRemote = false;
         }
-
-        win.soundVol = d.volume !== undefined && d.volume !== null ? Math.round(d.volume) : 0;
+        win.soundVol = (d.volume !== undefined && d.volume !== null) ? Math.round(d.volume) : 0;
         win.soundMuted = !!d.muted;
         win.soundOutLabel = (d.sound && d.sound.output) ? String(d.sound.output) : String(d.audio_output || "TV Speaker");
+    }
 
+    function collectSignal(d) {
         win.inputLabel = String(d.display_title || d.app_name || d.app || "webOS").toUpperCase();
         win.picModeLabel = (d.picture && d.picture.mode) ? String(d.picture.mode) : "Standard";
-        if (d.signal && String(d.signal).length > 0) {
-            win.signalHero = String(d.signal).replace("x", "×");
-        } else {
-            win.signalHero = win.picModeLabel;
-        }
+        win.signalHero = (d.signal && String(d.signal).length > 0) ? String(d.signal).replace("x", "×") : win.picModeLabel;
 
         var pills = [];
         if (d.picture && d.picture.dynamicRange) pills.push(String(d.picture.dynamicRange).split("·")[0].trim());
@@ -478,7 +518,9 @@ WebOSWindow {
             pills.push(win.soundOutLabel);
         }
         win.signalPills = pills.slice(0, 4);
+    }
 
+    function collectStorage(d) {
         if (d.emmc && (d.emmc.wear || d.emmc.life)) {
             win.hasEmmc = true;
             win.emmcWearStr = String(d.emmc.wear || d.emmc.life);
@@ -489,50 +531,50 @@ WebOSWindow {
         } else {
             win.hasEmmc = false;
         }
-
         if (d.appStorage && d.appStorage.freeMb !== undefined && d.appStorage.freeMb !== null) {
             win.hasAppStorage = true;
             var freeMb = Number(d.appStorage.freeMb);
             win.storageFreeStr = freeMb >= 1024 ? (freeMb / 1024).toFixed(1) + " GB free" : Math.round(freeMb) + " MB free";
-            win.storageUsedPct = d.appStorage.pct !== undefined && d.appStorage.pct !== null ? Math.round(d.appStorage.pct) : 30;
+            win.storageUsedPct = (d.appStorage.pct !== undefined && d.appStorage.pct !== null) ? Math.round(d.appStorage.pct) : 30;
         } else {
             win.hasAppStorage = false;
             win.storageFreeStr = "System Partition";
         }
+    }
 
+    function wifiDbmToBars(dbm) {
+        if (dbm >= -55) return 5;
+        if (dbm >= -65) return 4;
+        if (dbm >= -75) return 3;
+        return dbm >= -82 ? 2 : 1;
+    }
+
+    function collectNetwork(d) {
         if (d.wifi && d.wifi.level !== undefined && d.wifi.level !== null) {
-            win.isWifi = true;
             var dbm = Number(d.wifi.level);
-            win.wifiBars = dbm >= -55 ? 5 : dbm >= -65 ? 4 : dbm >= -75 ? 3 : dbm >= -82 ? 2 : 1;
+            win.isWifi = true;
+            win.wifiBars = wifiDbmToBars(dbm);
             win.wifiLabel = "Wi-Fi Link · " + dbm + " dBm";
             win.netIfaceLabel = "WLAN0";
         } else {
+            var iface = (d.netTotal && d.netTotal.iface) ? String(d.netTotal.iface).toUpperCase() : "";
             win.isWifi = false;
             win.wifiBars = 0;
-            var iface = (d.netTotal && d.netTotal.iface) ? String(d.netTotal.iface).toUpperCase() : "";
             win.netIfaceLabel = iface || "LAN";
             win.wifiLabel = iface === "ETH0" ? "Wired Ethernet · Connected" : (iface ? ("Interface · " + iface) : "Local Network");
         }
+        if (d.net) win.netRateStr = "↓ " + fmtRate(d.net.rx) + "  ↑ " + fmtRate(d.net.tx);
+        win.netTotalStr = (d.netTotal && (d.netTotal.rx || d.netTotal.tx))
+            ? ("↓ " + fmtBytes(d.netTotal.rx) + " · ↑ " + fmtBytes(d.netTotal.tx))
+            : "Session active";
 
-        if (d.net) {
-            win.netRateStr = "↓ " + fmtRate(d.net.rx) + "  ↑ " + fmtRate(d.net.tx);
-        }
-        if (d.netTotal && (d.netTotal.rx || d.netTotal.tx)) {
-            win.netTotalStr = "↓ " + fmtBytes(d.netTotal.rx) + " · ↑ " + fmtBytes(d.netTotal.tx);
-        } else {
-            win.netTotalStr = "Session active";
-        }
+        var adb = d.privacy && d.privacy.adblock;
+        win.hasAdblock = !!adb;
+        win.adblockOn = !!(adb && adb.enabled);
+        win.adblockCount = (adb && adb.count) || 0;
+    }
 
-        if (d.privacy && d.privacy.adblock) {
-            win.hasAdblock = true;
-            win.adblockOn = !!d.privacy.adblock.enabled;
-            win.adblockCount = d.privacy.adblock.count || 0;
-        } else {
-            win.hasAdblock = false;
-            win.adblockOn = false;
-        }
-
-        // Build filtered Wide and Standard decks so unsupported cards never appear
+    function rebuildDecks() {
         var wDeck = ["panel", "signal"];
         if (win.hasThermal) wDeck.push("thermal");
         if (win.hasOledCare) wDeck.push("oledcare");
@@ -543,7 +585,23 @@ WebOSWindow {
         var sDeck = ["silicon", "remote", "cpu", "memory", "network", "uptime"];
         if (win.hasEmmc || win.hasAppStorage) sDeck.push("storage");
         win.stdDeck = sDeck;
+    }
 
+    function collect(d) {
+        if (!d) return;
+        var totalCores = resolveCoreCount(d);
+        collectDeviceAndSystem(d);
+        collectSilicon(d, totalCores);
+        collectCpu(d, totalCores);
+        collectThermal(d);
+        collectUptime(d);
+        collectOled(d);
+        collectMemory(d);
+        collectRemoteAndAudio(d);
+        collectSignal(d);
+        collectStorage(d);
+        collectNetwork(d);
+        rebuildDecks();
         sanitizeVisibleSlots();
         win.statsRev = win.statsRev + 1;
     }
@@ -565,7 +623,6 @@ WebOSWindow {
         win.clockM = win.two(now.getMinutes());
     }
 
-    // Relocate the entire 6-tile Bento stage to a new screen region and permute its layout
     function pickNewStagePosition() {
         var marginX = Math.round(72 * win.unit);
         var marginY = Math.round(64 * win.unit);
@@ -585,32 +642,18 @@ WebOSWindow {
         bentoStage.y = ny;
     }
 
-    // Flip a single tile on screen to the next metric card in its deck
     function flipOneSlot() {
         if (stageRebuildAnim.running) return;
         var s = win.flipCursor % 6;
         win.flipCursor = (win.flipCursor + 1) % 6;
 
-        // Pick a card not currently displayed in another slot of the same width class
         var wide = isSlotWide(s);
-        var deck = wide ? win.wideDeck : win.stdDeck;
-        var candidate = deck[0];
-        for (var k = 0; k < deck.length; k++) {
-            var idx = wide ? ((win.nextWideIdx + k) % deck.length) : ((win.nextStdIdx + k) % deck.length);
-            var c = deck[idx];
-            var used = false;
-            for (var j = 0; j < 6; j++) {
-                if (getSlotCard(j) === c) { used = true; break; }
-            }
-            if (!used) {
-                candidate = c;
-                if (wide) win.nextWideIdx = (idx + 1) % deck.length;
-                else win.nextStdIdx = (idx + 1) % deck.length;
-                break;
-            }
-        }
+        var pick = pickUnusedCard(wide ? win.wideDeck : win.stdDeck, wide ? win.nextWideIdx : win.nextStdIdx, -1);
+        if (wide) win.nextWideIdx = pick.nextIdx;
+        else win.nextStdIdx = pick.nextIdx;
+
         var item = tileRepeater.itemAt(s);
-        if (item) item.flipTo(candidate);
+        if (item) item.flipTo(pick.card);
     }
 
     // -------------------------------------------------------------------------
@@ -1026,30 +1069,9 @@ WebOSWindow {
                                 id: compRingCanvas
                                 anchors.fill: parent
                                 onPaint: {
-                                    var ctx = getContext("2d");
-                                    ctx.clearRect(0, 0, width, height);
-                                    var cx = width * 0.5;
-                                    var cy = height * 0.5;
-                                    var r = width * 0.41;
-                                    var lw = Math.max(6, Math.round(10 * win.unit));
-
-                                    ctx.beginPath();
-                                    ctx.arc(cx, cy, r, 0, Math.PI * 2, false);
-                                    ctx.lineWidth = lw;
-                                    ctx.strokeStyle = win.trackBg;
-                                    ctx.stroke();
-
-                                    var frac = win.compInterval > 0
-                                        ? Math.max(0.08, Math.min(1.0, win.hoursSinceComp / win.compInterval))
-                                        : 0.75;
-                                    var startA = -Math.PI * 0.5;
-                                    var endA = startA + frac * Math.PI * 2;
-                                    ctx.beginPath();
-                                    ctx.arc(cx, cy, r, startA, endA, false);
-                                    ctx.lineCap = "round";
-                                    ctx.lineWidth = lw;
-                                    ctx.strokeStyle = win.hoursUntilComp <= 0.2 ? win.accAmber : win.accGreen;
-                                    ctx.stroke();
+                                    var frac = win.compInterval > 0 ? (win.hoursSinceComp / win.compInterval) : 0.75;
+                                    var col = win.hoursUntilComp <= 0.2 ? win.accAmber : win.accGreen;
+                                    win.paintProgressRing(compRingCanvas, frac, col);
                                 }
                             }
 
@@ -1225,29 +1247,9 @@ WebOSWindow {
                                 id: remoteRingCanvas
                                 anchors.fill: parent
                                 onPaint: {
-                                    var ctx = getContext("2d");
-                                    ctx.clearRect(0, 0, width, height);
-                                    var cx = width * 0.5;
-                                    var cy = height * 0.5;
-                                    var r = width * 0.41;
-                                    var lw = Math.max(6, Math.round(10 * win.unit));
-
-                                    ctx.beginPath();
-                                    ctx.arc(cx, cy, r, 0, Math.PI * 2, false);
-                                    ctx.lineWidth = lw;
-                                    ctx.strokeStyle = win.trackBg;
-                                    ctx.stroke();
-
                                     var pct = win.hasRemote ? win.remoteBatt : win.soundVol;
-                                    var frac = Math.max(0.06, Math.min(1.0, pct / 100.0));
-                                    var startA = -Math.PI * 0.5;
-                                    var endA = startA + frac * Math.PI * 2;
-                                    ctx.beginPath();
-                                    ctx.arc(cx, cy, r, startA, endA, false);
-                                    ctx.lineCap = "round";
-                                    ctx.lineWidth = lw;
-                                    ctx.strokeStyle = (win.hasRemote && win.remoteBatt <= 20) ? win.accAmber : win.accGreen;
-                                    ctx.stroke();
+                                    var col = (win.hasRemote && win.remoteBatt <= 20) ? win.accAmber : win.accGreen;
+                                    win.paintProgressRing(remoteRingCanvas, pct / 100.0, col);
                                 }
                             }
 
