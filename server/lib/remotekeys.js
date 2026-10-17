@@ -74,6 +74,12 @@ var KEYS = [
   { key: 'iplayer', symbol: 'WebOS.Key_webOS_IPlayer', title: 'BBC iPlayer', regions: ['gb'] },
   { key: 'freeviewplay', symbol: 'WebOS.Key_webOS_FreeviewPlay', title: 'Freeview Play', regions: ['gb'] },
   { key: 'slingtv', symbol: 'WebOS.Key_webOS_SlingTV', title: 'Sling TV', regions: ['us'] },
+  // The voice assistants' own buttons on recent Magic Remotes: LG's filters
+  // launch Alexa or the Google Assistant on a press, as for a streaming
+  // button. The microphone button (Key_webOS_Voice) is not offered: it
+  // drives voice control itself.
+  { key: 'alexa', symbol: 'WebOS.Key_webOS_ALEXA', title: 'Alexa' },
+  { key: 'googleassistant', symbol: 'WebOS.Key_webOS_GoogleVoice', title: 'Google Assistant' },
   { key: 'apps', symbol: 'WebOS.Key_webOS_Apps', title: 'Apps' },
   { key: 'guide', symbol: 'WebOS.Key_webOS_TVGuide', title: 'Guide' },
   { key: 'input', symbol: 'WebOS.Key_webOS_InputSource', title: 'Input' },

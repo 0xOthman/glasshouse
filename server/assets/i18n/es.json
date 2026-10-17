@@ -7019,6 +7019,10 @@
   "text": "Visible",
   "from": "Shown"
  },
+ "apps.remoteKeys.assistant": {
+  "text": "Botones de asistentes de voz",
+  "from": "Voice assistant buttons"
+ },
  "srv.saver.lost": {
   "text": "La TV ha perdido la pista de su app de salvapantallas y no la ha vuelto a encontrar. Reiniciar la TV la recupera.",
   "from": "The TV has lost track of its screen saver app and did not find it again. Restarting the TV brings it back."
