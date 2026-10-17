@@ -387,7 +387,6 @@ function loadConfig() {
   }
 }
 loadConfig();
-
 // Old config keys folded or preserved on upgrade.
 (function migrateConfigFile() {
   var raw = readJson(CONFIG_FILE, null);
@@ -440,6 +439,9 @@ loadConfig();
     }
   }
 })();
+// At the debug level each luna call is logged as it starts and ends, flushed
+// to disk, for a TV that restarts itself (#746).
+lunaTransport.setDebug(getActiveLogLevel() === 'debug');
 
 /*
  * One-shot modes, behind `tvwebctl update` and `tvwebctl rollback`. They run

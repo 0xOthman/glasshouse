@@ -3,6 +3,7 @@
  * Strict ES5 for Node 0.12.2 on webOS 4.
  */
 
+var fs = require('fs');
 var childProcess = require('child_process');
 var execFile = childProcess.execFile;
 var spawn = childProcess.spawn;
@@ -64,6 +65,24 @@ function isServiceNotFound(uri, parsed) {
  * open, so they are not counted.
  */
 var PARALLEL = 2;
+
+/*
+ * At the debug log level each call is logged as it starts and ends, and each
+ * subscription as it starts, for a TV that restarts itself (#746): the last
+ * lines before the cut name what was running. Each line is flushed to disk at
+ * once, since a watchdog reset loses what the page cache still holds.
+ */
+var debugCalls = false;
+
+function setDebug(on) {
+  debugCalls = !!on;
+}
+
+function noteCall(text) {
+  if (!debugCalls) return;
+  console.debug('luna: ' + text);
+  try { fs.fsyncSync(1); } catch (e) {}
+}
 var running = 0;
 var waiting = [];
 
@@ -127,8 +146,12 @@ function run(job) {
 
 function runNow(job) {
   var startedAt = monotonicMs();
+  var callUri = job.args[job.args.length - 2].replace('luna://', '');
+  noteCall('call ' + callUri);
   execFile(LUNA_SEND, job.args, { timeout: 3500, maxBuffer: MAX_REPLY }, function (err, stdout) {
     var endedAt = monotonicMs();
+    noteCall('done ' + callUri + ' in ' + Math.round(endedAt - startedAt) + 'ms' +
+             (err ? ' (' + (err.killed ? 'timed out' : err.signal || err.code) + ')' : ''));
     running--;
     if (job.urgent) urgentRunning--;
     if (diedEarly(err)) {
@@ -235,6 +258,7 @@ Subscription.prototype._spawn = function () {
   // Prefer compact output; some services still send formatted JSON.
   args = args.concat(['-i', 'luna://' + resolveUri(self.uri), JSON.stringify(self.payload)]);
   self.buffer = '';
+  noteCall('subscribe ' + resolveUri(self.uri));
   self.child = spawn(LUNA_SEND, args);
 
   self.child.stdout.on('data', function (chunk) {
@@ -340,6 +364,7 @@ function createCache(callFn) {
 }
 
 module.exports = {
+  setDebug: setDebug,
   call: call,
   callUrgent: callUrgent,
   Subscription: Subscription,
