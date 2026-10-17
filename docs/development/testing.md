@@ -122,3 +122,5 @@ The Home Assistant check needs Python 3.13 and the `homeassistant` package:
 pip install homeassistant
 ./scripts/check-ha-discovery.py
 ```
+
+Home recovery checks cover failed restoration with a durable retry state, definite absent-app replies, HBC cleanup on a TV that never used Home, and backup partial failures. Browser checks cover pending/failed layout edits, first-catalogue failure, and delayed readiness. Wallpaper validation covers corrupt downloads and staging cleanup; a real pinned download and Office G3 deployment are recorded in the PR testing evidence.

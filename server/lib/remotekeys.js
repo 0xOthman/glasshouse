@@ -467,8 +467,10 @@ function ensure(cb) {
 // Everything as LG has it: the map deleted, the keys emptied in configd (it
 // cannot delete the value), and the filter out of the chain and deleted.
 function restore(cb) {
+  // A TV that never used the filter has nothing to restore, even without configd.
+  if (!fs.existsSync(mapFile()) && !fs.existsSync(filterFile())) return cb(true);
   if (!lunaFn) return cb(false);
-  try { fs.unlinkSync(mapFile()); } catch (e) {}
+  try { fs.unlinkSync(mapFile()); } catch (e) { if (e.code !== 'ENOENT') return cb(false); }
   writeKeys({}, function (okKeys) {
     readChain(function (list) {
       if (!list) return cb(false);

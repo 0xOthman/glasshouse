@@ -1070,6 +1070,7 @@ function handleHomeRoute(req, res, u, pathname) {
           c.ok = true;
           c.layout = st.layout;
           c.enabled = st.enabled;
+          c.wallpapers = st.wallpapers;
           reply(c);
         });
       });
@@ -1079,6 +1080,13 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     if (pathname === '/api/home/guide') return homeModule.guide(function (g) { reply({ ok: true, guide: g }); });
     if (pathname === '/api/home/now') return homeModule.now(reply);
+    if (pathname === '/api/home/wallpaper') {
+      var wallpaper = homeModule.wallpaperPath(String(u.query && u.query.slot || ''));
+      if (!wallpaper) return send(res, 404, JSON.stringify({ ok: false, error: 'wallpaper not downloaded' }));
+      return sendIconFile(req, res, wallpaper, function (status, error) {
+        send(res, status, JSON.stringify({ ok: false, error: error }));
+      });
+    }
     if (pathname === '/api/home/icon') {
       return homeModule.iconPath(u.query && u.query.id, function (iconPath) {
         if (!iconPath) return send(res, 404, JSON.stringify({ ok: false, error: 'icon not found' }));
@@ -1099,6 +1107,7 @@ function handleHomeRoute(req, res, u, pathname) {
     }
     return readJsonBody(req, res, function (body) {
       if (pathname === '/api/home/layout') return homeModule.setLayout(body, reply);
+      if (pathname === '/api/home/wallpapers') return homeModule.setWallpapers(body, reply);
       if (pathname === '/api/home/install') return homeModule.install(reply);
       if (pathname === '/api/home/remove') return homeModule.remove(reply);
       if (pathname === '/api/home/enable') return homeModule.enable(reply);

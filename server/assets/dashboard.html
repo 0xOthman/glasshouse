@@ -679,6 +679,7 @@ function saverRows(d) {
  */
 var HOME_DIM = [60, 120, 300, 0], HOME_OFF = [600, 900, 1800, 0];
 var homeData = null;
+var homeWallPoll = null;
 
 function homeDuration(sec) {
   if (!sec) return t('home.idle.never', 'Never');
@@ -706,22 +707,23 @@ function homeRows(d) {
   homeData = d;
   var r = [head(t('home.title', 'Glasshouse Home'))];
   if (!d || d.ok === false || !d.supported) return r;
-  if (!d.supported.ok) {
+  if (!d.supported.ok && !d.enabled && !d.restorePending) {
     r.push({ label: t('home.unavailable', 'Not available on this TV'), value: '',
              hint: d.supported.reason || '' });
     return r;
   }
   var can = d.writable !== false;
-  if (!d.installed) {
+  if (!d.installed && !d.restorePending) {
     r.push({ label: t('home.install', 'Install Glasshouse Home'), value: t('home.notInstalled', 'Not installed'), cls: 'off',
              act: can ? 'homeInstall' : null, press: t('tv.home.install.press', 'Press OK to install it'),
              hint: t('home.installDesc', 'Adds the Glasshouse Home app to the TV. Nothing changes until it is switched on: LG\u2019s Home stays the TV\u2019s Home.') });
     return r;
   }
-  r.push({ label: t('home.title', 'Glasshouse Home'), value: d.enabled ? t('common.on', 'On') : t('common.off', 'Off'), cls: d.enabled ? 'on' : 'off',
-           act: can ? 'homeSwitch' : null, on: d.enabled,
+  r.push({ label: d.restorePending ? t('home.retryRestore', 'Retry restoring LG Home') : t('home.title', 'Glasshouse Home'),
+           value: d.restorePending ? t('home.restorePending', 'LG Home restoration is incomplete') : d.enabled ? t('common.on', 'On') : t('common.off', 'Off'), cls: d.enabled ? 'on' : 'off',
+           act: can ? 'homeSwitch' : null, on: d.enabled || d.restorePending,
            press: d.enabled ? t('tv.home.switch.off', 'Press OK to use LG Home again') : t('tv.home.switch.on', 'Press OK to use Glasshouse Home'),
-           hint: d.enabled ? t('home.isOnDesc', 'The Home and Back buttons open it, and the TV starts on it unless it was switched off on an input.')
+           hint: d.restorePending ? t('home.restoreRetry', 'Retry restoring LG Home before changing or removing Glasshouse Home.') : d.enabled ? t('home.isOnDesc', 'The Home and Back buttons open it, and the TV starts on it unless it was switched off on an input.')
                            : t('home.isOffDesc', 'Switching on keeps a copy of the TV\u2019s Home settings first, and switching off puts them back exactly.') });
   r.push({ label: t('tv.home.open', 'Open Glasshouse Home'), value: '\u2192', cls: 'act', act: 'homeOpen',
            press: t('tv.home.open.press', 'Press OK to open it'),
@@ -779,12 +781,20 @@ function homeRows(d) {
              act: can ? 'homeIdle' : null, key: 'panelOffAfter', next: homeNextOf(HOME_OFF, lay.idle.panelOffAfter),
              press: t('tv.home.idle.press', 'Press OK to change'),
              hint: t('home.idle.desc', 'Only while Glasshouse Home is in front. LG\'s screen saver works as before everywhere else.') });
+    var walls = d.wallpapers || {};
+    r.push(head(t('home.wall.title', 'Wallpaper')));
+    r.push({ label: walls.downloading ? t('home.wall.downloading', 'Downloading wallpapers…')
+               : walls.available ? t('home.wall.remove', 'Remove wallpapers') : t('home.wall.download', 'Download wallpapers'),
+             value: '', act: can && !walls.downloading ? 'homeWallpapers' : null, on: !!walls.available,
+             hint: walls.error || t('home.wall.optional', 'Optional: download four wallpapers from GitHub (19 MB). Until then, Home has a black background.') });
+    clearTimeout(homeWallPoll);
+    if (walls.downloading) homeWallPoll = setTimeout(function () { if (T().key === 'home') fetchTab(true); }, 2000);
     r.push(head(t('tv.home.head.more', 'More')));
     r.push({ label: t('home.reset', 'Reset the layout'), value: '', act: can ? 'homeReset' : null,
              press: t('tv.home.reset.press', 'Press OK, then again, to reset'),
              hint: t('home.resetDesc', 'The rows, apps and inputs go back to their first order, with LG\u2019s promotions hidden again. Channels stay as they are.') });
   }
-  if (!d.enabled) {
+  if (!d.enabled && !d.restorePending) {
     r.push({ label: t('home.remove', 'Remove the Glasshouse Home app'), value: '', act: can ? 'homeRemove' : null,
              press: t('tv.home.remove.press', 'Press OK, then again, to remove it'),
              hint: t('home.removeDesc', 'Takes the app off the TV. It can be installed again here.') });
@@ -2289,6 +2299,8 @@ function activate() {
       var idleNow = { dimAfter: homeData.layout.idle.dimAfter, panelOffAfter: homeData.layout.idle.panelOffAfter };
       idleNow[r.key] = r.next;
       return homeLayout({ idle: idleNow });
+    case 'homeWallpapers':
+      return sendPost('/api/home/wallpapers', { remove: r.on });
     case 'homeReset':
       if (confirmFirst(r, t('tv.home.reset.again', 'Press OK again to reset'))) return;
       return homeLayout({ reset: true }, t('home.arrange.resetDone', 'Layout reset'));

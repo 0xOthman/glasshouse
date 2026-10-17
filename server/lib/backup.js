@@ -210,7 +210,12 @@ function restore(backup, cb) {
           restoreHome(backup.home, function (homeRestored) {
             restoreGlasshouse(backup.glasshouse, result, function (r) {
               r.apps = apps;
-              r.home = homeRestored;
+              r.home = !!(homeRestored && homeRestored.ok);
+              if (homeRestored && !homeRestored.ok) {
+                r.ok = false;
+                r.error = msg('srv.home.backupFailed', 'Other settings may have been restored, but the Home layout could not be restored: {error}',
+                  { error: homeRestored.error || 'unknown error' });
+              }
               cb(r);
             });
           });
@@ -272,8 +277,8 @@ function planApps(list, cb) {
 
 // The layout is checked and trimmed by Glasshouse Home as the dashboard's is.
 function restoreHome(layout, cb) {
-  if (!home || !layout || typeof layout !== 'object') return cb(false);
-  home.setLayout(layout, function (r) { cb(!!(r && r.ok)); });
+  if (!home || !layout || typeof layout !== 'object') return cb(null);
+  home.setLayout(layout, cb);
 }
 
 function restoreGlasshouse(src, lgResult, cb) {

@@ -730,21 +730,28 @@ function checkHomebrewChannelApp() {
   luna('com.webos.applicationManager/getAppInfo', { id: path.basename(dir) }, function (res, raw) {
     try { res = res || JSON.parse(raw); } catch (e) { res = null; }
     if (!res || res.returnValue !== false || !/Invalid appId/i.test(String(res.errorText))) return;
-    console.log('uninstall: the Homebrew Channel app is gone, removing the server');
+    console.log('uninstall: the Homebrew Channel app is gone, restoring Home before removing the server');
     // Inline rather than a script, since the files it deletes include every
     // script there is. 20-services.sh holds down the services switched off in
-    // the dashboard, and they come back once it goes. restore-keys runs first:
-    // the compositor's key filter chain is kept by configd, and would go on
+    // the dashboard, and they come back once it goes. Home and remote keys are
+    // restored before deletion: the compositor's key filter chain is kept by configd, and would go on
     // naming a filter file deleted here.
     var rule = devtools.RULE.join(' ');
-    forgetHomeAssistant(function () {
-      child_process.spawn('/bin/sh', ['-c',
-        '/var/lib/tvweb/tvwebctl stop >/dev/null 2>&1; /var/lib/tvweb/tvwebctl restore-keys >/dev/null 2>&1; ' +
-        'rm -rf /var/lib/tvweb /media/developer/temp/glasshouse-install; ' +
-        'PATH=/usr/sbin:/sbin:$PATH; iptables -D ' + rule + ' 2>/dev/null; ip6tables -D ' + rule + ' 2>/dev/null; ' +
-        'cd /var/lib/webosbrew/init.d && rm -f 50-tvweb 20-services.sh 20-tvweb-services; ' +
-        'rm -f /var/lib/webosbrew/tvweb-boot.log /var/lib/webosbrew/tvweb-boot.log.old'
-      ], { detached: true, stdio: 'ignore' }).unref();
+    glasshouseHome.uninstall(function (restored) {
+      if (!restored.ok) return console.error('uninstall: Home restore failed: ' + restored.error);
+      // The live owner stops the guard and verifies recovery before any file disappears.
+      remoteKeys.restore(function (keys) {
+        if (!keys) return console.error('uninstall: remote key restore failed; server kept for retry');
+        forgetHomeAssistant(function () {
+          child_process.spawn('/bin/sh', ['-c',
+            '/var/lib/tvweb/tvwebctl stop >/dev/null 2>&1; ' +
+            'rm -rf /var/lib/tvweb /media/developer/temp/glasshouse-install; ' +
+            'PATH=/usr/sbin:/sbin:$PATH; iptables -D ' + rule + ' 2>/dev/null; ip6tables -D ' + rule + ' 2>/dev/null; ' +
+            'cd /var/lib/webosbrew/init.d && rm -f 50-tvweb 20-services.sh 20-tvweb-services; ' +
+            'rm -f /var/lib/webosbrew/tvweb-boot.log /var/lib/webosbrew/tvweb-boot.log.old'
+          ], { detached: true, stdio: 'ignore' }).unref();
+        });
+      });
     });
   });
 }
@@ -1719,6 +1726,7 @@ if (!CLI_MODE) {
     history: history,
     stateDir: __dirname,
     webosVersion: telemetry.detectWebosVersion(),
+    port: CONFIG.port,
     installApp: function (action, cb) { tvApp(action, cb, 'home-app'); },
     setHomeKey: remoteKeys.setHome,
     build: TVWEB_DISPLAY_VERSION + '@' + Date.now(),

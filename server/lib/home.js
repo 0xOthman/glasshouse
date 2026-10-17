@@ -37,6 +37,7 @@ var path = require('path');
 var msg = require('./say').msg;
 var names = require('./names');
 var writeJsonAtomic = require('./util').writeJsonAtomic;
+var wallpapers = require('./home-wallpapers');
 
 var HOME_APP = 'com.tvweb.home';
 var LG_HOME = 'com.webos.app.home';
@@ -85,6 +86,7 @@ var liveState = null;
 var historyModule = null;
 var stateDir = '/var/lib/tvweb';
 var webosVersion = null;
+var serverPort = 8080;
 var installFn = null;
 // Starts and stops reading the remote's Home button (lib/remotebuttons).
 /** @type {function(boolean): void} */
@@ -115,7 +117,6 @@ var homeDownAt = 0;
 var saverWant = null;
 var saverBusy = false;
 var pinnedAt = 0;
-var homeInstalled = null;
 var powerActive = true;
 var guideCache = { at: 0, data: {} };
 var listCache = {};
@@ -131,7 +132,7 @@ function configFile() { return path.join(stateDir, 'home.json'); }
 
 function luna(uri, payload, cb) {
   if (!lunaFn) return cb(null);
-  lunaFn(uri, payload, function (r) { cb(r || null); });
+  lunaFn(uri, payload, function (r, raw) { cb(r || null, raw); });
 }
 
 // ---------------------------------------------------------------- config
@@ -156,6 +157,7 @@ function seconds(v, dflt) {
 function defaults() {
   return {
     enabled: false,
+    restorePending: false,
     rows: ROWS.slice(),
     order: { app: [], dev: [], ch: [] },
     hidden: { app: PROMO_APPS.slice(), dev: [], ch: [] },
@@ -197,6 +199,7 @@ function normalise(raw) {
   d.idle.dimAfter = seconds(idle.dimAfter, IDLE_DEFAULT.dimAfter);
   d.idle.panelOffAfter = seconds(idle.panelOffAfter, IDLE_DEFAULT.panelOffAfter);
   d.enabled = raw.enabled === true;
+  d.restorePending = raw.restorePending === true;
   d.hintSeen = raw.hintSeen === true;
   d.snapshot = validSnapshot(raw.snapshot) ? raw.snapshot : null;
   return d;
@@ -262,6 +265,7 @@ function setLayout(body, cb) {
   if (!body || typeof body !== 'object') return cb({ ok: false, error: 'layout expected' });
   var next = normalise({
     enabled: c.enabled,
+    restorePending: c.restorePending,
     snapshot: c.snapshot,
     rows: body.rows !== undefined ? body.rows : c.rows,
     order: perRow(body.order, c.order),
@@ -554,7 +558,10 @@ function open(body, cb) {
   var kind = body && body.kind;
   var id = body && typeof body.id === 'string' ? body.id : '';
   console.log('home: open ' + kind + ' ' + id);
-  if (kind === 'lg' || (kind === 'app' && id === LG_HOME_TILE)) return toLgHome('tile', cb);
+  if (kind === 'lg' || (kind === 'app' && id === LG_HOME_TILE)) {
+    if (body.recovery && foreground !== HOME_APP) return cb({ ok: true, done: false });
+    return toLgHome('tile', cb);
+  }
   if (kind === 'app') {
     return launchPoints(function (apps) {
       var known = (apps || []).some(function (a) { return a.id === id; });
@@ -636,6 +643,8 @@ function copy(o) { return JSON.parse(JSON.stringify(o)); }
 
 function supported() {
   var v = String(webosVersion || '');
+  if (serverPort !== 8080) return { ok: false, webos: v,
+    reason: msg('srv.home.port', 'Glasshouse Home requires the dashboard to use port 8080.') };
   if (/^9\./.test(v)) return { ok: true, webos: v };
   return {
     ok: false, webos: v || null,
@@ -644,9 +653,27 @@ function supported() {
 }
 
 function appInstalled(cb) {
-  luna('com.webos.applicationManager/getAppInfo', { id: HOME_APP }, function (r) {
-    if (r && typeof r.returnValue === 'boolean') homeInstalled = r.returnValue;
-    cb(homeInstalled);
+  luna('com.webos.applicationManager/getAppInfo', { id: HOME_APP }, function (r, raw) {
+    // A definite absent-app reply can accompany a non-zero luna-send exit.
+    try { r = r || JSON.parse(raw); } catch (e) {}
+    var installed = null;
+    if (r && r.returnValue === true) installed = true;
+    else if (r && r.returnValue === false && /Invalid appId/i.test(String(r.errorText))) installed = false;
+    cb(installed);
+  });
+}
+
+// HBC cleanup also runs on older TVs which have never used this feature.
+function uninstall(cb) {
+  var c = readConfig();
+  appInstalled(function (installed) {
+    if (installed === null) return cb({ ok: false, error: msg('srv.home.cannotRemove', 'the app could not be removed') });
+    var needsRestore = c.enabled || c.restorePending || c.snapshot;
+    if (!needsRestore) return installed ? remove(cb) : cb({ ok: true });
+    disable(function (r) {
+      if (!r.ok || !installed) return cb(r);
+      remove(cb);
+    });
   });
 }
 
@@ -660,6 +687,7 @@ function enable(cb) {
   if (!sup.ok) return cb({ ok: false, error: sup.reason });
   var c = readConfig();
   function takeSnapshot(next) {
+    if (c.restorePending) return cb(homeKeyRestoreError());
     if (c.snapshot) return next();
     readSettings(SNAPSHOT_KEYS, function (s) {
       if (!s || !s.defaultApps || typeof s.defaultApps !== 'object') {
@@ -710,7 +738,6 @@ function ensureApp(cb) {
   appInstalled(function (have) {
     if (have === true || !installFn) return cb(have === true);
     installFn('install', function () {
-      homeInstalled = null;
       appInstalled(function (now) { cb(now === true); });
     });
   });
@@ -749,7 +776,6 @@ function removeApp(cb) {
   setHomeKeyFn('', function (k) {
     if (!k || !k.ok) return cb(homeKeyRestoreError());
     installFn('remove', function () {
-      homeInstalled = null;
       appInstalled(function (now) {
         if (now !== false) return cb({ ok: false, error: msg('srv.home.cannotRemove', 'the app could not be removed') });
         console.log('home: app removed');
@@ -771,9 +797,12 @@ function homeKeyRestoreError() {
 function disable(cb) {
   var c = readConfig();
   var wasEnabled = c.enabled;
+  var wasPending = c.restorePending;
   c.enabled = false;
+  c.restorePending = true;
   if (!saveConfig()) {
     c.enabled = wasEnabled;
+    c.restorePending = wasPending;
     return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
   }
   stopGuard();
@@ -781,7 +810,15 @@ function disable(cb) {
     if (!k || !k.ok) console.error('home: could not give the Home key back to LG\'s filters');
     // Restore the other settings even when configd refuses the Home key.
     restoreAll(c, function (r) {
-      cb(r.ok && (!k || !k.ok) ? homeKeyRestoreError() : r);
+      if (r.ok && (!k || !k.ok)) r = homeKeyRestoreError();
+      if (r.ok) {
+        c.restorePending = false;
+        if (!saveConfig()) {
+          c.restorePending = true;
+          return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
+        }
+      }
+      cb(r);
     });
   });
 }
@@ -856,10 +893,9 @@ function stopGuard() {
 function reassert() {
   if (guardOn) readConfig();
   if (!guardOn) return;
-  luna('com.webos.applicationManager/getAppInfo', { id: HOME_APP }, function (info) {
-    if (!guardOn || !info || typeof info.returnValue !== 'boolean') return;
-    homeInstalled = info.returnValue;
-    if (!info.returnValue) {
+  appInstalled(function (installed) {
+    if (!guardOn || installed === null) return;
+    if (!installed) {
       console.error('home: the Glasshouse Home app is not installed; restoring LG\'s Home');
       return change(disable, function (r) {
         if (!r.ok) console.error('home: ' + r.error);
@@ -971,7 +1007,7 @@ function watchBeat() {
 
 function beat() {
   if (guardOn && foreground === HOME_APP) watchBeat();
-  return { ok: true, enabled: readConfig().enabled, build: buildId };
+  return { ok: true, enabled: readConfig().enabled, build: buildId, wallpapers: wallpapers.status() };
 }
 
 /*
@@ -1025,10 +1061,12 @@ function status(cb) {
         supported: supported(),
         installed: installed === true,
         enabled: c.enabled,
+        restorePending: c.restorePending,
         active: !!(apps && apps.home === HOME_APP),
         guard: guardOn,
         snapshot: c.snapshot ? { takenAt: c.snapshot.takenAt, settings: c.snapshot.settings } : null,
         history: !!(historyModule && historyModule.enabled && historyModule.enabled()),
+        wallpapers: wallpapers.status(),
         layout: layoutOf(c)
       });
     });
@@ -1041,7 +1079,9 @@ function init(opts) {
   liveState = opts.liveState || null;
   historyModule = opts.history || null;
   if (opts.stateDir) stateDir = opts.stateDir;
+  wallpapers.init(stateDir);
   webosVersion = opts.webosVersion || null;
+  serverPort = opts.port === undefined ? 8080 : Number(opts.port);
   installFn = opts.installApp || null;
   homeKeysFn = opts.homeKeys || function () {};
   setHomeKeyFn = opts.setHomeKey || function (id, cb) { cb({ ok: true, none: true }); };
@@ -1056,7 +1096,6 @@ function init(opts) {
   lastSource = null;
   bounces = [];
   pinnedAt = 0;
-  homeInstalled = null;
   powerActive = true;
   saverWant = null;
   saverBusy = false;
@@ -1094,10 +1133,18 @@ module.exports = {
   disable: function (cb) { change(disable, cb); },
   install: function (cb) { change(install, cb); },
   remove: function (cb) { change(remove, cb); },
+  uninstall: function (cb) { change(uninstall, cb); },
   beat: beat,
   screenOff: screenOff,
   homeKey: homeKey,
   iconPath: iconPath,
+  wallpaperPath: wallpapers.image,
+  setWallpapers: function (body, cb) {
+    var sup = supported();
+    if (!sup.ok) return cb({ ok: false, error: sup.reason });
+    if (body && body.remove === true) return wallpapers.remove(cb);
+    wallpapers.download(cb);
+  },
   normalise: normalise,
   layout: function () { return layoutOf(readConfig()); },
   programme: programme,

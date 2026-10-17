@@ -45,6 +45,7 @@ function luna(uri, p, cb) {
     for (var k in p.settings) tv.settings[k] = copy(p.settings[k]);
   } else if (uri === 'com.webos.applicationManager/getAppInfo') {
     r.returnValue = tv.homeInstalled;
+    if (!tv.homeInstalled) r.errorText = "Invalid appId specified";
   } else if (uri === 'com.webos.applicationManager/launch') {
     tv.launched.push(p.id);
   } else if (uri === 'com.webos.applicationManager/listLaunchPoints') {
@@ -176,6 +177,57 @@ step('switching on keeps the settings once, and switching off puts them back exa
           });
         });
       });
+    });
+  });
+});
+
+step('Home refuses a non-default port before changing TV settings', function (done) {
+  start(null);
+  home.init({ luna: luna, stateDir: dir, webosVersion: '9.2.2', port: 8090 });
+  home.enable(function (r) {
+    assert.strictEqual(r.ok, false);
+    assert.ok(/8080/.test(r.error));
+    assert.deepEqual(tv.settings, ORIGINAL);
+    done();
+  });
+});
+
+step('HBC cleanup on an untouched TV needs no Home settings or key writes', function (done) {
+  start(null);
+  var mode = 'absent';
+  home.init({ stateDir: dir, webosVersion: '4.4.3', luna: function (uri, p, cb) {
+    assert.ok(/getAppInfo$/.test(uri), 'only app presence is queried');
+    process.nextTick(function () { cb(null, JSON.stringify({ returnValue: false,
+      errorText: mode === 'absent' ? 'Invalid appId specified' : 'Permission denied' })); });
+  }, setHomeKey: function () { assert.fail('an untouched TV needs no compositor changes'); } });
+  home.uninstall(function (r) {
+    assert.ok(r.ok, r.error);
+    mode = 'unknown';
+    home.uninstall(function (r2) {
+      assert.strictEqual(r2.ok, false, 'a stale absence is not proof for another uninstall');
+      done();
+    });
+  });
+});
+
+step('HBC cleanup restores settings and keys before removing an enabled Home', function (done) {
+  start(null);
+  var target = '';
+  home.init({ luna: luna, stateDir: dir, webosVersion: '9.2.2',
+    setHomeKey: function (id, cb) { target = id; cb({ ok: true }); },
+    installApp: function (action, cb) {
+      assert.strictEqual(action, 'remove');
+      assert.deepEqual(tv.settings, ORIGINAL);
+      assert.strictEqual(target, '');
+      tv.homeInstalled = false;
+      cb({ ok: true });
+    } });
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    home.uninstall(function (r2) {
+      assert.ok(r2.ok, r2.error);
+      assert.strictEqual(tv.homeInstalled, false);
+      done();
     });
   });
 });
@@ -313,6 +365,8 @@ step('a failed key or settings restore prevents removal until LG Home is restore
       refuse = true;
       home.disable(function (r2) {
         assert.strictEqual(r2.ok, false, 'an incomplete restore must report failure');
+        assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')).restorePending, true);
+        home.status(function (st) { assert.strictEqual(st.restorePending, true, 'both dashboards must offer retry'); });
         if (mode === 'key') assert.deepEqual(tv.settings, ORIGINAL, 'other settings restore despite the key failure');
         home.remove(function (r3) {
           assert.strictEqual(r3.ok, false);
@@ -320,6 +374,7 @@ step('a failed key or settings restore prevents removal until LG Home is restore
           refuse = false;
           home.disable(function (r4) {
             assert.ok(r4.ok, r4.error);
+            assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')).restorePending, false);
             home.remove(function (r5) {
               assert.ok(r5.ok, r5.error);
               assert.strictEqual(removals, 1);

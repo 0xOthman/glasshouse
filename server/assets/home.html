@@ -203,6 +203,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   var activityAt = Date.now();
   var beatFails = 0;
   var layoutRevision = 0, layoutBusy = false;
+  var loadRetry = null, wallAvailable = false, initialEscape = false;
 
   function $(id) { return document.getElementById(id); }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -562,6 +563,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   // ---------------------------------------------------------------- input
 
   function onKeyDown(e) {
+    if (!data || !layout) return;
     var k = e.keyCode;
     if (wake()) { e.preventDefault(); return; }
     if (k === KEY.ok) {
@@ -624,6 +626,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     }
   }
   function onClick(e) {
+    if (!data || !layout) return;
     if (wake()) return;
     var btn = e.target && e.target.id;
     if (btn === 'btnHide') return pressBar(0);
@@ -704,14 +707,21 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     return slot;
   }
   function updateWall() {
+    if (!wallAvailable) {
+      var blank = $('wall').querySelectorAll('.layer');
+      for (var b = 0; b < blank.length; b++) { blank[b].style.opacity = 0; blank[b].style.backgroundImage = ''; }
+      wallShown = null;
+      return;
+    }
     var slot = wallSlot(), id = slot.key + '@' + slot.strength;
     if (id === wallShown) return;
-    wallShown = id;
     var layers = $('wall').querySelectorAll('.layer');
     var next = layers[1 - wallFront], prev = layers[wallFront];
-    var src = '/assets/home/wallpapers/' + slot.key + '.png';
+    var src = '/api/home/wallpaper?slot=' + slot.key;
     var img = new Image();
     img.onload = function () {
+      if (!wallAvailable || wallSlot().key !== slot.key) return;
+      wallShown = id;
       next.style.backgroundImage = 'url(' + src + ')';
       next.style.opacity = slot.strength;
       prev.style.opacity = 0;
@@ -726,12 +736,29 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (layoutBusy || (state.arranging && !whileArranging)) return;
     var revision = layoutRevision;
     getJson('/api/home/catalogue', function (r) {
-      if (!r || !r.ok) return cb && cb(false);
+      if (!r || !r.ok) {
+        if (!data) {
+          $('fault').className = 'show';
+          // A live HTTP server is not enough: Home needs its tiles and escape tile.
+          if (!document.hidden && !initialEscape) {
+            initialEscape = true;
+            postJson('/api/home/open', { kind: 'lg', recovery: true }, function (opened) { if (!opened || !opened.ok) lgHomeDirect(); });
+          }
+          clearTimeout(loadRetry);
+          loadRetry = setTimeout(function () { if (!document.hidden) load(); }, 2000);
+        }
+        return cb && cb(false);
+      }
       // A reply sent before arranging or saving must not replace local edits.
       if (revision !== layoutRevision || layoutBusy || (state.arranging && !whileArranging)) return;
+      var firstLoad = !data;
       data = r;
       layout = r.layout;
+      clearTimeout(loadRetry);
+      wallAvailable = !!(r.wallpapers && r.wallpapers.available);
+      updateWall();
       if (!state.arranging) render();
+      if (firstLoad) beat();
       if (!layout.hintSeen) {
         toast(t('home.hint.title', 'Hold OK to arrange'), t('home.hint.desc', 'Move or hide tiles and rows. LG\'s Home is the last tile in Apps.'));
         postJson('/api/home/layout', { hintSeen: true });
@@ -768,9 +795,13 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
    * server gone, the page says so and asks the TV for LG's Home itself.
    */
   function beat() {
+    // With no usable catalogue, let the server's ten-second watchdog recover Home.
+    if (!data || !layout) return;
     postJson('/api/home/beat', {}, function (r) {
       if (r && r.ok) {
         beatFails = 0;
+        wallAvailable = !!(r.wallpapers && r.wallpapers.available);
+        updateWall();
         $('fault').className = '';
         // A new release of the server: the page is the old one's until reloaded.
         if (build && r.build && r.build !== build) {
@@ -787,6 +818,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     });
   }
   function lgHomeDirect() {
+    if (document.hidden) return;
     try {
       var bridge = new window.PalmServiceBridge();
       bridge.call('luna://com.webos.applicationManager/launch', JSON.stringify({ id: 'com.webos.app.home' }));
@@ -794,6 +826,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   }
 
   function returned() {
+    initialEscape = false;
     readLaunchParams();
     updateWall();
     state.row = 0; state.col = {}; state.bar = -1;

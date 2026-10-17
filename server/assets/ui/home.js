@@ -6,6 +6,9 @@ let homeLayout = null;
 let homeChannels = null; // the TV's whole channel list, for picking
 let homeArmed = null;    // the button waiting for its second press: 'on', 'off' or 'remove'
 let homeArmTimer = null;
+let homeSaving = false;
+let homeLoadRevision = 0;
+let homeWallTimer = null;
 
 const HOME_ROWS = {
   app: () => t('home.row.apps', 'Apps'),
@@ -30,9 +33,12 @@ async function homePost(path, body) {
   return r;
 }
 
-async function loadHome() {
+async function loadHome(afterSave) {
+  if (homeSaving && afterSave !== true) return;
+  const revision = ++homeLoadRevision;
   try {
     const [st, cat] = await Promise.all([homeGet('/api/home'), homeGet('/api/home/catalogue')]);
+    if (revision !== homeLoadRevision) return;
     homeStatus = st;
     homeCat = cat;
     homeLayout = st.layout;
@@ -40,7 +46,7 @@ async function loadHome() {
   renderHome();
 }
 
-function homeWritable() { return !!(homeStatus && homeStatus.supported.ok && homeStatus.writable !== false); }
+function homeWritable() { return !!(!homeSaving && homeStatus && (homeStatus.supported.ok || homeStatus.enabled || homeStatus.restorePending) && homeStatus.writable !== false); }
 
 function renderHome() {
   const st = homeStatus;
@@ -48,7 +54,10 @@ function renderHome() {
   const desc = q('home-state-desc');
   const btn = q('home-switch');
   if (!st || !state) return;
-  if (!st.supported.ok) {
+  if (st.restorePending) {
+    state.textContent = t('home.restorePending', 'LG Home restoration is incomplete');
+    desc.textContent = t('home.restoreRetry', 'Retry restoring LG Home before changing or removing Glasshouse Home.');
+  } else if (!st.supported.ok) {
     state.textContent = t('home.unavailable', 'Not available on this TV');
     desc.textContent = st.supported.reason || '';
   } else if (!st.installed) {
@@ -66,25 +75,25 @@ function renderHome() {
   const more = q('home-more');
   if (more) more.hidden = !st.supported.ok || !st.installed;
   const removeRow = q('home-remove-row');
-  if (removeRow) removeRow.hidden = !st.installed || st.enabled;
+  if (removeRow) removeRow.hidden = !st.installed || st.enabled || st.restorePending;
   const removeBtn = q('home-remove');
   if (removeBtn) {
     removeBtn.disabled = !homeWritable();
     removeBtn.className = 'pill ' + (homeArmed === 'remove' ? 'warn' : 'idle');
     removeBtn.textContent = homeArmed === 'remove' ? t('home.confirmRemove', 'Press again to remove') : t('home.removeBtn', 'Remove');
   }
-  if (btn && st.supported.ok && !st.installed) {
+  if (btn && st.supported.ok && !st.installed && !st.restorePending) {
     btn.disabled = !homeWritable();
     btn.className = 'pill idle';
     btn.textContent = t('home.install', 'Install Glasshouse Home');
   } else if (btn) {
-    const wantOn = !st.enabled;
+    const wantOn = !(st.enabled || st.restorePending);
     const armed = homeArmed === (wantOn ? 'on' : 'off');
-    btn.disabled = !st.supported.ok;
+    btn.disabled = !homeWritable();
     btn.className = 'pill ' + (armed ? 'warn' : st.enabled ? 'good' : 'idle');
     btn.textContent = armed
       ? (wantOn ? t('home.confirmOn', 'Press again to switch on') : t('home.confirmOff', 'Press again to use LG Home'))
-      : (wantOn ? t('home.switchOn', 'Use Glasshouse Home') : t('home.switchOff', 'Use LG Home'));
+      : (st.restorePending ? t('home.retryRestore', 'Retry restoring LG Home') : wantOn ? t('home.switchOn', 'Use Glasshouse Home') : t('home.switchOff', 'Use LG Home'));
   }
   const snap = q('home-snapshot');
   if (snap) {
@@ -105,6 +114,7 @@ function renderHome() {
   renderHomeChannels();
   renderHomeIdle();
   renderHomeWalls();
+  q('home-reset').disabled = !homeWritable();
 }
 
 // An input's app id as the TV names the input: HDMI 2, Live TV.
@@ -167,20 +177,26 @@ function renderHomeRows() {
 }
 
 async function homeSaveLayout(patch) {
+  if (!homeWritable()) return;
+  homeSaving = true;
+  homeLoadRevision++;
+  renderHome();
   try {
     const r = await homePost('/api/home/layout', patch);
     homeLayout = r.layout;
     homeStatus.layout = r.layout;
   } catch (e) { showErr(e.message); }
+  await loadHome(true);
+  homeSaving = false;
   renderHome();
 }
 
 function homeMoveTile(kind, i, d) {
+  if (!homeWritable()) return;
   const order = homeCat.order[kind].slice();
   const j = i + d;
   if (j < 0 || j >= order.length) return;
   [order[i], order[j]] = [order[j], order[i]];
-  homeCat.order[kind] = order;
   // Only this row: the others keep following their own default order.
   homeSaveLayout({ order: { [kind]: order } });
 }
@@ -202,7 +218,7 @@ function homeToggleTile(kind, id) {
   homeSaveLayout({ hidden });
 }
 
-function homeResetLayout() { homeSaveLayout({ reset: true }).then(loadHome); }
+function homeResetLayout() { homeSaveLayout({ reset: true }); }
 
 function homeArm(what) {
   homeArmed = what;
@@ -230,9 +246,9 @@ async function homeRemove() {
 
 // The master switch: one press arms it, a second within five seconds acts.
 async function homeSwitch() {
-  if (!homeStatus || !homeStatus.supported.ok) return;
-  if (!homeStatus.installed) return homeInstall();
-  const want = homeStatus.enabled ? 'off' : 'on';
+  if (!homeWritable()) return;
+  if (!homeStatus.installed && !homeStatus.enabled && !homeStatus.restorePending) return homeInstall();
+  const want = homeStatus.enabled || homeStatus.restorePending ? 'off' : 'on';
   if (homeArmed !== want) {
     homeArmed = want;
     clearTimeout(homeArmTimer);
@@ -297,7 +313,7 @@ function homeToggleChannel(id) {
   const list = homeLayout.channels.slice();
   const i = list.indexOf(id);
   if (i >= 0) list.splice(i, 1); else list.push(id);
-  homeSaveLayout({ channels: list }).then(loadHome);
+  homeSaveLayout({ channels: list });
 }
 
 function renderHomeIdle() {
@@ -316,8 +332,17 @@ function homeSetIdle() {
 // The four wallpapers, by the hours each is shown.
 function renderHomeWalls() {
   const box = q('home-walls');
-  if (!box || box.dataset.done) return;
-  box.dataset.done = '1';
+  if (!box) return;
+  const walls = homeStatus.wallpapers || {};
+  const button = q('home-wall-download');
+  button.disabled = !homeWritable() || walls.downloading;
+  button.textContent = walls.downloading ? t('home.wall.downloading', 'Downloading wallpapers…')
+    : walls.available ? t('home.wall.remove', 'Remove wallpapers') : t('home.wall.download', 'Download wallpapers');
+  q('home-wall-error').textContent = walls.error || '';
+  clearTimeout(homeWallTimer);
+  if (walls.downloading) homeWallTimer = setTimeout(() => { if (activeTab === 'home') loadHome(); }, 2000);
+  if (!walls.available) { box.innerHTML = ''; return; }
+  if (box.children.length) return;
   const slots = [
     ['morning', t('home.wall.morning', 'Morning, 06:00 to 11:00')],
     ['afternoon', t('home.wall.afternoon', 'Afternoon, 11:00 to 17:00')],
@@ -325,5 +350,13 @@ function renderHomeWalls() {
     ['night', t('home.wall.night', 'Night, 21:00 to 06:00')]
   ];
   box.innerHTML = slots.map(([key, label]) => `<figure class="home-wall">
-    <img src="/assets/home/wallpapers/${key}.png" alt="" loading="lazy"><figcaption class="sub">${esc(label)}</figcaption></figure>`).join('');
+    <img src="${esc(api('/api/home/wallpaper?slot=' + key))}" alt="" loading="lazy"><figcaption class="sub">${esc(label)}</figcaption></figure>`).join('');
+}
+
+async function homeDownloadWalls() {
+  if (!homeWritable()) return;
+  q('home-wall-download').disabled = true;
+  try { await homePost('/api/home/wallpapers', { remove: !!(homeStatus.wallpapers && homeStatus.wallpapers.available) }); }
+  catch (e) { showErr(e.message); }
+  loadHome();
 }
