@@ -1389,4 +1389,5 @@ button.tools-jump:active{background:var(--w80)}
 .catalog-more{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 0 4px}
 /* Hide home screen system apps: a hidden app's tile is dimmed. */
 .sys-tile.sys-hidden .rk-does{opacity:.45}
-.sys-tile.sys-hidden .rk-name{color:var(--cand)}
+/* Orange marks a change from LG's own setting. */
+.sys-tile.sys-changed .rk-name{color:var(--cand)}
