@@ -121,12 +121,16 @@ function checkInputTitles(done) {
       tv.devices = null;
       hs.refreshInputTitles(checked(function () {
         assert.strictEqual(own.title, 'Receiver / Console \u2014 HDMI 2', 'a failed discovery keeps the last good name');
-        tv.devices = [{ id: 'HDMI_2', label: 'HDMI 2', hdmiPlugIn: false, connected: true }];
+        tv.devices = [{ id: 'HDMI_2', label: 'HDMI 2', hdmiPlugIn: true, connected: true, subList: [] }];
         hs.refreshInputTitles(checked(function () {
-          assert.strictEqual(own.title, 'HDMI 2 \u2014 Empty', 'an unplugged port has an explicit label');
-          tv.devices = null;
-          console.log('  \u2713 native Home labels show the CEC chain only on owned tiles, avoid repeated writes and retain names on discovery failure');
-          done();
+          assert.strictEqual(own.title, 'Mac', 'with no CEC names, the TV\'s own name for the input stays, not EIM\'s port label');
+          tv.devices = [{ id: 'HDMI_2', label: 'HDMI 2', hdmiPlugIn: false, connected: true }];
+          hs.refreshInputTitles(checked(function () {
+            assert.strictEqual(own.title, 'HDMI 2 \u2014 Empty', 'an unplugged port has an explicit label');
+            tv.devices = null;
+            console.log('  \u2713 native Home labels show the CEC chain only on owned tiles, keep the TV\'s name without one, avoid repeated writes and retain names on discovery failure');
+            done();
+          }));
         }));
       }));
     }));

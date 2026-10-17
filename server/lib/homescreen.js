@@ -76,13 +76,13 @@ function cecInputTitle(id, device) {
     if (name && names.indexOf(name) === -1) names.push(name);
   });
   var port = msg('srv.home.hdmi', 'HDMI {n}', { n: id.slice(4) });
-  var label = typeof device.label === 'string' ? device.label.trim() : '';
-  if (!names.length && label && label !== port && label !== device.id) names.push(label);
   if (names.length) return msg('srv.home.hdmiDevices', '{devices} — {port}', { port: port, devices: names.join(' / ') });
   if (device.hdmiPlugIn === false || (device.hdmiPlugIn === undefined && device.connected === false)) {
     return msg('srv.home.hdmiEmpty', '{port} — Empty', { port: port });
   }
-  return port;
+  // No CEC names: the TV's own name for the input, as the tile was added with.
+  // EIM's label is only the port ("HDMI 2") where the TV calls it "Mac".
+  return inputTitle(id);
 }
 
 /*
