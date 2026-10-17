@@ -4,6 +4,30 @@ Findings about how LG's webOS works, kept so the same ground is not covered
 twice. Each entry names the TV and webOS version it was found on. For how
 Glasshouse itself works, see [IMPLEMENTATION.md](../IMPLEMENTATION.md).
 
+## HDMI CEC devices (G3, webOS 9.2.2)
+
+`com.webos.service.eim/getAllInputStatus` returns CEC devices in each HDMI
+input's `subList`, with `id: SIMPLINK`. HDMI 2 on an OLED55G36LA reported
+`STEREO 70s` at depth 1 and `PlayStation 5` at depth 2. Entries include
+`osdName`, `cecpDevType`, `vendorId`, `physicalAddress` and `uniqueId`.
+Non-SIMPLINK entries can describe universal-remote configuration instead.
+
+On the same TV, unplugged HDMI 1 and HDMI 3 returned `connected: true`, but
+`hdmiPlugIn: false`, `hdmiSignalExist: false`, `lastUniqueId: -1` and empty
+sublists. Where present, `hdmiPlugIn` takes precedence over `connected` for
+plug detection. The device list does not report per-device power state.
+
+## Home input titles (G3, webOS 9.2.2)
+
+HDMI launch points added by Glasshouse are bookmarks with `systemApp: false`.
+LG's `HomeAppListComponent/View/AppTile.qml` hides a focused tile's title
+unless `titleVisible` is set; otherwise it defaults to `systemApp`.
+`applicationManager/updateLaunchPoint` accepts `titleVisible: true`, although
+the on-TV schema does not list it. A read-back preserved the field and the
+physical Home screen displayed the title immediately, without a Home restart
+or QML modification. Updating the title can therefore show the port and EIM's
+CEC names on LG's own Home screen. Long titles use LG's scrolling text.
+
 ## Which window has the remote (webOS 6.4.0, C1)
 
 - `com.webos.applicationManager/getForegroundAppInfo` names only the app

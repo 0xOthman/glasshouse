@@ -1634,6 +1634,17 @@ if (!CLI_MODE) {
   heartbeat();
   setInterval(heartbeat, 20000);
 
+  // HDMI tile titles on webOS 9's Home (lib/homescreen.js): EIM cannot be
+  // subscribed to, so they are read again when Home opens, which is when they
+  // show, and once CEC devices have had time to announce themselves after the
+  // TV switches on. Never in standby.
+  var refreshHomeTitles = function () {
+    var p = liveState.state.snapshot().power;
+    if (p && p.systemOn === false) return;
+    homeScreen.refreshInputTitles();
+  };
+  refreshHomeTitles();
+
   screensavers.restageScreensaver();
 
   // Started here so its start positions are taken now; without a hostname in
@@ -1647,6 +1658,10 @@ if (!CLI_MODE) {
   });
   // Its own start, as the MQTT bridge starts every group only with a broker.
   liveState.startGroup('power');
+  liveState.state.onChange(function (ev) {
+    if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) setTimeout(refreshHomeTitles, 20000);
+    if (ev.group === 'surface' && ev.key === 'control_app_id' && ev.value === 'com.webos.app.home') refreshHomeTitles();
+  });
 
   ntpClient.init({ config: CONFIG, luna: luna });
   ntpClient.start();

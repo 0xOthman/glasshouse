@@ -33,6 +33,7 @@ var lunaFn = null;
 var inputNames = {};
 var stateFile = null;
 var layout = null;
+var refreshingTitles = false;
 
 function init(opts) {
   opts = opts || {};
@@ -40,6 +41,7 @@ function init(opts) {
   inputNames = opts.inputNames || {};
   stateFile = opts.stateDir ? path.join(opts.stateDir, 'home-inputs.json') : null;
   layout = null;
+  refreshingTitles = false;
   LAYOUTS.some(function (l) {
     l.init(opts);
     if (l.supported()) { layout = l; return true; }
@@ -63,6 +65,67 @@ function writeAdded(map) {
 
 function inputTitle(id) {
   return inputNames[id] || msg('srv.home.hdmi', 'HDMI {n}', { n: id.slice(4) });
+}
+
+function cecInputTitle(id, device) {
+  var names = [];
+  var list = Array.isArray(device.subList) ? device.subList : [];
+  list.forEach(function (sub) {
+    if (!sub || sub.id !== 'SIMPLINK' || typeof sub.osdName !== 'string') return;
+    var name = sub.osdName.replace(/\s+/g, ' ').trim();
+    if (name && names.indexOf(name) === -1) names.push(name);
+  });
+  var port = msg('srv.home.hdmi', 'HDMI {n}', { n: id.slice(4) });
+  // With no CEC names, the TV's own current name for the input, where it has
+  // one beyond the port's ("Mac" while a Mac is connected).
+  var label = typeof device.label === 'string' ? device.label.trim() : '';
+  if (!names.length && label && label !== port && label !== device.id) names.push(label);
+  if (names.length) return msg('srv.home.hdmiDevices', '{devices} — {port}', { port: port, devices: names.join(' / ') });
+  return port;
+}
+
+/*
+ * webOS 9 hides bookmark titles unless titleVisible is set. Only tiles recorded
+ * in home-inputs.json are changed; an input added on the TV stays its owner's.
+ * EIM has no subscription for input changes, so tvweb.js calls this when the
+ * Home screen opens, when the TV switches on and at start, never in standby.
+ */
+function refreshInputTitles(cb) {
+  cb = typeof cb === 'function' ? cb : function () {};
+  var added = readAdded();
+  if (!layout || layout.id !== 'webos9' || !lunaFn || refreshingTitles || !Object.keys(added).length) return cb();
+  refreshingTitles = true;
+  function finish() { refreshingTitles = false; cb(); }
+  lunaFn('com.webos.service.eim/getAllInputStatus', {}, function (res) {
+    if (!res || res.returnValue === false || !Array.isArray(res.devices)) return finish();
+    var devices = {};
+    res.devices.forEach(function (device) {
+      if (!device || typeof device.id !== 'string') return;
+      var match = /^HDMI_([1-4])$/.exec(device.id);
+      if (match) devices['hdmi' + match[1]] = device;
+    });
+    lunaFn('com.webos.applicationManager/listLaunchPoints', {}, function (res) {
+      if (!res || res.returnValue === false || !Array.isArray(res.launchPoints)) return finish();
+      var changes = [];
+      res.launchPoints.forEach(function (point) {
+        if (!point || typeof point.id !== 'string' || point.id.indexOf(APP_PREFIX) !== 0) return;
+        var id = point.id.slice(APP_PREFIX.length);
+        if (INPUTS.indexOf(id) === -1 || added[id] !== point.launchPointId || !devices[id]) return;
+        var title = cecInputTitle(id, devices[id]);
+        if (point.title !== title || point.titleVisible !== true) {
+          changes.push({ launchPointId: point.launchPointId, title: title, titleVisible: true });
+        }
+      });
+      var next = 0;
+      (function update() {
+        if (next === changes.length) return finish();
+        lunaFn('com.webos.applicationManager/updateLaunchPoint', changes[next++], function (res) {
+          if (!res || res.returnValue !== true) console.error('homescreen: could not update an HDMI tile title');
+          update();
+        });
+      })();
+    });
+  });
 }
 
 // Launch points for each input, as { hdmi1: [launchPointId, ...] }.
@@ -121,14 +184,16 @@ function setInput(id, onHome, cb) {
     var have = lps[id] || [];
     var added = readAdded();
     if (onHome) {
-      if (have.length) return cb({ ok: true });
+      if (have.length) return refreshInputTitles(function () { cb({ ok: true }); });
+      var point = { id: APP_PREFIX + id, title: inputTitle(id), params: {} };
+      if (layout.id === 'webos9') point.titleVisible = true;
       return lunaFn('com.webos.applicationManager/addLaunchPoint',
-                    { id: APP_PREFIX + id, title: inputTitle(id), params: {} }, function (r) {
+                    point, function (r) {
         if (!r || r.returnValue !== true) return cb({ ok: false, error: msg('srv.apps.addRefused', 'the TV would not add it') });
         added[id] = r.launchPointId;
         writeAdded(added);
         console.log('homescreen: ' + id + ' added to Home');
-        inputsFirst(function () { cb({ ok: true }); });
+        inputsFirst(function () { refreshInputTitles(function () { cb({ ok: true }); }); });
       });
     }
     removeLaunchPoints(have, function () {
@@ -222,6 +287,7 @@ module.exports = {
   allowChanged: allowChanged,
   experimental: experimental,
   reapply: reapply,
+  refreshInputTitles: refreshInputTitles,
   INPUTS: INPUTS
 };
 

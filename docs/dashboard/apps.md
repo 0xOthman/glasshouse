@@ -61,6 +61,13 @@ At least one part stays. A change takes a few seconds, while the Home screen sta
 
 **Inputs on Home** shows each HDMI input as a tile, dimmed while it is not on Home; choosing one adds or removes the Home screen's tile for it, named as the TV names the input. The input tiles go before the apps, in HDMI order; adding one moves any input tiles moved elsewhere back to the front, and starts the Home screen again to show it. It is LG's own tile for the input, so it can be moved or removed on the TV like any other.
 
+On webOS 9, highlighting an input tile shows its HDMI port and the CEC device
+names, including devices behind a receiver, or the TV's own name for the input
+where no device gives one. Long names scroll in LG's title area. Titles are
+read again when the Home screen opens and shortly after the TV switches on,
+never while it is in standby. Only input tiles added by Glasshouse are updated;
+a failed discovery keeps the last good title.
+
 **Put back LG's Home screen** shows every part again and takes off the input tiles added here; ones added on the TV stay. The TV app has the same switches.
 
 It is offered on webOS 9 (LG's webOS 24), where it has been tried on a C2, and as an [experimental feature](../experimental.md#home-screen-layout-on-webos-10) on webOS 10 (LG's webOS 25), where it has been tried on a C2 with webOS 10.3.1. webOS 3 and 4 have a much plainer Home screen, so they do not have it. A webOS 8 TV may have the same home app as webOS 9, and webOS 11 a layout of its own; neither is offered it until one has been tried.
