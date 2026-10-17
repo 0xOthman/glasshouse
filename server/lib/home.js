@@ -128,6 +128,8 @@ var listCache = {};
 var changing = false;
 var settingsQueue = [];
 var settingsBusy = false;
+var appRefreshPending = false;
+var appRefreshing = false;
 
 function configFile() { return path.join(stateDir, 'home.json'); }
 
@@ -920,6 +922,7 @@ function bounceAllowed() {
 function foregroundChanged(id) {
   var was = foreground;
   foreground = id;
+  if (appRefreshPending) tryRefreshApp();
   if (id !== HOME_APP && id !== LG_HOME && id) lastSource = { appId: id, at: nowMs() };
   if (guardOn) readConfig();
   if (!guardOn) return;
@@ -1061,6 +1064,8 @@ function init(opts) {
   changing = false;
   settingsQueue = [];
   settingsBusy = false;
+  appRefreshPending = false;
+  appRefreshing = false;
   if (liveState) {
     liveState.state.onChange(function (ev) {
       if (ev.group === 'application' && ev.key === 'app_id') foregroundChanged(String(ev.value || ''));
@@ -1084,6 +1089,40 @@ function restoreLegacyScreenSaver() {
     delete readConfig().snapshot.settings.screenSaverEnabled;
     saveConfig();
     console.log('home: screen saver setting put back as ' + saved);
+  });
+}
+
+/*
+ * The app is a packaged copy, so a new release reaches it only by reinstalling
+ * it, which closes it. After a cold start the TV opens it through its input
+ * app (com.webos.app.inputcommon), which SAM then names as its process and
+ * cannot close, and the install waits on "app closing" with the app locked
+ * against launching (a G3, webOS 9.2). With Glasshouse Home on, the app is in
+ * front at almost every start, so the refresh waits until something else is
+ * in front and the view has sent a beat since the server started: the view
+ * loads only in an app launched normally, which can be closed.
+ */
+function refreshApp() {
+  appRefreshPending = true;
+  tryRefreshApp();
+}
+
+function tryRefreshApp() {
+  if (!appRefreshPending || appRefreshing || !installFn) return;
+  appRefreshing = true;
+  luna('com.webos.applicationManager/running', {}, function (r) {
+    var list = r && isArray(r.running) ? r.running : null;
+    var running = !list || list.some(function (a) { return a && a.id === HOME_APP; });
+    var closable = foreground && foreground !== HOME_APP && lastBeatAt > 0;
+    if (running && !closable) {
+      appRefreshing = false;
+      return;
+    }
+    appRefreshPending = false;
+    installFn('refresh', function (res) {
+      appRefreshing = false;
+      if (res && res.refreshed && res.ok) console.log('home: app refreshed to current release');
+    });
   });
 }
 
@@ -1119,6 +1158,7 @@ module.exports = {
   remove: function (cb) { change(remove, cb); },
   uninstall: function (cb) { change(uninstall, cb); },
   beat: beat,
+  refreshApp: refreshApp,
   homeKey: homeKey,
   iconPath: iconPath,
   wallpaperPath: wallpapers.image,

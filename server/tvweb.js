@@ -964,23 +964,9 @@ if (CLI_MODE) {
     }
     oled.detectOled(function () {});   // resolve and log panel type up front
     telemetry.detectLogoLight(function () {});
-    /*
-     * Glasshouse Home's app is packaged at install the same way, and is
-     * refreshed after the dashboard's: the install service takes one at a
-     * time. Never while it runs: after a cold start the TV opens it through
-     * its input app (com.webos.app.inputcommon), which SAM then names as its
-     * process and cannot close, and the install waits on "app closing" with
-     * the app locked against launching (a G3, webOS 9.2).
-     */
-    var refreshHomeApp = function () {
-      luna('com.webos.applicationManager/running', {}, function (r) {
-        var running = !r || !Array.isArray(r.running) || r.running.some(function (a) { return a && a.id === glasshouseHome.HOME_APP; });
-        if (running) return console.log('home: app left as it is while it runs');
-        tvApp('refresh', function (res) {
-          if (res && res.refreshed && res.ok) console.log('home: app refreshed to current release');
-        }, 'home-app');
-      });
-    };
+    // Glasshouse Home's app is refreshed after the dashboard's: the install
+    // service takes one at a time.
+    var refreshHomeApp = function () { glasshouseHome.refreshApp(); };
     if (fromHomebrewChannel()) {
       // The Homebrew Channel app is the tile, so the one deploy.sh added goes.
       // Boot is the moment to do it: nothing is open, and it is never removed

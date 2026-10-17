@@ -391,6 +391,47 @@ step('a failed key or settings restore prevents removal until LG Home is restore
   run();
 });
 
+step('the app is refreshed once it is out of front with its view loaded, or not running', function (done) {
+  start({ enabled: true, snapshot: { takenAt: Date.now(), settings: ORIGINAL } });
+  var refreshes = [];
+  var running = [{ id: HOME_APP }];
+  var installApp = function (action, cb) { refreshes.push(action); process.nextTick(function () { cb({ ok: true }); }); };
+  home.init({ luna: luna, liveState: liveState, stateDir: dir, webosVersion: '9.2.2', installApp: installApp });
+  interceptLuna = function (uri, p, cb) {
+    if (uri !== 'com.webos.applicationManager/running') return false;
+    process.nextTick(function () { cb({ returnValue: true, running: running }); });
+    return true;
+  };
+  foreground(HOME_APP);
+  home.refreshApp();
+  wait(20, function () {
+    assert.deepEqual(refreshes, [], 'not while it is in front');
+    // As after a cold start: the input app's process, with no view loaded.
+    foreground('com.webos.app.hdmi1');
+    wait(20, function () {
+      assert.deepEqual(refreshes, [], 'not before its view has loaded');
+      foreground(HOME_APP);
+      home.beat();
+      foreground('com.webos.app.hdmi1');
+      wait(20, function () {
+        assert.deepEqual(refreshes, ['refresh']);
+        foreground(HOME_APP);
+        foreground('com.webos.app.hdmi2');
+        wait(20, function () {
+          assert.deepEqual(refreshes, ['refresh'], 'once per start');
+          home.init({ luna: luna, liveState: liveState, stateDir: dir, webosVersion: '9.2.2', installApp: installApp });
+          running = [];
+          home.refreshApp();
+          wait(20, function () {
+            assert.deepEqual(refreshes, ['refresh', 'refresh'], 'at once when it is not running');
+            done();
+          });
+        });
+      });
+    });
+  });
+});
+
 step('a TV that never switched it on has no settings written at start', function (done) {
   start(null);
   var writes = 0;
