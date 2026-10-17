@@ -12,6 +12,8 @@ The screen has a clock and date, what was last on (an app, an input and the devi
 
 The picture behind changes with the time of day (morning 06:00, afternoon 11:00, evening 17:00, night 21:00) and drifts slowly. While Glasshouse Home is in front, it has an idle screen of its own: after the chosen time a dim clock that moves, and later the panel switched off. LG's screen saver is off only while Glasshouse Home is in front.
 
+Background catalogue refreshes preserve the time since the last remote or pointer activity, including when an idle timing changes.
+
 ![The evening wallpaper](../screenshots/home-evening.jpg)
 
 ![The idle screen: a dim clock that moves, on black](../screenshots/home-idle.jpg)
@@ -22,13 +24,15 @@ Before Glasshouse Home's app is on the TV the tab offers only **Install Glasshou
 
 **Use Glasshouse Home** asks for a second press, then makes it the TV's Home. Before changing anything it saves the TV's own Home settings (which app is Home, the input the TV starts on, and whether the screen saver is on), once: switching on again later keeps that first copy. **Use LG Home** puts every saved setting back as it was and reads them back to check.
 
+While a switch or installation is in progress, further changes are refused with a retry message. A failed save is reported before changing the TV's Home. Switching off waits for pending settings writes before restoring the saved values.
+
 Three ways lead back to LG's Home without switching anything off:
 
 * the **LG Home** tile;
 * holding the remote's **Home** button for a second or more; a short press then brings Glasshouse Home back;
 * Glasshouse Home not answering: if the view stops sending its heartbeat for ten seconds, or the Glasshouse server is not running when it opens, LG's Home opens instead.
 
-On webOS 9 LG's Home appears for a moment (about 0.2 to 0.3 seconds on a G3) before Glasshouse Home replaces it, since the TV opens LG's Home itself on Home and Back. For about the first 45 seconds after the TV is restarted or loses power, before the Glasshouse server is running, Home and Back stay on LG's Home.
+The Home button opens Glasshouse Home directly: while it is on, Glasshouse's remote key filter sends the key to it, as [Remote keys](apps.md#remote-keys) does for the buttons set there. Back out of an app still shows LG's Home for a moment (about 0.2 seconds on a G3) before Glasshouse Home replaces it, since the TV opens LG's Home itself on Back. The Home button does this from the moment the TV starts. For about the first 45 seconds after the TV is restarted or loses power, before the Glasshouse server is running, Back out of an app stays on LG's Home.
 
 Over SSH, `tvwebctl restore-glasshouse-home` does what **Use LG Home** does. Switch Glasshouse Home off before uninstalling Glasshouse.
 
@@ -39,5 +43,7 @@ Over SSH, `tvwebctl restore-glasshouse-home` does what **Use LG Home** does. Swi
 ## Arranging
 
 The rows and tiles can be moved and hidden here, or on the TV by holding **OK** on Glasshouse Home. Both change the same layout. On the TV, OK picks a tile up or puts it down; while it is held, left and right move it, up and down move its row, and **Back** hides or shows it. **Reset** and **Done** are in the bar at the bottom. Hidden tiles show, dimmed, while arranging.
+
+The view confirms a save or reset only after the server accepts it, and reports a failure otherwise.
 
 ![Arranging on the TV: YouTube picked up, with the bar for hiding, resetting and finishing](../screenshots/home-arrange.jpg)

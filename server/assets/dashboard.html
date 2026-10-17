@@ -781,6 +781,8 @@ function homeRows(d) {
 
 // The TV's channels, each added to or taken off the Channels row.
 function homeChannelRows(d) {
+  // Each change reloads this list, and the next one is made from what it loaded.
+  homeData = d;
   var r = [{ label: t('tv.backRow.home', '\u2039 Home'), value: '', act: 'close', press: t('tv.backRow.privacy.press', 'Press OK or Back to return'),
              hint: t('tv.backRow.home.hint', 'Back to the Home tab.') }];
   var picked = (d && d.layout && d.layout.channels) || [];

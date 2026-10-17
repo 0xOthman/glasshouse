@@ -175,7 +175,8 @@ function homeMoveTile(kind, i, d) {
   if (j < 0 || j >= order.length) return;
   [order[i], order[j]] = [order[j], order[i]];
   homeCat.order[kind] = order;
-  homeSaveLayout({ order: homeCat.order });
+  // Only this row: the others keep following their own default order.
+  homeSaveLayout({ order: { [kind]: order } });
 }
 
 function homeMoveRow(i, d) {

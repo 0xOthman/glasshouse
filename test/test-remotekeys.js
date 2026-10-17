@@ -298,6 +298,25 @@ step(function (next) {
   }));
 });
 
+step(function (next) {
+  rk.setHome('com.tvweb.home', guard(function (s) {
+    assert.strictEqual(s.ok, true);
+    assert.strictEqual(tv.keys.home, 'com.tvweb.home');
+    var f = loadFilter();
+    assert.strictEqual(f.handle(2001, true, false), 'accepted');
+    assert.strictEqual(f.handle(2001, false, false), 'accepted');
+    assert.deepEqual(f.launched.map(function (l) { return l.id; }), ['com.tvweb.home']);
+    rk.setHome('', guard(function (s2) {
+      assert.strictEqual(s2.ok, true);
+      assert.strictEqual(tv.keys.home, undefined);
+      f.tell(tv.keys);
+      assert.strictEqual(f.handle(2001, true, false), 'next');
+      console.log('  \u2713 Glasshouse Home takes the Home key while it sets it, and gives it back to LG\'s filters');
+      next();
+    }));
+  }));
+});
+
 function done() {
   fs.readdirSync(filtersDir).forEach(function (f) { fs.unlinkSync(path.join(filtersDir, f)); });
   fs.rmdirSync(filtersDir);

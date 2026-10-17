@@ -48,6 +48,8 @@ The worker itself stays Python 2.7 compatible for the TV.
 
 `test-window-state.js` checks that short gaps in window focus do not publish empty remote attributes, persistent gaps do, standby clears immediately, and reconnects republish the retained state. The server boot test checks that both SurfaceManager subscriptions start only with MQTT enabled.
 
+`test-home.js` checks restoration with delayed screen-saver reads and writes, overlapping switch and layout requests, failed state saves, and a healthy view whose heartbeats later stop.
+
 ## Home Assistant
 
 [`home-assistant.yml`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/home-assistant.yml) builds every discovery config the server can publish and
@@ -71,6 +73,8 @@ the web dashboard and the TV app in a headless browser, and fails on any
 script error, naming the tab. A function a page calls that has gone, or an
 element it reaches for that has moved, breaks only when that tab opens, which
 no unit test does. It runs when the server, the pages or the fake TV change.
+
+The Home view also runs through fifteen idle minutes with catalogue refreshes, then wakes by remote key. Its service replies are simulated; the page and its timers run in Chromium.
 
 ## Documentation
 

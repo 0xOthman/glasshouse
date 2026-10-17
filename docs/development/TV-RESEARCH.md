@@ -37,6 +37,12 @@ CEC names on LG's own Home screen. Long titles use LG's scrolling text.
   appears: LG's showed for 0.17 s after Back and 0.31 s after Home before
   Glasshouse Home replaced it.
 - `defaultApps.home` was gone after each full restart, other entries kept.
+  `defaultApps.idleApp` naming another app does not change where Back out of
+  the last app goes: still `com.webos.app.home` through `last_input_handler`.
+- A compositor key filter ahead of LG's that accepts `Qt.Key_Super_L` (the
+  Home key) and launches an app replaces LG's Home entirely: surface-manager
+  launches that app in `hotKey` mode, and LG's Home never shows. The filter
+  is loaded from configd at boot, before any Glasshouse process runs.
 - An app declaring `"appCategory": ["home"]` installs through the developer
   install service and is accepted as `defaultApps.home`.
 - The TV starts on the app `physicalLastInputApp` and `lastInputApp` name, and

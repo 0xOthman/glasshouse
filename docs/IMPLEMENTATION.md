@@ -1162,9 +1162,12 @@ dashboard's. Its `appinfo.json` declares `"appCategory": ["home"]`, which the
 settings service needs before it takes the app as `defaultApps.home`.
 
 webOS 9 opens LG's Home itself on Home and Back whatever `defaultApps` says
-([research](development/TV-RESEARCH.md#taking-over-home-g3-webos-922)), so the
-server's guard watches the foreground app and sends LG's Home back to
-Glasshouse Home, at most eight times in ten seconds. While the view is in
+([research](development/TV-RESEARCH.md#taking-over-home-g3-webos-922)). The
+Home key is taken first, in the compositor, by the same filter Remote keys
+uses (`lib/remotekeys.js`), whose configd value then carries `home` naming the
+app. Back cannot be taken from apps, so the server's guard watches the
+foreground app and sends LG's Home back to Glasshouse Home, at most eight
+times in ten seconds. While the view is in
 front it names it in `lastInputApp` and `physicalLastInputApp`, so the TV
 starts on it, and switches LG's screen saver off; the view has its own idle
 screen. Holding Home is read from `/dev/input` by the remote-button worker,

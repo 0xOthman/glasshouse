@@ -31,11 +31,12 @@ var ORIGINAL = {
   lastInputAppType: 'HDMI_2', physicalLastInputType: 'HDMI_2',
   screenSaverEnabled: 'on'
 };
-var tv;
-function freshTv() { tv = { settings: copy(ORIGINAL), launched: [], homeInstalled: true }; }
+var tv, interceptLuna = null;
+function freshTv() { tv = { settings: copy(ORIGINAL), launched: [], homeInstalled: true }; interceptLuna = null; }
 freshTv();
 
 function luna(uri, p, cb) {
+  if (interceptLuna && interceptLuna(uri, p, cb)) return;
   var r = { returnValue: true };
   if (uri === 'com.webos.service.settings/getSystemSettings') {
     r.settings = {};
@@ -173,6 +174,107 @@ step('switching on is refused on an untried webOS, changing nothing', function (
   });
 });
 
+step('overlapping layout and switch requests cannot lose the settings snapshot', function (done) {
+  start(null);
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    var saved = JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8'));
+    assert.strictEqual(saved.enabled, true);
+    assert.deepEqual(saved.snapshot.settings, ORIGINAL);
+    home.disable(function (r2) { assert.ok(r2.ok, r2.error); done(); });
+  });
+  home.setLayout({ hintSeen: true }, function (r) { assert.strictEqual(r.ok, false); });
+  home.disable(function (r) { assert.strictEqual(r.ok, false); });
+});
+
+step('switching off waits for pending screen-saver writes and cancels pending reads', function (done) {
+  var modes = ['read', 'write'];
+  function run() {
+    if (!modes.length) return done();
+    var mode = modes.shift(), pending = null;
+    start(null);
+    home.enable(function () {
+      interceptLuna = function (uri, p, cb) {
+        if (mode === 'read' && /getSystemSettings$/.test(uri) && p.keys.length === 1 && p.keys[0] === 'screenSaverEnabled') {
+          pending = function () { cb({ returnValue: true, settings: { screenSaverEnabled: 'on' } }); };
+          return true;
+        }
+        if (mode === 'write' && /setSystemSettings$/.test(uri) && p.settings.screenSaverEnabled === 'off') {
+          pending = function () { tv.settings.screenSaverEnabled = 'off'; cb({ returnValue: true }); };
+          return true;
+        }
+        return false;
+      };
+      foreground(HOME_APP);
+      wait(30, function () {
+        var restored = false;
+        assert.ok(pending, 'the TV has a pending saver ' + mode);
+        home.disable(function (r) { assert.ok(r.ok, r.error); restored = true; });
+        wait(30, function () {
+          pending();
+          wait(30, function () {
+            assert.ok(restored, 'switching off finishes after the pending operation');
+            assert.deepEqual(tv.settings, ORIGINAL);
+            run();
+          });
+        });
+      });
+    });
+  }
+  run();
+});
+
+step('a failed save changes neither the layout nor the enabled state nor the TV settings', function (done) {
+  start(null);
+  var blocked = path.join(dir, 'home.json.tmp');
+  var before = copy(home.layout());
+  fs.mkdirSync(blocked);
+  home.setLayout({ hintSeen: true }, function (r) {
+    assert.strictEqual(r.ok, false);
+    assert.deepEqual(home.layout(), before);
+  });
+  fs.rmdirSync(blocked);
+  // The snapshot saves, but the enabled state cannot be saved afterwards.
+  interceptLuna = function (uri) {
+    if (/getAppInfo$/.test(uri)) fs.mkdirSync(blocked);
+    return false;
+  };
+  home.enable(function (r) {
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(home.enabled(), false);
+    assert.deepEqual(tv.settings, ORIGINAL);
+    fs.rmdirSync(blocked);
+    interceptLuna = null;
+    home.enable(function (r2) {
+      assert.ok(r2.ok, r2.error);
+      fs.mkdirSync(blocked);
+      home.disable(function (r3) {
+        assert.strictEqual(r3.ok, false);
+        assert.strictEqual(home.enabled(), true);
+        assert.strictEqual(tv.settings.defaultApps.home, HOME_APP);
+        fs.rmdirSync(blocked);
+        home.disable(function (r4) { assert.ok(r4.ok, r4.error); done(); });
+      });
+    });
+  });
+});
+
+step('switching on points the Home key at Glasshouse Home, and switching off gives it back', function (done) {
+  start(null);
+  var targets = [];
+  home.init({ luna: luna, liveState: liveState, stateDir: dir, webosVersion: '9.2.2',
+    setHomeKey: function (id, cb) { targets.push(id); process.nextTick(function () { cb({ ok: true }); }); } });
+  home.enable(function (r) {
+    assert.ok(r.ok && r.homeKey, r.error);
+    home.disable(function (r2) {
+      assert.ok(r2.ok, r2.error);
+      assert.deepEqual(targets, [HOME_APP, '']);
+      assert.deepEqual(tv.settings, ORIGINAL);
+      done();
+    });
+  });
+});
+
 step('the app is added without switching anything on, and cannot be removed while on', function (done) {
   start(null);
   tv.homeInstalled = false;
@@ -210,7 +312,7 @@ step('LG\'s Home is sent back at most eight times in ten seconds, then left', fu
   });
 });
 
-step('a view in front with no heartbeat is replaced by LG\'s Home; one that beats is not', function (done) {
+step('a healthy view is replaced by LG\'s Home if its heartbeats later stop', function (done) {
   start(null);
   home.enable(function () {
     foreground('netflix');
@@ -220,8 +322,6 @@ step('a view in front with no heartbeat is replaced by LG\'s Home; one that beat
     wait(1000, function () { home.beat(); });
     wait(10500, function () {
       assert.strictEqual(tv.launched.indexOf(LG_HOME), -1);
-      foreground('netflix');
-      foreground(HOME_APP);
       wait(10500, function () {
         assert.deepEqual(tv.launched, [LG_HOME]);
         home.disable(function () { done(); });

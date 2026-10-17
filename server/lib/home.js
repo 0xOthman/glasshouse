@@ -89,6 +89,13 @@ var installFn = null;
 // Starts and stops reading the remote's Home button (lib/remotebuttons).
 /** @type {function(boolean): void} */
 var homeKeysFn = function () {};
+/*
+ * Points the remote's Home key at an app through the compositor's key filter
+ * (lib/remotekeys), or gives it back to LG's filters with ''. Without it the
+ * TV shows LG's Home before the guard brings Glasshouse Home back.
+ * @type {function(string, function(Object): void): void}
+ */
+var setHomeKeyFn = function (id, cb) { cb({ ok: true, none: true }); };
 // This release, which the view compares to reload itself after an update.
 var buildId = '';
 var nowMs = Date.now;
@@ -102,7 +109,6 @@ var bounces = [];
 var escaped = false;
 var foreground = '';
 var lastSource = null;
-var beatAt = 0;
 var beatTimer = null;
 var holdTimer = null;
 var homeDownAt = 0;
@@ -113,6 +119,9 @@ var homeInstalled = null;
 var powerActive = true;
 var guideCache = { at: 0, data: {} };
 var listCache = {};
+var changing = false;
+var settingsQueue = [];
+var settingsBusy = false;
 
 function readUptime() {
   try { return parseFloat(fs.readFileSync('/proc/uptime', 'utf8')) || 0; } catch (e) { return 0; }
@@ -259,7 +268,10 @@ function setLayout(body, cb) {
     next.hidden = d.hidden;
   }
   config = next;
-  if (!saveConfig()) return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
+  if (!saveConfig()) {
+    config = c;
+    return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
+  }
   cb({ ok: true, layout: layoutOf(config) });
 }
 
@@ -583,8 +595,29 @@ function readSettings(keys, cb) {
 }
 
 function writeSettings(settings, cb) {
-  luna(SETTINGS + 'setSystemSettings', { category: 'general', settings: settings }, function (r) {
-    cb(!!(r && r.returnValue));
+  settingsQueue.push({ settings: settings, cb: cb });
+  nextSettingsWrite();
+}
+
+// A restore must follow every guard write already sent to the settings service.
+function nextSettingsWrite() {
+  if (settingsBusy || !settingsQueue.length) return;
+  settingsBusy = true;
+  var job = settingsQueue.shift();
+  luna(SETTINGS + 'setSystemSettings', { category: 'general', settings: job.settings }, function (r) {
+    settingsBusy = false;
+    job.cb(!!(r && r.returnValue));
+    nextSettingsWrite();
+  });
+}
+
+// Settings reads and app installs can outlive another request from a dashboard.
+function change(action, cb) {
+  if (changing) return cb({ ok: false, error: msg('srv.home.busy', 'Glasshouse Home is being changed; try again when it has finished') });
+  changing = true;
+  action(function (r) {
+    changing = false;
+    cb(r);
   });
 }
 
@@ -624,7 +657,10 @@ function enable(cb) {
       var snap = { takenAt: nowMs(), webos: webosVersion, settings: {} };
       SNAPSHOT_KEYS.forEach(function (k) { if (s[k] !== undefined) snap.settings[k] = copy(s[k]); });
       c.snapshot = snap;
-      if (!saveConfig()) return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
+      if (!saveConfig()) {
+        c.snapshot = null;
+        return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
+      }
       console.log('home: settings snapshot taken');
       next();
     });
@@ -635,13 +671,24 @@ function enable(cb) {
       readSettings(['defaultApps'], function (s) {
         var apps = s && s.defaultApps && typeof s.defaultApps === 'object' ? copy(s.defaultApps) : copy(c.snapshot.settings.defaultApps || {});
         apps.home = HOME_APP;
+        var wasEnabled = c.enabled;
+        c.enabled = true;
+        if (!saveConfig()) {
+          c.enabled = wasEnabled;
+          return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
+        }
         writeSettings({ defaultApps: apps }, function (ok) {
-          if (!ok) return cb({ ok: false, error: msg('srv.home.setFailed', 'the TV would not make Glasshouse Home its Home') });
-          c.enabled = true;
-          saveConfig();
+          if (!ok) {
+            c.enabled = wasEnabled;
+            saveConfig();
+            return cb({ ok: false, error: msg('srv.home.setFailed', 'the TV would not make Glasshouse Home its Home') });
+          }
           startGuard();
           console.log('home: Glasshouse Home switched on');
-          cb({ ok: true });
+          setHomeKeyFn(HOME_APP, function (k) {
+            if (!k || !k.ok) console.error('home: the Home key still opens LG\'s Home first; the guard brings Glasshouse Home back');
+            cb({ ok: true, homeKey: !!(k && k.ok && !k.none) });
+          });
         });
       });
     });
@@ -693,9 +740,20 @@ function remove(cb) {
  */
 function disable(cb) {
   var c = readConfig();
-  stopGuard();
+  var wasEnabled = c.enabled;
   c.enabled = false;
-  saveConfig();
+  if (!saveConfig()) {
+    c.enabled = wasEnabled;
+    return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
+  }
+  stopGuard();
+  setHomeKeyFn('', function (k) {
+    if (!k || !k.ok) console.error('home: could not give the Home key back to LG\'s filters');
+    restoreAll(c, cb);
+  });
+}
+
+function restoreAll(c, cb) {
   if (!c.snapshot) {
     return readSettings(['defaultApps'], function (s) {
       var apps = s && s.defaultApps && typeof s.defaultApps === 'object' ? copy(s.defaultApps) : null;
@@ -744,6 +802,7 @@ function startGuard() {
 }
 
 function stopGuard() {
+  saverWant = null;
   if (!guardOn) return;
   guardOn = false;
   if (liveState) liveState.stopGroup('application');
@@ -870,17 +929,16 @@ function applyScreenSaver() {
 
 function watchBeat() {
   if (beatTimer) clearTimeout(beatTimer);
-  var since = nowMs();
   beatTimer = setTimeout(function () {
     beatTimer = null;
-    if (!guardOn || foreground !== HOME_APP || beatAt >= since) return;
+    if (!guardOn || foreground !== HOME_APP) return;
     console.error('home: the Glasshouse Home view is not answering');
     toLgHome('view not answering');
   }, BEAT_GRACE_MS);
 }
 
 function beat() {
-  beatAt = nowMs();
+  if (guardOn && foreground === HOME_APP) watchBeat();
   return { ok: true, enabled: readConfig().enabled, build: buildId };
 }
 
@@ -954,6 +1012,7 @@ function init(opts) {
   webosVersion = opts.webosVersion || null;
   installFn = opts.installApp || null;
   homeKeysFn = opts.homeKeys || function () {};
+  setHomeKeyFn = opts.setHomeKey || function (id, cb) { cb({ ok: true, none: true }); };
   buildId = opts.build || '';
   nowMs = opts.now || Date.now;
   uptimeFn = opts.uptime || readUptime;
@@ -964,7 +1023,6 @@ function init(opts) {
   foreground = '';
   lastSource = null;
   bounces = [];
-  beatAt = 0;
   pinnedAt = 0;
   homeInstalled = null;
   powerActive = true;
@@ -972,6 +1030,9 @@ function init(opts) {
   saverBusy = false;
   guideCache = { at: 0, data: {} };
   listCache = {};
+  changing = false;
+  settingsQueue = [];
+  settingsBusy = false;
   if (liveState) {
     liveState.state.onChange(function (ev) {
       if (ev.group === 'application' && ev.key === 'app_id') foregroundChanged(String(ev.value || ''));
@@ -996,11 +1057,11 @@ module.exports = {
   guide: guide,
   now: now,
   open: open,
-  setLayout: setLayout,
-  enable: enable,
-  disable: disable,
-  install: install,
-  remove: remove,
+  setLayout: function (body, cb) { change(function (done) { setLayout(body, done); }, cb); },
+  enable: function (cb) { change(enable, cb); },
+  disable: function (cb) { change(disable, cb); },
+  install: function (cb) { change(install, cb); },
+  remove: function (cb) { change(remove, cb); },
   beat: beat,
   screenOff: screenOff,
   homeKey: homeKey,
@@ -1014,7 +1075,9 @@ module.exports = {
 // tvwebctl restore-glasshouse-home: no server running, so luna is found here.
 if (require.main === module && process.argv[2] === '--restore') {
   var lunaTransport = require('./luna');
-  init({ luna: lunaTransport.call, stateDir: path.join(__dirname, '..'), webosVersion: '9' });
+  var remoteKeys = require('./remotekeys');
+  remoteKeys.init({ luna: lunaTransport.call, stateDir: path.join(__dirname, '..') });
+  init({ luna: lunaTransport.call, stateDir: path.join(__dirname, '..'), webosVersion: '9', setHomeKey: remoteKeys.setHome });
   disable(function (r) {
     console.log(r.ok ? 'home: LG\'s Home restored' : 'home: ' + r.error);
     process.exit(r.ok ? 0 : 1);

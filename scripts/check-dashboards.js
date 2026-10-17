@@ -123,6 +123,39 @@ async function visitAll(browser, jobs, problems) {
   await Promise.all([worker(), worker(), worker(), worker()]);
 }
 
+// Catalogue refreshes are background work, so they must not postpone panel off.
+async function visitHome(browser, base, problems) {
+  const page = await browser.newPage();
+  page.on('pageerror', e => problems.push('Home view: ' + e.message));
+  let screenOff = 0;
+  await page.route('**/api/home/**', route => {
+    const pathname = new URL(route.request().url()).pathname;
+    let body = { ok: true };
+    if (pathname === '/api/home/catalogue') body = {
+      ok: true, apps: [], devices: [], channels: [],
+      order: { app: ['lg-home'], dev: [], ch: [] }, sources: { channels: 0 },
+      layout: { rows: ['app', 'dev', 'ch'], hidden: { app: [], dev: [], ch: [] },
+        channels: [], idle: { dimAfter: 120, panelOffAfter: 900 }, hintSeen: true }
+    };
+    if (pathname === '/api/home/screen-off') screenOff++;
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  try {
+    await page.clock.install();
+    await page.goto(base + '/assets/home.html');
+    await page.waitForSelector('.tile');
+    for (let i = 0; i < 3; i++) {
+      const refreshed = page.waitForResponse(r => new URL(r.url()).pathname === '/api/home/catalogue');
+      await page.clock.fastForward(5 * 60000);
+      await refreshed;
+      await page.waitForTimeout(50);
+    }
+    if (!screenOff) problems.push('Home view: catalogue refreshes prevented panel off after fifteen idle minutes');
+    await page.keyboard.press('ArrowRight');
+    if (await page.locator('#idle').getAttribute('class') === 'show') problems.push('Home view: a remote key did not wake the idle screen');
+  } finally { await page.close(); }
+}
+
 (async () => {
   const server = await startServer();
   const base = 'http://127.0.0.1:' + server.port;
@@ -131,9 +164,10 @@ async function visitAll(browser, jobs, problems) {
   const web = webTabs(), tv = tvTabs();
   await visitAll(browser, web.map(t => ({ url: base + '/?tab=' + t, label: 'web ' + t }))
     .concat(tv.map(t => ({ url: base + '/assets/dashboard.html?tab=' + t, label: 'TV ' + t }))), problems);
+  await visitHome(browser, base, problems);
   await browser.close();
   for (const p of problems) console.log(p);
   console.log((web.length + tv.length) + ' tabs opened (' + web.length + ' web, ' + tv.length + ' TV app), ' +
-              problems.length + ' script error' + (problems.length === 1 ? '' : 's'));
+              'Home idle and wake checked, ' + problems.length + ' problem' + (problems.length === 1 ? '' : 's'));
   process.exit(problems.length ? 1 : 0);
 })().catch(e => { console.error(e.message); process.exit(1); });

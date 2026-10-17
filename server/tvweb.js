@@ -1720,6 +1720,7 @@ if (!CLI_MODE) {
     stateDir: __dirname,
     webosVersion: telemetry.detectWebosVersion(),
     installApp: function (action, cb) { tvApp(action, cb, 'home-app'); },
+    setHomeKey: remoteKeys.setHome,
     build: TVWEB_DISPLAY_VERSION + '@' + Date.now(),
     homeKeys: function (on) { if (remotebuttons.isSupported()) remotebuttons.want('home', on); }
   });

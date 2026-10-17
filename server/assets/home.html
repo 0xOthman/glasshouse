@@ -200,6 +200,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   var build = null;
   var okDownAt = 0, okTimer = null, okLong = false;
   var idleTimer = null, panelTimer = null, driftTimer = null;
+  var activityAt = Date.now();
   var beatFails = 0;
 
   function $(id) { return document.getElementById(id); }
@@ -433,11 +434,21 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 
   // ---------------------------------------------------------------- arranging
 
+  /*
+   * Only the rows whose tiles were moved send their order: a row left alone
+   * keeps following its default, the Apps row most-used first.
+   */
+  var movedRows = {};
   function saveLayout(extra) {
-    var body = { rows: layout.rows, order: data.order, hidden: layout.hidden };
+    var order = {};
+    for (var kind in movedRows) order[kind] = data.order[kind];
+    movedRows = {};
+    var body = { rows: layout.rows, order: order, hidden: layout.hidden };
     for (var k in extra) body[k] = extra[k];
     postJson('/api/home/layout', body, function (r) {
-      if (r && r.layout) layout = r.layout;
+      if (!r || !r.ok || !r.layout) return toast(t('home.arrange.saveFailed', 'Layout could not be saved'));
+      layout = r.layout;
+      toast(t('home.arrange.saved', 'Layout saved'), t('home.arrange.savedDesc', 'The dashboard\'s Home tab shows it too'));
     });
   }
 
@@ -453,7 +464,6 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     }
     if (!on) {
       saveLayout({});
-      toast(t('home.arrange.saved', 'Layout saved'), t('home.arrange.savedDesc', 'The dashboard\'s Home tab shows it too'));
     }
     render();
   }
@@ -463,6 +473,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     if (j < 0 || j >= list.length) return;
     var order = data.order[kind], a = order.indexOf(list[i].id), b = order.indexOf(list[j].id);
     var tmp = order[a]; order[a] = order[b]; order[b] = tmp;
+    movedRows[kind] = true;
     state.col[kind] = j;
     render();
   }
@@ -488,7 +499,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 
   function resetLayout() {
     postJson('/api/home/layout', { reset: true }, function (r) {
-      if (r && r.layout) layout = r.layout;
+      if (!r || !r.ok || !r.layout) return toast(t('home.arrange.resetFailed', 'Layout could not be reset'));
+      layout = r.layout;
       state.row = 0; state.col = {}; state.held = false;
       load(function () { toast(t('home.arrange.resetDone', 'Layout reset'), t('home.arrange.resetDesc', 'Apps, Inputs, then Channels, in their first order')); });
     });
@@ -612,12 +624,19 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
     driftTimer = setInterval(placeIdle, 10000);
   }
   function noteActivity() {
+    activityAt = Date.now();
+    scheduleIdle();
+  }
+  function scheduleIdle() {
     clearTimeout(idleTimer);
     clearTimeout(panelTimer);
     var idle = layout ? layout.idle : { dimAfter: 120, panelOffAfter: 900 };
-    if (idle.dimAfter > 0) idleTimer = setTimeout(showIdle, idle.dimAfter * 1000);
+    var elapsed = Math.max(0, Date.now() - activityAt);
+    if (idle.dimAfter > 0 && $('idle').className !== 'show') {
+      idleTimer = setTimeout(showIdle, Math.max(0, idle.dimAfter * 1000 - elapsed));
+    }
     if (idle.panelOffAfter > 0) {
-      panelTimer = setTimeout(function () { postJson('/api/home/screen-off', {}); }, idle.panelOffAfter * 1000);
+      panelTimer = setTimeout(function () { postJson('/api/home/screen-off', {}); }, Math.max(0, idle.panelOffAfter * 1000 - elapsed));
     }
   }
   // The first key after the idle screen only wakes the page.
@@ -689,7 +708,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         layout.hintSeen = true;
       }
       refreshGuide();
-      noteActivity();
+      scheduleIdle();
       if (cb) cb(true);
     });
     refreshNow();
