@@ -15,6 +15,7 @@ function test(name, fn) { tests.push([name, fn]); }
 test('isProtected strictly protects core TV system services', function () {
   var protectedIds = [
     'com.tvweb.dashboard',
+    'com.webos.app.browser',
     'org.webosbrew.hbchannel',
     'com.webos.app.livetv',
     'com.palm.app.settings',
@@ -258,11 +259,11 @@ test('findAllAppinfoPaths discovers apps across multiple bases', function () {
 test('getApps categorizes /media/system apps as built-in system tiles', function (done) {
   var mockAppsList = [
     {
-      id: 'com.webos.app.browser',
-      title: 'Web Browser',
+      id: 'com.webos.app.music',
+      title: 'Music',
       removable: false,
       systemApp: true,
-      folderPath: '/media/system/apps/usr/palm/applications/com.webos.app.browser'
+      folderPath: '/media/system/apps/usr/palm/applications/com.webos.app.music'
     },
     {
       id: 'com.webos.app.lgchannels',
@@ -290,9 +291,9 @@ test('getApps categorizes /media/system apps as built-in system tiles', function
 
   apps.getApps(function (res) {
     assert.strictEqual(res.ok, true);
-    var browser = res.systemTiles.filter(function (x) { return x.id === 'com.webos.app.browser'; })[0];
-    assert.ok(browser, 'Web Browser should be in systemTiles');
-    assert.strictEqual(browser.systemApp, true);
+    var music = res.systemTiles.filter(function (x) { return x.id === 'com.webos.app.music'; })[0];
+    assert.ok(music, 'Music should be in systemTiles');
+    assert.strictEqual(music.systemApp, true);
 
     var lgch = res.systemTiles.filter(function (x) { return x.id === 'com.webos.app.lgchannels'; })[0];
     assert.ok(lgch, 'LG Channels should be in systemTiles');
