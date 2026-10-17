@@ -73,6 +73,10 @@ It also provides system app hiding, allowing built-in LG apps and tiles (such as
 
 The **Home** section sets up [Glasshouse Home](../dashboard/home.md) from the TV, as the browser dashboard's Home tab does, and is left out on a TV Glasshouse Home is not offered on. Before its app is on the TV it offers only **Install Glasshouse Home**. Once installed it has the on/off switch (a second press confirms), a way to open Glasshouse Home, the order of its rows, then a section for each row in that order: apps and inputs each shown or hidden, and the channels added, each removed with OK, with **Add channels** listing the TV's channels not yet on Home. Then whether wallpapers are uploaded (they are uploaded from the browser dashboard), **Reset the layout**, and, while switched off, removing the app. Moving tiles within a row is done on Glasshouse Home itself, by holding OK.
 
+### Sleep timer and power
+
+The **System** tab has the sleep timer under **Timers**: each press of OK moves it to the next of 10, 30, 60, 90 and 120 minutes, then off. Its **Power** section, last in the tab, has **Power off** and **Reboot**, the full restart the browser dashboard's Control tab offers. Each takes a second press of OK within five seconds, and warns first while an app is installing. Both are left out when `allowPower` is false in `config.json`, as on the browser dashboard.
+
 ### Adding and removing the app
 
 A first install of Glasshouse adds the app to the TV's home screen; updating an existing install leaves the home screen alone.
