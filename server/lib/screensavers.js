@@ -33,6 +33,7 @@ var SWITCH_TIMEOUT_MS = 150000;
 var SWITCHING_ERROR = msg('srv.saver.switching', 'The TV is still switching screen savers. Try again in a minute.');
 var HELD_ERROR = msg('srv.saver.held', 'Custom screen savers are turned off on this TV for now, as they have not been tried on its webOS version. Before 0.98.1, on webOS 10, they could leave the picture, the sound and HDMI control off until the TV was unplugged. One already in use stays until the TV is next fully restarted.');
 // The switch is undone rather than sam restarted, the step behind #366.
+var LOST_ERROR = msg('srv.saver.lost', 'The TV has lost track of its screen saver app and did not find it again. Restarting the TV brings it back.');
 var NOT_TAKEN_ERROR = msg('srv.saver.notTaken', 'The TV did not take the new screen saver without restarting its app manager, which has left the picture or sound off on some TVs, so LG\'s screen saver is kept.');
 var STOCK_LATER_ERROR = msg('srv.saver.stockLater', 'LG\'s screen saver is set, and the TV uses it from its next restart: it did not take the change without restarting its app manager, which has left the picture or sound off on some TVs.');
 
@@ -451,6 +452,38 @@ function restartScreensaverApp(cb) {
   });
 }
 
+/*
+ * cb(true) once sam knows the screen saver app, rereading its apps first if
+ * it has lost it. A C2 (webOS 9.2.2) once answered getAppInfo for it with
+ * "Invalid appId specified" while the app's files were in place, and the
+ * screen saver then did not start, with no error, until a nudge brought it
+ * back. cb(true) also where getAppInfo gave no answer at all, so a slow bus
+ * does not stop a start that may well work.
+ */
+function ensureScreensaverKnown(cb) {
+  var id = 'com.webos.app.screensaver';
+  function known(done) {
+    lunaFn('com.webos.applicationManager/getAppInfo', { id: id }, function (r) {
+      done(!!(r && r.appInfo), r);
+    });
+  }
+  known(function (ok, r) {
+    if (ok || !r || r.returnValue !== false) return cb(true);
+    console.log('screensaver: sam does not know the screen saver app (' + (r.errorText || 'no info') + ') - making it read its apps again');
+    samrescan.refresh(known, function (nudged) {
+      if (nudged) {
+        console.log('screensaver: sam knows the screen saver app again');
+        return cb(true);
+      }
+      samrescan.rereadApp(id, known, function (reread) {
+        if (reread) console.log('screensaver: sam knows the screen saver app again, after a block and release');
+        else console.log('screensaver: sam still does not know the screen saver app');
+        cb(reread);
+      });
+    });
+  });
+}
+
 function trigger(cb) {
   if (!lunaFn) return cb({ ok: false, error: 'luna bus not available' });
   // Asking tvpower for a screen saver while sam is down can park it at
@@ -472,23 +505,26 @@ function trigger(cb) {
       if (names.isHdmiKey(fgId) || fgId === 'livetv') {
         return cb({ ok: false, error: msg('srv.saver.onlyInApps', 'the screen saver is only available from an app, not from {source}', { source: fgId }) });
       }
-      lunaFn('com.webos.service.tvpower/power/turnOnScreenSaver', {}, function (r) {
-        if (r && r.returnValue) return cb({ ok: true });
-        if (r && r.errorText === 'Invalid State change Request') {
-          return lunaFn('com.webos.applicationManager/launch', { id: 'com.webos.app.screensaver' }, function (lr) {
-            if (lr && lr.returnValue) return cb({ ok: true });
-            cb({
-              ok: false,
-              error: msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: r.errorText })
+      ensureScreensaverKnown(function (known) {
+        if (!known) return cb({ ok: false, error: LOST_ERROR });
+        lunaFn('com.webos.service.tvpower/power/turnOnScreenSaver', {}, function (r) {
+          if (r && r.returnValue) return cb({ ok: true });
+          if (r && r.errorText === 'Invalid State change Request') {
+            return lunaFn('com.webos.applicationManager/launch', { id: 'com.webos.app.screensaver' }, function (lr) {
+              if (lr && lr.returnValue) return cb({ ok: true });
+              cb({
+                ok: false,
+                error: msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: r.errorText })
+              });
             });
+          }
+          cb({
+            ok: false,
+            error: (r && r.errorText)
+              ? msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: r.errorText })
+              : fgId ? msg('srv.saver.refusedFrom', 'the TV would not start a screen saver from {source}', { source: fgId })
+              : msg('srv.saver.refusedHere', 'the TV would not start a screen saver from this source')
           });
-        }
-        cb({
-          ok: false,
-          error: (r && r.errorText)
-            ? msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: r.errorText })
-            : fgId ? msg('srv.saver.refusedFrom', 'the TV would not start a screen saver from {source}', { source: fgId })
-            : msg('srv.saver.refusedHere', 'the TV would not start a screen saver from this source')
         });
       });
     });
