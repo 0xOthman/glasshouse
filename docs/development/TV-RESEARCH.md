@@ -334,11 +334,16 @@ kernel: `iptables` fails with `can't initialize iptables table 'filter'` after
 `/proc/net/netfilter` do not exist, and there is no `nft`. Developer Mode's
 debugger on port 9998 stays reachable from the network (#699).
 
-On a C2 (webOS 9.2.2), WebAppMgr is started with `--remote-debugging-port=9998`
-by `/etc/systemd/system/scripts/webapp-mgr.sh` whatever the mode, yet nothing
-listens on 9998, over IPv4 or IPv6. So something other than that switch decides
-whether the debugger opens; `/var/luna/preferences/devmode_enabled` is a
-directory there.
+`/etc/systemd/system/scripts/webapp-mgr.sh` exports `ENABLE_INSPECTOR=1` and
+starts WebAppMgr with `--remote-debugging-port=9998` whatever the mode (its
+comment says "if in developer mode", but nothing tests for it). With Developer
+Mode on (`/var/luna/preferences/devmode_enabled` is a directory), both a C2
+(webOS 9.2.2) and the second TV in #699 listen on `0.0.0.0:9998`. An earlier
+note here that a C2 did not listen on 9998 was mistaken. LG's browser engine,
+`/usr/lib/libcbe.so`, names `remote-debugging-port` but no
+`remote-debugging-address`, so the debugger cannot be bound to loopback by a
+switch: without a firewall, only leaving out the port switch, which needs
+WebAppMgr restarted, or turning Developer Mode off closes it.
 
 ## The compositor's key filters (webOS 4.4.3, B8; webOS 9.2.2, C2)
 
