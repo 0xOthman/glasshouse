@@ -66,7 +66,15 @@ function luna(uri, params, cb) {
   var r = { returnValue: true };
   var method = uri.split('/').pop();
   if (method === 'listLaunchPoints') r.launchPoints = tv.lps.slice();
-  else if (method === 'addLaunchPoint') { r.launchPointId = String(tv.next++); tv.lps.push({ launchPointId: r.launchPointId, id: params.id }); }
+  else if (method === 'addLaunchPoint') { r.launchPointId = String(tv.next++); tv.lps.push({ launchPointId: r.launchPointId, id: params.id, title: params.title, titleVisible: params.titleVisible }); }
+  else if (method === 'getAllInputStatus') {
+    r = tv.devices ? { returnValue: true, devices: tv.devices } : { returnValue: false };
+  }
+  else if (method === 'updateLaunchPoint') {
+    tv.lps.forEach(function (p) {
+      if (p.launchPointId === params.launchPointId) { p.title = params.title; p.titleVisible = params.titleVisible; }
+    });
+  }
   else if (method === 'removeLaunchPoint') tv.lps = tv.lps.filter(function (p) { return p.launchPointId !== params.launchPointId; });
   else if (method === 'moveLaunchPoint') {
     var at = -1;
@@ -92,6 +100,37 @@ function checked(fn) {
       process.exit(1);
     }
   };
+}
+
+function checkInputTitles(done) {
+  tv.devices = [
+    { id: 'HDMI_2', label: 'Receiver', subList: [
+      { id: 'SIMPLINK', osdName: 'Receiver' }, { id: 'SIMPLINK', osdName: ' Console ' },
+      { id: 'SIMPLINK', osdName: 'Console' }, { id: 'URCU', osdName: 'IR profile' }
+    ] },
+    { id: 'HDMI_3', label: 'Another device', subList: [] }
+  ];
+  hs.refreshInputTitles(checked(function () {
+    var own = tv.lps.filter(function (p) { return p.id === 'com.webos.app.hdmi2'; })[0];
+    assert.strictEqual(own.title, 'Receiver / Console \u2014 HDMI 2', 'the native Home title names the CEC chain and port');
+    assert.strictEqual(own.titleVisible, true, 'a bookmark title is visible on focus');
+    assert.strictEqual(tv.lps.filter(function (p) { return p.launchPointId === '900'; })[0].title, undefined, 'an input tile not added here is untouched');
+    var writes = tv.calls.filter(function (c) { return /updateLaunchPoint$/.test(c.uri); }).length;
+    hs.refreshInputTitles(checked(function () {
+      assert.strictEqual(tv.calls.filter(function (c) { return /updateLaunchPoint$/.test(c.uri); }).length, writes, 'unchanged titles are not written repeatedly');
+      tv.devices = null;
+      hs.refreshInputTitles(checked(function () {
+        assert.strictEqual(own.title, 'Receiver / Console \u2014 HDMI 2', 'a failed discovery keeps the last good name');
+        tv.devices = [{ id: 'HDMI_2', label: 'HDMI 2', hdmiPlugIn: false, connected: true }];
+        hs.refreshInputTitles(checked(function () {
+          assert.strictEqual(own.title, 'HDMI 2 \u2014 Empty', 'an unplugged port has an explicit label');
+          tv.devices = null;
+          console.log('  \u2713 native Home labels show the CEC chain only on owned tiles, avoid repeated writes and retain names on discovery failure');
+          done();
+        }));
+      }));
+    }));
+  }));
 }
 
 setup('4.4.3');
@@ -125,39 +164,41 @@ hs.getHomeScreen(checked(function (none) {
             hs.setInput('hdmi2', true, checked(function (a) {
               assert.strictEqual(a.ok, true);
               var add = tv.calls.filter(function (c) { return /addLaunchPoint$/.test(c.uri); })[0];
-              assert.deepEqual(add.params, { id: 'com.webos.app.hdmi2', title: 'Mac', params: {} });
+              assert.deepEqual(add.params, { id: 'com.webos.app.hdmi2', title: 'Mac', params: {}, titleVisible: true });
               assert.deepEqual(tv.lps.map(function (p) { return p.id; }),
                 ['com.webos.app.hdmi2', 'com.webos.app.hdmi3', 'youtube.leanback.v4'], 'inputs first, in HDMI order');
               assert.ok(/kill \$\(pidof com\.webos\.app\.home\)/.test(shellRuns[shellRuns.length - 1]), 'home app restarted to show the order');
               var runs = shellRuns.length;
-              hs.setInput('hdmi2', true, checked(function () {
-                assert.strictEqual(tv.calls.filter(function (c) { return /addLaunchPoint$/.test(c.uri); }).length, 1, 'not added twice');
-                assert.strictEqual(shellRuns.length, runs, 'no restart when nothing moved');
-                console.log('  ✓ an input is added as LG\'s own launch point, with the TV\'s name for it, once, and the inputs put before the apps');
+              checkInputTitles(function () {
+                hs.setInput('hdmi2', true, checked(function () {
+                  assert.strictEqual(tv.calls.filter(function (c) { return /addLaunchPoint$/.test(c.uri); }).length, 1, 'not added twice');
+                  assert.strictEqual(shellRuns.length, runs, 'no restart when nothing moved');
+                  console.log('  ✓ an input is added as LG\'s own launch point, with the TV\'s name for it, once, and the inputs put before the apps');
 
-                hs.restore(checked(function (back) {
-                  assert.strictEqual(back.ok, true);
-                  assert.strictEqual(ourLayout(), null, 'layout file gone');
-                  assert.ok(!fs.existsSync(layoutDir), 'the folder, empty, gone too');
-                  var ids = tv.lps.map(function (p) { return p.launchPointId; });
-                  assert.ok(ids.indexOf('900') !== -1, 'the tile added on the TV stays');
-                  assert.ok(!tv.lps.some(function (p) { return p.id === 'com.webos.app.hdmi2'; }), 'the tile added here goes');
-                  console.log('  ✓ putting LG\'s Home screen back removes the layout and only the tiles added here');
+                  hs.restore(checked(function (back) {
+                    assert.strictEqual(back.ok, true);
+                    assert.strictEqual(ourLayout(), null, 'layout file gone');
+                    assert.ok(!fs.existsSync(layoutDir), 'the folder, empty, gone too');
+                    var ids = tv.lps.map(function (p) { return p.launchPointId; });
+                    assert.ok(ids.indexOf('900') !== -1, 'the tile added on the TV stays');
+                    assert.ok(!tv.lps.some(function (p) { return p.id === 'com.webos.app.hdmi2'; }), 'the tile added here goes');
+                    console.log('  ✓ putting LG\'s Home screen back removes the layout and only the tiles added here');
 
-                  // A layout file LG put there itself: left alone, and no section.
-                  mkdirp(layoutDir);
-                  fs.writeFileSync(path.join(layoutDir, 'home_layoutShelfView.xml'), LG_LAYOUT);
-                  setup('9.2.2');
-                  hs.getHomeScreen(checked(function (lgs) {
-                    assert.strictEqual(lgs, null);
-                    hs.restore(checked(function () {
-                      assert.strictEqual(ourLayout(), LG_LAYOUT, 'LG\'s file untouched');
-                      console.log('  ✓ a layout of LG\'s own in that folder is left alone, and the section is not offered');
-                      console.log('ALL test-homescreen.js assertions passed!\n');
+                    // A layout file LG put there itself: left alone, and no section.
+                    mkdirp(layoutDir);
+                    fs.writeFileSync(path.join(layoutDir, 'home_layoutShelfView.xml'), LG_LAYOUT);
+                    setup('9.2.2');
+                    hs.getHomeScreen(checked(function (lgs) {
+                      assert.strictEqual(lgs, null);
+                      hs.restore(checked(function () {
+                        assert.strictEqual(ourLayout(), LG_LAYOUT, 'LG\'s file untouched');
+                        console.log('  ✓ a layout of LG\'s own in that folder is left alone, and the section is not offered');
+                        console.log('ALL test-homescreen.js assertions passed!\n');
+                      }));
                     }));
                   }));
                 }));
-              }));
+              });
             }));
           }));
         }));

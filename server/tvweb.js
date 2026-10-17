@@ -1634,6 +1634,9 @@ if (!CLI_MODE) {
   heartbeat();
   setInterval(heartbeat, 20000);
 
+  homeScreen.refreshInputTitles();
+  setInterval(homeScreen.refreshInputTitles, 60000);
+
   screensavers.restageScreensaver();
 
   // Started here so its start positions are taken now; without a hostname in
