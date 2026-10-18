@@ -528,7 +528,9 @@ screensavers.init({
   config: CONFIG,
   injectKey: controls.injectKey,
   KEY_BACK: controls.KEY_BACK,
-  inputKey: telemetry.inputKey
+  inputKey: telemetry.inputKey,
+  watchKeys: function (on) { if (!on || remotebuttons.isSupported()) remotebuttons.want('screensaver', on); },
+  mediaState: telemetry.readMediaState
 });
 telemetry.init({
   luna: luna,
@@ -600,6 +602,9 @@ remotebuttons.init({
   },
   onHomeKey: function (down) {
     glasshouseHome.homeKey(down);
+  },
+  onAnyKey: function () {
+    screensavers.keyPressed();
   }
 });
 
@@ -1684,6 +1689,7 @@ if (!CLI_MODE) {
   refreshHomeTitles();
 
   screensavers.restageScreensaver();
+  screensavers.adoptLaunched();
 
   // Started here so its start positions are taken now; without a hostname in
   // config it sends nothing until it has the device name to send as.

@@ -19,10 +19,14 @@ var execFile = require('child_process').execFile;
 var power = require('./power');
 var names = require('./names');
 
-var SCREENSAVER_APP_DIR = '/usr/palm/applications/com.webos.app.screensaver';
+var SCREENSAVER_APP_ID = 'com.webos.app.screensaver';
+var SCREENSAVER_APP_DIR = '/usr/palm/applications/' + SCREENSAVER_APP_ID;
 var SCREENSAVER_DIR = '/var/lib/tvweb/screensaver';
 var SCREENSAVER_MARKER = '.tvweb-screensaver';
 var SCREENSAVER_LEVEL_MARKER = '.tvweb-brightness';
+// Survives a server restart, but not a TV reboot. sam also retains native
+// screen savers after dismissal, so its running list alone cannot prove ours.
+var LAUNCHED_MARKER = '/var/run/tvweb-screensaver-launched';
 // Outside the staged directory, which is bind-mounted over the app and so hides
 // the stock manifest whenever one of ours is in use.
 var STOCK_TYPE_FILE = '/var/lib/tvweb/screensaver-stock-type';
@@ -83,6 +87,15 @@ var keyBackVal = null;
 // An app id's short id, an HDMI input's port key (hdmi3) under any app id.
 var inputKeyFn = names.shortAppId;
 var switchingSince = 0;
+// True while a screen saver started by launching its app may be showing:
+// tvpower stays Active under one started that way, so it cannot tell.
+var launchedDirectly = false;
+var launchGeneration = 0;
+var closeCallbacks = [];
+/** @type {function(boolean): void} */
+var watchKeysFn = function () {};
+/** @type {function(function(?{state: string, fullScreen: boolean}): void, boolean=): void} */
+var mediaStateFn = function (cb) { cb(null); };
 
 function clearStagedScreensaver() {
   unlinkQuiet(path.join(SCREENSAVER_DIR, SCREENSAVER_MARKER));
@@ -124,6 +137,11 @@ function init(opts) {
   injectKeyFn = opts.injectKey;
   keyBackVal = opts.KEY_BACK;
   if (opts.inputKey) inputKeyFn = opts.inputKey;
+  watchKeysFn = opts.watchKeys || function () {};
+  mediaStateFn = opts.mediaState || function (cb) { cb(null); };
+  launchedDirectly = false;
+  launchGeneration++;
+  closeCallbacks = [];
 
   // Auto-heal: If the screensaver is currently stock (no active bind-mount on SCREENSAVER_APP_DIR),
   // but an orphaned marker remains in SCREENSAVER_DIR, remove it so the boot hook does not
@@ -485,6 +503,138 @@ function ensureScreensaverKnown(cb) {
   });
 }
 
+function screensaverRunning(cb) {
+  lunaFn('com.webos.applicationManager/running', {}, function (r) {
+    if (!r || !r.running) return cb(null);
+    for (var i = 0; i < r.running.length; i++) {
+      if (r.running[i].id === SCREENSAVER_APP_ID) return cb(true);
+    }
+    cb(false);
+  });
+}
+
+/*
+ * Whether a screen saver started by launching its app is showing, as last
+ * seen. Answers at once, for the stats, and checks sam behind it so it clears
+ * a poll after the screen saver closes, whether by the remote or the dashboard.
+ */
+function launchedShowing() {
+  if (launchedDirectly && lunaFn) {
+    var generation = launchGeneration;
+    screensaverRunning(function (running) {
+      if (running === false && generation === launchGeneration) setLaunched(false);
+    });
+  }
+  return launchedDirectly;
+}
+
+/*
+ * LG's screen saver answers a key by asking tvpower to turnOnScreen, and
+ * leaves closing it to tvpower. Under one tvpower did not start, tvpower is
+ * Active and refuses ("The current sub state must be 'screen off'"), so the
+ * remote cannot close it (G3, webOS 9.2.2). The remote's keys are watched
+ * while it shows, and any of them closes it.
+ */
+function setLaunched(on) {
+  if (on) {
+    try { fs.writeFileSync(LAUNCHED_MARKER, '1\n', 'utf8'); }
+    catch (e) { console.error('screensaver: could not record the launched screen saver: ' + e.message); }
+  } else {
+    unlinkQuiet(LAUNCHED_MARKER);
+  }
+  if (launchedDirectly === on) return;
+  launchedDirectly = on;
+  launchGeneration++;
+  watchKeysFn(on);
+}
+
+function closeLaunched(cb) {
+  closeCallbacks.push(cb);
+  if (closeCallbacks.length > 1) return;
+  var generation = launchGeneration;
+  lunaFn('com.webos.applicationManager/closeByAppId', { id: SCREENSAVER_APP_ID }, function (r) {
+    if (r && r.returnValue && generation === launchGeneration) setLaunched(false);
+    var callbacks = closeCallbacks;
+    closeCallbacks = [];
+    for (var i = 0; i < callbacks.length; i++) callbacks[i](r);
+  });
+}
+
+function keyPressed() {
+  if (!launchedDirectly || !lunaFn) return;
+  console.log('screensaver: a remote key closes the screen saver');
+  closeLaunched(function () {});
+}
+
+// At start: one an earlier run launched may still be showing, which only
+// this server can close.
+function adoptLaunched() {
+  if (!lunaFn || !fs.existsSync(LAUNCHED_MARKER)) return;
+  var generation = launchGeneration;
+  lunaFn('com.webos.service.tvpower/power/getPowerState', {}, function (pw) {
+    if (!pw || pw.returnValue === false || generation !== launchGeneration) return;
+    if (power.isScreenSaver(power.mapState(pw.state))) return setLaunched(false);
+    screensaverRunning(function (running) {
+      if (running !== null && generation === launchGeneration) setLaunched(running);
+    });
+  });
+}
+
+function launchScreensaverApp(cb) {
+  // tvpower's refusal also protects playback. An unavailable media service
+  // is not evidence that nothing is playing, including on older firmware.
+  mediaStateFn(function (media) {
+    if (!media) return cb(false, msg('srv.saver.unknownPlayback', 'the TV could not check whether anything is playing'));
+    if (media.state === 'playing' && media.fullScreen) {
+      return cb(false, msg('srv.saver.playing', 'the TV does not start a screen saver while something is playing'));
+    }
+    // The request and media checks can take seconds. Do not cover an input
+    // or undo Screen Off if the source or power changed in the meantime.
+    lunaFn('com.webos.service.tvpower/power/getPowerState', {}, function (pw) {
+      var currentPower = power.mapState(pw && pw.state);
+      if (power.isScreenSaver(currentPower)) return cb(true);
+      if (!pw || pw.returnValue === false || !currentPower.screenOn ||
+          (pw.processing && pw.processing !== 'Screen On')) return cb(false);
+      lunaFn('com.webos.applicationManager/getForegroundAppInfo', {}, function (fg) {
+        var fgId = fg && fg.returnValue !== false && fg.appId ? inputKeyFn(fg.appId) : '';
+        if (!fgId || names.isHdmiKey(fgId) || fgId === 'livetv') return cb(false);
+        console.log('screensaver: launching the screen saver app after a refused request');
+        lunaFn('com.webos.applicationManager/launch', { id: SCREENSAVER_APP_ID }, function (r) {
+          var ok = !!(r && r.returnValue);
+          if (ok) setLaunched(true);
+          cb(ok);
+        });
+      });
+    });
+  }, true);
+}
+
+/*
+ * cb(true) where the screen saver tvpower agreed to start was then refused.
+ * On a G3 (webOS 9.2.2) turnOnScreenSaver returned true, tvpower showed
+ * "Request Screen Saver" and then "Screen On" 30 ms later, and went back to
+ * Active with nothing started, from Home and from an app alike: one of the
+ * services registered to answer screen saver requests said no, and none of
+ * them logs why. Launching the app itself still brought the screen saver up.
+ * cb(false) once it is showing, or while tvpower is still working on it after
+ * the last look, so a slow start is not given a second one.
+ */
+function refusedAfterRequest(cb) {
+  var looks = 0;
+  (function look() {
+    setTimeout(function () {
+      lunaFn('com.webos.service.tvpower/power/getPowerState', {}, function (pw) {
+        if (!pw || power.isScreenSaver(power.mapState(pw.state))) return cb(false);
+        var settled = power.mapState(pw.state).screenOn &&
+          (!pw.processing || pw.processing === 'Screen On');
+        if (settled) return cb(true);
+        if (++looks < 6) return look();
+        cb(false);
+      });
+    }, 500);
+  })();
+}
+
 function trigger(cb) {
   if (!lunaFn) return cb({ ok: false, error: 'luna bus not available' });
   // Asking tvpower for a screen saver while sam is down can park it at
@@ -500,6 +650,21 @@ function trigger(cb) {
         cb(ok ? { ok: true } : { ok: false, error: msg('srv.saver.noRemote', 'could not reach the remote input device') });
       });
     }
+    if (launchedDirectly) {
+      return screensaverRunning(function (running) {
+        // Closed already: start one. No answer is not closed.
+        if (running === false) {
+          setLaunched(false);
+          return trigger(cb);
+        }
+        closeLaunched(function (r) {
+          cb(r && r.returnValue ? { ok: true } : {
+            ok: false,
+            error: msg('srv.saver.noClose', 'the TV would not close the screen saver: {error}', { error: (r && r.errorText) || 'no answer' })
+          });
+        });
+      });
+    }
 
     lunaFn('com.webos.applicationManager/getForegroundAppInfo', {}, function (fg) {
       var fgId = (fg && fg.appId) ? inputKeyFn(fg.appId) : '';
@@ -509,13 +674,24 @@ function trigger(cb) {
       ensureScreensaverKnown(function (known) {
         if (!known) return cb({ ok: false, error: LOST_ERROR });
         lunaFn('com.webos.service.tvpower/power/turnOnScreenSaver', {}, function (r) {
-          if (r && r.returnValue) return cb({ ok: true });
+          if (r && r.returnValue) {
+            return refusedAfterRequest(function (refused) {
+              if (!refused) return cb({ ok: true });
+              launchScreensaverApp(function (ok, error) {
+                cb(ok ? { ok: true } : {
+                  ok: false,
+                  error: error || (fgId ? msg('srv.saver.refusedFrom', 'the TV would not start a screen saver from {source}', { source: fgId })
+                    : msg('srv.saver.refusedHere', 'the TV would not start a screen saver from this source'))
+                });
+              });
+            });
+          }
           if (r && r.errorText === 'Invalid State change Request') {
-            return lunaFn('com.webos.applicationManager/launch', { id: 'com.webos.app.screensaver' }, function (lr) {
-              if (lr && lr.returnValue) return cb({ ok: true });
+            return launchScreensaverApp(function (launched, error) {
+              if (launched) return cb({ ok: true });
               cb({
                 ok: false,
-                error: msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: r.errorText })
+                error: error || msg('srv.saver.refused', 'the TV would not start a screen saver here: {error}', { error: r.errorText })
               });
             });
           }
@@ -552,5 +728,8 @@ module.exports = {
   allowedAnyway: allowedAnyway,
   setScreensaver: setScreensaver,
   restageScreensaver: restageScreensaver,
+  launchedShowing: launchedShowing,
+  keyPressed: keyPressed,
+  adoptLaunched: adoptLaunched,
   trigger: trigger
 };
