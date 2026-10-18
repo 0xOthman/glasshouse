@@ -134,6 +134,7 @@ Glasshouse is free, open-source, and maintained in spare time alongside communit
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg)](https://buymeacoffee.com/rorygallagher2024)
 
 ---
+
 ## Disclaimer
 
 **Use this software at your own risk.**
