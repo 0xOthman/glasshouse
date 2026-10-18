@@ -287,6 +287,17 @@ step('switching on reads the new files into sam before stopping LG\'s Home, and 
   });
 });
 
+step('switched on where it is not offered, as after a firmware update to webOS 10, it is switched off at start', function (done) {
+  start({ enabled: true }, { webosVersion: '10.3.1' });
+  home.start();
+  wait(50, function () {
+    assert.strictEqual(home.enabled(), false);
+    assert.ok(tv.events.indexOf('mount') === -1, 'LG\'s Home is not touched');
+    assert.ok(!taken());
+    done();
+  });
+});
+
 step('webOS 10 and 11 only with allowExperimentalHome, with LG\'s Flutter Home stopped and no start-up layout', function (done) {
   start(null, { webosVersion: '10.3.1' });
   home.status(function (st0) {

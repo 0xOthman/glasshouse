@@ -1146,6 +1146,15 @@ function start() {
       c.hideLgHomeAtStart = true;
       saveConfig();
     }
+    /*
+     * Switched on where it is not offered: a webOS 9 TV updated to webOS 10,
+     * say, or allowExperimentalHome taken out. LG's Home is put back rather
+     * than taken on a version it was never tried on.
+     */
+    if (c.enabled && !supported().ok) {
+      console.log('home: not offered on this TV (' + supported().reason + '); switched off');
+      return disable(function (r) { if (!r.ok) console.error('home: ' + r.error); });
+    }
     if (c.enabled) homeKeysFn(true);
     if (c.restorePending || (!c.enabled && takeover.mounted())) {
       return disable(function (r) { if (!r.ok) console.error('home: ' + r.error); });
