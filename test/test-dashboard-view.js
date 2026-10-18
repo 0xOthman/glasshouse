@@ -197,8 +197,7 @@ vm.runInNewContext(scriptMatch[1] + '\n;' + testPagingSnippet, sandbox);
   FakeXHR.prototype.setRequestHeader = function (k, v) { this.headers[k] = v; };
   FakeXHR.prototype.send = function (b) {
     this.body = b;
-    var self = this;
-    setTimeout(function () { if (self.onload) self.onload(); }, 5);
+    if (this.onload) this.onload();
   };
 
   var webos2Sandbox = {
@@ -226,6 +225,20 @@ vm.runInNewContext(scriptMatch[1] + '\n;' + testPagingSnippet, sandbox);
 
   // Verify Promise chaining and resolution
   var pResolved = false;
+  var fetchResolved = false;
+  var safetyTimer = setTimeout(function () {
+    assert.strictEqual(pResolved, true, 'Promise chaining resolved before timeout');
+    assert.strictEqual(fetchResolved, true, 'Fetch over XHR resolved before timeout');
+  }, 3000);
+
+  function checkDone() {
+    if (pResolved && fetchResolved) {
+      clearTimeout(safetyTimer);
+      console.log('  ✓ Promise and fetch polyfills support webOS 2 WebKit without native ES6');
+      console.log('ALL test-dashboard-view.js assertions passed!\n');
+    }
+  }
+
   webos2Sandbox.window.Promise.resolve('webos2')
     .then(function (val) {
       return webos2Sandbox.window.Promise.resolve(val + '-ok');
@@ -233,10 +246,10 @@ vm.runInNewContext(scriptMatch[1] + '\n;' + testPagingSnippet, sandbox);
     .then(function (val) {
       assert.strictEqual(val, 'webos2-ok');
       pResolved = true;
+      checkDone();
     });
 
   // Verify fetch over FakeXHR
-  var fetchResolved = false;
   webos2Sandbox.window.fetch('/api/test')
     .then(function (res) {
       assert.strictEqual(res.ok, true);
@@ -246,12 +259,6 @@ vm.runInNewContext(scriptMatch[1] + '\n;' + testPagingSnippet, sandbox);
     .then(function (data) {
       assert.deepEqual(data, { ok: true, test: 123 });
       fetchResolved = true;
+      checkDone();
     });
-
-  setTimeout(function () {
-    assert.strictEqual(pResolved, true, 'Promise chaining resolved');
-    assert.strictEqual(fetchResolved, true, 'Fetch over XHR resolved');
-    console.log('  ✓ Promise and fetch polyfills support webOS 2 WebKit without native ES6');
-    console.log('ALL test-dashboard-view.js assertions passed!\n');
-  }, 40);
 })();
