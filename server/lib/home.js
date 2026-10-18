@@ -85,6 +85,9 @@ var installFn = null;
 // Starts and stops reading the remote's Home button (lib/remotebuttons).
 /** @type {function(boolean): void} */
 var homeKeysFn = function () {};
+// Told whether the plate's picture details are on, at start and on each change.
+/** @type {function(boolean): void} */
+var pictureDetailsFn = function () {};
 /*
  * Points the remote's Home key at an app through the compositor's key filter
  * (lib/remotekeys), or gives it back to LG's filters with ''. Earlier builds
@@ -158,6 +161,9 @@ function defaults() {
     hidden: { app: PROMO_APPS.slice(), dev: [], ch: [] },
     channels: [],
     hintSeen: false,
+    // The plate describing the picture of what was last on: detail many
+    // won't want on a home screen, so it waits to be switched on.
+    picture: false,
     // null until chosen: the first start keeps an empty layout an earlier build left.
     hideLgHomeAtStart: null,
     snapshot: null
@@ -194,6 +200,7 @@ function normalise(raw) {
   d.enabled = raw.enabled === true;
   d.restorePending = raw.restorePending === true;
   d.hintSeen = raw.hintSeen === true;
+  d.picture = raw.picture === true;
   if (typeof raw.hideLgHomeAtStart === 'boolean') d.hideLgHomeAtStart = raw.hideLgHomeAtStart;
   d.snapshot = validSnapshot(raw.snapshot) ? raw.snapshot : null;
   return d;
@@ -214,8 +221,10 @@ function readConfig() {
   if (config && mtime === configMtime) return config;
   var raw = null;
   try { raw = JSON.parse(fs.readFileSync(configFile(), 'utf8')); } catch (e) {}
+  var before = config;
   config = normalise(raw);
   configMtime = mtime;
+  if (!before || before.picture !== config.picture) pictureDetailsFn(config.picture);
   // tvwebctl restore-glasshouse-home, run beside the server, switches it off here.
   if (wasEnabled && !config.enabled) {
     console.log('home: switched off in home.json');
@@ -272,7 +281,8 @@ function setLayout(body, cb) {
     // A moved Channels row reorders the channels themselves.
     channels: ordered(body.order && isArray(body.order.ch) ? body.order.ch : [],
                       body.channels !== undefined ? stringList(body.channels, MAX_CHANNELS) : c.channels),
-    hintSeen: body.hintSeen !== undefined ? body.hintSeen : c.hintSeen
+    hintSeen: body.hintSeen !== undefined ? body.hintSeen : c.hintSeen,
+    picture: typeof body.picture === 'boolean' ? body.picture : c.picture
   });
   if (body.reset === true) {
     var d = defaults();
@@ -285,11 +295,12 @@ function setLayout(body, cb) {
     config = c;
     return cb({ ok: false, error: msg('srv.home.saveFailed', 'could not save the layout') });
   }
+  if (c.picture !== config.picture) pictureDetailsFn(config.picture);
   cb({ ok: true, layout: layoutOf(config) });
 }
 
 function layoutOf(c) {
-  return { rows: c.rows, order: c.order, hidden: c.hidden, channels: c.channels, hintSeen: c.hintSeen };
+  return { rows: c.rows, order: c.order, hidden: c.hidden, channels: c.channels, hintSeen: c.hintSeen, picture: c.picture };
 }
 
 // ---------------------------------------------------------------- what it shows
@@ -1084,6 +1095,7 @@ function init(opts) {
   installFn = opts.installApp || null;
   allowExperimentalFn = opts.allowExperimental || function () { return false; };
   homeKeysFn = opts.homeKeys || function () {};
+  pictureDetailsFn = opts.pictureDetails || function () {};
   setHomeKeyFn = opts.setHomeKey || function (id, cb) { cb({ ok: true, none: true }); };
   homeKeyAppFn = opts.homeKeyApp || function () { return ''; };
   setStartingFn = opts.setStarting || function (text, cb) { cb({ ok: true, none: true }); };

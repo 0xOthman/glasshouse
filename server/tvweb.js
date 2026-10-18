@@ -58,6 +58,7 @@ var quickAccess = require('./lib/quickaccess');
 var remoteKeys = require('./lib/remotekeys');
 var homeScreen = require('./lib/homescreen');
 var glasshouseHome = require('./lib/home');
+var homePicture = require('./lib/home-picture');
 var telemetry = require('./lib/telemetry');
 var controls = require('./lib/controls');
 var routes = require('./lib/routes');
@@ -879,6 +880,7 @@ routes.init({
   remoteKeys: remoteKeys,
   homeScreen: homeScreen,
   home: glasshouseHome,
+  homePicture: homePicture,
   screensavers: screensavers,
   updater: updater,
   tvApp: tvApp,
@@ -1694,6 +1696,7 @@ if (!CLI_MODE) {
   liveState.startGroup('power');
   liveState.state.onChange(function (ev) {
     if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) setTimeout(refreshHomeTitles, 20000);
+    if (ev.group === 'power' && ev.key === 'systemOn') homePicture.want('tv', ev.value !== false);
     if (ev.group === 'surface' && ev.key === 'control_app_id' && ev.value === 'com.webos.app.home') refreshHomeTitles();
   });
 
@@ -1705,6 +1708,8 @@ if (!CLI_MODE) {
   screentime.init({ config: CONFIG, liveState: liveState, control: controls.doControl, injectKey: controls.injectKey, keyBack: controls.KEY_BACK });
   screentime.start();
 
+  homePicture.init({ telemetry: telemetry, oled: oled, luna: luna, Subscription: lunaTransport.Subscription });
+  homePicture.want('tv', (liveState.state.snapshot().power || {}).systemOn !== false);
   glasshouseHome.init({
     luna: luna,
     allowExperimental: function () { return CONFIG.allowExperimentalHome === true; },
@@ -1720,7 +1725,11 @@ if (!CLI_MODE) {
     homeKeyApp: remoteKeys.homeApp,
     setStarting: remoteKeys.setStarting,
     build: TVWEB_DISPLAY_VERSION + '@' + Date.now(),
-    homeKeys: function (on) { if (remotebuttons.isSupported()) remotebuttons.want('home', on); }
+    homeKeys: function (on) {
+      if (remotebuttons.isSupported()) remotebuttons.want('home', on);
+      homePicture.want('home', on);
+    },
+    pictureDetails: function (on) { homePicture.want('details', on); }
   });
   glasshouseHome.start();
   /*
