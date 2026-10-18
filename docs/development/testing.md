@@ -48,7 +48,7 @@ The worker itself stays Python 2.7 compatible for the TV.
 
 `test-window-state.js` checks that short gaps in window focus do not publish empty remote attributes, persistent gaps do, standby clears immediately, and reconnects republish the retained state. The server boot test checks that both SurfaceManager subscriptions start only with MQTT enabled.
 
-`test-home.js` checks restoration with delayed screen-saver reads and writes, overlapping switch and layout requests, failed state saves, failed key or settings restoration blocking removal, an externally removed Home app, and a healthy view whose heartbeats later stop. `test-remotekeys.js` checks that a mapping which could not be deleted is reported as a failed change.
+`test-home.js` checks that switching on has sam read the mounted app before LG's Home is stopped and switching off the reverse, that LG's files go back where sam does not take the app, the ways back to LG's Home and the return, a switch-off cut short being finished at start, what earlier builds changed being put back once, failed saves, and a healthy view whose heartbeats later stop. It also checks that LG's layout is left alone unless the empty one is chosen, that the choice applies at once while Glasshouse Home has the place, that a TV an earlier build left on the empty layout keeps it, and that LG's notifications and search are on the Apps row. `test-tvwebctl.js` also checks that a third restart in ten minutes gives LG's Home its place back. `test-remotekeys.js` checks that a mapping which could not be deleted is reported as a failed change, and that the starting notice holds Home for 90 s after the filter loads, and not at all without the compositor's timer.
 
 `test-routes.js` checks that an upload aborted before its file opens leaves no staged file, including a disconnect while disk space is being reserved.
 
@@ -123,6 +123,6 @@ pip install homeassistant
 ./scripts/check-ha-discovery.py
 ```
 
-Home recovery checks cover failed restoration with a durable retry state, definite absent-app replies, HBC cleanup on a TV that never used Home, and backup partial failures. Browser checks cover pending/failed layout edits, first-catalogue failure, delayed readiness, the Home tab left out where Glasshouse Home is not offered, and the Apps tab's notes while it is on.
+Home recovery checks cover a switch-off cut short, failed layout restoration and its retry, failed migration without losing the snapshot or removing the old app, closing the old app when it is left running in the background, and a missing first heartbeat when Home already has the foreground id. Remote-key checks cover clearing the startup notice on escape and retrying a configd write after the local map was saved. Browser checks cover pending/failed layout edits, first-catalogue failure, delayed readiness, the Home tab left out where Glasshouse Home is not offered, and the Apps tab's notes while it is on.
 
 `test-home-wallpaper-upload.js` exercises the real HTTP boundary: rejected and interrupted uploads preserve the previous image, concurrent uploads are refused, the lock is released after an abort, and an uploaded JPEG survives reinitialisation and is served with its image type. The dashboard check prepares a PNG as JPEG, shows the uploaded image and verifies that a second tab recovers after the first finishes uploading.

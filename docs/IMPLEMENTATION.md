@@ -1156,42 +1156,88 @@ feature off, or `tvwebctl restore-home` before uninstalling, deletes the webOS
 
 `lib/home.js` runs a home screen of Glasshouse's own in place of LG's, opt-in
 from the dashboard's Home tab (webOS 9 only). The view is `assets/home.html`,
-opened by a second small web app, `com.tvweb.home` (`assets/home-app/`),
-which `dashboard-app/install-app.sh` packages and installs as it does the
-dashboard's. Its `appinfo.json` declares `"appCategory": ["home"]`, which the
-settings service needs before it takes the app as `defaultApps.home`.
+opened by a small web app whose files are `assets/home-app/index.html` and its
+icons.
 
-webOS 9 opens LG's Home itself on Home and Back whatever `defaultApps` says
-([research](development/TV-RESEARCH.md#taking-over-home-g3-webos-922)). The
-Home key is taken first, in the compositor, by the same filter Remote keys
-uses (`lib/remotekeys.js`), whose configd value then carries `home` naming the
-app. Back cannot be taken from apps, so the server's guard watches the
-foreground app and sends LG's Home back to Glasshouse Home, at most eight
-times in ten seconds. While the view is in
-front it names it in `lastInputApp` and `physicalLastInputApp`, so the TV
-starts on it. The screen saver setting is left alone. Holding Home is read from `/dev/input` by the remote-button worker,
-which runs while MQTT or Glasshouse Home wants it.
+Switched on, that app runs under LG's Home's own id. `lib/home-takeover.js`
+stages it in `/var/lib/tvweb/home-takeover` with an `appinfo.json` naming
+`com.webos.app.home` (type `web`, `visible` false), bind-mounts the directory
+over `/usr/palm/applications/com.webos.app.home`, and has sam read it again
+(`lib/samrescan.js`). Everything on the TV that means Home opens that id: the
+Home button (surface-manager, `hotKey`), Back out of the last app (sam's
+`last_input_handler`), waking on Home (`bootManager`), so all of them open
+Glasshouse Home, with nothing to correct afterwards and no setting changed
+([research](development/TV-RESEARCH.md#replacing-lgs-home-under-its-id-webos-922-g3)).
+The staged files are rewritten at every server start, so a new release reaches
+the page without a remount; the view reloads itself when the server's build
+changes.
 
-Every way the view can fail ends on LG's Home: the app's own page waits on
-black while the server starts, and opens LG's Home through
-`PalmServiceBridge` on OK or when the server has not answered within 90 s,
-and keeps asking it; the view does the same after three failed heartbeats;
-and the server opens LG's Home when the view in front has stopped sending
-its heartbeat for 10 s. A view that has not yet sent one is left alone: after
-a cold start a G3 names the app as in front while Live TV shows and its page
-never loads the view. The server opens the app itself 8 s after it starts
-where it is named in front with no heartbeat yet, which draws it. LG's Home in
-front when the server starts is sent back to Glasshouse Home once. The app is never reinstalled while it runs: after a cold start the
-TV opens it through its input app, and an install then waits on it forever.
+The order matters. sam tells a native app from a web one by the manifest it
+last read, and switching it while the old instance runs leaves it unable to
+close that instance or start the new one, with the screen black. So the mount
+changes and sam reads it first, and only then is the old instance stopped:
+LG's process is killed, or the web page is killed through WebAppMgr's
+`killApp` (`closeByAppId` only sends it to the background). Where that
+instance was in front, sam's `last_input_handler` opens Home again about a
+second later, as the new app.
 
-Switching on saves the five settings it changes into `home.json` once
-(a snapshot from an earlier build that switched the screen saver off over the
-view also holds `screenSaverEnabled`, written back once at server start and
-then dropped);
-switching off writes them back and reads them to check. The layout lives in
-the same file, shared by the Home tab and the view's arrange mode, and is
-re-read when the file changes, so `tvwebctl restore-glasshouse-home` over SSH
-also stops a running server's guard.
+The boot hook (`50-tvweb.sh`) mounts it again about 25 s into a cold start and
+stops LG's Home, which has started in the background by then; the server does
+the same at its start, for a hook that did not run. Until then anything that
+opens Home opens LG's. Where the owner chooses **Hide LG's Home while the TV
+starts** (`hideLgHomeAtStart` in `home.json`, off by default, since it outlives
+Glasshouse), LG's layout files in `/mnt/lg/cmn_data/manifest` hold an empty
+layout while Glasshouse Home has the place, which LG's Home reads when it
+starts 5 s into boot and draws as a black screen. A home.json without the key
+takes it as chosen where an earlier build left that layout. The files
+there before, LG's or the Home screen layout feature's, are kept in
+`/var/lib/tvweb/home-takeover-lg-layout` and put back, with LG's Home's
+checkpoints deleted so it starts fresh on them, before LG's Home gets its
+place back by any route or the option is switched off; `lib/homescreen-webos9.js`
+refuses to change the layout while the empty one is in place. With the option
+off, a layout that cannot be put back stays kept aside and the place is still
+taken. The Home key itself is answered
+earlier still, by the remote key filter (`lib/remotekeys.js`), which the
+compositor loads from configd before any startup hook: while
+`glasshouse.remoteKeys` carries `starting`, a Home press is kept from LG's
+filters, press and release, and the filter asks sam for LG's Home's type; while
+it is not yet `web` it shows `starting` as a toast, and once it is, it opens
+Home and leaves later presses to LG's filters for the rest of the boot. A
+`genericTimer` set in the filter's `init()` ends the hold 90 s after the filter
+loads, so a TV where Glasshouse no longer runs, with `starting` left in
+configd, still reaches LG's Home; the compositor's clock cannot be used, as it
+jumps from 2023 when the TV sets it.
+Every release clears `starting`, including both SSH recovery commands, so a
+first Home press after recovery reaches LG's filters too. A failed configd
+write is retried even where the local map already has the requested value.
+
+The ways back to LG's Home (its tile, holding Home, read from `/dev/input` by
+the remote-button worker, and a view in front without a heartbeat for 10 s, or
+20 s before its first) unmount and open LG's Home. The next app in front, or a
+short press of Home on LG's Home, mounts it again. The app's own page waits on
+black for the server; being LG's Home's app, it cannot open LG's Home itself.
+`tvwebctl stop`, and the watchdog after a third restart in ten minutes, run
+`lib/home-takeover.js --release`, which unmounts without switching Glasshouse
+Home off, so the server takes the place again when it runs.
+The first-heartbeat watch is armed after taking Home even when the foreground
+id stays `com.webos.app.home`. A failed layout restore retains its backup and
+reports failure for a later retry.
+
+Earlier builds made a separate app, `com.tvweb.home`, the TV's Home
+through `defaultApps.home`, the start-up app settings and the remote key
+filter. At start, `cleanLegacy` puts back each of those that still names it
+(the start-up app as the old snapshot had it, or Live TV), clears the key
+filter's Home, and removes the app once nothing has it open. The old app's
+appinfo keeps it running in the background after it is left, so its page is
+closed through WebAppMgr's `killApp` first; removal still waits until sam no
+longer lists it as running.
+The snapshot and old app are kept until settings and key restoration succeed;
+snapshot values for an earlier Home or idle app are restored too. Switching
+off repeats this cleanup, including from the SSH recovery command.
+
+The layout lives in `home.json`, shared by the Home tab and the view's arrange
+mode, and is re-read when the file changes, so `tvwebctl
+restore-glasshouse-home` over SSH is seen by a running server.
 
 ## Apps kept ready in the background
 
