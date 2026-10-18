@@ -305,7 +305,8 @@ var PICTURE_MODES = {
   expert2: { display: 'ISF Expert (Dark)', label: 'expert_dark' },
   technicolor: { display: 'Technicolor' },
   technicolorHdr: { display: 'Technicolor HDR' },
-  hdrEffect: { display: 'HDR Effect', label: 'hdr_effect' }
+  hdrEffect: { display: 'HDR Effect', label: 'hdr_effect' },
+  gallery: { display: 'Gallery', label: 'gallery' }
 };
 
 /*

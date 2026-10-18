@@ -728,17 +728,34 @@ telemetry.refreshInstalledApps(function (apps) {
                   delete settings.backlight;
                   console.log('  ✓ the Always Ready display is reported as its own power state');
 
-                  // 12. A clock stepped back does not keep serving the last stats
-                  mockEnv.files['/proc/uptime'] = '99999.00 45678.90\n';
-                  var realNow = Date.now;
-                  Date.now = function () { return realNow() - 600000; };
-                  telemetry.collectStats(function (third) {
-                    Date.now = realNow;
-                    // Asserted outside: collectStats swallows what its callbacks throw.
-                    setImmediate(function () {
-                      assert.strictEqual(third.uptime, 99999);
-                      console.log('  ✓ a clock stepped back does not keep serving the last stats');
-                      audioOutputs();
+                  // 12. In LG's Gallery app, mode reports Gallery and modes array is empty
+                  var origPicGet = mockEnv.luna['com.webos.service.settings/getSystemSettings'];
+                  mockEnv.luna['com.webos.service.settings/getSystemSettings'] = {
+                    returnValue: true,
+                    dimension: { input: 'gallery', dynamicRange: 'sdr' },
+                    settings: { pictureMode: 'vivid', backlight: '80' }
+                  };
+                  telemetry.clearCache();
+                  telemetry.collectStats(function (galleryStats) {
+                    assert.strictEqual(galleryStats.picture.mode, 'Gallery');
+                    assert.strictEqual(galleryStats.picture.mode_raw, 'gallery');
+                    assert.strictEqual(galleryStats.picture.dynamicRange, 'SDR');
+                    assert.deepEqual(galleryStats.picture.modes, []);
+                    console.log('  ✓ Gallery app reports Gallery picture mode with locked preset list');
+                    mockEnv.luna['com.webos.service.settings/getSystemSettings'] = origPicGet;
+
+                    // 13. A clock stepped back does not keep serving the last stats
+                    mockEnv.files['/proc/uptime'] = '99999.00 45678.90\n';
+                    var realNow = Date.now;
+                    Date.now = function () { return realNow() - 600000; };
+                    telemetry.collectStats(function (third) {
+                      Date.now = realNow;
+                      // Asserted outside: collectStats swallows what its callbacks throw.
+                      setImmediate(function () {
+                        assert.strictEqual(third.uptime, 99999);
+                        console.log('  ✓ a clock stepped back does not keep serving the last stats');
+                        audioOutputs();
+                      });
                     });
                   });
                 });

@@ -2029,15 +2029,18 @@ function collectStats(cb) {
           lunaCachedFn('com.webos.service.settings/getSystemSettings',
             { category: 'picture', keys: ['backlight', 'pictureMode', 'energySaving', 'screenShift', 'logoLuminanceAdjust'] },
             10000, function (pic) {
+              var isGallery = !!((pic && pic.dimension && pic.dimension.input === 'gallery') ||
+                                 (app && typeof app.appId === 'string' && /^com\.webos\.app\.(i?gallery|galleryplus)\b/.test(app.appId)));
               if (pic && pic.settings) {
                 var rawDr = (pic.dimension && pic.dimension.dynamicRange) ? pic.dimension.dynamicRange : null;
+                var rawMode = isGallery ? 'gallery' : (pic.settings.pictureMode || 'standard');
                 out.picture = {
                   dynamicRange: formatDynamicRange(rawDr),
                   // As the TV gave it, null where it gave none, which the
                   // display string above shows as SDR.
                   dynamicRange_raw: rawDr,
-                  mode: formatPicMode(pic.settings.pictureMode),
-                  mode_raw: pic.settings.pictureMode || 'standard',
+                  mode: formatPicMode(rawMode),
+                  mode_raw: rawMode,
                   backlight: toInt(pic.settings.backlight, 50),
                   // As read, null where the TV gave none rather than the 50
                   // the dashboards show.
@@ -2048,7 +2051,7 @@ function collectStats(cb) {
                   modes: []
                 };
               }
-              pictureModes(function (modes) {
+              function afterModes(modes) {
                 if (out.picture) out.picture.modes = modes;
                 refreshInstalledApps(function (apps) {
                   out.apps = apps || [];
@@ -2083,7 +2086,12 @@ function collectStats(cb) {
                     });
                   });
                 });
-              });
+              }
+              if (isGallery) {
+                afterModes([]);
+              } else {
+                pictureModes(afterModes);
+              }
             }
           );
           });

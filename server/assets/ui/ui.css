@@ -464,6 +464,7 @@ html.nav-hidden body.nav-open{overflow:hidden}
 .vol-row.both #mute{grid-row:1;grid-column:3}
 .vol-steps button{min-height:48px;font-size:22px;font-weight:300;line-height:1}
 #picmodes,#energysteps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
+#picmodes:empty{display:none;margin:0}
 #picmodes button,#energysteps button{
   font-size:12.5px;letter-spacing:.04em;padding:12px 6px;line-height:1.25;
   text-align:center;display:flex;align-items:center;justify-content:center;

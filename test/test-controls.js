@@ -303,6 +303,45 @@ console.log('Running test-controls.js ...');
   console.log('  ✓ Backlight sets the current picture mode\'s level, 0 to 100');
 })();
 
+// Picture mode setting and Gallery lock
+(function testPictureMode() {
+  var sets = [];
+  var currentDimension = null;
+  controls.init({
+    config: { allowControl: true },
+    luna: function (uri, payload, cb) {
+      if (uri === 'com.webos.service.settings/getSystemSettings') {
+        return cb({ returnValue: true, dimension: currentDimension, settings: { pictureMode: 'standard' } });
+      }
+      if (uri === 'com.webos.service.settings/setSystemSettings') {
+        sets.push(payload);
+        return cb({ returnValue: true });
+      }
+      cb({ returnValue: true });
+    }
+  });
+
+  // Allowed on regular inputs
+  currentDimension = { input: 'hdmi1', dynamicRange: 'sdr' };
+  controls.doControl('pictureMode', 'cinema', function (res) {
+    assert.strictEqual(res.ok, true);
+    assert.deepEqual(sets[0], {
+      category: 'picture',
+      settings: { pictureMode: 'cinema' },
+      dimension: { input: 'hdmi1', dynamicRange: 'sdr' }
+    });
+  });
+
+  // Locked in Gallery
+  currentDimension = { input: 'gallery', dynamicRange: 'sdr' };
+  controls.doControl('pictureMode', 'standard', function (res) {
+    assert.strictEqual(res.ok, false);
+    assert.strictEqual(res.error, 'picture mode is locked while in Gallery');
+  });
+  assert.strictEqual(sets.length, 1, 'setting picture mode is refused in Gallery');
+  console.log('  ✓ Picture mode sets the preset and locks while in Gallery');
+})();
+
 // A volume step is the remote's own key, which reaches a receiver on HDMI
 // ARC; the audio service only where the key is refused (#437)
 (function testVolumeStepPressesTheKey() {

@@ -107,6 +107,7 @@ assert.deepEqual(mode('dolbyHdrCinemaBright'), ['Dolby Vision Cinema Bright', 'c
 assert.deepEqual(mode('hdrFilmMaker'), ['HDR Filmmaker', 'filmmaker']);
 assert.deepEqual(mode('expert1'), ['ISF Expert (Bright)', 'expert_bright']);
 assert.deepEqual(mode('hdrEffect'), ['HDR Effect', 'hdr_effect']);
+assert.deepEqual(mode('gallery'), ['Gallery', 'gallery']);
 console.log('  ✓ picture mode, labelled by its base mode');
 
 assert.deepEqual(mode('hdrExternal'), ['HDR External', 'standard']);
