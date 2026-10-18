@@ -76,6 +76,40 @@ function noteMediaSeen() {
   try { fs.writeFileSync(MEDIA_SEEN_FILE, '1\n', 'utf8'); } catch (e) {}
 }
 
+/*
+ * What the TV's own player is doing, as { state, playerType, fullScreen }:
+ * state 'idle' where the service answers with nothing playing, and null where
+ * nothing answers. com.webos.service.acb answers on webOS 4.4 (a B8); a C2
+ * (webOS 9.2) has no such service, and com.webos.media/getForegroundAppInfo
+ * gives the foreground app's playState ("playing", "paused") instead, and
+ * nothing for an external input. fresh skips the cache, for Play/Pause, which
+ * sends whichever the player is not doing.
+ */
+var acbAbsent = false;
+var MEDIA_IDLE = { state: 'idle', playerType: null, fullScreen: false };
+function readMediaState(cb, fresh) {
+  var ask = fresh ? function (uri, cb2) { lunaFn(uri, {}, cb2); }
+                  : function (uri, cb2) { lunaCachedFn(uri, {}, 4000, cb2); };
+  function fromMediaService() {
+    ask('com.webos.media/getForegroundAppInfo', function (m) {
+      var list = (m && m.returnValue !== false && Array.isArray(m.foregroundAppInfo)) ? m.foregroundAppInfo : null;
+      if (!list) return cb(null);
+      var app = list.filter(function (a) { return a && a.playState; })[0];
+      cb(app ? { state: String(app.playState), playerType: app.type || null, fullScreen: true } : MEDIA_IDLE);
+    });
+  }
+  if (acbAbsent) return fromMediaService();
+  ask('com.webos.service.acb/getForegroundAppInfo', function (acb) {
+    var pipe = (acb && Array.isArray(acb.acbs)) ? acb.acbs[0] : null;
+    if (pipe && pipe.playStateNow) {
+      return cb({ state: String(pipe.playStateNow), playerType: pipe.playerType || null, fullScreen: pipe.isFullScreen !== false });
+    }
+    if (acb && acb.returnValue !== false && Array.isArray(acb.acbs)) return cb(MEDIA_IDLE);
+    if (acb && /Service does not exist/.test(String(acb.errorText))) acbAbsent = true;
+    fromMediaService();
+  });
+}
+
 // HDMI fields the TV has reported. Home Assistant only gets the entities for
 // these, and withholding one deletes it there, so the set is kept across
 // restarts: a restart with no source connected would otherwise remove them.
@@ -1940,19 +1974,14 @@ function collectStats(cb) {
           }
         });
 
-        lunaCachedFn('com.webos.service.acb/getForegroundAppInfo', {}, 4000, function (acb) {
-        var pipe = (acb && Array.isArray(acb.acbs)) ? acb.acbs[0] : null;
-        if (pipe && pipe.playStateNow) {
-          out.media = {
-            state: String(pipe.playStateNow),
-            playerType: pipe.playerType || null,
-            fullScreen: pipe.isFullScreen !== false
-          };
+        readMediaState(function (media) {
+        if (media && media.state !== 'idle') {
+          out.media = media;
           noteMediaSeen();
-        } else if (acb && acb.returnValue !== false && Array.isArray(acb.acbs) && hasMediaState) {
+        } else if (media && hasMediaState) {
           // The media service answered with nothing playing (a screen saver,
           // the home screen): idle, where no answer at all stays unknown.
-          out.media = { state: 'idle', playerType: null, fullScreen: false };
+          out.media = media;
         }
 
         lunaCachedFn('com.webos.applicationManager/getForegroundAppInfo', {}, 4000, function (app) {
@@ -2259,6 +2288,7 @@ module.exports = {
   detectFrontLights: detectFrontLights,
   detectLogoLight: detectFrontLights,
   collectStats: collectStats,
+  readMediaState: readMediaState,
   clearCache: clearCache,
   expireStats: expireStats,
   getCapabilities: getCapabilities

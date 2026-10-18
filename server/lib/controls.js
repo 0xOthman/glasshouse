@@ -167,15 +167,14 @@ function injectKey(code, cb, delayMs) {
 /*
  * No key toggles the built-in player, so this asks what it is doing and sends
  * the other one. An external input reports "playing" whatever the box on the
- * end is doing, and KEY_PLAY is a toggle over CEC, so that path just sends it.
+ * end is doing, and KEY_PLAY is a toggle over CEC, so that path just sends it;
+ * so does nothing playing.
  */
 function sendPlayPause(cb) {
-  luna('com.webos.service.acb/getForegroundAppInfo', {}, function (acb) {
-    var pipe = (acb && Array.isArray(acb.acbs)) ? acb.acbs[0] : null;
-    var external = !pipe || pipe.playerType === 'external input';
-    var paused = !!(pipe && String(pipe.playStateNow) === 'paused');
-    sendMediaKey(external || paused ? 'play' : 'pause', cb);
-  });
+  telemetry.readMediaState(function (media) {
+    var playing = !!(media && media.state === 'playing' && media.playerType !== 'external input');
+    sendMediaKey(playing ? 'pause' : 'play', cb);
+  }, true);
 }
 
 function sendMediaKey(cmd, cb) {

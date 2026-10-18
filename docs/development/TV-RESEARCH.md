@@ -505,6 +505,17 @@ and others' work on webOS 10
   Mounted from a webosbrew `init.d` hook, the home app was running with the
   changed layout about 29 s after power-on.
 
+## What the player is doing (webOS 4.4.3, B8; webOS 9.2.2, C2)
+
+- The B8 answers `com.webos.service.acb/getForegroundAppInfo` with an `acbs`
+  pipeline list, each with `playStateNow` and `playerType` (`external input`
+  for HDMI). The C2 has no such service ("Service does not exist").
+- On the C2, `com.webos.media/getForegroundAppInfo` gives
+  `foregroundAppInfo: [{ appId, playState, type: "media", mediaId, windowId }]`:
+  YouTube read `playing`, then `paused` after the remote's Pause key, and the
+  list was empty on HDMI 2. `com.webos.media/pause` with that `mediaId`
+  answered `returnValue: false` and did not pause.
+
 ## Boot and app state (webOS 9.2.2, C2)
 
 - The kernel command line has `snapshot resume=/dev/mmcblk0p51 criu_enabled`.
