@@ -121,6 +121,8 @@ Play only releases the app publicly once testers have stayed opted in for 14 day
 
 The pages are built from [docs/](docs/), so they can also be read there.
 
+---
+
 ## Security
 
 The dashboard has **no authentication by default**, for frictionless control from any phone or browser on a trusted local network. **Never expose port 8080 directly to the internet (do not port-forward).** [Security](https://rorygallagher2024.github.io/glasshouse/SECURITY/) covers the token, closing the port to the network, and MQTT.
