@@ -90,7 +90,8 @@ function renderHome() {
   const more = q('home-more');
   if (more) more.hidden = !st.supported.ok;
   const hideRow = q('home-hide-lg-row');
-  if (hideRow) hideRow.hidden = !st.supported.ok;
+  // webOS 9 only: newer TVs have no layout file for LG's Home to start on.
+  if (hideRow) hideRow.hidden = !st.supported.ok || st.hideLgHomeAtStartAvailable === false;
   const hide = q('home-hide-lg');
   if (hide) {
     const armed = homeArmed === 'hide';
