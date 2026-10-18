@@ -517,7 +517,7 @@ iconServer.init({ config: CONFIG, apps: appsModule });
 servicesModule.init({ stateDir: __dirname });
 preload.init({ luna: luna, stateDir: __dirname });
 quickAccess.init({ luna: luna, inputNames: telemetry.inputNameMap });
-remoteKeys.init({ luna: luna, inputNames: telemetry.inputNameMap, stateDir: __dirname });
+remoteKeys.init({ luna: luna, subscription: lunaTransport.Subscription, inputNames: telemetry.inputNameMap, stateDir: __dirname });
 homeScreen.init({ luna: luna, config: CONFIG, inputNames: telemetry.inputNameMap, stateDir: __dirname, webosVersion: telemetry.detectWebosVersion() });
 // webOS 10's layout is an overlay mount, gone after a restart of the TV.
 homeScreen.reapply();
@@ -959,6 +959,8 @@ if (!CLI_MODE) {
   if (preloadTimer.unref) preloadTimer.unref();
   var keysTimer = setTimeout(function () { remoteKeys.ensure(); }, 60000);
   if (keysTimer.unref) keysTimer.unref();
+  var keysRecheck = setInterval(function () { remoteKeys.recheckNative(); }, remoteKeys.RECHECK_MS);
+  if (keysRecheck.unref) keysRecheck.unref();
 }
 
 if (CLI_MODE) {
@@ -1706,6 +1708,8 @@ if (!CLI_MODE) {
   liveState.state.onChange(function (ev) {
     if (ev.group === 'power' && ev.key === 'systemOn' && ev.value === true) setTimeout(refreshHomeTitles, 20000);
     if (ev.group === 'power' && ev.key === 'systemOn') homePicture.want('tv', ev.value !== false);
+    // LG puts its own streaming buttons back around each change, not always announced.
+    if (ev.group === 'power' && ev.key === 'state') remoteKeys.powerChanged();
     if (ev.group === 'surface' && ev.key === 'control_app_id' && ev.value === 'com.webos.app.home') refreshHomeTitles();
   });
 

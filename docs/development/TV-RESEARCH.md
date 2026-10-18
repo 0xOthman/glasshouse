@@ -633,6 +633,60 @@ app in front. Remote Keys puts its own filter first.
   `/mnt/lg/cmn_data/var/preferences/configd_factory_db.json`, kept across
   reboots. There is no delete method, and setting `null` is ignored.
 
+## Native key filters (C5, webOS 11.2.0)
+
+- **No JavaScript filters.** `surface-manager` runs on Weston
+  (`/usr/share/weston/weston.ini` loads `starfish-keyfilters.so`), and the
+  filter chain is `com.webos.surfacemanager.keyFiltersCpp`: `{ file, handler }`
+  pairs naming `/usr/lib/libpreProcess.so`, `libsystemUI.so` and
+  `libappLaunch.so`. `/usr/lib/qt5/qml/KeyFilters/` does not exist, though
+  `com.webos.surfacemanager.keyFilters` still names its files.
+- **Streaming buttons come from `other.mapping_info`.** `handleCPHotkeys` reads
+  the settings service's `other.mapping_info` (37 entries, Netflix to YouTube,
+  each `{ app_id, launch_param, isActive }`) at each press; LG's server sends it,
+  and `libappLaunch.so` also keeps a copy in the microcontroller's database.
+  With `netflix.app_id` changed, the next Netflix press (IR 1045, written to the
+  remote's input device as 1037) launched the new app, caller
+  `com.webos.starfish.keyfilters`, mode `hotKey`; a real press on an MR25GA did
+  the same. With `isActive: false` it launched nothing and showed a toast.
+- **Some keys come from `com.webos.keyaction.*`.** `libappLaunch.so` reads
+  `tvGuide`, `inputHub`, `voice`, `muteX3`, `sleep`, `aspectRatio`,
+  `pictureMode` and `localEnter`, at each press. Guide (IR 370) set to
+  `{ action: "launch", id }` launched that app from Home; on HDMI 2 the input
+  app took the key and opened its own guide, with or without
+  `fgAppIdsForByPass`. Input Hub (IR 1031) followed its value on HDMI 2 too.
+  Input (IR 249) opened `com.webos.app.quickinputpicker` and Red (IR 406) did
+  nothing new, whatever `inputHub` and `colorRed` held.
+- **Keys sent over the network still reach them.** `sendKeyCode` with 362
+  (Guide) opened `com.webos.app.livemenu`, launched by
+  `com.webos.starfish.keyfilters`. Codes above the remote's own input
+  devices' range (Alexa 1086, the ? button 1124, 123 994) reached nothing,
+  written to any of them.
+- **`lginput2` logs every press by name.** `NL_BUTTON_CLICK` in
+  `/var/log/messages` gives `remote_type` and `button_type`. On an MR25GA:
+  `KEY_HOMEDASHBOARD` (the house in a circle; opens
+  `com.webos.app.homeconnect-overlay` through `keyaction.inputHub`),
+  `KEY_MULTIKEY` (?), `KEY_GUIDE`, `KEY_VOICE` (AI), `KEY_HOME`,
+  `KEY_SCREEN_REMOTE` (123), `KEY_ALEXAVOICE`, `KEY_NETFLIX`, `KEY_AMAZON`.
+- **The ? button is LG's custom button.** A press launches
+  `other.customShortPress` (`{ id, type: "app", params }`, LG's default the
+  input picker) with mode `customkey`, a hold `other.customLongPress`
+  (Accessibility). A change applies at the next press. With `type: "None"` a
+  press opened `com.webos.app.accessibility`.
+- **AI, Home, 123 and Alexa read no value.** AI goes to
+  `com.webos.service.voiceconductor` whatever `keyaction.voice` holds; Home
+  launches `com.webos.app.home` from the filter; 123 stays in the compositor
+  (`NL_SCREEN_REMOTE_APP_USE`); Alexa is launched by
+  `amazon.alexa.adapter.plugin`.
+- **`mapping_info` is written back at each switch off and on.** At Active
+  Standby, 60 ms after `NL_POWER_STATE`, and twice more on power-on, the
+  settings service's subscribers got LG's entries again, from the copy kept
+  for the microcontroller (`com.webos.service.lowlevelstorage`, dbid `micom`).
+  configd's key actions and the custom button kept their values. Not every
+  write is announced: around another switch off and on the list was written
+  back nine times, five of them with no message to the subscriber, the last
+  60 s after power-on.
+
 ## Promoted stub apps (G3, webOS 9.2.2)
 
 On 18 October 2026, with a network-wide ad blocker in the house switched off,
