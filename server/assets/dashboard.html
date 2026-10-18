@@ -229,6 +229,128 @@ body.light #flash{color:rgba(0,0,0,.88)}
 <script src="/assets/qr.js"></script>
 <script src="/assets/i18n.js"></script>
 <script>
+/* webOS 2.x runs WebKit 538.2, which has neither fetch nor Promise (ES6): on a
+   55UH600V the page threw ReferenceError on new Promise, so the clock stuck at
+   --:-- and tabs never rendered (#746). Minimal ES5 Promise covering what this
+   page and the fetch polyfill below need. */
+if (!window.Promise) {
+  (function () {
+    function Promise(fn) {
+      var state = 'pending';
+      var val = undefined;
+      var handlers = [];
+
+      function resolve(v) {
+        if (state !== 'pending') return;
+        if (v && (typeof v === 'object' || typeof v === 'function')) {
+          var then;
+          try { then = v.then; } catch (e) { return reject(e); }
+          if (typeof then === 'function') {
+            var called = false;
+            try {
+              then.call(v, function (y) {
+                if (called) return;
+                called = true;
+                resolve(y);
+              }, function (r) {
+                if (called) return;
+                called = true;
+                reject(r);
+              });
+            } catch (e) {
+              if (!called) reject(e);
+            }
+            return;
+          }
+        }
+        state = 'fulfilled';
+        val = v;
+        run();
+      }
+
+      function reject(err) {
+        if (state !== 'pending') return;
+        state = 'rejected';
+        val = err;
+        run();
+      }
+
+      function run() {
+        if (state === 'pending') return;
+        setTimeout(function () {
+          while (handlers.length) {
+            var h = handlers.shift();
+            var cb = state === 'fulfilled' ? h.onFulfilled : h.onRejected;
+            if (!cb) {
+              if (state === 'fulfilled') h.resolve(val);
+              else h.reject(val);
+              continue;
+            }
+            try {
+              var res = cb(val);
+              h.resolve(res);
+            } catch (e) {
+              h.reject(e);
+            }
+          }
+        }, 0);
+      }
+
+      this.then = function (onFulfilled, onRejected) {
+        return new Promise(function (nextResolve, nextReject) {
+          handlers.push({
+            onFulfilled: typeof onFulfilled === 'function' ? onFulfilled : null,
+            onRejected: typeof onRejected === 'function' ? onRejected : null,
+            resolve: nextResolve,
+            reject: nextReject
+          });
+          run();
+        });
+      };
+
+      this['catch'] = function (onRejected) {
+        return this.then(null, onRejected);
+      };
+
+      try {
+        fn(resolve, reject);
+      } catch (e) {
+        reject(e);
+      }
+    }
+
+    Promise.resolve = function (v) {
+      return new Promise(function (res) { res(v); });
+    };
+
+    Promise.reject = function (err) {
+      return new Promise(function (res, rej) { rej(err); });
+    };
+
+    Promise.all = function (arr) {
+      return new Promise(function (resolve, reject) {
+        if (!arr || !arr.length) return resolve([]);
+        var results = new Array(arr.length);
+        var remaining = arr.length;
+        for (var i = 0; i < arr.length; i++) {
+          (function (idx) {
+            Promise.resolve(arr[idx]).then(function (res) {
+              results[idx] = res;
+              remaining--;
+              if (remaining === 0) resolve(results);
+            }, reject);
+          })(i);
+        }
+      });
+    };
+
+    window.Promise = Promise;
+    if (typeof Promise === 'undefined') {
+      try { Promise = window.Promise; } catch (e) {}
+    }
+  })();
+}
+
 /* webOS 3.x runs Chromium 38, which has Promise but not fetch (Chrome 42): on a
    58UH635V the page drew its header and loaded nothing. This covers what the
    page asks of fetch, over XMLHttpRequest, which i18n.js already tags with the
@@ -257,6 +379,9 @@ if (!window.fetch) {
       x.send(opts.body === undefined ? null : opts.body);
     });
   };
+  if (typeof fetch === 'undefined') {
+    try { fetch = window.fetch; } catch (e) {}
+  }
 }
 
 /* Every section reads an endpoint the server already serves to the browser
