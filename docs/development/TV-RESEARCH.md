@@ -517,6 +517,10 @@ and others' work on webOS 10
 - `com.webos.service.capture/executeOneShot` with `{ path, method: "DISPLAY",
   width: 1920, height: 1080, format: "JPEG" }` saves what is on screen,
   including the home app.
+- On a B8 (webOS 4.4.3) there is no `com.webos.service.capture`;
+  `com.webos.service.tv.capture/executeOneShot` takes the same payload,
+  answers `capturedWidth: 0` and still writes the file, and its picture
+  includes the HDMI video, which the C2's leaves black.
 - `luna-send` run from an SSH shell can print nothing for
   `com.webos.applicationManager` calls, while the same call from a node child
   process answers.
