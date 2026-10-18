@@ -127,6 +127,13 @@ The dashboard has **no authentication by default**, for frictionless control fro
 
 ---
 
+## Support the project
+
+Glasshouse is free, open-source, and maintained in spare time alongside community contributions. If it provides value to you, donations are much appreciated, helping to offset the personal cost of LLM tokens used for development and webOS research.
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow.svg)](https://buymeacoffee.com/rorygallagher2024)
+
+---
 ## Disclaimer
 
 **Use this software at your own risk.**
