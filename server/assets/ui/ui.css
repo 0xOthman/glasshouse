@@ -553,6 +553,7 @@ html.nav-hidden body.nav-open{overflow:hidden}
 .toast-form input:focus{border-color:var(--w100)}
 .toast-form input::placeholder{color:var(--w60)}
 .toast-form button{flex-shrink:0;padding:0 22px;min-height:48px}
+#port-input{flex:0 0 84px;width:84px;font-variant-numeric:tabular-nums}
 button{
   font-family:'Manrope';font-weight:500;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
   color:var(--w80);background:transparent;border:1px solid var(--edge);
