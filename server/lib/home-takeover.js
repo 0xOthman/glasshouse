@@ -63,6 +63,7 @@ var checkpointDirs = ['/tmp/checkpoint', '/mnt/lg/cmn_data/checkpoint'];
 var execFn = execFile;
 var killFn = function (pid) { process.kill(pid, 'SIGTERM'); };
 var blankWanted = function () { return false; };
+var blockFirst = function () { return false; };
 
 function init(opts) {
   opts = opts || {};
@@ -78,6 +79,7 @@ function init(opts) {
   if (opts.exec) execFn = opts.exec;
   if (opts.kill) killFn = opts.kill;
   if (opts.blankAtStart) blankWanted = opts.blankAtStart;
+  if (opts.blockFirst) blockFirst = opts.blockFirst;
 }
 
 function luna(uri, payload, cb) {
@@ -88,6 +90,9 @@ function luna(uri, payload, cb) {
 /*
  * The manifest sam reads for LG's Home while it is mounted. LG's own keeps
  * visible false, so neither LG's app list nor Glasshouse Home's lists it.
+ * appCategory home as LG's has it: on webOS 10 the Home key opens the default
+ * app of that category, and without it sam has none and the key does nothing
+ * (a G5, webOS 10.3.1).
  */
 function manifest() {
   return {
@@ -103,7 +108,8 @@ function manifest() {
     bgColor: '#000000',
     resolution: '1920x1080',
     visible: false,
-    disableBackHistoryAPI: true
+    disableBackHistoryAPI: true,
+    appCategory: ['home']
   };
 }
 
@@ -280,15 +286,34 @@ function samType(cb) {
   });
 }
 
-// sam reads the directory again and reports the type wanted.
-function reread(wantWeb, cb) {
+// Whether sam has this release's manifest, appCategory included.
+function samHasManifest(cb) {
+  luna('com.webos.applicationManager/getAppInfo', { id: LG_HOME }, function (r) {
+    var info = r && r.appInfo;
+    cb(!!info && info.type === 'web' &&
+       JSON.stringify(info.appCategory || null) === JSON.stringify(manifest().appCategory));
+  });
+}
+
+/*
+ * sam reads the directory again and reports the type wanted. webOS 10 and 11
+ * ignore the nudge, which costs its 8 s of polls before the block and release
+ * there, so they go to the block and release first.
+ */
+function reread(wantWeb, cb, check) {
   if (!samrescan) return cb(false);
-  function check(done) {
+  check = check || function (done) {
     samType(function (type) { done(type !== null && (type === 'web') === wantWeb); });
+  };
+  var first = blockFirst() ? 'rereadApp' : 'refresh';
+  var then = first === 'refresh' ? 'rereadApp' : 'refresh';
+  function call(name, next) {
+    if (name === 'refresh') samrescan.refresh(check, next);
+    else samrescan.rereadApp(LG_HOME, check, next);
   }
-  samrescan.refresh(check, function (ok) {
+  call(first, function (ok) {
     if (ok) return cb(true);
-    samrescan.rereadApp(LG_HOME, check, cb);
+    call(then, cb);
   });
 }
 
@@ -342,14 +367,16 @@ function take(cb) {
         return cb({ ok: true, stoppedLg: stopped > 0 });
       }
       giveBack('sam did not take Glasshouse Home as Home');
-    });
+    }, samHasManifest);
   }
   function giveBack(error) {
     release(function (r) { cb({ ok: false, error: r.ok ? error : error + '; ' + r.error }); });
   }
   if (mounted()) {
-    return samType(function (type) {
-      if (type !== 'web') return settle();
+    // The files can be current while sam still has an earlier manifest,
+    // after a restart between staging and rereading, or a failed reread.
+    return samHasManifest(function (ok) {
+      if (!ok) return settle();
       var layout = layoutForTake();
       if (!layout.ok) return giveBack(layout.error);
       stopLgHome();
