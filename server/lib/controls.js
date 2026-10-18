@@ -361,6 +361,9 @@ function doControl(action, value, cb) {
       var pMode = String(value || '').trim();
       if (!pMode) return cb({ ok: false, error: 'missing picture mode' });
       return luna('com.webos.service.settings/getSystemSettings', { category: 'picture', keys: ['pictureMode'] }, function (cur) {
+        if (cur && cur.dimension && cur.dimension.input === 'gallery') {
+          return cb({ ok: false, error: 'picture mode is locked while in Gallery' });
+        }
         var pPayload = { category: 'picture', settings: { pictureMode: pMode } };
         if (cur && cur.dimension) pPayload.dimension = cur.dimension;
         luna('com.webos.service.settings/setSystemSettings', pPayload, function (r) {
