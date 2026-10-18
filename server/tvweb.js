@@ -621,6 +621,7 @@ controls.init({
   ntp: ntpClient,
   history: history,
   backup: backup,
+  home: glasshouseHome,
   republishDiscovery: function () { republishDiscovery(); },
   tvApp: tvApp,
   restartSelf: restartSelf,
@@ -943,6 +944,7 @@ if (!CLI_MODE) {
 }
 
 if (!CLI_MODE) servicesModule.startEnforcing();
+if (!CLI_MODE) appsModule.syncLauncherPort(CONFIG.port);
 // Discovery carries the icons' address once the server is listening.
 if (!CLI_MODE) iconServer.start(function (err, started) { if (started) republishDiscovery(); });
 // Late, so configd is up after a boot.
