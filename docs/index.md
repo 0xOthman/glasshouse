@@ -8,15 +8,19 @@
 >
 > ## You bought the TV.
 >
-> **You control the TV. You own the glass.**
+> **It's your TV and you should control it. You own the glass.**
 >
-> The philosophy behind this project is simple: **ownership should include meaningful control.**
-> A TV should remain useful and controllable by its owner, rather than
-> being treated primarily as a platform for services, telemetry and vendor-controlled
-> experiences.
+> Designed for those who reject their network-connected home appliances being
+> used as a platform for advertising, telemetry and vendor-controlled
+> experiences, this project brings control, visibility and automation back to
+> the device.
 >
-> This project brings control, visibility and automation back to the device.
-> Local, transparent, and without requiring a manufacturer cloud service.
+> It offers multiple ways to remove ads, withdraw from agreements and services
+> designed to monetize your data, and make the TV a simpler, more streamlined
+> experience — alongside a wide range of useful features, customisation and
+> local smart-home integration.
+>
+> Glasshouse itself is local, transparent, and requires no cloud service.
 > No nonsense, no data collection, no ads, no dark patterns. I don't want your data.
 
 **Glasshouse** is a server that runs directly on a rooted LG webOS TV, providing both a live browser dashboard and a dashboard app.
