@@ -7126,5 +7126,13 @@
  "srv.home.hdmiDevices": {
   "text": "{devices} — {port}",
   "from": "{devices} — {port}"
+ },
+ "ctl.settings": {
+  "text": "Ajustes",
+  "from": "Settings"
+ },
+ "ctl.dpad.keys": {
+  "text": "Con un teclado: las flechas, Intro para OK, Esc o Retroceso para Atrás, H para Inicio, M para Ajustes, Espacio para reproducir o pausar, K para silenciar.",
+  "from": "On a keyboard: the arrows, Enter for OK, Esc or Backspace for Back, H for Home, M for Settings, Space to play or pause, K to mute."
  }
 }

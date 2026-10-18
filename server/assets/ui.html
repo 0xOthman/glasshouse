@@ -310,16 +310,18 @@
 
       <div class="set">
         <div class="dpad">
-          <button class="dp dp-up"    onclick="sendCommand('rcu','up')"    title="Up" data-t-title="ctl.up">&#9650;</button>
-          <button class="dp dp-left"  onclick="sendCommand('rcu','left')"  title="Left" data-t-title="ctl.left">&#9664;</button>
-          <button class="dp dp-ok"    onclick="sendCommand('rcu','ok')"    title="Select" data-t-title="ctl.select" translate="no">OK</button>
-          <button class="dp dp-right" onclick="sendCommand('rcu','right')" title="Right" data-t-title="ctl.right">&#9654;</button>
-          <button class="dp dp-down"  onclick="sendCommand('rcu','down')"  title="Down" data-t-title="ctl.down">&#9660;</button>
+          <button class="dp dp-up" data-rcu="up"    onclick="sendCommand('rcu','up')"    title="Up" data-t-title="ctl.up">&#9650;</button>
+          <button class="dp dp-left" data-rcu="left"  onclick="sendCommand('rcu','left')"  title="Left" data-t-title="ctl.left">&#9664;</button>
+          <button class="dp dp-ok" data-rcu="ok"    onclick="sendCommand('rcu','ok')"    title="Select" data-t-title="ctl.select" translate="no">OK</button>
+          <button class="dp dp-right" data-rcu="right" onclick="sendCommand('rcu','right')" title="Right" data-t-title="ctl.right">&#9654;</button>
+          <button class="dp dp-down" data-rcu="down"  onclick="sendCommand('rcu','down')"  title="Down" data-t-title="ctl.down">&#9660;</button>
         </div>
         <div class="btns">
-          <button onclick="sendCommand('rcu','back')" data-t="ctl.back">Back</button>
-          <button onclick="sendCommand('rcu','home')" data-t="ctl.home">Home</button>
+          <button onclick="sendCommand('rcu','back')" data-rcu="back" data-t="ctl.back">Back</button>
+          <button onclick="sendCommand('rcu','home')" data-rcu="home" data-t="ctl.home">Home</button>
+          <button onclick="sendCommand('rcu','settings')" data-rcu="settings" data-t="ctl.settings">Settings</button>
         </div>
+        <p class="sub dpad-keys" data-t="ctl.dpad.keys">On a keyboard: the arrows, Enter for OK, Esc or Backspace for Back, H for Home, M for Settings, Space to play or pause, K to mute.</p>
       </div>
     </details>
 

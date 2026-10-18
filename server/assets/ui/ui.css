@@ -606,6 +606,10 @@ button.pill.busy:not([style*="--p"]){
 .dp-ok{grid-column:2;grid-row:2}
 .dp-right{grid-column:3;grid-row:2}
 .dp-down{grid-column:2;grid-row:3}
+/* A remote key pressed on the keyboard, shown as if clicked. */
+button.key-hit{background:var(--w10)}
+.dpad-keys{margin-top:12px}
+@media (pointer:coarse){.dpad-keys{display:none}}
 .oled-row{display:flex;gap:20px;justify-content:space-between;align-items:flex-start;
           padding:18px 0;border-bottom:1px solid var(--w12)}
 .oled-row:last-child{border-bottom:0}

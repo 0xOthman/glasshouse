@@ -43,7 +43,10 @@ var RCU_KEYS = {
   left: 105,
   right: 106,
   ok: 28,
-  back: 412
+  back: 412,
+  // IR_KEY_MENU (147) less the 8 xkb adds: LG's quick settings, as the
+  // remote's Settings button opens them (a C2, webOS 9.2).
+  settings: 139
 };
 
 // The remote's volume keys: evdev codes, IR_KEY_VOL_UP and IR_KEY_VOL_DOWN in

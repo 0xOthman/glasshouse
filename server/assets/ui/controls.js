@@ -582,6 +582,42 @@ fetch(api('/api/caps')).then(r => r.json()).then(cp => {
   if (!cp.allowPower) q('pwset').hidden = true;
 }).catch(() => {});
 
+/*
+ * The remote from a keyboard while the Control tab is open (#831). Left to the
+ * page: keys typed into a field, keys with Ctrl, Alt or Cmd, anything while a
+ * dialog or the menu is open, and Enter or Space on a focused control other
+ * than the D-pad, so the page still works from the keyboard.
+ */
+const KEYBOARD_REMOTE = {
+  ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+  Enter: 'ok', Escape: 'back', Backspace: 'back', h: 'home', m: 'settings'
+};
+let keyboardRemoteAt = 0;
+document.addEventListener('keydown', e => {
+  if (activeTab !== 'control' || e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) return;
+  const el = e.target;
+  if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+  if (document.querySelector('.modal-backdrop:not([hidden])') || document.body.classList.contains('nav-open')) return;
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  const rcu = KEYBOARD_REMOTE[key];
+  if (!rcu && key !== ' ' && key !== 'k') return;
+  if ((key === 'Enter' || key === ' ') && el && el !== document.body && !el.dataset.rcu &&
+      el.matches('button, a, summary, [tabindex]')) return;
+  e.preventDefault();
+  // A held key repeats about 30 times a second; the TV is sent at most one in 150 ms.
+  const now = Date.now();
+  if (e.repeat && now - keyboardRemoteAt < 150) return;
+  keyboardRemoteAt = now;
+  if (key === 'k') return toggleMute();
+  if (key === ' ') return sendCommand('media', 'playPause');
+  const btn = document.querySelector('[data-rcu="' + rcu + '"]');
+  if (btn) {
+    btn.classList.add('key-hit');
+    setTimeout(() => btn.classList.remove('key-hit'), 150);
+  }
+  sendCommand('rcu', rcu);
+});
+
 // D-pad disclosure: uncollapse by default on mobile so the TV remote is immediately accessible.
 function updateDpadMobileDefault() {
   const dpad = q('disc-dpad');
