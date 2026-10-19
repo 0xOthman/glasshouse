@@ -4,6 +4,7 @@
  * made to read them before LG's Home is stopped, and switching off the
  * reverse; LG's Home starts on an empty layout while it is taken where that
  * is chosen, and on its own otherwise and whenever it has its place back;
+ * LG's Home auto launch is off while it is on, and put back after;
  * LG's notifications and search are on the Apps row; the ways back to LG's Home give its
  * place back until something else is in front; what earlier builds changed is undone once; and a view
  * that sends no heartbeat is replaced by LG's Home
@@ -157,6 +158,8 @@ function luna(uri, p, cb) {
     } else tv.events.push('close page');
   } else if (uri === 'com.webos.applicationManager/running') {
     r.running = tv.oldAppRunning ? [{ id: OLD_APP }] : [];
+  } else if (uri === 'com.webos.service.tvpower/power/getPowerOnReason') {
+    r.reason = tv.powerOnReason || 'remoteKey';
   } else if (uri === 'com.webos.applicationManager/launch') {
     tv.launched.push(p.id);
     if (tv.launchFails) r.returnValue = false;
@@ -191,6 +194,9 @@ var listeners = [];
 var liveState = { state: { onChange: function (fn) { listeners.push(fn); } } };
 function foreground(id) {
   listeners.forEach(function (fn) { fn({ group: 'application', key: 'app_id', value: id }); });
+}
+function powerState(state) {
+  listeners.forEach(function (fn) { fn({ group: 'power', key: 'state', value: state }); });
 }
 function power(on) {
   listeners.forEach(function (fn) { fn({ group: 'power', key: 'screenOn', value: on }); });
@@ -413,6 +419,231 @@ step('switching on reads the new files into sam before stopping LG\'s Home, and 
       assert.ok(fs.existsSync(path.join(checkpointDir, LG_HOME)), 'a layout never changed leaves LG\'s checkpoint alone');
       done();
     });
+  });
+});
+
+/*
+ * With LG's Home auto launch on, bootd opens LG's Home at power-on and it is in
+ * front until the boot hook takes its place; the boot hook reads lgAutoLaunch.
+ */
+step('switching on turns LG\'s Home auto launch off, and switching off puts it back as it was', function (done) {
+  start(null);
+  tv.settings.homeAutoLaunch = 'on';
+  tv.settings.checkHomeAutoLaunchValue = 'default';
+  tv.settings.quickStartMode = 'off';
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    wait(20, function () {
+      assert.strictEqual(tv.settings.homeAutoLaunch, 'off');
+      var saved = JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8'));
+      assert.strictEqual(saved.lgAutoLaunch, 'on', 'kept for the boot hook and for switching off');
+      assert.strictEqual(saved.lgAutoLaunchCheck, 'default');
+      // Writing the setting marks it as the owner's on the TV.
+      tv.settings.checkHomeAutoLaunchValue = 'user';
+      home.disable(function (r2) {
+        assert.ok(r2.ok, r2.error);
+        assert.strictEqual(tv.settings.homeAutoLaunch, 'on');
+        assert.strictEqual(tv.settings.checkHomeAutoLaunchValue, 'default');
+        assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')).lgAutoLaunch, null);
+        done();
+      });
+    });
+  });
+});
+
+/*
+ * With Quick Start+ on, a power-on resumes the TV with Glasshouse Home in place,
+ * and bootd opens it as Home only while auto launch is on.
+ */
+step('with Quick Start+ on, LG\'s Home auto launch is left as the owner had it, and followed when it changes', function (done) {
+  start(null);
+  tv.settings.homeAutoLaunch = 'on';
+  tv.settings.quickStartMode = 'on';
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    wait(20, function () {
+      assert.strictEqual(tv.settings.homeAutoLaunch, 'on');
+      tv.settings.quickStartMode = 'off';
+      power(false);
+      wait(20, function () {
+        assert.strictEqual(tv.settings.homeAutoLaunch, 'off', 'Quick Start+ switched off: every power-on is a cold start');
+        // Unreadable, as just after a wake: nothing changes.
+        delete tv.settings.quickStartMode;
+        tv.settings.homeAutoLaunch = 'off';
+        power(true);
+        wait(20, function () {
+        assert.strictEqual(tv.settings.homeAutoLaunch, 'off', 'an unread Quick Start+ changes nothing');
+        tv.settings.quickStartMode = 'on';
+        power(false);
+        wait(20, function () {
+          assert.strictEqual(tv.settings.homeAutoLaunch, 'on', 'and on again: the owner\'s value is back');
+          assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')).lgAutoLaunch, null);
+          home.disable(function () { done(); });
+        });
+        });
+      });
+    });
+  });
+});
+
+step('woken from Active Standby with auto launch held off, Glasshouse Home opens over the input, as LG would have', function (done) {
+  start(null);
+  tv.settings.homeAutoLaunch = 'on';
+  tv.settings.quickStartMode = 'off';
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    foreground('com.webos.app.hdmi4');
+    powerState('Active');
+    powerState('Active Standby');
+    tv.launched = [];
+    // Once auto launch is held off.
+    wait(20, function () {
+    powerState('Active');
+    wait(1700, function () {
+      assert.deepEqual(tv.launched, [LG_HOME]);
+      // A wake LG does not open Home for, such as Wake-on-LAN, stays on the input.
+      tv.powerOnReason = 'wakeOnLan';
+      tv.launched = [];
+      powerState('Active Standby');
+      powerState('Active');
+      wait(1700, function () {
+        assert.deepEqual(tv.launched, []);
+        home.disable(function () { done(); });
+      });
+    });
+    });
+  });
+});
+
+step('a layout saved from a dashboard keeps LG\'s Home auto launch as it was', function (done) {
+  start({ enabled: true, lgAutoLaunch: 'on', lgAutoLaunchCheck: 'default' });
+  home.setLayout({ reset: true, colours: null }, function (r) {
+    assert.ok(r.ok, r.error);
+    var saved = JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8'));
+    assert.strictEqual(saved.lgAutoLaunch, 'on', 'or switching off could not put it back');
+    assert.strictEqual(saved.lgAutoLaunchCheck, 'default');
+    done();
+  });
+});
+
+step('disabling during an auto-launch read leaves LG\'s setting restored', function (done) {
+  var releaseRead;
+  start(null, { luna: function (uri, payload, cb) {
+    luna(uri, payload, function (r) {
+      if (payload.keys && payload.keys.indexOf('homeAutoLaunch') !== -1) {
+        releaseRead = function () { cb(r); };
+      } else cb(r);
+    });
+  } });
+  tv.settings.homeAutoLaunch = 'on';
+  tv.settings.quickStartMode = 'off';
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    wait(20, function () {
+      var result = null;
+      home.disable(function (r2) { result = r2; });
+      wait(20, function () {
+        releaseRead();
+        wait(20, function () {
+          assert.ok(result && result.ok, 'switch-off finishes after the pending read');
+          assert.strictEqual(tv.settings.homeAutoLaunch, 'on');
+          assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')).lgAutoLaunch, null);
+          done();
+        });
+      });
+    });
+  });
+});
+
+step('auto launch already off is never rewritten on switching off', function (done) {
+  start(null);
+  tv.settings.homeAutoLaunch = 'off';
+  tv.settings.checkHomeAutoLaunchValue = 'default';
+  tv.settings.quickStartMode = 'off';
+  home.enable(function (r) {
+    assert.ok(r.ok, r.error);
+    wait(20, function () {
+      tv.events = [];
+      home.disable(function (r2) {
+        assert.ok(r2.ok, r2.error);
+        assert.strictEqual(tv.settings.homeAutoLaunch, 'off');
+        assert.ok(!tv.events.some(function (event) { return event.indexOf('settings homeAutoLaunch') === 0; }),
+          'writing even the same value marks it as user on a G5');
+        done();
+      });
+    });
+  });
+});
+
+step('a refused takeover at start leaves LG\'s auto launch available', function (done) {
+  var cases = [false, true];
+  (function run() {
+    if (!cases.length) return done();
+    var held = cases.shift();
+    start({ enabled: true, lgAutoLaunch: held ? 'on' : null, lgAutoLaunchCheck: held ? 'default' : null });
+    tv.settings.homeAutoLaunch = held ? 'off' : 'on';
+    tv.settings.quickStartMode = 'off';
+    tv.samRefusesWeb = true;
+    home.start();
+    wait(50, function () {
+      assert.ok(!taken());
+      assert.strictEqual(tv.settings.homeAutoLaunch, 'on', held ? 'restore a previous hold' : 'do not start a hold');
+      run();
+    });
+  })();
+});
+
+step('a delayed wake never overrides a source choice or outlives its wake', function (done) {
+  var cases = ['input', 'app and back', 'standby', 'stop', 'input during reason', 'disable during reason'];
+  (function run() {
+    if (!cases.length) return done();
+    var scenario = cases.shift();
+    var releaseReason;
+    start(null, { luna: function (uri, payload, cb) {
+      luna(uri, payload, function (r) {
+        if (uri === 'com.webos.service.tvpower/power/getPowerOnReason' && scenario.indexOf('during reason') !== -1) {
+          releaseReason = function () { cb(r); };
+        } else cb(r);
+      });
+    } });
+    tv.settings.homeAutoLaunch = 'on';
+    tv.settings.quickStartMode = 'off';
+    home.enable(function (r) {
+      assert.ok(r.ok, r.error);
+      wait(20, function () {
+        foreground('com.webos.app.hdmi4');
+        powerState('Active');
+        powerState('Active Standby');
+        powerState('Active');
+        wait(scenario.indexOf('during reason') !== -1 ? 1600 : 50, function () {
+          if (scenario.indexOf('input') === 0) foreground('com.webos.app.hdmi2');
+          if (scenario === 'app and back') { foreground('netflix'); foreground('com.webos.app.hdmi4'); }
+          if (scenario === 'standby') { powerState('Active Standby'); power(false); }
+          if (scenario === 'stop') home.stop();
+          function check() {
+            if (releaseReason) releaseReason();
+            wait(scenario.indexOf('during reason') !== -1 ? 20 : 1600, function () {
+              assert.deepEqual(tv.launched, [], scenario);
+              home.disable(function (r2) { assert.ok(r2.ok, r2.error); run(); });
+            });
+          }
+          if (scenario === 'disable during reason') return home.disable(function (r2) { assert.ok(r2.ok, r2.error); check(); });
+          check();
+        });
+      });
+    });
+  })();
+});
+
+step('switched on in LG\'s settings while Glasshouse Home is on, auto launch is kept as on and off again at start', function (done) {
+  start({ enabled: true, lgAutoLaunch: 'off' });
+  tv.settings.homeAutoLaunch = 'on';
+  tv.settings.quickStartMode = 'off';
+  home.start();
+  wait(50, function () {
+    assert.strictEqual(tv.settings.homeAutoLaunch, 'off');
+    assert.strictEqual(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')).lgAutoLaunch, 'on');
+    home.disable(function () { done(); });
   });
 });
 

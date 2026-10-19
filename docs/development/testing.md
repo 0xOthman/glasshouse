@@ -56,6 +56,11 @@ The worker itself stays Python 2.7 compatible for the TV.
 
 `test-routes.js` checks that an upload aborted before its file opens leaves no staged file, including a disconnect while disk space is being reserved.
 
+The Home suite also checks auto-launch restoration with a delayed settings
+read, no write when auto launch was already off, and a refused takeover with
+and without an earlier hold. Wake cases cover source changes, standby,
+server stop and switch-off, including delayed power-on reason replies.
+
 ## Home Assistant
 
 [`home-assistant.yml`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/home-assistant.yml) builds every discovery config the server can publish and
@@ -76,7 +81,9 @@ config shows there first.
 
 [`dashboards.yml`](https://github.com/rorygallagher2024/glasshouse/blob/main/.github/workflows/dashboards.yml) starts the real server against a fake TV, opens every tab of
 the web dashboard and the TV app in a headless browser, and fails on any
-script error, naming the tab. A function a page calls that has gone, or an
+script error or failed request, naming the tab. A 404 for an app's icon is
+not a failure: it is how the server says an app has none, and the fake TV's
+installed apps have no icon files. A function a page calls that has gone, or an
 element it reaches for that has moved, breaks only when that tab opens, which
 no unit test does. It runs when the server, the pages or the fake TV change.
 
