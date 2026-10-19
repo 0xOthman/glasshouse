@@ -66,6 +66,8 @@
   });
 })();
 
+// End of theme initialization.
+// Language and theme settings are applied above.
 // ---- language (auto / a language) ----
 (function initLanguage() {
   const chosen = I18N.stored();

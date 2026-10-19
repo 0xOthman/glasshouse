@@ -1,4 +1,19 @@
 {
+ "search.clear": {"text": "Borrar búsqueda", "from": "Clear search"},
+ "search.category": {"text": "Categoría: {category}", "from": "Category: {category}"},
+ "search.count": {"text": "{n} resultados", "from": "{n} results"},
+ "search.empty": {"text": "Sin coincidencias. Prueba puerto, brillo, MQTT o red.", "from": "No matches. Try port, brightness, MQTT, or network."},
+ "search.open": {"text": "Buscar", "from": "Search"},
+ "search.label": {"text": "Buscar ajustes, secciones, aplicaciones y controles", "from": "Search settings, sections, apps and controls"},
+ "search.kind.action": {"text": "Acción", "from": "Action"},
+ "search.kind.log": {"text": "Registro", "from": "Log"},
+ "search.kind.section": {"text": "Sección", "from": "Section"},
+ "search.kind.setting": {"text": "Ajuste", "from": "Setting"},
+ "search.kind.tab": {"text": "Pestaña", "from": "Tab"},
+ "search.pin": {"text": "Fijar acceso directo", "from": "Pin shortcut"},
+ "search.pinned": {"text": "Fijados", "from": "Pinned"},
+ "search.results": {"text": "Resultados de búsqueda", "from": "Search results"},
+ "search.unpin": {"text": "Quitar acceso directo", "from": "Remove shortcut"},
  "adv.alwaysReady": {
   "text": "Always Ready",
   "from": "Always Ready"
