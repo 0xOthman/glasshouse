@@ -584,7 +584,14 @@ before the server has started. The Apps tab's copy is kept in
 
 A key it names is consumed on press and release, the press opening what was
 chosen with `applicationManager.launch(id, "{}")` or nothing; every other key
-returns `NextPolicy`. LG's files are never written. configd has no way to
+returns `NextPolicy`. A key set to a media control holds `media:` and the
+control's name (`media:pause`) in place of an app id, and its press sends the
+control's Linux key code through `com.webos.service.networkinput/test/sendKeyCode`,
+the same codes as the dashboard's media buttons (play 207, pause 119, stop 128,
+rewind 168, fast forward 208, volume up 115, volume down 114, mute 113;
+volume repeats while the key is held). Those keys go through the chain again, and the
+filter names none of them, so they reach LG's filters and the app in front.
+LG's files are never written. configd has no way to
 delete a value, so **As LG has it** on every key leaves the filter in the
 chain, passing every key on, and `tvwebctl restore-keys` takes it out, deletes
 the file and leaves `glasshouse.remoteKeys` as an empty map.

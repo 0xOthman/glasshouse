@@ -593,6 +593,12 @@ app in front. Remote Keys puts its own filter first.
   `com.webos.service.networkinput/test/sendKeyCode` with a Linux key code (the
   `IR_KEY_*` value in `/usr/share/X11/xkb/keycodes/lg` less 8: Blue 401, TV 377)
   reached a mapped key's filter like the remote's own press.
+- **A filter can send keys over the network.** On a C3 (webOS 10.2.2) the
+  filter's own `lunaCall.send` to `networkinput/test/sendKeyCode` with play
+  207, pause 119, stop 128, rewind 168, fast forward 208, volume up 115, volume
+  down 114 and mute 113 acted as the remote's keys. A play/pause toggle that
+  first asked `com.webos.service.acb/getForegroundAppInfo` (then
+  `com.webos.media`'s) and sent pause or play did nothing.
 - **A rebuild re-runs LG's `init()`s.** In Game mode each write of the key
   opened the Game Dashboard (`NL_GAMEDASHBOARD_ENTERED`,
   `"entered_by":"HotKey"` in `/var/log/messages`) on the C2. Launching an app
