@@ -1994,7 +1994,7 @@
  "srv.home.startLayoutWebos9": {"text": "El Inicio de LG solo se puede ocultar al arrancar en webOS 9.", "from": "LG's Home can be hidden at start on webOS 9 only."},
  "srv.home.startingToast": {"text": "Glasshouse Home está arrancando. Se abre en unos segundos.", "from": "Glasshouse Home is starting. It opens in a few seconds."},
  "srv.home.unknownTile": {"text": "eso no está en Glasshouse Home", "from": "that is not on Glasshouse Home"},
- "srv.home.untested": {"text": "Glasshouse Home solo se ha probado en webOS 5, 9 y 10. Esta TV usa webOS {version}.", "from": "Glasshouse Home has been tried only on webOS 9 and 10. This TV runs webOS {version}."},
+ "srv.home.untested": {"text": "Glasshouse Home solo se ha probado en webOS 9 y 10. Esta TV usa webOS {version}.", "from": "Glasshouse Home has been tried only on webOS 9 and 10. This TV runs webOS {version}."},
  "srv.home.wallUploadImage": {"text": "Elige un JPEG válido de hasta 1920 × 1080 píxeles.", "from": "Choose a valid JPEG up to 1920 × 1080 pixels."},
  "srv.home.wallUploadSize": {"text": "El JPEG subido debe ocupar como máximo 5 MB e indicar su tamaño.", "from": "The uploaded JPEG must be at most 5 MB and state its size."},
  "srv.home.wallUploadSpace": {"text": "No hay espacio libre confirmado suficiente para el fondo.", "from": "Not enough confirmed free space for the wallpaper."},
@@ -2054,5 +2054,12 @@
  "tv.options.rebooting": {"text": "Reiniciando…", "from": "Rebooting…"},
  "tv.options.sleep.hint": {"text": "Apaga la TV cuando pase este tiempo.", "from": "Switches the TV off once this time has passed."},
  "tv.options.sleep.toNext": {"text": "Pulsa OK para {time}", "from": "Press OK for {time}"},
- "tv.options.sleep.toOff": {"text": "Pulsa OK para apagarla", "from": "Press OK to turn it off"}
+ "tv.options.sleep.toOff": {"text": "Pulsa OK para apagarla", "from": "Press OK to turn it off"},
+ "home.exp.title": {"text": "Glasshouse Home en esta TV", "from": "Glasshouse Home on this TV"},
+ "home.exp.desc": {"text": "Glasshouse Home no se ha probado en webOS {version}. Esto lo permite aquí de todos modos, tras un aviso.", "from": "Glasshouse Home has not been tried on webOS {version}. This allows it here anyway, after a warning."},
+ "home.exp.offDesc": {"text": "Activa primero Glasshouse Home en esta TV, más arriba.", "from": "Switch on Glasshouse Home on this TV above first."},
+ "home.exp.confirm": {"text": "¿Permitir Glasshouse Home en esta TV?\n\nNo se ha probado en esta versión de webOS. Una vez permitido, se activa y desactiva en la pestaña Home. Desactivar esto devuelve el Inicio de LG.", "from": "Allow Glasshouse Home on this TV?\n\nIt has not been tried on this webOS version. Once allowed, it is switched on and off on the Home tab. Switching this off gives LG’s Home back."},
+ "server.experimental.home": {"text": "Glasshouse Home en esta TV", "from": "Glasshouse Home on this TV"},
+ "server.experimental.home.short": {"text": "Permite Glasshouse Home en la versión de webOS de esta TV, donde no se ha probado, en la pestaña Home.", "from": "Allows Glasshouse Home on this TV’s webOS version, where it has not been tried, on the Home tab."},
+ "srv.home.needsSetting": {"text": "Glasshouse Home no se ha probado en webOS {version}. Se puede activar para esta TV en la pestaña Home del panel.", "from": "Glasshouse Home has not been tried on webOS {version}. It can be switched on for this TV on the dashboard's Home tab."}
 }
