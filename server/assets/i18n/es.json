@@ -7213,5 +7213,9 @@
  "ctl.dpad.keys": {
   "text": "Con un teclado: las flechas, Intro para OK, Esc o Retroceso para Atrás, H para Inicio, M para Ajustes, Espacio para reproducir o pausar, K para silenciar.",
   "from": "On a keyboard: the arrows, Enter for OK, Esc or Backspace for Back, H for Home, M for Settings, Space to play or pause, K to mute."
+ },
+ "home.experimental": {
+  "text": "Experimental. Glasshouse Home sustituye la pantalla de inicio de LG por la de Glasshouse. Se ha probado en webOS 9 y 10. En el primer medio minuto tras un arranque en frío de la TV, Inicio muestra un mensaje de que Glasshouse Home se está iniciando.",
+  "from": "Experimental. Glasshouse Home replaces LG's Home screen with Glasshouse's own. It has been tried on webOS 9 and 10. In the first half minute after the TV starts from cold, Home shows a message that Glasshouse Home is starting."
  }
 }
