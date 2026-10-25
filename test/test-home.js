@@ -705,6 +705,50 @@ step('webOS 11 only with allowExperimentalHome', function (done) {
   });
 });
 
+step('webOS 11 shows the switch for allowExperimentalHome, and switching it off gives LG\'s Home back', function (done) {
+  var allowed = false;
+  start(null, { webosVersion: '11.2.0', allowExperimental: function () { return allowed; } });
+  home.status(function (st0) {
+    assert.strictEqual(st0.available, true, 'the tab stays, to show the switch');
+    assert.deepEqual(st0.experimentalSetting, { allowed: false });
+    assert.strictEqual(st0.supported.setting, true);
+    allowed = true;
+    tv.nudgeIgnored = true;
+    lgRunning(false);
+    home.enable(function (r) {
+      assert.ok(r.ok, r.error);
+      assert.ok(taken());
+      assert.deepEqual(home.experimentalSetting(), { allowed: true });
+      allowed = false;
+      home.allowChanged(function (r2) {
+        assert.ok(r2.ok, r2.error);
+        assert.strictEqual(home.enabled(), false);
+        assert.ok(!taken(), 'LG\'s Home has its place back');
+        home.allowChanged(function (r3) {
+          assert.ok(r3.ok, 'nothing left to give back');
+          done();
+        });
+      });
+    });
+  });
+});
+
+step('webOS 9 and 10 show no switch: Glasshouse Home is offered there anyway', function (done) {
+  start(null, { webosVersion: '9.2.2' });
+  home.status(function (st9) {
+    assert.strictEqual(st9.experimentalSetting, null);
+    start(null, { webosVersion: '10.3.1' });
+    home.status(function (st10) {
+      assert.strictEqual(st10.experimentalSetting, null);
+      start(null, { webosVersion: '4.4.3' });
+      home.status(function (st4) {
+        assert.strictEqual(st4.available, false, 'webOS 4 neither offers it nor shows a switch');
+        done();
+      });
+    });
+  });
+});
+
 step('webOS 10 is offered without the setting, with LG\'s Flutter Home stopped and no start-up layout', function (done) {
   start(null, { webosVersion: '10.3.1' });
   home.status(function (st0) {

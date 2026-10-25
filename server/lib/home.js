@@ -874,14 +874,40 @@ function change(action, cb) {
 
 function copy(o) { return JSON.parse(JSON.stringify(o)); }
 
+/*
+ * Versions where Glasshouse Home waits for allowExperimentalHome: it has not
+ * been tried there, so the owner switches it on first, from the Home tab or
+ * the Server tab. webOS 11 (a C4 on 11.2.0) has the same Flutter home app.
+ */
+function needsSetting() { return /^11\./.test(String(webosVersion || '')); }
+
+// { allowed } where the switch is shown, else null.
+function experimentalSetting() { return needsSetting() ? { allowed: allowExperimentalFn() === true } : null; }
+
+/*
+ * allowExperimentalHome has been saved. Switched off, Glasshouse Home gives
+ * LG's Home back on a TV where it is no longer offered.
+ */
+function allowChanged(cb) {
+  var c = readConfig();
+  if (supported().ok || (!c.enabled && !takeover.mounted())) return cb({ ok: true });
+  console.log('home: allowExperimentalHome switched off; LG\'s Home given back');
+  change(function (done) { disable(function (r) { homeKeysFn(false); done(r); }); }, cb);
+}
+
 function supported() {
   var v = String(webosVersion || '');
   if (serverPort !== 8080) return { ok: false, webos: v,
     reason: msg('srv.home.port', 'Glasshouse Home requires the dashboard to use port 8080.') };
   if (/^9\./.test(v)) return { ok: true, webos: v };
   // LG's Home is a Flutter app there, under the same id and folder (#612).
-  // Tried on a G5 (webOS 10.3.1); webOS 11 is untried and needs the setting.
-  if (/^10\./.test(v) || (/^11\./.test(v) && allowExperimentalFn())) return { ok: true, webos: v, experimental: true };
+  // Tried on a G5 (webOS 10.3.1).
+  if (/^10\./.test(v)) return { ok: true, webos: v, experimental: true };
+  if (needsSetting()) {
+    if (allowExperimentalFn()) return { ok: true, webos: v, experimental: true };
+    return { ok: false, webos: v, setting: true,
+      reason: msg('srv.home.needsSetting', 'Glasshouse Home has not been tried on webOS {version}. It can be switched on for this TV on the dashboard\'s Home tab.', { version: v }) };
+  }
   return {
     ok: false, webos: v || null,
     reason: msg('srv.home.untested', 'Glasshouse Home has been tried only on webOS 9 and 10. This TV runs webOS {version}.', { version: v || '?' })
@@ -1365,9 +1391,11 @@ function status(cb) {
   takeover.samType(function (type) {
     cb({
       ok: true,
-      // Both dashboards leave Home out where it is false, as for other features a TV lacks.
-      available: sup.ok || c.enabled || c.restorePending,
+      // Both dashboards leave Home out where it is false, as for other features a
+      // TV lacks. Where a setting would offer it, it stays, to show the switch.
+      available: sup.ok || c.enabled || c.restorePending || needsSetting(),
       supported: sup,
+      experimentalSetting: experimentalSetting(),
       enabled: c.enabled,
       restorePending: c.restorePending,
       // In LG's Home's place now; false while one of the ways back has LG's Home open.
@@ -1557,7 +1585,9 @@ module.exports = {
   normalise: normalise,
   layout: function () { return layoutOf(readConfig()); },
   programme: programme,
-  enabled: function () { return readConfig().enabled; }
+  enabled: function () { return readConfig().enabled; },
+  experimentalSetting: experimentalSetting,
+  allowChanged: allowChanged
 };
 
 // tvwebctl restore-glasshouse-home: no server running, so luna is found here.

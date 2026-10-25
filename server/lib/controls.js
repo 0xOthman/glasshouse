@@ -932,6 +932,17 @@ function doControl(action, value, cb) {
         cb(getUpdateSummary());
       });
 
+    // Glasshouse Home on a webOS version where it has not been tried.
+    case 'setExperimentalHomeAllowed':
+      var allowHome = (value === true || value === 'on' || value === 'true');
+      if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });
+      return writeSettingsFn({ allowExperimentalHome: allowHome }, function (err) {
+        if (err) return cb({ ok: false, error: 'could not save setting: ' + err.message });
+        if (config) config.allowExperimentalHome = allowHome;
+        if (!homeModule) return cb(getUpdateSummary());
+        homeModule.allowChanged(function (r) { cb(r && r.ok ? getUpdateSummary() : r); });
+      });
+
     case 'setWebos10ScreensaversAllowed':
       var allowSs = (value === true || value === 'on' || value === 'true');
       if (!writeSettingsFn) return cb({ ok: false, error: 'no writeSettings handler configured' });

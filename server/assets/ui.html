@@ -971,6 +971,16 @@
 
 <section class="priv panel" id="homepane" role="tabpanel" hidden>
   <div class="pv-note warn" data-t="home.experimental">Experimental. Glasshouse Home replaces LG's Home screen with Glasshouse's own. It has been tried on webOS 9 only. In the first half minute after the TV starts from cold, Home shows a message that Glasshouse Home is starting.</div>
+  <!-- Where Glasshouse Home waits for allowExperimentalHome: the switch, as under Server, Advanced. -->
+  <div class="prot-table" id="home-exp" hidden>
+    <div class="prot-row">
+      <div class="prot-main">
+        <div class="prot-title" data-t="home.exp.title">Glasshouse Home on this TV</div>
+        <div class="prot-desc" id="home-exp-desc"></div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="home-exp-btn" onclick="toggleExperimentalHome('home-exp-btn')">&mdash;</button></div>
+    </div>
+  </div>
   <div class="prot-table">
     <div class="prot-row">
       <div class="prot-main">
@@ -1483,6 +1493,13 @@
             <div class="prot-desc" data-t="server.experimental.homeLayout.short">Allows switching off parts of LG&rsquo;s Home screen on webOS 10, on the Apps tab.</div>
           </div>
           <div class="prot-status"><button type="button" class="pill idle" id="exp-homelayout" onclick="toggleHomeLayoutAllowed('exp-homelayout')">&mdash;</button></div>
+        </div>
+        <div class="prot-row" id="exp-home-row" hidden>
+          <div class="prot-main">
+            <div class="prot-title" data-t="server.experimental.home">Glasshouse Home on this TV</div>
+            <div class="prot-desc" data-t="server.experimental.home.short">Allows Glasshouse Home on this TV&rsquo;s webOS version, where it has not been tried, on the Home tab.</div>
+          </div>
+          <div class="prot-status"><button type="button" class="pill idle" id="exp-home" onclick="toggleExperimentalHome('exp-home')">&mdash;</button></div>
         </div>
         <div class="prot-row" id="exp-screensaver-row" hidden>
           <div class="prot-main">

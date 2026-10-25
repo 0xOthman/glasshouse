@@ -75,7 +75,9 @@ function renderHome() {
     desc.textContent = t('home.restoreRetry', 'Retry restoring LG Home before switching Glasshouse Home on again.');
   } else if (!st.supported.ok) {
     state.textContent = t('home.unavailable', 'Not available on this TV');
-    desc.textContent = st.supported.reason || '';
+    desc.textContent = st.supported.setting
+      ? t('home.exp.offDesc', 'Switch on Glasshouse Home on this TV above first.')
+      : st.supported.reason || '';
   } else if (st.enabled) {
     state.textContent = t('home.isOn', 'Glasshouse Home is the TV’s Home');
     desc.textContent = st.lgHomeOpen
@@ -86,6 +88,15 @@ function renderHome() {
   } else {
     state.textContent = t('home.isOff', 'LG’s Home is the TV’s Home');
     desc.textContent = t('home.isOffDesc', 'Nothing of LG’s is changed: Glasshouse Home is laid over LG’s Home while on, and switching off takes it away.');
+  }
+  const exp = q('home-exp');
+  if (exp) {
+    exp.hidden = !st.experimentalSetting;
+    if (st.experimentalSetting) {
+      const on = st.experimentalSetting.allowed;
+      q('home-exp-desc').textContent = t('home.exp.desc', 'Glasshouse Home has not been tried on webOS {version}. This allows it here anyway, after a warning.', { version: st.supported.webos || '?' });
+      updateToggle('home-exp-btn', { cls: on ? 'good' : 'idle', label: on ? t('common.on', 'On') : t('common.off', 'Off'), on, disabled: st.writable === false });
+    }
   }
   const more = q('home-more');
   if (more) more.hidden = !st.supported.ok;
@@ -466,4 +477,19 @@ async function homeClearUploads() {
   try { await homePost('/api/home/wallpapers', { removeUploads: true }); }
   catch (e) { q('home-wall-upload-note').textContent = e.message; }
   await loadHome();
+}
+
+/*
+ * Glasshouse Home on a webOS version where it has not been tried
+ * (allowExperimentalHome): the switch on this tab and the one under Server,
+ * Advanced. Switched off, LG's Home gets its place back.
+ */
+async function toggleExperimentalHome(btnId) {
+  const b = q(btnId);
+  const turnOn = !(b && b.dataset.on);
+  if (turnOn && !confirm(t('home.exp.confirm', 'Allow Glasshouse Home on this TV?\n\nIt has not been tried on this webOS version. Once allowed, it is switched on and off on the Home tab. Switching this off gives LG\u2019s Home back.'))) return;
+  if (b) b.disabled = true;
+  await sendCommand('setExperimentalHomeAllowed', turnOn);
+  loadHome();
+  if (typeof loadUpdate === 'function') loadUpdate();
 }

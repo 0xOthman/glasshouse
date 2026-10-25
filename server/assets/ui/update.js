@@ -149,6 +149,19 @@ function renderUpdate(d) {
     }
   }
 
+  const ehRow = q('exp-home-row');
+  if (ehRow) {
+    ehRow.hidden = !d.experimentalHome;
+    if (d.experimentalHome) {
+      updateToggle('exp-home', {
+        cls: d.experimentalHome.allowed ? 'good' : 'idle',
+        label: d.experimentalHome.allowed ? t('common.on', 'On') : t('common.off', 'Off'),
+        on: d.experimentalHome.allowed,
+        disabled: !d.writable
+      });
+    }
+  }
+
   const ssRow = q('exp-screensaver-row');
   if (ssRow) {
     ssRow.hidden = !d.isWebos10;

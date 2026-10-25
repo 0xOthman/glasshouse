@@ -199,7 +199,8 @@ var CONFIG = {
   allowExperimentalScreensavers: false,
 
   // Glasshouse Home is offered on webOS 9 and 10, where it has been tried.
-  // This lets it be switched on on webOS 11 too, untried there. File-only.
+  // This lets it be switched on on webOS 11 too, untried there, from the Home
+  // tab or the Server tab.
   allowExperimentalHome: false,
 
   // Hiding built-in system tiles is experimental: restarting the app manager
