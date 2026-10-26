@@ -8,6 +8,7 @@ var execFile = require('child_process').execFile;
 var msg = require('./say').msg;
 var timers = require('./timers');
 var saverPowerOff = require('./saverpoweroff');
+var clock = require('./clock');
 var names = require('./names');
 
 /*
@@ -702,6 +703,13 @@ function doControl(action, value, cb) {
                     telemetry.clearCache();
                     cb({ ok: !!(r && r.returnValue) });
                   });
+
+    /*
+     * systemservice's timeFormat preference (HH12 or HH24), which sets the hour
+     * cycle for every clock Glasshouse draws and persists in systemprefs.db.
+     */
+    case 'clockHour12':
+      return clock.set(value, cb, luna);
 
     case 'wakeOnLan':
       var wolOn = (value === true || value === 'on' || value === 'ON' || value === 'true');

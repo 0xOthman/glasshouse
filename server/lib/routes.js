@@ -1787,10 +1787,11 @@ function handleRequest(req, res) {
     return telemetryModule.collectStats(function (s) {
       // PicCap's capture, where it is installed, for the Advanced tab.
       piccapStatusFn(function (pc) {
-        if (!pc && u.query.with !== 'settings') return send(res, 200, JSON.stringify(s));
+        if (!pc && !clockModule && u.query.with !== 'settings') return send(res, 200, JSON.stringify(s));
         // Copied, since s is telemetry's cache.
         var copy = {};
         for (var k in s) copy[k] = s[k];
+        if (clockModule) copy.clockHour12 = clockHour12();
         if (pc) copy.piccapCapture = pc;
         if (u.query.with !== 'settings') return send(res, 200, JSON.stringify(copy));
         // The TV dashboard's System page, which reads one endpoint, also lists

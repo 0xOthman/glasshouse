@@ -1,9 +1,9 @@
 /*
  * lib/clock.js - whether the clocks Glasshouse draws use 12-hour time
  *
- * They follow the TV's own setting, as LG's menus do: systemservice's
- * timeFormat preference, HH12 or HH24 (HH12 on a webOS 7 TV set to 12-hour,
- * #934). A TV that gives none keeps 24-hour time.
+ * Reads and sets systemservice's timeFormat preference, HH12 or HH24 (seeded
+ * as HH12 in /etc/palm/defaultPreferences.txt on webOS 4 and 9, with no switch
+ * in LG's own Settings menu, #934). A TV that gives none keeps 24-hour time.
  *
  * Read at start and again at most once a minute while something asks, so the
  * answer to hour12() is always at hand and never waits on the TV.
@@ -48,6 +48,28 @@ function refresh(cb) {
   });
 }
 
+/*
+ * Writes the TV's timeFormat preference (HH12 or HH24), updates the cached
+ * answer at once and notifies onChangeFn when it changed.
+ */
+function set(on, cb, fallbackLuna) {
+  cb = cb || function () {};
+  var call = lunaFn || fallbackLuna;
+  if (!call) return cb({ ok: false });
+  var next = on === true || on === 'on' || on === 'ON' || on === 'true' || on === '12' || on === 'HH12';
+  call('com.webos.service.systemservice/setPreferences',
+    { timeFormat: next ? 'HH12' : 'HH24' },
+    function (r) {
+      if (!r || !r.returnValue) return cb({ ok: false });
+      readAt = Date.now();
+      if (next !== is12) {
+        is12 = next;
+        onChangeFn(is12);
+      }
+      cb({ ok: true, clockHour12: is12 });
+    });
+}
+
 // The last answer; one older than a minute is read again for next time.
 function hour12() {
   if (Date.now() - readAt > STALE_MS) refresh();
@@ -57,5 +79,6 @@ function hour12() {
 module.exports = {
   init: init,
   refresh: refresh,
+  set: set,
   hour12: hour12
 };
