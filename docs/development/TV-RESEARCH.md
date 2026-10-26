@@ -73,12 +73,20 @@ that answers `no result from DB`.
 `luna://com.webos.service.capture/executeOneShot` with `method: DISPLAY`
 writes a PNG of the screen, web apps included, at the size asked for.
 
-## The TV's 12 or 24 hour clock (webOS 7.6.0)
+## The TV's 12 or 24 hour clock (webOS 4.4, 7.6, 9.2)
 
 `com.webos.service.systemservice/getPreferences` with `keys: ["timeFormat"]`
-answers `timeFormat: "HH12"` on a 65UQ801C0SB set to 12-hour time (#934);
-24-hour is `HH24`, not yet seen on a TV. The clocks Glasshouse draws follow
-it, and a TV that answers without `timeFormat` is taken as 24-hour.
+reads `timeFormat` (`"HH12"` or `"HH24"`) from `/var/luna/preferences/systemprefs.db`.
+On an OLED65B8SLC (webOS 4.4.3) and an OLED42C24LA (webOS 9.2.2) set to the UK
+(`en-GB`, `Europe/London`), `/etc/palm/defaultPreferences.txt` seeds
+`systemprefs.db` with `"timeFormat": "HH12"`, and LG's Settings app
+(`com.palm.app.settings`) has no switch for it (its own menus read
+`localeInfo.clock: "locale"`). `systemservice/getPreferenceValues` with
+`key: "timeFormat"` lists `["HH12", "HH24"]` on both TVs, and
+`systemservice/setPreferences` with `timeFormat: "HH12"` or `"HH24"` updates
+`TimePrefsHandler` in `/usr/sbin/LunaSysService` and persists the choice in
+`systemprefs.db`. The clocks Glasshouse draws follow it, and a TV that answers
+without `timeFormat` is taken as 24-hour.
 
 ## Home input titles (G3, webOS 9.2.2)
 

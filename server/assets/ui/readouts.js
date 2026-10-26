@@ -296,13 +296,20 @@ async function tick() {
       powerTimerRows(d.powerTimers);
       const wolVal = getLease('wakeOnLan', d.wakeOnLan);
       advPill('wol', 'btn_wol', wolVal !== undefined ? wolVal : d.wakeOnLan);
+      const clock12Val = getLease('clockHour12', d.clockHour12);
+      const clock12Now = clock12Val !== undefined ? clock12Val : d.clockHour12;
+      advPill('clock12', 'btn_clock12', clock12Now);
+      if (typeof clock12Now === 'boolean' && typeof homeStatus === 'object' && homeStatus && homeStatus.clockHour12 !== clock12Now) {
+        homeStatus.clockHour12 = clock12Now;
+        if (typeof renderHomeColours === 'function') renderHomeColours();
+      }
       const logoVal = getLease('lgLogo', d.lgLogo);
       advPill('lglogo', 'btn_lglogo', logoVal !== undefined ? logoVal : d.lgLogo);
       const sbVal = getLease('standbyLight', lights.standby);
       advPill('standby', 'lt_standby', sbVal !== undefined ? sbVal : lights.standby);
       const ltLogoVal = getLease('logoLight', lights.logo);
       advPill('logolight', 'lt_logo', lights.hasLogo ? (ltLogoVal !== undefined ? ltLogoVal : lights.logo) : undefined);
-      if (q('adv-display')) q('adv-display').hidden = d.lgLogo === undefined;
+      if (q('adv-display')) q('adv-display').hidden = d.lgLogo === undefined && d.clockHour12 === undefined;
       if (q('adv-lights')) q('adv-lights').hidden = lights.standby === undefined && !lights.hasLogo;
       const pc = d.piccapCapture;
       const pcVal = getLease('piccap', pc ? pc.running : undefined);

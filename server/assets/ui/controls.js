@@ -35,6 +35,7 @@ function advPill(row, id, on) {
 function flip(id) { const el = q(id); return el && el.dataset.on ? 'off' : 'on'; }
 function toggleLight(which) { sendCommand(which, flip(which === 'standbyLight' ? 'lt_standby' : 'lt_logo')); }
 function toggleQuickBoot() { sendCommand('quickBoot', flip('btn_quickboot')); }
+function toggleClockHour12() { sendCommand('clockHour12', flip('btn_clock12')); }
 function toggleLgLogo() { sendCommand('lgLogo', flip('btn_lglogo')); }
 function togglePiccap() { sendCommand('piccap', flip('btn_piccap')); }
 function toggleWol() { sendCommand('wakeOnLan', flip('btn_wol')); }
@@ -145,6 +146,14 @@ function applyOptimistic(action, value) {
     const on = value === 'on' || value === true;
     setLease('wakeOnLan', on);
     advPill('wol', 'btn_wol', on);
+  } else if (action === 'clockHour12') {
+    const on = value === 'on' || value === true;
+    setLease('clockHour12', on);
+    advPill('clock12', 'btn_clock12', on);
+    if (typeof homeStatus === 'object' && homeStatus) {
+      homeStatus.clockHour12 = on;
+      if (typeof renderHomeColours === 'function') renderHomeColours();
+    }
   } else if (action === 'lgLogo') {
     const on = value === 'on' || value === true;
     setLease('lgLogo', on);

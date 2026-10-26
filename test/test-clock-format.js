@@ -75,17 +75,25 @@ function capsBody() {
 }
 
 var routes = require('../server/lib/routes');
+var controls = require('../server/lib/controls');
 var screensavers = require('../server/lib/screensavers');
 var clock = require('../server/lib/clock');
 
 // What getPreferences answers: { timeFormat } or null for a TV without it.
 var answer = null;
 var asked = 0;
+var written = [];
 function luna(uri, payload, cb) {
   if (uri === 'com.webos.service.systemservice/getPreferences') {
     asked++;
     assert.deepEqual(payload, { keys: ['timeFormat'] });
     return cb(answer);
+  }
+  if (uri === 'com.webos.service.systemservice/setPreferences') {
+    written.push(payload);
+    if (answer && answer.returnValue === false) return cb(answer);
+    answer = { returnValue: true, timeFormat: payload.timeFormat };
+    return cb({ returnValue: true });
   }
   cb(null);
 }
@@ -93,15 +101,27 @@ var changes = [];
 clock.init({ luna: luna, onChange: function (on) { changes.push(on); } });
 
 var config = { web: { enabled: false }, token: '', allowControl: true };
+controls.init({ luna: luna, config: config });
 routes.init({
   config: config,
   configFile: CFG,
   version: '0.118.0',
   clock: clock,
+  telemetry: { collectStats: function (cb) { cb({ ok: true }); } },
+  piccapStatus: function (cb) { cb(null); },
   fromHomebrewChannel: function () { return false; },
   updater: { updateSummary: function () { return { ok: true, writable: true }; } },
   privacy: { tvUpdatesBlocked: function () { return false; } }
 });
+
+function statsBody() {
+  var body = null;
+  routes.handleRequest(createMockReq('/api/stats'), createMockRes(function (res) {
+    assert.strictEqual(res.statusCode, 200);
+    body = JSON.parse(res.body);
+  }));
+  return body;
+}
 
 // 1. A TV that gives no setting keeps 24-hour time.
 (function testNoSetting() {
@@ -165,6 +185,29 @@ routes.init({
   assert.ok(staged.indexOf('property bool hour12: false') !== -1, staged);
   env.restore();
   console.log('  ✓ the staged screen saver is written with the TV\'s hour cycle');
+})();
+
+// 5. The Advanced tab's clockHour12 control writes HH12 or HH24 through systemservice.
+(function testSetClockHour12() {
+  changes = [];
+  written = [];
+  var res = null;
+  controls.doControl('clockHour12', 'on', function (r) { res = r; });
+  assert.deepEqual(res, { ok: true, clockHour12: true });
+  assert.deepEqual(written, [{ timeFormat: 'HH12' }]);
+  assert.strictEqual(clock.hour12(), true);
+  assert.strictEqual(capsBody().clockHour12, true);
+  assert.strictEqual(statsBody().clockHour12, true);
+  assert.strictEqual(routes.updateSummary().clockHour12, true);
+  assert.deepEqual(changes, [true]);
+
+  controls.doControl('clockHour12', 'off', function (r) { res = r; });
+  assert.deepEqual(res, { ok: true, clockHour12: false });
+  assert.deepEqual(written, [{ timeFormat: 'HH12' }, { timeFormat: 'HH24' }]);
+  assert.strictEqual(clock.hour12(), false);
+  assert.strictEqual(statsBody().clockHour12, false);
+  assert.deepEqual(changes, [true, false]);
+  console.log('  ✓ clockHour12 sets HH12 or HH24 in systemservice and updates every reader');
 })();
 
 try { fs.unlinkSync(CFG); } catch (e) {}
