@@ -92,8 +92,10 @@ body{font-family:'Manrope',sans-serif;color:#fff;
 .val{font-family:'Manrope',sans-serif;font-weight:400;font-size:3.1vh;color:rgba(255,255,255,.75);
   text-align:right;white-space:nowrap;padding-left:2vw}
 .row.sel .val{font-weight:600;color:rgba(255,255,255,.90)}
-/* A second, smaller line under a value, in the space the row leaves below it. */
+/* A second, smaller line under a value, in the space the row leaves below it.
+   A row with two is taller by one such line (TALL_VH). */
 .val .sub{display:block;font-size:2.1vh;line-height:1.2;font-weight:400;color:rgba(255,255,255,.5)}
+.row.tall{height:10.2vh}
 /* Catalog rows: an icon, a version and a root badge beside the title. The
    title gives way with an ellipsis rather than pushing the state off the row. */
 .row.cat .lbl{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -402,7 +404,7 @@ var TABS = [
   { key: 'settings', label: t('tv.tab.settings', 'Settings'),    url: '/api/setup',       build: settingsRows }
 ];
 
-var tab = 0, sel = 0, busy = false, ROW_VH = 7.6, HEAD_VH = 5.4;
+var tab = 0, sel = 0, busy = false, ROW_VH = 7.6, TALL_VH = 10.2, HEAD_VH = 5.4;
 var initialSel = null;
 /* Where a phone can reach this server. Only the server knows it - the app is
    served from localhost - so it is asked for once and kept. */
@@ -1462,8 +1464,10 @@ function settingsRows(d) {
                : t('tv.settings.web.open', 'It is on for your home network, with no password, so anyone on that network can use it.'))
              : t('tv.settings.web.off', 'It is off, so only this TV can reach the dashboard.')) });
   if (d.network && d.address) {
-    // The TV's DNS name under it, where the home network's DNS has one.
-    r.push({ label: t('tv.settings.address', 'Address'), value: d.address, sub: d.hostname || null, web: '/',
+    // The TV's DNS name where the home network's DNS has one, and its local
+    // addresses under it.
+    var addresses = [d.hostname, d.address, d.address6].filter(Boolean);
+    r.push({ label: t('tv.settings.address', 'Address'), value: addresses[0], sub: addresses.slice(1), web: '/',
              hint: t('tv.settings.address.hint', 'Where the web dashboard is, for a browser on a phone or computer on your home network.'),
              scan: t('tv.settings.address.scan', 'Scan to open it on your phone.') });
   }
@@ -1995,7 +1999,12 @@ function backOut() {
 
 // ---- rendering ----
 
-function rowHeight(r) { return (r && r.head ? HEAD_VH : ROW_VH) * window.innerHeight / 100; }
+function rowHeight(r) { return (r && r.head ? HEAD_VH : isTall(r) ? TALL_VH : ROW_VH) * window.innerHeight / 100; }
+
+// A row's smaller lines under its value: sub is one, or a list of them.
+function subLines(r) { return r && r.sub ? [].concat(r.sub) : []; }
+
+function isTall(r) { return subLines(r).length > 1; }
 
 function render() {
   var box = document.getElementById('rows'), msg = document.getElementById('msg');
@@ -2019,10 +2028,10 @@ function render() {
   msg.style.display = 'none';
   box.innerHTML = rows.map(function (r, i) {
     if (r.head) return '<div class="row head"><span class="lbl">' + esc(r.label) + '</span></div>';
-    return '<div class="row' + (i === sel ? ' sel' : '') + (r.act ? ' doable' : '') + (r.cat ? ' cat' : '') + '" onclick="pickRow(' + i + ')">' +
+    return '<div class="row' + (i === sel ? ' sel' : '') + (r.act ? ' doable' : '') + (r.cat ? ' cat' : '') + (isTall(r) ? ' tall' : '') + '" onclick="pickRow(' + i + ')">' +
              '<span class="lbl">' + labelHtml(r, i) + '</span>' +
              '<span class="val' + valClass(r) + '">' + esc(r.value) +
-               (r.sub ? '<span class="sub">' + esc(r.sub) + '</span>' : '') + '</span>' +
+               subLines(r).map(function (line) { return '<span class="sub">' + esc(line) + '</span>'; }).join('') + '</span>' +
            '</div>';
   }).join('');
   position();
