@@ -1136,6 +1136,33 @@ async function visitHomeAvailability(browser, base, problems) {
   }
 }
 
+async function visitAudio(browser, base, problems) {
+  const page = await browser.newPage();
+  page.on('pageerror', e => problems.push('Web audio: ' + e.message));
+  try {
+    const state = await page.request.get(base + '/api/audio?with=settings').then(r => r.json());
+    let failed = false;
+    await page.route('**/api/audio*', route => {
+      if (failed) return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: 'Audio service unavailable' }) });
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify(state) });
+    });
+    await page.goto(base + '/?tab=audio');
+    await page.waitForFunction(() => audioState !== null);
+    if (!await page.locator('#audio-settings [data-lgs]').count()) problems.push('Audio tab: LG sound settings missing');
+    failed = true;
+    // The readings and their Refresh are folded below the settings.
+    await page.locator('#audio-more > summary').click();
+    await page.locator('#audio-refresh').click();
+    await page.waitForFunction(() => !document.querySelector('#audio-error').hidden);
+    if (await page.locator('#audio-readings').isVisible() || await page.locator('#audio-settings :enabled').count())
+      problems.push('Web audio: a failed read left stale controls usable');
+    failed = false;
+    await page.locator('#audio-refresh').click();
+    await page.waitForFunction(() => document.querySelector('#audio-error').hidden);
+    if (!await page.locator('#audio-readings').isVisible()) problems.push('Web audio: readings did not recover after a failed read');
+  } finally { await page.close(); }
+}
+
 async function visitHomeReadiness(browser, base, problems) {
   const page = await browser.newPage();
   page.on('pageerror', e => problems.push('Home readiness: ' + e.message));
@@ -1460,6 +1487,33 @@ async function visitTvDashboard(browser, base, problems) {
   }
 }
 
+async function visitTvAudio(browser, base, problems) {
+  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  page.on('pageerror', e => problems.push('TV audio: ' + e.message));
+  const state = await page.request.get(base + '/api/audio?with=settings').then(r => r.json());
+  let failed = false;
+  await page.route('**/api/audio*', route => route.fulfill({ status: failed ? 503 : 200, contentType: 'application/json',
+    body: JSON.stringify(failed ? { ok: false, error: 'Audio service unavailable' } : state) }));
+  const selected = () => page.locator('#rows .row.sel .lbl').textContent();
+  const readings = () => page.locator('#rows .row').filter({ hasText: 'Return channel' });
+  async function open() {
+    await page.goto(base + '/assets/dashboard.html?tab=audio');
+    await page.waitForSelector(failed ? '#rows .row:has-text("Audio readings unavailable")' : '#rows .row:has-text("Return channel")');
+  }
+  try {
+    await open();
+    if (await selected() !== 'Sound output') problems.push('TV audio: did not open on the Sound settings');
+    failed = true;
+    await open();
+    if (await readings().count()) problems.push('TV audio: a failed read left stale readings on screen');
+    failed = false;
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('#rows .row:has-text("Return channel")');
+    await page.goto(base + '/assets/dashboard.html?tab=options');
+    await page.waitForSelector('#rows .row');
+    if (await page.locator('#rows .row').filter({ hasText: /Audio capabilities|Sound output/ }).count()) problems.push('TV audio: sound still listed under System');
+  } finally { await page.close(); }
+}
 async function visitTvNonOled(browser, base, problems) {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   page.on('pageerror', e => problems.push('TV non-OLED: ' + e.message));
@@ -1487,6 +1541,7 @@ async function visitTvNonOled(browser, base, problems) {
   await visitAll(browser, web.map(t => ({ url: base + '/?tab=' + t, label: 'web ' + t }))
     .concat(tv.map(t => ({ url: base + '/assets/dashboard.html?tab=' + t, label: 'TV ' + t }))), problems);
   await visitTvDashboard(browser, base, problems);
+  await visitTvAudio(browser, base, problems);
   await visitTvNonOled(browser, base, problems);
   await visitHomeArrangement(browser, base, problems);
   await visitHomePicture(browser, base, problems);
@@ -1499,6 +1554,7 @@ async function visitTvNonOled(browser, base, problems) {
   await visitHomeUploads(browser, base, problems);
   await visitHomeReadiness(browser, base, problems);
   await visitHomeAvailability(browser, base, problems);
+  await visitAudio(browser, base, problems);
   await visitHomeRecents(browser, base, problems);
   await visitHomeScrolling(browser, base, problems);
   await visitHomeMotion(browser, base, problems);

@@ -62,6 +62,8 @@ var oledModule = null;
 var privacyModule = null;
 /** @type {typeof import('./lgsettings')} */
 var lgSettingsModule = null;
+/** @type {typeof import('./audio')} */
+var audioModule = null;
 /** @type {typeof import('./game')} */
 var gameModule = null;
 /** @type {typeof import('./apps')} */
@@ -1259,6 +1261,22 @@ function handleRequest(req, res) {
     return send(res, 200, JSON.stringify(caps));
   }
 
+  if (pathname === '/api/audio' && audioModule) {
+    if (req.method === 'GET') {
+      return audioModule.status(function (r) {
+        r.writable = !!config.allowControl;
+        if (u.query.with !== 'settings') return send(res, 200, JSON.stringify(r));
+        // The Audio tabs show LG's sound settings beside the readings.
+        lgSettingsModule.collect(['sound', 'hdmi'], function (ls) {
+          r.lgSettings = ls.rows;
+          r.inputs = telemetryModule.inputNameMap;
+          send(res, 200, JSON.stringify(r));
+        });
+      });
+    }
+    return send(res, 405, JSON.stringify({ ok: false, error: 'method not allowed' }));
+  }
+
   if (pathname === '/api/screensaver') {
     return send(res, 200, JSON.stringify(screensaversModule.screensaverList()));
   }
@@ -1963,6 +1981,7 @@ function init(opts) {
   if (opts.oled) oledModule = opts.oled;
   if (opts.privacy) privacyModule = opts.privacy;
   if (opts.lgSettings) lgSettingsModule = opts.lgSettings;
+  if (opts.audio) audioModule = opts.audio;
   if (opts.game) gameModule = opts.game;
   if (opts.apps) appsModule = opts.apps;
   if (opts.services) servicesModule = opts.services;
