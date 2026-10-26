@@ -88,6 +88,21 @@ for web apps, and confirm they have stopped before removing their cards with
 the cards for retry. Home and apps running without a card are left alone.
 Snapshot responses are private and must not be cached.
 
+Glasshouse Home's search sends typed queries to LG's catalogue through
+`com.webos.service.nlpmanager` and reads item details through
+`com.webos.service.sdx` before launching an installed app at the title. Search
+is off by default; **Search** on either dashboard's Home section switches it
+on and off, saves the choice in `/var/lib/tvweb/home.json`, and while off refuses new searches
+and search launches before asking LG. It reads the host of LG's search from
+`sdx/getHttpHeaderForServiceRequest`, keeping only the host, and while the
+ad blocker's table blocks that host the view hides search and both routes
+refuse without asking LG. Pending title lookups recheck before each further
+detail read and before launching, so switching Search off or blocking its host
+stops them too. Results and launch targets stay in memory.
+
+Aborted package uploads close their staging file even when the abort arrives
+before the file opens on Node 0.12, then remove the file.
+
 ## Home-screen app port
 
 Glasshouse Home's page, staged in `/var/lib/tvweb/home-takeover` and mounted over LG's Home, has the port filled in the same way each time the server stages it.

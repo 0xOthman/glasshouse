@@ -1193,7 +1193,7 @@ An upload is refused before any of it is read unless:
 * `Content-Length` is present and `Transfer-Encoding` is not (411), and the length is a positive integer (400);
 * the length is within the 512 MB cap (413), no job or other upload is running (409) and three times the length is free on the staging directory, when `df` can be read (507).
 
-`postGuard` holds the content type and Origin checks that `readJsonBody` shares. `installer.prepareUpload` makes the checks above, clears leftovers from the staging directory and reserves `upload-<random>.ipk` there; a reservation also makes other installs refuse, since a job's cleanup empties the directory, and lapses after 30 minutes without upload data. The route writes the stream with `req.on('data')` and a `fs.createWriteStream`, pausing the request until `drain`. The file is deleted when the connection aborts or closes early, on a write error, and when the byte count differs from `Content-Length`. A complete upload is handed over as `installer.start({source: 'file', path})`, which accepts only a path directly inside the staging directory.
+`postGuard` holds the content type and Origin checks that `readJsonBody` shares. `installer.prepareUpload` makes the checks above, clears leftovers from the staging directory and reserves `upload-<random>.ipk` there; a reservation also makes other installs refuse, since a job's cleanup empties the directory, and lapses after 30 minutes without upload data. The route writes the stream with `req.on('data')` and a `fs.createWriteStream`, pausing the request until `drain`. The file is deleted when the connection aborts or closes early, on a write error, and when the byte count differs from `Content-Length`. On Node 0.12, destroying a stream before its file opens leaves the eventual descriptor alive, so an aborted upload also closes it on `open` and removes the file on `close`. A complete upload is handed over as `installer.start({source: 'file', path})`, which accepts only a path directly inside the staging directory.
 
 The preview carries `source` (`catalog`, `url` or `file`) and the package's sha256. For a `url` or `file` source the page asks again before elevating, naming each service that would run as root, and the confirm request must carry the same list as `confirmRoot` or the installer refuses. `willElevate` tells whether a catalog update will be elevated again from `elevated.json`; the on-TV page offers the root switch for catalog packages only.
 
@@ -1408,6 +1408,61 @@ restarted. Pictures are served only from the paths the last list named, and an
 app is opened or closed only while it is on the list. Snapshot responses use
 `private, no-store` caching. Back cancels a pending panel load; returning Home
 discards replies from the previous visit. OK acts once on release.
+
+Left of any row's first tile is a search mark in the gutter, and OK there
+opens a panel to search films and series. `lib/home-search.js` asks `com.webos.service.nlpmanager/search`, the
+service LG's own Search (`com.webos.app.voice`) asks, as a subscription; a
+one-off call is refused with `NLP invalid parameter`. It answers from LG's
+catalogue in under a second on a G3, one result for each title on each
+service, with the service's app id and an item id. Results for apps the TV
+does not have are counted, not shown; the same title and kind within a year
+on several services is one title, since each service dates it differently.
+Opening one asks `com.webos.service.sdx/send` for the item's detail, whose
+`exec_id` is the id the app knows the title by, and launches the app with
+`replaceParams.deeplinkingParams`, which applicationManager puts into the
+app's own `deeplinkingParams` template in its `appinfo.json`
+([TV-RESEARCH](development/TV-RESEARCH.md#lgs-search-and-deep-links-g3-webos-922)).
+For a series, item detail names the latest episode, so
+the start is found instead: the `advanced` detail lists the seasons
+(`season_list`) and a season's lists its episodes (`tab_episode`). Prime
+Video and HBO Max open at the first season's page; other apps, whose season
+links do not open (Disney+) or which have only playback links (BBC iPlayer),
+play the first episode. Apple TV and Netflix list no seasons and keep LG's
+link. An LG item id less its first `|` and LG's service tag (`AMAZON_`) is the
+app's own id, used where the detail names none. Trailers are never listed or
+opened: LG marks none, and lists Prime Video's sneak peeks as films and its
+trailers as episodes, so a title or episode is taken for one by a promo word
+(trailer, teaser, sneak peek, preview, first look) with a running time of 15
+minutes or less, or, without one, ending the name or before its colon or
+dash; Trailer Park Boys and Trailer War stay. `search` in `home.json`, off by
+default, switches search on and off: while off, no rail is shown and both routes refuse before asking
+LG. Only a title and app from the last search can be opened. Both calls go to
+the host sdx names in its request headers for `sdp_nlp` and `sdp_onnow`
+(`GB.nextlgsdp.com` on a G3 in the UK). Each unresolved service host is
+retried each minute, even when the other service has answered. `privacy.blockedBy` checks that host
+against the names the ad blocker's table holds, not the tier: the SDP clock
+wait leaves it reachable on Everything, and an uploaded list can block it on
+Ads & telemetry. While it is blocked the layout carries `searchBlocked`
+(`{ host, by: 'level' | 'list' }`, not saved), the view hides the rail, both
+dashboards grey the switch with a note, and both routes refuse. The state is
+part of `layoutVersion`, so a view already showing reloads within a
+heartbeat when the blocker changes. The view searches 0.4 s after
+typing stops. Back on the TV's keyboard closes it without the page seeing the
+key; the `keyboardStateChange` event on the document says so, and the titles
+take the focus. A return from an app opened in the panel comes as both a
+relaunch and the page showing again, and keeps the panel open for 30 minutes
+unless the heartbeat's `sleeps`, the times the screen has gone off since the
+server started, has changed.
+
+Only the current search may replace the launch list, including while its app
+list is still loading; an empty answer clears the previous targets. The view
+clears previous titles as soon as the text changes, before the typing delay, and waits for the new reply before
+Enter focuses its results. A failed query can be retried with Enter. An app
+launch holds further selections until it answers, and its late reply is
+discarded if the panel has closed. Each detail read and the final launch recheck
+the Search setting and blocker, so a pending lookup stops when either refuses.
+Search requests allow 12 seconds for the
+server's 10-second limit; launches allow 20 seconds for sequential detail reads.
 
 ## Apps kept ready in the background
 

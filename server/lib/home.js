@@ -33,6 +33,7 @@ var wallpapers = require('./home-wallpapers');
 var takeover = require('./home-takeover');
 var recent = require('./home-recent');
 var recentApps = require('./home-recent-apps');
+var search = require('./home-search');
 
 // The separate app earlier builds installed: removed, and its settings undone.
 var HOME_APP = 'com.tvweb.home';
@@ -149,6 +150,9 @@ var lastBeatAt = 0;
 var holdTimer = null;
 var homeDownAt = 0;
 var powerActive = true;
+// Times the screen has gone off since the server started: the view keeps its
+// search open over an app only while this has not changed.
+var sleeps = 0;
 // tvpower's raw state, null until the first reading.
 var powerState = null;
 var wakeTimer = null;
@@ -201,9 +205,12 @@ function defaults() {
     hidden: { app: PROMO_APPS.slice(), dev: [], ch: [] },
     channels: [],
     hintSeen: false,
+    searchHintSeen: false,
     // The plate describing the picture of what was last on: detail many
     // won't want on a home screen, so it waits to be switched on.
     picture: false,
+    // Search on the view (lib/home-search): off by default, so nothing typed reaches LG unless switched on.
+    search: false,
     // The view fading in as it comes on screen, and out as a tile opens.
     fade: false,
     // Inputs with nothing plugged in left out of the Inputs row, rather than
@@ -252,7 +259,9 @@ function normalise(raw) {
   d.enabled = raw.enabled === true;
   d.restorePending = raw.restorePending === true;
   d.hintSeen = raw.hintSeen === true;
+  d.searchHintSeen = raw.searchHintSeen === true;
   d.picture = raw.picture === true;
+  d.search = raw.search === true;
   d.fade = raw.fade === true;
   d.hideUnused = raw.hideUnused === true;
   d.colours = validColours(raw.colours);
@@ -304,9 +313,11 @@ function readConfig() {
  * an edit over SSH: the view reloads its layout when its heartbeat brings a
  * new one, so a change made elsewhere shows while it is on screen.
  */
+// The view reloads when this changes, so it also follows the ad blocker
+// blocking or freeing LG's search, which is not saved in the layout.
 function layoutVersion() {
   readConfig();
-  return String(configMtime);
+  return String(configMtime) + (search.blocked() ? '-search-blocked' : '');
 }
 
 function saveConfig() {
@@ -358,7 +369,9 @@ function setLayout(body, cb) {
     channels: ordered(body.order && isArray(body.order.ch) ? body.order.ch : [],
                       body.channels !== undefined ? stringList(body.channels, MAX_CHANNELS) : c.channels),
     hintSeen: body.hintSeen !== undefined ? body.hintSeen : c.hintSeen,
+    searchHintSeen: body.searchHintSeen !== undefined ? body.searchHintSeen : c.searchHintSeen,
     picture: typeof body.picture === 'boolean' ? body.picture : c.picture,
+    search: typeof body.search === 'boolean' ? body.search : c.search,
     fade: typeof body.fade === 'boolean' ? body.fade : c.fade,
     hideUnused: typeof body.hideUnused === 'boolean' ? body.hideUnused : c.hideUnused,
     // null puts the view's own colours back.
@@ -383,8 +396,10 @@ function setLayout(body, cb) {
 }
 
 function layoutOf(c) {
-  return { rows: c.rows, order: c.order, sort: c.sort, hidden: c.hidden, channels: c.channels, hintSeen: c.hintSeen, picture: c.picture,
-    fade: c.fade, hideUnused: c.hideUnused, colours: c.colours };
+  return { rows: c.rows, order: c.order, sort: c.sort, hidden: c.hidden, channels: c.channels, hintSeen: c.hintSeen,
+    searchHintSeen: c.searchHintSeen, picture: c.picture, search: c.search, fade: c.fade, hideUnused: c.hideUnused, colours: c.colours,
+    // Not saved: { host, by } while the ad blocker blocks LG's search (lib/home-search).
+    searchBlocked: search.blocked() };
 }
 
 // ---------------------------------------------------------------- what it shows
@@ -1261,7 +1276,7 @@ function beat() {
   lastBeatAt = nowMs();
   if (viewInFront()) watchBeat(BEAT_GRACE_MS);
   return { ok: true, enabled: readConfig().enabled, build: buildId, wallpapers: wallpapers.status(),
-           layoutVersion: layoutVersion() };
+           layoutVersion: layoutVersion(), sleeps: sleeps };
 }
 
 function foregroundChanged(id) {
@@ -1364,6 +1379,7 @@ function powerStateChanged(raw) {
 function powerChanged(active) {
   var was = powerActive;
   powerActive = active;
+  if (was && !active) sleeps++;
   if (!active) cancelWake();
   if (was !== active && readConfig().enabled) syncLgAutoLaunch();
 }
@@ -1405,6 +1421,9 @@ function init(opts) {
   wallpapers.init(stateDir);
   recent.init(stateDir, opts.now);
   recentApps.init({ luna: lunaFn });
+  search.init({ luna: lunaFn, Subscription: opts.Subscription, apps: launchPoints,
+    opened: function (id) { noteOpened('app', id); }, enabled: function () { return readConfig().search; },
+    blockedBy: opts.blockedBy });
   takeover.init({
     luna: lunaFn,
     samrescan: opts.samrescan || null,
@@ -1551,6 +1570,8 @@ module.exports = {
   iconPath: iconPath,
   // Back on the view: the TV's recent apps (lib/home-recent-apps).
   recentApps: recentApps,
+  // The view's search: films and series on the TV's apps (lib/home-search).
+  search: search,
   wallpaperPath: wallpapers.image,
   uploadWallpaper: function (slot, req, cb) {
     var sup = supported();

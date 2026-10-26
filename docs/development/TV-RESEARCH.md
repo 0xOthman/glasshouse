@@ -266,6 +266,81 @@ mount, and tried over SSH.
   listed with `cardSnapShotFilePath` empty and only their
   `splashBackground`. Checked on 19 October 2026.
 
+## LG's search and deep links (G3, webOS 9.2.2)
+
+Read on 21 October 2026 from LG's Search app's QML
+(`/usr/palm/applications/com.webos.app.voice/qml`) and tried over SSH on a
+G3 in the UK.
+
+- **Search is a luna service.** `com.webos.service.nlpmanager/search`
+  `{ subscribe: true, query, start_index: 1, max_results: 24, category_name:
+  "movie,tvshow" }` answers `searchStart`, `searchConnecting`, then
+  `searchResult` and `sessionEnd`, in 0.7 to 0.9 s. Without `subscribe` it is
+  refused (`6011`, `NLP invalid parameter`). Root needs no app id (`-a`).
+- **Each result is one title on one service**: `title`, `type` (`movie`,
+  `tvshow`), `thumbnail` (a 960x540 poster on `eic-ngfts.lge.com`, with a
+  `#ADDSIZE#...` hint after it), `display_info` (`release_date`,
+  `running_time`, `age_ratings`), `cp_thumbnail[0].cp_id` (the app id:
+  `amazon`, `netflix`, `com.apple.appletv`, `com.wbd.stream`,
+  `com.disney.disneyplus-prod`, `bbc.iplayer.3.0`, `cdp-30` for Plex) and
+  `action_on_click.launch_parameter.itemId`. Dune (2021) came on three
+  services, dated 3 September, 15 September and 21 October 2021.
+- **The item's detail names the app's own id.** `com.webos.service.sdx/send`
+  with `serviceName` `sdp_onnow`, `url` `content_discovery/item-detail` and
+  `item_id`, `item_type=CONTS` in `bodyData` answers in about 0.5 s with
+  `item.item_detail.exec_list.execs[]`: `exec_app_id` and `exec_id`. For
+  Prime Video, Netflix and HBO Max the `exec_id` was the item id after its
+  first `|`; for Disney+ it was its own (`page=play&id=...`).
+- **applicationManager builds the deep link.** LG's Search launches
+  `{ id, replaceParams: { deeplinkingParams: { target: "$CONTENTID", value:
+  exec_id } } }`, and the app's `appinfo.json` holds the template, such as
+  `{"contentTarget":"$CONTENTID"}` (Disney+ and HBO Max add
+  `"handledBy":"app"`). Prime Video and Netflix opened at the film's page,
+  Apple TV at an episode of Severance after its profile picker, BBC iPlayer at
+  an episode's playback (asking to sign in), and Disney+ and HBO Max stopped
+  at their own first-run privacy prompts.
+- **A series opens at its latest episode** in LG's own Search:
+  `exec_full` names it (Severance on Prime Video: series 2 episode 16, a
+  bonus interview; The Bear on Disney+: series 5 episode 8). With
+  `item_detail_type` `advanced` the detail adds `season_list` (each season's
+  `conts_season_num` and `item_id`) and `tab_episode` (that season's items,
+  `item_name` the episode number, real episodes listed before extras, which
+  Prime Video numbers too). Any other type (`full`) gives Apple TV's show id.
+  Each item id, less what precedes its first `|` and LG's tag (`AMAZON_`,
+  `DISNEY_`, `BBC_`, `MAX_`), is the app's own id. Tried on 21 October 2026:
+  Prime Video's season id opened its season page; Disney+'s season links
+  (`page=browse&...`) left a blank screen, its episode links played; BBC
+  iPlayer's programme id and a guessed `tv/episodes/` link failed or went to
+  its home, its episode links played; Apple TV ignored its show id and a
+  `tv.apple.com/gb/show/` link, cold or running.
+- **The servers are LG's SDP.** `sdx/getHttpHeaderForServiceRequest` with
+  `serviceName` `sdp_nlp`, `sdp_search` or `sdp_onnow` answers a top-level
+  `HOST` (`GB.nextlgsdp.com`) beside device ids and LG account tokens, which
+  should not be logged.
+- **Only that host matters to search** (26 October 2026, firmware 23.25.55).
+  Everything blocked `gb.nextlgsdp.com` and search failed (`errorCode` 6003,
+  `Server response error`); Ads & telemetry plus an uploaded list holding only
+  that host failed the same way; Everything with every name but that host
+  searched normally.
+- **Apps opened from search** (26 October 2026, Ads & telemetry): Prime Video
+  at the Dune and Severance pages, Netflix at Dune: Part Two and Stranger
+  Things, Plex at its film pages, BBC iPlayer playing Doctor Who and All
+  Creatures Great and Small series 1 episode 1, Apple TV at Dune and
+  Severance's latest episode. Apple TV, Disney+ and HBO Max showed a profile
+  picker first when cold: Apple TV then went on to the title, HBO Max to its
+  home; opened again while running, HBO Max played Dune and Succession and
+  Disney+ played The Bear and Loki (protected video captures black, so the
+  episode was not seen). LG's catalogue offered no titles on ITVX, Channel 4,
+  5, YouTube, Paramount+ or Sky Store for 14 test queries.
+- **luna-send over SSH needs stdin closed** (`</dev/null`): without it, it
+  printed nothing and did nothing on the G3.
+- **The TV's keyboard.** A focused text field brings up LG's keyboard, which
+  takes the arrows. Its Enter reaches the page as key 13; its Back closes it
+  without reaching the page and leaves the field focused, and
+  `keyboardStateChange` with `detail.visibility` fires on the document, not
+  the window. `com.webos.service.ime/insertText` and `sendEnterKey` type
+  into it over SSH.
+
 ## Channels and the guide (G3, webOS 9.2.2)
 
 - `com.webos.service.apiadapter/tv/getChannelList` (the method behind SSAP's
