@@ -110,6 +110,14 @@ function renderHome() {
     updateToggle(pic, { cls: on ? 'good' : 'idle', label: on ? t('common.on', 'On') : t('common.off', 'Off') });
     pic.disabled = !homeWritable();
   }
+  document.querySelectorAll('.home-show-row').forEach(row => { row.hidden = !st.supported.ok; });
+  HOME_SHOW.forEach(([key, id]) => {
+    const el = q(id);
+    if (!el) return;
+    const on = !st.layout || st.layout[key] !== false;
+    updateToggle(el, { cls: on ? 'good' : 'idle', label: on ? t('common.on', 'On') : t('common.off', 'Off') });
+    el.disabled = !homeWritable();
+  });
   const searchRow = q('home-search-row');
   if (searchRow) searchRow.hidden = !st.supported.ok;
   const searchPill = q('home-search');
@@ -387,6 +395,13 @@ async function homeHideLg() {
 
 function homePicture() {
   homeSaveLayout({ picture: homeLayout.picture !== true });
+}
+
+// The details Glasshouse Home shows unless switched off, and their toggles.
+const HOME_SHOW = [['showLastOn', 'home-show-last'], ['showAppCount', 'home-show-count'], ['showCec', 'home-show-cec']];
+
+function homeShow(key) {
+  homeSaveLayout({ [key]: homeLayout[key] === false });
 }
 
 function homeSearch() {

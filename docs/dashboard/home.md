@@ -47,6 +47,14 @@ Glasshouse Home displays a clock and date (following the TV's 12-hour or 24-hour
 
     When **Picture details** is switched on, a top-right badge shows the active picture preset, OLED light / backlight level, and signal format — live HDMI resolution, refresh rate, chroma, bit depth, HDR format, and VRR, or the last video format played in an app.
 
+-   **Last watched, app count and CEC addresses**
+
+    ---
+
+    **Last watched** (the top strip and the marker on that input's tile), **App count** (the "4 of 18 shown" beside Apps) and **CEC addresses** (on each input tile) are on by default, and each can be switched off from either dashboard's Home tab.
+
+    The top strip stays empty until the saved layout loads. Switching **Last watched** off leaves the clock in place.
+
 -   **Fade in and out**
 
     ---

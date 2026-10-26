@@ -1356,6 +1356,27 @@ step('the picture details stay off until switched on, and the server is told of 
   });
 });
 
+step('last watched, the app count and CEC addresses show until switched off, one at a time', function (done) {
+  start(null);
+  var l = home.layout();
+  assert.deepEqual([l.showLastOn, l.showAppCount, l.showCec], [true, true, true]);
+  home.setLayout({ showCec: false }, function (r) {
+    assert.deepEqual([r.layout.showLastOn, r.layout.showAppCount, r.layout.showCec], [true, true, false]);
+    home.setLayout({ showLastOn: false, showAppCount: 'no' }, function (r2) {
+      assert.deepEqual([r2.layout.showLastOn, r2.layout.showAppCount, r2.layout.showCec], [false, true, false]);
+      var saved = home.normalise(JSON.parse(fs.readFileSync(path.join(dir, 'home.json'), 'utf8')));
+      assert.deepEqual([saved.showLastOn, saved.showAppCount, saved.showCec], [false, true, false]);
+      home.setLayout({ showAppCount: false }, function (r3) {
+        assert.deepEqual([r3.layout.showLastOn, r3.layout.showAppCount, r3.layout.showCec], [false, false, false]);
+        home.setLayout({ showLastOn: true, showAppCount: true, showCec: true }, function (r4) {
+          assert.deepEqual([r4.layout.showLastOn, r4.layout.showAppCount, r4.layout.showCec], [true, true, true]);
+          done();
+        });
+      });
+    });
+  });
+});
+
 step('fading, search and leaving out inputs with nothing plugged in stay off until switched on, are saved, and outlast a reset, beside hiding inputs one by one', function (done) {
   start(null);
   assert.strictEqual(home.layout().fade, false);
