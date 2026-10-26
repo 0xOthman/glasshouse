@@ -1340,6 +1340,11 @@ function setupHomeAssistant() {
   liveState.state.onChange(function (ev) {
     if (ev.group === 'power' && ev.key === 'systemOn' && typeof ev.value === 'boolean') setTvOff(!ev.value);
   });
+  // The power group starts before the bridge, which waits for device
+  // detection, and its first answer can come before this listener: a server
+  // started in standby then reported the TV on, and missed the switch-on.
+  var startPower = liveState.state.snapshot().power;
+  if (startPower && typeof startPower.systemOn === 'boolean') setTvOff(!startPower.systemOn);
 
   /*
    * While the TV is off but still up, readings change little and nothing is
