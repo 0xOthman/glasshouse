@@ -1,7 +1,7 @@
 /**
- * test/test-clock-format.js - clock.hour12: the 12-hour preference, the
- * switch that saves it to config.json, what the caps and the update summary
- * tell the clocks, and the value written into the staged clock screen saver.
+ * test/test-clock-format.js - the clocks follow the TV's own 12 or 24 hour
+ * setting (lib/clock): what the caps, the update summary and the heartbeat
+ * tell them, and the value written into the staged clock screen saver.
  *
  * Strict ES5 - node v0.12.2 on webOS 4 (LG OLED B8) has no ES6 support.
  */
@@ -15,7 +15,7 @@ var mockEnv = require('./mocks/mock-env');
 console.log('Running test-clock-format.js ...');
 
 // The screen saver's own paths are absolute under /var, which mockEnv takes
-// over; config.json's is not, so it stays a real file the switch writes.
+// over; config.json's is not, so it stays a real file.
 var CFG = path.join(os.tmpdir(), 'tvweb-clock-' + process.pid + '.json');
 var SAVER_DIR = '/var/lib/tvweb/screensaver';
 var APP_DIR = '/usr/palm/applications/com.webos.app.screensaver';
@@ -75,97 +75,96 @@ function capsBody() {
 }
 
 var routes = require('../server/lib/routes');
-var controls = require('../server/lib/controls');
 var screensavers = require('../server/lib/screensavers');
+var clock = require('../server/lib/clock');
+
+// What getPreferences answers: { timeFormat } or null for a TV without it.
+var answer = null;
+var asked = 0;
+function luna(uri, payload, cb) {
+  if (uri === 'com.webos.service.systemservice/getPreferences') {
+    asked++;
+    assert.deepEqual(payload, { keys: ['timeFormat'] });
+    return cb(answer);
+  }
+  cb(null);
+}
+var changes = [];
+clock.init({ luna: luna, onChange: function (on) { changes.push(on); } });
 
 var config = { web: { enabled: false }, token: '', allowControl: true };
 routes.init({
   config: config,
   configFile: CFG,
   version: '0.118.0',
+  clock: clock,
   fromHomebrewChannel: function () { return false; },
   updater: { updateSummary: function () { return { ok: true, writable: true }; } },
   privacy: { tvUpdatesBlocked: function () { return false; } }
 });
 
-// 1. 24-hour time unless config.json says otherwise: what the Server tab is
-//    told, and what the dashboard's own clock reads.
-(function testDefaultIs24Hour() {
+// 1. A TV that gives no setting keeps 24-hour time.
+(function testNoSetting() {
+  answer = null;
+  clock.refresh();
+  assert.strictEqual(clock.hour12(), false);
   assert.strictEqual(routes.updateSummary().clockHour12, false);
   assert.strictEqual(capsBody().clockHour12, false);
-  console.log('  ✓ the clocks are 24-hour until the switch is used');
+  assert.deepEqual(changes, [], 'no answer is not a change');
+  console.log('  ✓ a TV that gives no setting keeps 24-hour time');
 })();
 
-// 2. The switch saves clock.hour12 and every reader follows it, without a
-//    restart: caps is read by the dashboard, the summary by the Server tab.
-(function testSwitch() {
-  controls.init({
-    config: config,
-    writeSettings: routes.writeSettings,
-    updateSummary: routes.updateSummary
-  });
-
-  controls.doControl('setClockHour12', true, function (r) {
-    assert.strictEqual(r.ok, true, r.error);
-    assert.strictEqual(r.clockHour12, true);
-  });
-  var saved = JSON.parse(fs.readFileSync(CFG, 'utf8'));
-  assert.deepEqual(saved.clock, { hour12: true });
-  assert.strictEqual(saved.port, 8080, 'the rest of the file is left alone');
-  assert.strictEqual(capsBody().clockHour12, true);
-
-  // Back the other way, and with anything that reads as on or off.
-  controls.doControl('setClockHour12', 'off', function (r) {
-    assert.strictEqual(r.ok, true, r.error);
-    assert.strictEqual(r.clockHour12, false);
-  });
-  assert.strictEqual(JSON.parse(fs.readFileSync(CFG, 'utf8')).clock.hour12, false);
+// 2. HH12 and HH24, as webOS 7 gives them (#934), reach every reader.
+(function testTvSetting() {
+  answer = { returnValue: true, timeFormat: 'HH12' };
+  clock.refresh();
+  assert.strictEqual(clock.hour12(), true);
+  assert.strictEqual(capsBody().clockHour12, true, 'the dashboard\'s clock');
+  assert.strictEqual(routes.updateSummary().clockHour12, true);
+  assert.deepEqual(changes, [true], 'the change is announced once');
+  clock.refresh();
+  assert.deepEqual(changes, [true], 'the same answer again is no change');
+  answer = { returnValue: true, timeFormat: 'HH24' };
+  clock.refresh();
   assert.strictEqual(capsBody().clockHour12, false);
-
-  // Controls off: the switch is refused, as every other one is.
-  config.allowControl = false;
-  controls.doControl('setClockHour12', true, function (r) {
-    assert.strictEqual(r.ok, false);
-  });
-  assert.strictEqual(JSON.parse(fs.readFileSync(CFG, 'utf8')).clock.hour12, false);
-  config.allowControl = true;
-  console.log('  ✓ the switch saves clock.hour12 and the clocks are told at once');
+  assert.deepEqual(changes, [true, false]);
+  console.log('  ✓ the TV\'s HH12 or HH24 reaches the caps and the summary, and a change is announced');
 })();
 
-// 3. The staged screen saver has the hour cycle written into its QML, and
-//    restaging after the switch writes the new one.
+// 3. hour12() answers at once, and asks the TV again once a minute has gone.
+(function testStale() {
+  var before = asked, realNow = Date.now;
+  clock.hour12();
+  assert.strictEqual(asked, before, 'a fresh answer is not asked again');
+  Date.now = function () { return realNow() + 61000; };
+  try { clock.hour12(); } finally { Date.now = realNow; }
+  assert.strictEqual(asked, before + 1, 'a stale one is');
+  console.log('  ✓ the setting is read again at most once a minute');
+})();
+
+// 4. The staged screen saver has the TV's hour cycle written into its QML.
 (function testStagedScreensaver() {
   env.install();
   screensavers.init({
     luna: null,
     assetPath: function (qml) { return qml === 'screensavers/clock.qml' ? SRC : null; },
-    config: config
-  });
-  // The switch restages on the spot; with the config file out of the way the
-  // stub leaves only that to check.
-  controls.init({
     config: config,
-    writeSettings: function (patch, cb) { cb(null); },
-    updateSummary: routes.updateSummary,
-    screensavers: screensavers
+    hour12: clock.hour12
   });
-
-  config.clock.hour12 = false;
-  controls.doControl('setClockHour12', true, function (r) {
-    assert.strictEqual(r.ok, true, r.error);
-  });
+  answer = { returnValue: true, timeFormat: 'HH12' };
+  clock.refresh();
+  screensavers.restageScreensaver();
   var staged = env.files[path.join(SAVER_DIR, 'qml', 'main.qml')];
   assert.ok(staged.indexOf('property bool hour12: true') !== -1, staged);
   assert.ok(staged.indexOf('__TVWEB_') === -1, 'every placeholder is filled in');
   assert.ok(staged.indexOf('property int level: 0') !== -1, 'the level still goes in');
-
-  controls.doControl('setClockHour12', false, function (r) {
-    assert.strictEqual(r.ok, true, r.error);
-  });
+  answer = { returnValue: true, timeFormat: 'HH24' };
+  clock.refresh();
+  screensavers.restageScreensaver();
   staged = env.files[path.join(SAVER_DIR, 'qml', 'main.qml')];
   assert.ok(staged.indexOf('property bool hour12: false') !== -1, staged);
   env.restore();
-  console.log('  ✓ the staged screen saver is written with the hour cycle in use');
+  console.log('  ✓ the staged screen saver is written with the TV\'s hour cycle');
 })();
 
 try { fs.unlinkSync(CFG); } catch (e) {}

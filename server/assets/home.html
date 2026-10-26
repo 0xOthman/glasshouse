@@ -271,7 +271,7 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
   var build = null;
   var okDownAt = 0, okTimer = null, okLong = false, okInRecents = false, backDown = false;
   var beatFails = 0;
-  // clock.hour12 in config.json, which the server repeats with each heartbeat.
+  // The TV's own 12 or 24 hour setting, which the server repeats with each heartbeat.
   var hour12 = false;
   var layoutRevision = 0, layoutBusy = false;
   // home.json's version as last loaded: a heartbeat bringing another means it
@@ -282,8 +282,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
 
   function $(id) { return document.getElementById(id); }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
-  // The hour cycle, and the time to go with it. clock.hour12 in config.json
-  // selects it: 12-hour time names the half of the day, 24-hour time adds
+  // The hour cycle, and the time to go with it, as the TV's setting has it:
+  // 12-hour time names the half of the day, 24-hour time adds
   // no word. hmParts keeps the two apart, since the clock sets the word in
   // type of its own.
   function meridiem(d) { return d.getHours() < 12 ? t('common.am', 'AM') : t('common.pm', 'PM'); }
@@ -1177,8 +1177,8 @@ body{font-family:'Manrope',sans-serif;color:#ece7df;-webkit-font-smoothing:antia
         wallRevision = r.wallpapers && r.wallpapers.revision || '';
         updateWall();
         $('fault').className = '';
-        // The hour cycle is switched from the dashboard's Server tab, so the
-        // heartbeat is where this view hears of it.
+        // The TV's setting can change while the view is open, so the heartbeat
+        // is where this view hears of it.
         if (typeof r.clockHour12 === 'boolean' && r.clockHour12 !== hour12) {
           hour12 = r.clockHour12;
           renderNow();

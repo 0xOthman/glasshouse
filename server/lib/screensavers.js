@@ -82,6 +82,7 @@ var webosVersion = null;  // as the TV reports it
 var lunaFn = null;
 var assetPathFn = null;
 var configObj = null;
+var hour12Fn = function () { return false; };
 var injectKeyFn = null;
 var keyBackVal = null;
 // An app id's short id, an HDMI input's port key (hdmi3) under any app id.
@@ -133,6 +134,7 @@ function init(opts) {
   lunaFn = opts.luna;
   assetPathFn = opts.assetPath;
   configObj = opts.config;
+  hour12Fn = opts.hour12 || function () { return false; };
   webosVersion = opts.webosVersion || null;
   injectKeyFn = opts.injectKey;
   keyBackVal = opts.KEY_BACK;
@@ -366,9 +368,8 @@ function writeScreensaverQml(src, level) {
       'http://127.0.0.1:' + port + '/api/stats' +
       (token ? '?k=' + encodeURIComponent(token) : ''))
     .replace(/__TVWEB_LEVEL__/g, level === 'bright' ? '1' : '0')
-    // The hour cycle the clock screen savers draw, from clock.hour12.
-    .replace(/__TVWEB_CLOCK12__/g,
-      configObj && configObj.clock && configObj.clock.hour12 === true ? 'true' : 'false');
+    // The hour cycle the clock screen savers draw: the TV's own (lib/clock).
+    .replace(/__TVWEB_CLOCK12__/g, hour12Fn() ? 'true' : 'false');
   fs.writeFileSync(path.join(SCREENSAVER_DIR, 'qml', 'main.qml'), qml);
 
   try {

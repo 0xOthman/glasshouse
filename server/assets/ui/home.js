@@ -153,8 +153,8 @@ function renderHomeColours() {
   const now = homeLookNow();
   const can = homeWritable() && !homeSaving;
   // The first preset is the view's own colours, saved as none chosen.
-  // The sample clock in each preview is a fixed time, in the hour cycle the
-  // Server tab sets.
+  // The sample clock in each preview is a fixed time, in the TV's own hour
+  // cycle.
   const lookClock = homeStatus.clockHour12 ? `9:40 ${t('common.pm', 'PM')}` : '21:40';
   box.innerHTML = presets.map((p, i) => `<button type="button" class="home-look${now && now.id === p.id ? ' picked' : ''}"
       onclick="homeSaveLayout({ colours: ${i === 0 ? 'null' : `{ text: '${p.text}', accent: '${p.accent}' }`} })" ${can ? '' : 'disabled'}

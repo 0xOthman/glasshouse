@@ -73,6 +73,13 @@ that answers `no result from DB`.
 `luna://com.webos.service.capture/executeOneShot` with `method: DISPLAY`
 writes a PNG of the screen, web apps included, at the size asked for.
 
+## The TV's 12 or 24 hour clock (webOS 7.6.0)
+
+`com.webos.service.systemservice/getPreferences` with `keys: ["timeFormat"]`
+answers `timeFormat: "HH12"` on a 65UQ801C0SB set to 12-hour time (#934);
+24-hour is `HH24`, not yet seen on a TV. The clocks Glasshouse draws follow
+it, and a TV that answers without `timeFormat` is taken as 24-hour.
+
 ## Home input titles (G3, webOS 9.2.2)
 
 HDMI launch points added by Glasshouse are bookmarks with `systemApp: false`.

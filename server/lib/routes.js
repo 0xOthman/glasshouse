@@ -77,6 +77,8 @@ var remoteKeysModule = null;
 var homeScreenModule = null;
 /** @type {typeof import('./home')} */
 var homeModule = null;
+/** @type {typeof import('./clock')} */
+var clockModule = null;
 /** @type {typeof import('./home-picture')} */
 var homePictureModule = null;
 /** @type {typeof import('./screensavers')} */
@@ -340,9 +342,9 @@ function prometheusEnabled() {
   return !!(config.prometheus && config.prometheus.enabled === true);
 }
 
-// Whether the clocks draw 12-hour time: clock.hour12 in config.json.
+// Whether the clocks draw 12-hour time, as the TV's own setting has it (lib/clock).
 function clockHour12() {
-  return !!(config && config.clock && config.clock.hour12 === true);
+  return !!(clockModule && clockModule.hour12());
 }
 
 function handoffPort() { return (config.port || 8080) + 1; }
@@ -1134,7 +1136,7 @@ function handleHomeRoute(req, res, u, pathname) {
     if (pathname === '/api/home/beat') {
       if (!postGuard(req, res, 'application/json', false)) return;
       req.resume();
-      // The hour cycle the view's clock draws, which the Server tab changes.
+      // The hour cycle the view's clock draws, which follows the TV's setting.
       var beatBody = homeModule.beat();
       beatBody.clockHour12 = clockHour12();
       return reply(beatBody);
@@ -1953,6 +1955,7 @@ function init(opts) {
   if (opts.remoteKeys) remoteKeysModule = opts.remoteKeys;
   if (opts.homeScreen) homeScreenModule = opts.homeScreen;
   if (opts.home) homeModule = opts.home;
+  if (opts.clock) clockModule = opts.clock;
   if (opts.homePicture) homePictureModule = opts.homePicture;
   if (opts.screensavers) screensaversModule = opts.screensavers;
   if (opts.updater) updaterModule = opts.updater;

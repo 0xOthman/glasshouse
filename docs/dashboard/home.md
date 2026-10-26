@@ -10,7 +10,7 @@ The screen has a clock and date, what was last on (an app, an input and the devi
 * **Inputs**: every HDMI input. An input with devices on it has a tile for each device the TV knows over HDMI-CEC, saying which device it is behind ("HDMI 2, through STEREO 70s"); an input with nothing connected is greyed out. Choosing a device asks LG's input app to select it over CEC, so compatible devices can wake and a receiver can switch to the chosen source. An input without a known CEC device opens the HDMI port alone.
 * **Channels**: the channels added here, in the order they are listed, with the programme on now where the TV's guide has it. Choosing one tunes it.
 
-The clock and the times on the channel tiles draw 12-hour or 24-hour time as the [Server tab](server.md) is set.
+The clock and the times on the channel tiles draw 12-hour or 24-hour time as the TV's own time setting has it, and 24-hour time on a TV that does not say.
 
 A row with nothing to show, such as Inputs with every input hidden or Channels with none added, is left out, and the rows that remain sit centred below the clock.
 

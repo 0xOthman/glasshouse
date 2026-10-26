@@ -409,7 +409,7 @@ var initialSel = null;
 var lanOrigin = null, lanKey = null;
 // allowPower in config.json; without it the server refuses Power off and Reboot, so they are not offered.
 var allowPower = false;
-// clock.hour12 in config.json: 12-hour time on this clock, switched from the Server tab.
+// 12-hour time on this clock, as the TV's own setting has it (the server's lib/clock).
 var clockHour12 = false;
 // Ticks since caps were read again, for the hour cycle to be noticed on an open page.
 var capsTicks = 0;
@@ -468,8 +468,8 @@ function tick() {
     text = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
   document.getElementById('clock').textContent = text;
-  /* Caps are read again every sixth tick: the hour cycle is one the Server
-     tab can change while this page is open, and it is read nowhere else. */
+  /* Caps are read again every sixth tick: the TV's hour cycle can change
+     while this page is open, and it is read nowhere else. */
   if (++capsTicks >= 6) { capsTicks = 0; refreshCaps(); }
 }
 setInterval(tick, 10000); tick();
