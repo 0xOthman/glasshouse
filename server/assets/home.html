@@ -398,17 +398,29 @@ html.faded #stage{opacity:0}
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
-  // The words from the page's language, the order from the translation. A TV
-  // whose browser runs in another language (en-US is common) would otherwise
-  // read Wednesday under a German clock.
+  // The words in the page's language, the order from the translation. The
+  // browser's default locale will not do for a translated page: webOS leaves
+  // it at en-US whatever the TV's language (seen on webOS 10.3). The month is
+  // taken from a date with its day, where a language such as Russian gives the
+  // form that follows a number: "24 октября", not "октябрь".
   function dateText(d) {
     var lang = (window.I18N && I18N.lang) ? I18N.lang() : 'en';
     function part(opts) {
       try { return d.toLocaleDateString(lang === 'en' ? undefined : lang, opts); } catch (e) { return ''; }
     }
-    return t('home.date', '{weekday} {day} {month}', {
-      weekday: part({ weekday: 'long' }), day: d.getDate(), month: part({ month: 'long' })
+    function month() {
+      try {
+        var parts = new Intl.DateTimeFormat(lang === 'en' ? undefined : lang, { day: 'numeric', month: 'long' }).formatToParts(d);
+        for (var i = 0; i < parts.length; i++) if (parts[i].type === 'month') return parts[i].value;
+      } catch (e) { /* no formatToParts in webOS 4's browser */ }
+      return part({ month: 'long' });
+    }
+    var line = t('home.date', '{weekday} {day} {month}', {
+      weekday: part({ weekday: 'long' }), day: d.getDate(), month: month()
     });
+    // A line of its own, so it starts with a capital even where the weekday
+    // is written in lower case, as in Russian and Spanish.
+    return line.charAt(0).toUpperCase() + line.slice(1);
   }
 
   function request(method, url, body, cb) {

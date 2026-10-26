@@ -646,6 +646,14 @@ Unix seconds, `offset` in minutes (120 in Ljubljana in October), `timezone`
 `utc` matched `offset`. Watch time works its offset out from `localtime` and
 `utc`. Which of these fields older webOS versions give is not yet known.
 
+## The browser's locale (C5, webOS 10.3.1)
+
+With the TV's language set to Russian, the web app browser (Chrome 120)
+reports `navigator.language` as `ru-RU`, but `Intl.DateTimeFormat()` resolves
+to `en-US`, so `toLocaleDateString()` without a locale gives `Saturday` and
+`October`. Given `ru` it gives `суббота`, and with a day `24 октября`.
+Glasshouse Home names the page's language when it writes the date.
+
 ## Toasts as the screen comes on (C4, webOS 10.3.1)
 
 A toast sent through `com.webos.notification/createToast` in the moment
