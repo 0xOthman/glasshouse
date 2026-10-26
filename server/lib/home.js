@@ -866,9 +866,15 @@ function switchTo(on, cb) {
 
 // ---------------------------------------------------------------- settings
 
+/*
+ * A key the TV does not have fails the whole read but still answers the rest,
+ * naming it in errorKey: webOS 7.6.0 (a 65UQ801C0SB) has no defaultApps. The
+ * keys answered are used, and the missing ones read as unset.
+ */
 function readSettings(keys, cb) {
   luna(SETTINGS + 'getSystemSettings', { category: 'general', keys: keys }, function (r) {
-    cb(r && r.returnValue !== false && r.settings ? r.settings : null);
+    var partial = r && r.returnValue === false && isArray(r.errorKey) && r.errorKey.length < keys.length;
+    cb(r && (r.returnValue !== false || partial) && r.settings ? r.settings : null);
   });
 }
 
@@ -903,12 +909,15 @@ function copy(o) { return JSON.parse(JSON.stringify(o)); }
 function supported() {
   var v = String(webosVersion || '');
   if (/^9\./.test(v)) return { ok: true, webos: v };
+  // LG's Home is the same native app as on webOS 9; sam is nudged from the
+  // country's blocked list (lib/samrescan). Tried on a 65UQ801C0SB (7.6.0).
+  if (/^7\./.test(v)) return { ok: true, webos: v, experimental: true };
   // LG's Home is a Flutter app there, under the same id and folder (#612).
   // Tried on a G5 (webOS 10.3.1); webOS 11 is untried and needs the setting.
   if (/^10\./.test(v) || (/^11\./.test(v) && allowExperimentalFn())) return { ok: true, webos: v, experimental: true };
   return {
     ok: false, webos: v || null,
-    reason: msg('srv.home.untested', 'Glasshouse Home has been tried only on webOS 9 and 10. This TV runs webOS {version}.', { version: v || '?' })
+    reason: msg('srv.home.untested', 'Glasshouse Home has been tried only on webOS 7, 9 and 10. This TV runs webOS {version}.', { version: v || '?' })
   };
 }
 
