@@ -204,6 +204,11 @@ function defaults() {
     // The plate describing the picture of what was last on: detail many
     // won't want on a home screen, so it waits to be switched on.
     picture: false,
+    // The view fading in as it comes on screen, and out as a tile opens.
+    fade: false,
+    // Inputs with nothing plugged in left out of the Inputs row, rather than
+    // shown greyed out.
+    hideUnused: false,
     // { text, accent } as #rrggbb, or null for the view's own colours.
     colours: null,
     // null until chosen: the first start keeps an empty layout an earlier build left.
@@ -248,6 +253,8 @@ function normalise(raw) {
   d.restorePending = raw.restorePending === true;
   d.hintSeen = raw.hintSeen === true;
   d.picture = raw.picture === true;
+  d.fade = raw.fade === true;
+  d.hideUnused = raw.hideUnused === true;
   d.colours = validColours(raw.colours);
   if (typeof raw.hideLgHomeAtStart === 'boolean') d.hideLgHomeAtStart = raw.hideLgHomeAtStart;
   if (typeof raw.lgAutoLaunch === 'string' && raw.lgAutoLaunch) d.lgAutoLaunch = raw.lgAutoLaunch;
@@ -352,6 +359,8 @@ function setLayout(body, cb) {
                       body.channels !== undefined ? stringList(body.channels, MAX_CHANNELS) : c.channels),
     hintSeen: body.hintSeen !== undefined ? body.hintSeen : c.hintSeen,
     picture: typeof body.picture === 'boolean' ? body.picture : c.picture,
+    fade: typeof body.fade === 'boolean' ? body.fade : c.fade,
+    hideUnused: typeof body.hideUnused === 'boolean' ? body.hideUnused : c.hideUnused,
     // null puts the view's own colours back.
     colours: body.colours !== undefined ? body.colours : c.colours
   });
@@ -375,7 +384,7 @@ function setLayout(body, cb) {
 
 function layoutOf(c) {
   return { rows: c.rows, order: c.order, sort: c.sort, hidden: c.hidden, channels: c.channels, hintSeen: c.hintSeen, picture: c.picture,
-    colours: c.colours };
+    fade: c.fade, hideUnused: c.hideUnused, colours: c.colours };
 }
 
 // ---------------------------------------------------------------- what it shows
@@ -420,7 +429,8 @@ function sidebarApps(todo, out, done) {
     var info = r && r.returnValue && r.appInfo;
     if (info && info.id === app.id) {
       var icon = app.icon && info.icon && info.folderPath ? info.folderPath + '/' + info.icon : '';
-      out.push({ id: app.id, title: String(info.title || app.id), icon: icon });
+      // Both open over Home rather than in its place, so the view stays as it is.
+      out.push({ id: app.id, title: String(info.title || app.id), icon: icon, overlay: true });
     }
     sidebarApps(todo, out, done);
   });
@@ -541,7 +551,9 @@ function rows(cb) {
         ROWS.forEach(function (r) { if (c.sort[r] === 'recent') order[r] = lastOpenedFirst(r, order[r]); });
         cb({
           apps: appList.map(function (a) {
-            return { id: a.id, title: a.title, icon: a.icon ? '/api/home/icon?id=' + encodeURIComponent(a.id) : null };
+            var app = { id: a.id, title: a.title, icon: a.icon ? '/api/home/icon?id=' + encodeURIComponent(a.id) : null };
+            if (a.overlay) app.overlay = true;
+            return app;
           }),
           devices: devs || [],
           channels: picked,
