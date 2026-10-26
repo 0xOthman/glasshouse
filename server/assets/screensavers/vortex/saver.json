@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "name": {
     "en": "Vortex",
-    "es": "Vórtice"
+    "es": "Vórtice",
+    "hu": "Örvény"
   },
   "description": {
     "en": "Whirlwinds of light spiraling up swaying funnels on black.",
-    "es": "Torbellinos de luz que suben en espiral por embudos que se mecen sobre negro."
+    "es": "Torbellinos de luz que suben en espiral por embudos que se mecen sobre negro.",
+    "hu": "Fényforgószelek kúsznak fel spirálban imbolygó tölcsérek mentén, fekete háttéren."
   },
   "license": "MIT",
   "uses": [

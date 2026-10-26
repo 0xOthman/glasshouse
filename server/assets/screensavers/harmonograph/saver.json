@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "name": {
     "en": "Harmonograph",
-    "es": "Harmonógrafo"
+    "es": "Harmonógrafo",
+    "hu": "Harmonográf"
   },
   "description": {
     "en": "Pendulum ribbons of light weaving and fading on black.",
-    "es": "Cintas de luz pendulares que se entrelazan y desvanecen sobre negro."
+    "es": "Cintas de luz pendulares que se entrelazan y desvanecen sobre negro.",
+    "hu": "Inga rajzolta fényszalagok fonódnak és halványulnak el fekete háttéren."
   },
   "license": "MIT",
   "uses": [

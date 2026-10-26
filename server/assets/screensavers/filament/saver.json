@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "name": {
     "en": "Filament",
-    "es": "Filamento"
+    "es": "Filamento",
+    "hu": "Izzószál"
   },
   "description": {
     "en": "Swarms of light circling and trailing across black, slowly changing color.",
-    "es": "Enjambres de luz que giran y dejan estelas sobre negro, cambiando de color poco a poco."
+    "es": "Enjambres de luz que giran y dejan estelas sobre negro, cambiando de color poco a poco.",
+    "hu": "Fényrajok köröznek és húznak csíkot a fekete háttéren, lassan változó színnel."
   },
   "license": "MIT",
   "uses": [

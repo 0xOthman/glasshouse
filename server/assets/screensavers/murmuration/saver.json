@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "name": {
     "en": "Murmuration",
-    "es": "Bandada"
+    "es": "Bandada",
+    "hu": "Seregélyraj"
   },
   "description": {
     "en": "Flocks of light swooping after their leaders across black.",
-    "es": "Bandadas de luz que siguen a sus líderes en picado sobre negro."
+    "es": "Bandadas de luz que siguen a sus líderes en picado sobre negro.",
+    "hu": "Fényrajok csapnak le vezetőik után a fekete háttéren."
   },
   "license": "MIT",
   "uses": [
