@@ -1199,6 +1199,34 @@ The webOS 9 entries above describe the home app's CRIU checkpoint. On a CX:
 - The TV has no `/etc/issue`. `/etc/starfish-release` has
   `Rockhopper release 10.3.1-3006`, and `/etc/os-release` `VERSION_ID=10.3.1`.
 
+## WebAppMgr stopped (G4, webOS 11.2.0)
+
+Seen on 23 October 2026 on an OLED65G4KNA with Glasshouse Home switched on.
+
+- **WebAppMgr can stop for good.** `webapp-mgr.service` (in
+  `/etc/systemd/system`, `Type=simple`, `Restart=on-failure`,
+  `OOMScoreAdjust=-1000`, `PartOf=surface-manager.service`) ended with
+  `code=killed, signal=TERM`, `Result=success`, `NRestarts=0`, and stayed
+  inactive. What sent the signal was not found: nothing in
+  `/var/log/messages` at that second, no crash report, and the TV has no
+  systemd journal.
+- **Every web app then opens nothing.** Each Home press logged
+  `NL_BUTTON_CLICK` `KEY_HOME` (`lginput2`, remote `LGE MR24N`) and sam's
+  `NL_APP_LAUNCH_BEGIN` for `com.webos.app.home` (caller
+  `com.webos.starfish.keyfilters`), with no `NL_VSC` window after it, for
+  40 minutes. LG's own Flutter Home, put back in its place, did not show
+  either: launched by the server and then by a Home press 21 s later, it got
+  no window.
+- **sam goes on naming the dead view in front.** With WebAppMgr stopped while
+  the view was in front (under the screen saver), Glasshouse's foreground
+  stayed `com.webos.app.home` through later presses, so only the view's
+  heartbeat tells whether a press opened it.
+- **`systemctl start webapp-mgr.service` brings it back** without a restart.
+- **The remote's Home reaches `/dev/input` on this TV.** Unlike the C5's
+  MR25GA (above), Glasshouse's reader saw Home go down on the MR24N and
+  held it past its 1.2 s; LG's filter opened the screen magnifier at 2.5 s,
+  as on webOS 10.
+
 ## Home's button does not change the foreground app (webOS 4.10.2, 55UM7100PLB)
 
 `supported()` already refuses Glasshouse Home on webOS 4 and nothing here
