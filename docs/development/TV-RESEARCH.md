@@ -273,6 +273,81 @@ mount, and tried over SSH.
   listed with `cardSnapShotFilePath` empty and only their
   `splashBackground`. Checked on 19 October 2026.
 
+## LG's search and deep links (G3, webOS 9.2.2)
+
+Read on 21 October 2026 from LG's Search app's QML
+(`/usr/palm/applications/com.webos.app.voice/qml`) and tried over SSH on a
+G3 in the UK.
+
+- **Search is a luna service.** `com.webos.service.nlpmanager/search`
+  `{ subscribe: true, query, start_index: 1, max_results: 24, category_name:
+  "movie,tvshow" }` answers `searchStart`, `searchConnecting`, then
+  `searchResult` and `sessionEnd`, in 0.7 to 0.9 s. Without `subscribe` it is
+  refused (`6011`, `NLP invalid parameter`). Root needs no app id (`-a`).
+- **Each result is one title on one service**: `title`, `type` (`movie`,
+  `tvshow`), `thumbnail` (a 960x540 poster on `eic-ngfts.lge.com`, with a
+  `#ADDSIZE#...` hint after it), `display_info` (`release_date`,
+  `running_time`, `age_ratings`), `cp_thumbnail[0].cp_id` (the app id:
+  `amazon`, `netflix`, `com.apple.appletv`, `com.wbd.stream`,
+  `com.disney.disneyplus-prod`, `bbc.iplayer.3.0`, `cdp-30` for Plex) and
+  `action_on_click.launch_parameter.itemId`. Dune (2021) came on three
+  services, dated 3 September, 15 September and 21 October 2021.
+- **The item's detail names the app's own id.** `com.webos.service.sdx/send`
+  with `serviceName` `sdp_onnow`, `url` `content_discovery/item-detail` and
+  `item_id`, `item_type=CONTS` in `bodyData` answers in about 0.5 s with
+  `item.item_detail.exec_list.execs[]`: `exec_app_id` and `exec_id`. For
+  Prime Video, Netflix and HBO Max the `exec_id` was the item id after its
+  first `|`; for Disney+ it was its own (`page=play&id=...`).
+- **applicationManager builds the deep link.** LG's Search launches
+  `{ id, replaceParams: { deeplinkingParams: { target: "$CONTENTID", value:
+  exec_id } } }`, and the app's `appinfo.json` holds the template, such as
+  `{"contentTarget":"$CONTENTID"}` (Disney+ and HBO Max add
+  `"handledBy":"app"`). Prime Video and Netflix opened at the film's page,
+  Apple TV at an episode of Severance after its profile picker, BBC iPlayer at
+  an episode's playback (asking to sign in), and Disney+ and HBO Max stopped
+  at their own first-run privacy prompts.
+- **A series opens at its latest episode** in LG's own Search:
+  `exec_full` names it (Severance on Prime Video: series 2 episode 16, a
+  bonus interview; The Bear on Disney+: series 5 episode 8). With
+  `item_detail_type` `advanced` the detail adds `season_list` (each season's
+  `conts_season_num` and `item_id`) and `tab_episode` (that season's items,
+  `item_name` the episode number, real episodes listed before extras, which
+  Prime Video numbers too). Any other type (`full`) gives Apple TV's show id.
+  Each item id, less what precedes its first `|` and LG's tag (`AMAZON_`,
+  `DISNEY_`, `BBC_`, `MAX_`), is the app's own id. Tried on 21 October 2026:
+  Prime Video's season id opened its season page; Disney+'s season links
+  (`page=browse&...`) left a blank screen, its episode links played; BBC
+  iPlayer's programme id and a guessed `tv/episodes/` link failed or went to
+  its home, its episode links played; Apple TV ignored its show id and a
+  `tv.apple.com/gb/show/` link, cold or running.
+- **The servers are LG's SDP.** `sdx/getHttpHeaderForServiceRequest` with
+  `serviceName` `sdp_nlp`, `sdp_search` or `sdp_onnow` answers a top-level
+  `HOST` (`GB.nextlgsdp.com`) beside device ids and LG account tokens, which
+  should not be logged.
+- **Only that host matters to search** (26 October 2026, firmware 23.25.55).
+  Everything blocked `gb.nextlgsdp.com` and search failed (`errorCode` 6003,
+  `Server response error`); Ads & telemetry plus an uploaded list holding only
+  that host failed the same way; Everything with every name but that host
+  searched normally.
+- **Apps opened from search** (26 October 2026, Ads & telemetry): Prime Video
+  at the Dune and Severance pages, Netflix at Dune: Part Two and Stranger
+  Things, Plex at its film pages, BBC iPlayer playing Doctor Who and All
+  Creatures Great and Small series 1 episode 1, Apple TV at Dune and
+  Severance's latest episode. Apple TV, Disney+ and HBO Max showed a profile
+  picker first when cold: Apple TV then went on to the title, HBO Max to its
+  home; opened again while running, HBO Max played Dune and Succession and
+  Disney+ played The Bear and Loki (protected video captures black, so the
+  episode was not seen). LG's catalogue offered no titles on ITVX, Channel 4,
+  5, YouTube, Paramount+ or Sky Store for 14 test queries.
+- **luna-send over SSH needs stdin closed** (`</dev/null`): without it, it
+  printed nothing and did nothing on the G3.
+- **The TV's keyboard.** A focused text field brings up LG's keyboard, which
+  takes the arrows. Its Enter reaches the page as key 13; its Back closes it
+  without reaching the page and leaves the field focused, and
+  `keyboardStateChange` with `detail.visibility` fires on the document, not
+  the window. `com.webos.service.ime/insertText` and `sendEnterKey` type
+  into it over SSH.
+
 ## Channels and the guide (G3, webOS 9.2.2)
 
 - `com.webos.service.apiadapter/tv/getChannelList` (the method behind SSAP's
@@ -954,6 +1029,7 @@ use and a Hall sensor as reasons. Store mode was `home`,
 Which client refused, and why, was not found: their debug logs do not reach
 `/var/log/messages`, which PmLogDaemon filters by
 `/etc/PmLogDaemon/whitelist.txt`, nor `/var/log/legacy-log`.
+It was eplmanager: see the next section.
 
 Launching `com.webos.app.screensaver` through sam still brought LG's screen
 saver up, and `closeByAppId` closed it. tvpower stayed Active under it. The
@@ -963,6 +1039,42 @@ off'"), so the remote did not close it. Start screensaver launches the app
 where tvpower drops the request, except over full-screen playback, tracks it
 through sam's `running` list, and closes it on any key the remote-button
 worker reads from `/dev/input`.
+
+## Panel care holding the screen saver back (webOS 9.2.2, G3)
+
+`ls-monitor -c` (`/usr/sbin/ls-monitor`, run as root with a terminal: over a
+plain `ssh` command luna-send printed nothing) showed the answers to
+tvpower's `responseScreenSaverRequest`: screenmanager and the browser `ack:
+true`, `com.webos.service.oledepl` (`/usr/sbin/eplmanager`) `ack: false`.
+From eplmanager's disassembly (32-bit Thumb, symbols exported):
+
+- `PixelExtension::RequestScreenSaver` answers by a test policy (`1`
+  always yes, `2` always no, set from its debug menu, "Set Screen Saver
+  Policy (0:Default, 1:Forcely Enable, 2:Forcely Disable)"), and by default
+  answers no while its screen saver timer runs.
+- screenmanager calls `setEplAppInfo { appId, supportScreenSaverPolicy }` at
+  each change of foreground app, with `false` for every app seen (Home, the
+  browser, YouTube, Netflix). For those, on a TV where
+  `mw_isSupportOSDCapture` is true, `applyEplAppPolicy` sets the delay to 30
+  minutes (`movs r3, #0x1e`), starts the timer and the OSD capture dimming
+  (the `com.webos.service.capture/executeOneShot` calls seen while idle).
+  `onInputKey` (by `restoreEplCondition`, at most once per 3 s) starts it
+  again on every key.
+- With `supportScreenSaverPolicy: true`, `screenSaverDelay` (minutes) is the
+  timer instead, and `createScreenSaverTimer` starts none at 3 or less; 0
+  reads as not set. That path uses `brightnessDropRatio` and
+  `brightnessDropPeriod` rather than the OSD capture dimming. screenmanager's
+  `screenSaverProperties` in configd give 30 minutes for both kinds
+  (`preferredType` 2 with a 33 % drop after 300 s, and 3).
+
+Timed live: with Home handed over at a 4-minute delay, LG's idle requests at
+0:36 and 3:36 were refused and the one at 6:36 started the screen saver. At a
+1-minute delay a `turnOnScreenSaver` straight after started it, and handing
+Home back with `false` made the next one refused again. screenmanager did not
+call `setEplAppInfo` when the screen saver closed, only at the next change of
+app. eplmanager has no getter for the app info it holds. The C2 on the same
+webOS starts its screen saver; whether it reports no OSD capture support was
+not checked.
 
 ## Home's snapshot (webOS 5.6.2, CX)
 
@@ -1036,6 +1148,51 @@ The webOS 9 entries above describe the home app's CRIU checkpoint. On a CX:
   took ("sam had not caught up").
 - The TV has no `/etc/issue`. `/etc/starfish-release` has
   `Rockhopper release 10.3.1-3006`, and `/etc/os-release` `VERSION_ID=10.3.1`.
+
+## Home's button does not change the foreground app (webOS 4.10.2, 55UM7100PLB)
+
+`supported()` already refuses Glasshouse Home on webOS 4 and nothing here
+changes that; this is what was found trying anyway, for whoever looks at
+webOS 4 next.
+
+- `com.webos.app.home`'s `appinfo.json` is laid out the same as on webOS 9:
+  `"type": "native"`, `"main": "file:///usr/bin/com.webos.app.home"`,
+  `"visible": false`, `"defaultWindowType": "home"`.
+- Neither of `lib/samrescan.js`'s two rescan mechanisms exists here. configd
+  has no `profile.blockedAppList` (`"no profile.blockedAppList on this TV, so
+  sam cannot be nudged"`, matching the B8 the file's header already names),
+  and `blockSystemApp`/`releaseBlockSystemApp` are not registered methods at
+  all: `blockSystemApp for com.webos.app.home refused: Unknown method
+  "blockSystemApp" for category "/" (-1)"`. `home-takeover.js`'s `reread()`
+  has no third path for this - the project-wide retreat from restarting sam
+  for a rescan (`#366`) was not re-added for Home specifically, so `take()`
+  fails clean through `giveBack()`/`release()` rather than leaving anything
+  mounted.
+- **The Home button does not make `com.webos.app.home` (or anything else)
+  foreground.** A real press, and a direct
+  `applicationManager/launch {"id":"com.webos.app.home"}` (`returnValue:
+  true`), both left `getForegroundAppInfo` answering whatever was in front
+  before the press, unchanged, while the TV visibly showed a translucent
+  overlay bar over the running app. Whatever draws that bar is not tracked as
+  a foreground app on this firmware, so neither sam-level app-identity
+  swapping nor foreground polling can detect it; any Home-button interception
+  here has to watch the physical key itself (`remotebuttons.js`'s evdev
+  `HOME_CODE` 773 route already does, for the hold-Home gesture) rather than
+  app state.
+- **`getForegroundAppInfo`'s `subscribe: true` only ever answers once here.**
+  It returns its first reply and then never pushes a second one - the pipe
+  does not close either, so a caller waiting on it (rather than on a
+  timeout) blocks indefinitely. Confirmed over several minutes and across
+  both a real press and a synthetic `launch`.
+- **A second, heavier Home app exists:** `com.webos.app.fullhome`, already
+  named `"Home"` at 40 MB in `lib/preload.js`'s own catalog, distinct from
+  `com.webos.app.home` (the overlay). Not tried as a takeover target - it may
+  be the more promising one for a pre-webOS-9 Home replacement, since it is
+  apparently a real, substantial, separately-preloaded app rather than an
+  overlay LG keeps out of the foreground-app API.
+- Device: 55UM7100PLB (2019 LCD), webOS 4.10.2, firmware 05.40.97,
+  `core_os_kernel_version` `4.4.84-p.649.grampians.k5lp.1`, `core_os_name`
+  `Rockhopper`, `webos_imagename` `starfish-dvb-secured`.
 
 ## What the TV opens as it starts (G5, webOS 10.3.1)
 

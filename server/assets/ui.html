@@ -104,11 +104,12 @@
         </div>
         <div class="nav-pref-grp">
           <div class="nav-pref-lbl" data-t="server.language.title">Language</div>
-          <div class="theme-seg" role="group" aria-label="Language" data-t-aria-label="server.language.group">
-            <button type="button" data-lang-set="auto" data-t="theme.auto">Auto</button><button type="button"
-              data-lang-set="en" data-t="lang.en">EN</button><button type="button" data-lang-set="es"
-              data-t="lang.es">ES</button>
-          </div>
+          <!-- A list rather than buttons: one for each language would not fit the
+               sidebar. The languages after English are added from i18n.js. -->
+          <select class="pill-sel" id="lang-sel" aria-label="Language" data-t-aria-label="server.language.group">
+            <option value="auto" data-t="theme.auto">Auto</option>
+            <option value="en" translate="no">English</option>
+          </select>
         </div>
       </div>
     </details>
@@ -752,6 +753,17 @@
     </div>
   </div>
 
+  <div class="ss-level-row" id="ss-poweroff-row">
+    <div class="ss-level-lbl" data-t="ss.powerOff">Poweroff after</div>
+    <form class="toast-form" id="ss-poweroff-form" onsubmit="event.preventDefault();saveSsPowerOff();">
+      <input type="text" id="ss-poweroff" inputmode="numeric" maxlength="12" placeholder="Off" data-t-placeholder="common.off"
+        autocomplete="off" aria-label="Minutes of screen saver before standby" data-t-aria-label="ss.powerOff.input"
+        oninput="this.dataset.dirty='1'">
+      <button type="submit" id="ss-poweroff-save" data-t="server.port.save">Save</button>
+    </form>
+    <div class="pv-sub" id="ss-poweroff-desc"></div>
+  </div>
+
   <div class="pv-note" id="ss-note"></div>
   </div>
   </div>
@@ -993,6 +1005,22 @@
       </div>
       <div class="prot-status"><button type="button" class="pill idle" id="home-picture" onclick="homePicture()">&mdash;</button></div>
     </div>
+    <div class="prot-row" id="home-search-row" hidden>
+      <div class="prot-main">
+        <div class="prot-title" data-t="home.search">Search</div>
+        <div class="prot-desc" data-t="home.searchDesc">Left of the rows on Glasshouse Home: films and series on this TV’s apps, opened in the app at the title.</div>
+        <div class="pv-note warn" data-t="home.searchPrivacy">What is typed is sent to LG’s search, as with LG’s own Search, and to nowhere else. Switched off, the search mark goes and nothing typed leaves the TV.</div>
+        <div class="pv-note warn" id="home-search-blocked" hidden><span id="home-search-blocked-text"></span> <a href="?tab=privacy" onclick="event.preventDefault(); showTab('privacy'); const ad = q('pv-adv'); if (ad) { ad.open = true; ad.scrollIntoView({ block: 'start' }); }" data-t="home.searchBlockedLink">Open the ad blocker</a></div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="home-search" onclick="homeSearch()">&mdash;</button></div>
+    </div>
+    <div class="prot-row" id="home-fade-row" hidden>
+      <div class="prot-main">
+        <div class="prot-title" data-t="home.fade">Fade in and out</div>
+        <div class="prot-desc" data-t="home.fadeDesc">Glasshouse Home fades in as it comes on screen, and out as an app, input or channel opens.</div>
+      </div>
+      <div class="prot-status"><button type="button" class="pill idle" id="home-fade" onclick="homeFade()">&mdash;</button></div>
+    </div>
   </div>
 
   <div id="home-more">
@@ -1070,7 +1098,8 @@
         services stops working while the blocker is on, switch it off to check whether it is the cause.</div>
       <div class="pv-note warn"><b data-t="pv.adblock.full.warn">Everything also blocks LG's platform services, so
         the LG ThinQ app can no longer control the TV, and the app store, software updates and LG
-        Channels may stop working.</b> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
+        Channels may stop working.</b> <span data-t="pv.adblock.full.search">Where it blocks LG's search, Glasshouse Home's
+        search is hidden until the blocker is back on Ads &amp; telemetry or off.</span> <span data-t="pv.adblock.full.updates">To stop only system updates, use Block TV software
         updates in the Advanced tab.</span></div>
     </div>
 
@@ -1578,7 +1607,7 @@
 </main>
 
 <footer>
-  <span class="foot-end"><span id="activity-txrx" class="activity-txrx" aria-hidden="true"><span id="act-tx" class="txrx-pip"></span><span id="act-rx" class="txrx-pip"></span></span><a id="version" hidden target="_blank" rel="noopener noreferrer"></a><a id="version-new" hidden target="_blank" rel="noopener noreferrer"></a><button type="button" class="theme-toggle" id="theme-toggle">☾</button></span>
+  <span class="foot-end"><span id="activity-txrx" class="activity-txrx" aria-hidden="true"><span id="act-tx" class="txrx-pip"></span><span id="act-rx" class="txrx-pip"></span></span><span id="tv-name" hidden></span><a id="version" hidden target="_blank" rel="noopener noreferrer"></a><a id="version-new" hidden target="_blank" rel="noopener noreferrer"></a><button type="button" class="theme-toggle" id="theme-toggle">☾</button></span>
 </footer>
 
 <!-- Offered on load when "Update pop-up" is on in the Server tab; see offerUpdatePopup in ui/update.js. -->

@@ -7,15 +7,24 @@ var msg = require('./say').msg;
 
 // Screen saver names come from the registry, so a new one reaches Home
 // Assistant without a second list to keep in step (Bokeh was missed once).
-var SS = require('./screensavers').SCREENSAVERS;
+var screensavers = require('./screensavers');
 var topics = require('./topics');
 var names = require('./names');
 var hexColor = require('./util').hexColor;
 var APP_ID_RE = require('./iconserver').APP_ID_RE;
-var SS_IDS = Object.keys(SS);
-function ssMap(byLabel) {
+// The screen savers that can be picked, as Home Assistant's select names them:
+// [id, name] pairs, a name made unique with its id where two are the same.
+function ssChoices() {
+  var seen = {};
+  return screensavers.catalog().filter(function (e) { return !e.problem; }).map(function (e) {
+    var name = seen[e.label] ? e.label + ' (' + e.id + ')' : e.label;
+    seen[name] = true;
+    return [e.id, name];
+  });
+}
+function ssMap(choices, byLabel) {
   var m = {};
-  SS_IDS.forEach(function (k) { if (byLabel) m[SS[k].label] = k; else m[k] = SS[k].label; });
+  choices.forEach(function (c) { if (byLabel) m[c[1]] = c[0]; else m[c[0]] = c[1]; });
   return m;
 }
 
@@ -350,6 +359,14 @@ function inputSourceNames(custom) {
   return byId;
 }
 
+// The Input Source select's options mapped to their inputs, as Launch App's
+// app_ids maps titles to app ids.
+function inputIds(byId) {
+  var out = {};
+  Object.keys(byId).forEach(function (id) { if (!out.hasOwnProperty(byId[id])) out[byId[id]] = id; });
+  return out;
+}
+
 function selectState(expr, options) {
   var quoted = [];
   for (var i = 0; i < options.length; i++) quoted.push('\'' + options[i] + '\'');
@@ -426,6 +443,7 @@ function powerTimerPayload(topic, which, name, icon) {
 }
 
 function buildEntities(opts) {
+  var ssc = ssChoices();
   opts = opts || {};
   var topic = topics(opts.pfx);
   var installedApps = opts.installedApps || [];
@@ -873,8 +891,12 @@ function buildEntities(opts) {
           name: 'Input Source',
           command_topic: topic.command('input'),
           state_topic: topic.telemetry,
+          // Each option's input, which stays when the TV renames it: an
+          // automation can find the option by input rather than by name.
+          json_attributes_topic: topic.telemetry,
+          json_attributes_template: '{{ ' + JSON.stringify({ input_ids: inputIds(inputNames) }) + ' | tojson }}',
           icon: 'mdi:video-input-hdmi'
-        }, namedSelect(Object.keys(inputNames), inputNames, 'value_json.app'))
+        }, namedSelect(Object.keys(inputNames), inputNames, '(value_json.input_source or value_json.app)'))
       },
       {
         type: 'text', id: 'screen_notification',
@@ -1217,9 +1239,9 @@ function buildEntities(opts) {
           name: 'Screen Saver',
           command_topic: topic.command('screensaverMode'),
           state_topic: topic.telemetry,
-          options: SS_IDS.map(function (k) { return SS[k].label; }),
-          command_template: '{{ ' + JSON.stringify(ssMap(true)) + '[value] }}',
-          value_template: '{{ ' + JSON.stringify(ssMap(false)) + '.get(value_json.screensaverMode, "LG default") }}',
+          options: ssc.map(function (c) { return c[1]; }),
+          command_template: '{{ ' + JSON.stringify(ssMap(ssc, true)) + '[value] }}',
+          value_template: '{{ ' + JSON.stringify(ssMap(ssc, false)) + '.get(value_json.screensaverMode, "LG default") }}',
           icon: 'mdi:television-shimmer'
         }
       },

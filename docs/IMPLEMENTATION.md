@@ -158,13 +158,21 @@ OLED65G5WUA (webOS 10) on optical showed a level of 10 that no change moved.
 So when the TV refuses a volume or mute change with "Current Scenario doesn't
 support", the volume counts as not changeable until the sound goes elsewhere.
 
-The TV's DNS name in the stats, `hostname`, is a reverse lookup of its IPv4
-address on the home network, `address`. It is looked up in the background and
-never on a request: the stats carry the cached answer, and the first after a
-start or an address change has none. A name, no name, an error, and no answer
-within 3 seconds are all cached for an hour, so a network without a reverse
-zone is not asked on every scrape. `dns.reverse` has no timeout of its own, so
-a later answer is dropped.
+The stats give the TV's local addresses: IPv4 as `address`, and IPv6 as
+`address6`, a unique local address (fc00::/7) on the same interface. A global
+IPv6 address changes with the ISP's prefix and a link-local one names only the
+link, so neither is given. Where the interface has two unique local addresses,
+the EUI-64 one (`ff:fe` in the middle of the interface identifier) is given,
+as the other is a temporary address, which rotates.
+
+The TV's DNS name, `hostname`, is a reverse lookup of `address6`, or of
+`address` where `address6` has no name: a network with an IPv6 local address
+was given one on purpose. Each is looked up in the background and never on a
+request: the stats carry the cached answer, and the first after a start or an
+address change has none. A name, no name, an error, and no answer within 3
+seconds are all cached for an hour, so a network without a reverse zone is not
+asked on every scrape. The two addresses are cached apart, each on its own
+hour. `dns.reverse` has no timeout of its own, so a later answer is dropped.
 
 webOS 3.9 has no temperature source at all: `/proc/lg/pm/temperature` is absent,
 nothing under `/proc/lg` or `/sys` is named for temperature, `/sys/class/thermal` is
@@ -1101,7 +1109,7 @@ run in CI alongside `shellcheck`; `check-entities.py` needs a live
 | :--- | :--- |
 | `check-es5.py` | An ES6 construct in `tvweb.js`. Node 0.12 treats one as a parse error, so the server never starts and logs nothing. |
 | `check-ui-ids.py` | An id the dashboard reaches for that no element defines. |
-| `check-screensavers.py` | QML newer than the `import QtQuick` line it declares. |
+| `check-screensavers.py` | QML newer than the `import QtQuick` line it declares, and each screen saver folder's `saver.json`. |
 | `check-drift.py` | A documented entity count the code has moved past, and an asset `deploy.sh` would never install. |
 | `check-entities.py` | An entity template naming a field the telemetry no longer has. |
 
@@ -1185,7 +1193,7 @@ An upload is refused before any of it is read unless:
 * `Content-Length` is present and `Transfer-Encoding` is not (411), and the length is a positive integer (400);
 * the length is within the 512 MB cap (413), no job or other upload is running (409) and three times the length is free on the staging directory, when `df` can be read (507).
 
-`postGuard` holds the content type and Origin checks that `readJsonBody` shares. `installer.prepareUpload` makes the checks above, clears leftovers from the staging directory and reserves `upload-<random>.ipk` there; a reservation also makes other installs refuse, since a job's cleanup empties the directory, and lapses after 30 minutes without upload data. The route writes the stream with `req.on('data')` and a `fs.createWriteStream`, pausing the request until `drain`. The file is deleted when the connection aborts or closes early, on a write error, and when the byte count differs from `Content-Length`. A complete upload is handed over as `installer.start({source: 'file', path})`, which accepts only a path directly inside the staging directory.
+`postGuard` holds the content type and Origin checks that `readJsonBody` shares. `installer.prepareUpload` makes the checks above, clears leftovers from the staging directory and reserves `upload-<random>.ipk` there; a reservation also makes other installs refuse, since a job's cleanup empties the directory, and lapses after 30 minutes without upload data. The route writes the stream with `req.on('data')` and a `fs.createWriteStream`, pausing the request until `drain`. The file is deleted when the connection aborts or closes early, on a write error, and when the byte count differs from `Content-Length`. On Node 0.12, destroying a stream before its file opens leaves the eventual descriptor alive, so an aborted upload also closes it on `open` and removes the file on `close`. A complete upload is handed over as `installer.start({source: 'file', path})`, which accepts only a path directly inside the staging directory.
 
 The preview carries `source` (`catalog`, `url` or `file`) and the package's sha256. For a `url` or `file` source the page asks again before elevating, naming each service that would run as root, and the confirm request must carry the same list as `confirmRoot` or the installer refuses. `willElevate` tells whether a catalog update will be elevated again from `elevated.json`; the on-TV page offers the root switch for catalog packages only.
 
@@ -1401,6 +1409,61 @@ app is opened or closed only while it is on the list. Snapshot responses use
 `private, no-store` caching. Back cancels a pending panel load; returning Home
 discards replies from the previous visit. OK acts once on release.
 
+Left of any row's first tile is a search mark in the gutter, and OK there
+opens a panel to search films and series. `lib/home-search.js` asks `com.webos.service.nlpmanager/search`, the
+service LG's own Search (`com.webos.app.voice`) asks, as a subscription; a
+one-off call is refused with `NLP invalid parameter`. It answers from LG's
+catalogue in under a second on a G3, one result for each title on each
+service, with the service's app id and an item id. Results for apps the TV
+does not have are counted, not shown; the same title and kind within a year
+on several services is one title, since each service dates it differently.
+Opening one asks `com.webos.service.sdx/send` for the item's detail, whose
+`exec_id` is the id the app knows the title by, and launches the app with
+`replaceParams.deeplinkingParams`, which applicationManager puts into the
+app's own `deeplinkingParams` template in its `appinfo.json`
+([TV-RESEARCH](development/TV-RESEARCH.md#lgs-search-and-deep-links-g3-webos-922)).
+For a series, item detail names the latest episode, so
+the start is found instead: the `advanced` detail lists the seasons
+(`season_list`) and a season's lists its episodes (`tab_episode`). Prime
+Video and HBO Max open at the first season's page; other apps, whose season
+links do not open (Disney+) or which have only playback links (BBC iPlayer),
+play the first episode. Apple TV and Netflix list no seasons and keep LG's
+link. An LG item id less its first `|` and LG's service tag (`AMAZON_`) is the
+app's own id, used where the detail names none. Trailers are never listed or
+opened: LG marks none, and lists Prime Video's sneak peeks as films and its
+trailers as episodes, so a title or episode is taken for one by a promo word
+(trailer, teaser, sneak peek, preview, first look) with a running time of 15
+minutes or less, or, without one, ending the name or before its colon or
+dash; Trailer Park Boys and Trailer War stay. `search` in `home.json`, off by
+default, switches search on and off: while off, no rail is shown and both routes refuse before asking
+LG. Only a title and app from the last search can be opened. Both calls go to
+the host sdx names in its request headers for `sdp_nlp` and `sdp_onnow`
+(`GB.nextlgsdp.com` on a G3 in the UK). Each unresolved service host is
+retried each minute, even when the other service has answered. `privacy.blockedBy` checks that host
+against the names the ad blocker's table holds, not the tier: the SDP clock
+wait leaves it reachable on Everything, and an uploaded list can block it on
+Ads & telemetry. While it is blocked the layout carries `searchBlocked`
+(`{ host, by: 'level' | 'list' }`, not saved), the view hides the rail, both
+dashboards grey the switch with a note, and both routes refuse. The state is
+part of `layoutVersion`, so a view already showing reloads within a
+heartbeat when the blocker changes. The view searches 0.4 s after
+typing stops. Back on the TV's keyboard closes it without the page seeing the
+key; the `keyboardStateChange` event on the document says so, and the titles
+take the focus. A return from an app opened in the panel comes as both a
+relaunch and the page showing again, and keeps the panel open for 30 minutes
+unless the heartbeat's `sleeps`, the times the screen has gone off since the
+server started, has changed.
+
+Only the current search may replace the launch list, including while its app
+list is still loading; an empty answer clears the previous targets. The view
+clears previous titles as soon as the text changes, before the typing delay, and waits for the new reply before
+Enter focuses its results. A failed query can be retried with Enter. An app
+launch holds further selections until it answers, and its late reply is
+discarded if the panel has closed. Each detail read and the final launch recheck
+the Search setting and blocker, so a pending lookup stops when either refuses.
+Search requests allow 12 seconds for the
+server's 10-second limit; launches allow 20 seconds for sequential detail reads.
+
 ## Apps kept ready in the background
 
 webOS's preload manager keeps apps loaded so they open quickly, including ones
@@ -1471,6 +1534,8 @@ The debloating engine (`server/lib/services.js`) manages background system daemo
 ## Screensaver Staging & Boot Persistence
 
 Custom QML screensavers are staged in `/var/lib/tvweb/screensaver` and bind-mounted over `/usr/palm/applications/com.webos.app.screensaver`.
+
+* **Screen saver folders**: each screen saver is a folder with a `saver.json`, read by `lib/screensavers.js` from `assets/screensavers` (Glasshouse's own) and `/var/lib/tvweb/screensavers` (added on the TV, which an update leaves alone). The folder's name gives the id; for an added one Glasshouse prefixes the id, not the folder, with `user-`, so it never clashes with one of Glasshouse's. The folders are read again whenever the tab asks for the list or a screen saver is picked. Picking one copies its whole folder into the staged `qml/`, its main file as `main.qml`, filling in only the placeholders its `uses` names. Home Assistant's select is built from the same list when discovery is published. The format is in [SCREENSAVER-DESIGN.md](development/SCREENSAVER-DESIGN.md#screen-saver-folders).
 
 * **Cold Boot vs Quick Start+**: On Quick Start+ suspend-to-RAM, active bind-mounts persist in memory. On a cold boot (such as after the 4-hour OLED Pixel Cleaning cycle or extended standby on webOS 9 and 10), `/var/lib/webosbrew/init.d/50-tvweb` re-applies the bind-mount if `/var/lib/tvweb/screensaver/.tvweb-screensaver` is present.
 * **Making sam read the new manifest**: sam reads an `appinfo.json` only when it scans, and where LG's screen saver is Flutter (webOS 10 and later) ours changes the app's `type`, so sam has to read it again or the launch goes to the wrong runner. `ensureScreensaverRunner` in `lib/screensavers.js` and the boot hook try two things in turn: `applicationManager/blockSystemApp` followed by `releaseBlockSystemApp` for the one app (`samrescan.rereadApp`; the block adds `"forceBlockSystemApp": false` where the TV's `applicationManager.blockSystemApp.schema` names it, as webOS 11.2 requires; on a C5 on webOS 10.3.1 sam reported the new type within the second and kept its pid), then the configd nudge below (webOS 9). They never restart sam, the restart behind the black-picture reports in #366, which they used to fall back to. A switch to one of ours that sam has not taken is undone (unmounted, staged files cleared) and answered with an error, and a switch back to LG's is answered as taking effect from the next restart; the boot hook unmounts ours likewise. A running screen saver is relaunched after either, since neither stops it. The release goes out even when the block got no answer, which may still have been a block sam made, and on a TV whose stock screen saver is not QML the boot hook releases it once at every boot, so a run cut short between the two calls cannot leave it blocked. Custom screen savers are on by default on webOS 10 and 11 (#768) and stay held back on webOS 12 and later unless `allowExperimentalScreensavers` is set; the version is read from `/etc/issue`.
