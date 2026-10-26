@@ -7,7 +7,7 @@
 
 ## What is on screen
 
-Glasshouse Home displays a clock and date, the last active source or app, and up to three rows (any row with no visible items is automatically hidden):
+Glasshouse Home displays a clock and date (following the TV's 12-hour or 24-hour time setting), the last active source or app, and up to three rows (any row with no visible items is automatically hidden):
 
 <div class="grid cards" markdown>
 

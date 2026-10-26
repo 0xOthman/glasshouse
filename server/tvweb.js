@@ -57,6 +57,7 @@ var servicesModule = require('./lib/services');
 var preload = require('./lib/preload');
 var quickAccess = require('./lib/quickaccess');
 var remoteKeys = require('./lib/remotekeys');
+var clockFormat = require('./lib/clock');
 var homeScreen = require('./lib/homescreen');
 /*
  * Glasshouse Home is loaded apart from the rest: one of its files missing from
@@ -538,8 +539,12 @@ remoteKeys.init({ luna: luna, subscription: lunaTransport.Subscription, services
 homeScreen.init({ luna: luna, config: CONFIG, inputNames: telemetry.inputNameMap, stateDir: __dirname, webosVersion: telemetry.detectWebosVersion() });
 // webOS 10's layout is an overlay mount, gone after a restart of the TV.
 homeScreen.reapply();
+// The TV's own 12 or 24 hour setting, for every clock Glasshouse draws. A
+// change restages a clock screen saver, which has it written into its file.
+clockFormat.init({ luna: luna, onChange: function () { screensavers.restageScreensaver(); } });
 screensavers.init({
   luna: luna,
+  hour12: clockFormat.hour12,
   webosVersion: telemetry.detectWebosVersion(),
   config: CONFIG,
   injectKey: controls.injectKey,
@@ -881,6 +886,7 @@ function appsChanged() {
 
 routes.init({
   config: CONFIG,
+  clock: clockFormat,
   piccapStatus: piccap.status,
   repo: repo,
   installer: installer,
@@ -1787,6 +1793,7 @@ function startGlasshouseHome() {
 
 if (!CLI_MODE) {
   heartbeat();
+  clockFormat.refresh();
   setInterval(heartbeat, 20000);
 
   // HDMI tile titles on webOS 9's Home (lib/homescreen.js): EIM cannot be
