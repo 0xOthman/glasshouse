@@ -1646,6 +1646,11 @@ collapsed to 0 px and showed nothing in 0.121.0 and 0.122.0. The height is set
 back to `auto` inside `@supports (display: flex)`, which WebKit 538.2 does not
 read.
 
+On the B8 the TV app's page, kept in memory, went on showing the old layout
+after the server was updated, until the TV restarted: it came back without the
+`webOSRelaunch` event that reloads it. The page now also reloads when
+`/api/caps` reports a server version other than the one it loaded with.
+
 
 ## Installing Glasshouse's own package (G3, webOS 9.2.2)
 
