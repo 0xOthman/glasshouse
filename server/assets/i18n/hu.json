@@ -2171,5 +2171,9 @@
  "home.wall.now": {"text": "Most", "from": "Now"},
  "home.wall.remove": {"text": "Eltávolítás", "from": "Remove"},
  "home.wall.replace": {"text": "Csere", "from": "Replace"},
- "srv.home.wallSlot": {"text": "ismeretlen napszak a háttérképhez", "from": "unknown wallpaper slot"}
+ "srv.home.wallSlot": {"text": "ismeretlen napszak a háttérképhez", "from": "unknown wallpaper slot"},
+ "home.wall.examples": {"text": "Példaképek hozzáadása", "from": "Add example pictures"},
+ "home.wall.examplesBusy": {"text": "Letöltés…", "from": "Downloading…"},
+ "home.wall.examplesDone": {"text": "A példaképek hozzáadva. A Kezdőképernyő néhány másodpercen belül frissül.", "from": "Example pictures added. Home updates within a few seconds."},
+ "srv.home.wallExampleBad": {"text": "Egy példa háttérkép nem töltődött le hibátlanul. Próbálja újra később.", "from": "An example wallpaper did not download intact. Try again later."}
 }

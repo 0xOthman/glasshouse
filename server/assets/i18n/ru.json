@@ -2171,5 +2171,9 @@
  "home.wall.now": {"text": "Сейчас", "from": "Now"},
  "home.wall.remove": {"text": "Удалить", "from": "Remove"},
  "home.wall.replace": {"text": "Заменить", "from": "Replace"},
- "srv.home.wallSlot": {"text": "неизвестное время суток для обоев", "from": "unknown wallpaper slot"}
+ "srv.home.wallSlot": {"text": "неизвестное время суток для обоев", "from": "unknown wallpaper slot"},
+ "home.wall.examples": {"text": "Добавить примеры изображений", "from": "Add example pictures"},
+ "home.wall.examplesBusy": {"text": "Скачивание…", "from": "Downloading…"},
+ "home.wall.examplesDone": {"text": "Примеры изображений добавлены. Главный экран обновится в течение нескольких секунд.", "from": "Example pictures added. Home updates within a few seconds."},
+ "srv.home.wallExampleBad": {"text": "Пример обоев скачался не полностью. Повторите попытку позже.", "from": "An example wallpaper did not download intact. Try again later."}
 }

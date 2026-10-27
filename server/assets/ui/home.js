@@ -577,6 +577,12 @@ function renderHomeWalls() {
   const now = homeWallNow();
   const c = (homeLayout && homeLayout.colours) || ((homeStatus.colourPresets || [])[0]) || { text: '#ece7df', accent: '#e9ad55' };
   q('home-wall-clear').disabled = busy || !walls.available;
+  // Only into times of day without a picture, so it goes once all four have one.
+  const examples = q('home-wall-examples');
+  examples.hidden = HOME_WALL_SLOTS.every(w => has[w.key]);
+  examples.disabled = busy;
+  examples.textContent = homeWallUploading === 'examples'
+    ? t('home.wall.examplesBusy', 'Downloading…') : t('home.wall.examples', 'Add example pictures');
   clearTimeout(homeWallTimer);
   if (walls.uploading) homeWallTimer = setTimeout(() => { if (activeTab === 'home') loadHome(); }, 2000);
 
@@ -597,7 +603,8 @@ function renderHomeWalls() {
   box.style.setProperty('--look-accent', c.accent);
   box.innerHTML = HOME_WALL_SLOTS.map(w => {
     const key = w.key, set = !!has[key];
-    const sending = homeWallUploading === key || (walls.uploading && !homeWallUploading);
+    const fetching = homeWallUploading === 'examples' && !set;
+    const sending = homeWallUploading === key || fetching || (walls.uploading && !homeWallUploading);
     return `<div class="wall-card${set ? ' has' : ''}${key === now ? ' now' : ''}${sending ? ' busy' : ''}" data-slot="${key}">
       <button type="button" class="wall-screen" onclick="homeWallChoose('${key}')" ${busy ? 'disabled' : ''}
           aria-label="${esc(t('home.wall.choose', 'Choose a picture for {name}', { name: names[key] }))}"
@@ -606,7 +613,7 @@ function renderHomeWalls() {
         <span class="wall-row">${esc(t('home.row.apps', 'Apps'))}</span><i></i>
         ${set ? '' : `<span class="wall-add">${esc(t('home.wall.add', 'Add a picture'))}</span>`}
         ${key === now ? `<span class="wall-badge">${esc(t('home.wall.now', 'Now'))}</span>` : ''}
-        ${sending ? `<span class="wall-sending">${esc(t('home.wall.uploading', 'Uploading…'))}</span>` : ''}
+        ${sending ? `<span class="wall-sending">${esc(fetching ? t('home.wall.examplesBusy', 'Downloading…') : t('home.wall.uploading', 'Uploading…'))}</span>` : ''}
       </button>
       <div class="wall-meta">
         <span class="wall-name">${esc(names[key])}</span>
@@ -695,6 +702,25 @@ async function homeWallRemove(key) {
   try { await homePost('/api/home/wallpapers', { remove: key }); }
   catch (e) { q('home-wall-upload-note').textContent = e.message; }
   await loadHome();
+}
+
+// The example set (a loch at four times of day) into every time of day
+// without a picture; ones already chosen are kept.
+async function homeAddExamples() {
+  if (!homeWritable() || homeWallUploading) return;
+  const note = q('home-wall-upload-note');
+  note.textContent = '';
+  homeWallUploading = 'examples';
+  renderHomeWalls();
+  try {
+    await homePost('/api/home/wallpapers', { examples: true });
+    note.textContent = t('home.wall.examplesDone', 'Example pictures added. Home updates within a few seconds.');
+  } catch (e) { note.textContent = e.message; }
+  finally {
+    homeWallUploading = false;
+    await loadHome();
+    renderHomeWalls();
+  }
 }
 
 async function homeClearUploads() {

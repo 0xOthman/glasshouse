@@ -2095,5 +2095,9 @@
  "home.wall.now": {"text": "Ahora", "from": "Now"},
  "home.wall.remove": {"text": "Quitar", "from": "Remove"},
  "home.wall.replace": {"text": "Reemplazar", "from": "Replace"},
- "srv.home.wallSlot": {"text": "momento del día desconocido para el fondo", "from": "unknown wallpaper slot"}
+ "srv.home.wallSlot": {"text": "momento del día desconocido para el fondo", "from": "unknown wallpaper slot"},
+ "home.wall.examples": {"text": "Añadir imágenes de ejemplo", "from": "Add example pictures"},
+ "home.wall.examplesBusy": {"text": "Descargando…", "from": "Downloading…"},
+ "home.wall.examplesDone": {"text": "Imágenes de ejemplo añadidas. Home se actualiza en unos segundos.", "from": "Example pictures added. Home updates within a few seconds."},
+ "srv.home.wallExampleBad": {"text": "Una imagen de ejemplo no se descargó completa. Inténtalo de nuevo más tarde.", "from": "An example wallpaper did not download intact. Try again later."}
 }
