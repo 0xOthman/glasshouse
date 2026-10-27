@@ -1795,7 +1795,8 @@ module.exports = {
     if (!sup.ok) return cb({ ok: false, error: sup.reason });
     if (body && body.removeUploads === true) return wallpapers.removeUploads(cb);
     if (body && typeof body.remove === 'string') return wallpapers.removeUploads(cb, body.remove);
-    cb({ ok: false, error: 'removeUploads or remove expected' });
+    if (body && body.examples === true) return wallpapers.addExamples(cb);
+    cb({ ok: false, error: 'removeUploads, remove or examples expected' });
   },
   normalise: normalise,
   layout: function () { return layoutOf(readConfig()); },

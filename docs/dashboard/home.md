@@ -86,6 +86,7 @@ The web dashboard's **Wallpaper** section shows the day as a strip from midnight
 
 * Choosing a time of day, on the strip or its preview, or dropping an image on it, sets its picture. JPEG, PNG and WebP images up to 25 MB are taken; the browser scales each to fit 1920 × 1080 as a JPEG before saving it to `/var/lib/tvweb/home-wallpaper-uploads` on the TV.
 * **Replace** and **Remove** under a time of day change or remove its picture alone; one without a picture has the black background.
+* **Add example pictures** fills every time of day without a picture from an example set, a loch at four times of day, and leaves the ones already chosen. The set is downloaded to the TV only when the button is pressed, about 820 KB in all, from [glasshouse-wallpapers](https://github.com/rorygallagher2024/glasshouse-wallpapers). The button is hidden once every time of day has a picture.
 * **Remove all** puts the black background back for every time of day.
 
 === "Afternoon wallpaper"

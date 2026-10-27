@@ -630,5 +630,17 @@
   "srv.home.wallSlot": {
     "text": "unbekannte Tageszeit für das Hintergrundbild",
     "from": "unknown wallpaper slot"
+  },
+  "home.wall.examples": {
+    "text": "Beispielbilder hinzufügen",
+    "from": "Add example pictures"
+  },
+  "home.wall.examplesBusy": {
+    "text": "Wird heruntergeladen…",
+    "from": "Downloading…"
+  },
+  "home.wall.examplesDone": {
+    "text": "Beispielbilder hinzugefügt. Home aktualisiert sich in wenigen Sekunden.",
+    "from": "Example pictures added. Home updates within a few seconds."
   }
 }
