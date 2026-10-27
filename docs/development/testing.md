@@ -186,7 +186,7 @@ Home recovery checks cover a switch-off cut short, failed layout restoration and
 console on the same port select their own device IDs, a direct source selects
 its ID, and missing or unusable IDs and non-CEC inputs open the port alone.
 
-`test-home-wallpaper-upload.js` exercises the real HTTP boundary: rejected and interrupted uploads preserve the previous image, concurrent uploads are refused, the lock is released after an abort, and an uploaded JPEG survives reinitialisation and is served with its image type. The dashboard check prepares a PNG as JPEG, shows the uploaded image and verifies that a second tab recovers after the first finishes uploading.
+`test-home-wallpaper-upload.js` exercises the real HTTP boundary: rejected and interrupted uploads preserve the previous image, concurrent uploads are refused, the lock is released after an abort, an uploaded JPEG survives reinitialisation and is served with its image type, and one time of day's picture is removed alone, an unknown one refused. The dashboard check chooses Morning and uploads to it, preparing a PNG as JPEG, shows the pending upload in a second tab and the picture once done, drops an image on Evening, removes Morning alone and then all of them.
 
 `test-home-recent-apps.js` exercises the recent-app HTTP routes: refused and
 unconfirmed stops retain their cards for retry, unavailable running lists
