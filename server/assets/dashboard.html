@@ -426,10 +426,21 @@ var allowPower = false;
 var clockHour12 = false;
 // Ticks since caps were read again, for the hour cycle to be noticed on an open page.
 var capsTicks = 0;
+// The server version this page came from. webOS keeps the app's page in
+// memory, and on a B8 (webOS 4.4) it came back without webOSRelaunch, so a
+// fix the server installed did not show until the TV restarted.
+var pageVersion = null;
+function reloadPage() {
+  location.replace(location.pathname + '?tab=' + T().key + '&t=' + Date.now());
+}
 function refreshCaps() {
   fetch('/api/caps', { cache: 'no-store' })
     .then(function (r) { return r.json(); })
     .then(function (d) {
+      if (d && d.version) {
+        if (pageVersion === null) pageVersion = d.version;
+        else if (d.version !== pageVersion) return reloadPage();
+      }
       // A new install walks through setup first - but only in the TV app: a
       // phone's browser cannot use those screens. The ?setup=1 or ?emulate-setup=1
       // query parameter allows testing the setup wizard from any browser.
@@ -2958,8 +2969,10 @@ function activate() {
 // Back only sends a webOS app to the background, and opening it again from the
 // home screen resumes the page as it was. Reload instead, on the same tab, so
 // a server updated in the meantime shows its current dashboard.
-document.addEventListener('webOSRelaunch', function () {
-  location.replace(location.pathname + '?tab=' + T().key + '&t=' + Date.now());
+document.addEventListener('webOSRelaunch', reloadPage);
+// Back in front by any other way, ask at once rather than at the next sixth tick.
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) refreshCaps();
 });
 
 function leaveApp() {
