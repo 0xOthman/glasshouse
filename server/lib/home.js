@@ -1785,7 +1785,8 @@ module.exports = {
     var sup = supported();
     if (!sup.ok) return cb({ ok: false, error: sup.reason });
     if (body && body.removeUploads === true) return wallpapers.removeUploads(cb);
-    cb({ ok: false, error: 'removeUploads expected' });
+    if (body && typeof body.remove === 'string') return wallpapers.removeUploads(cb, body.remove);
+    cb({ ok: false, error: 'removeUploads or remove expected' });
   },
   normalise: normalise,
   layout: function () { return layoutOf(readConfig()); },
