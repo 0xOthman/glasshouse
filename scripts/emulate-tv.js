@@ -9,7 +9,7 @@
  *   - Glasshouse Home:        http://localhost:8080/assets/home.html
  *
  * Usage:
- *   node scripts/emulate-tv.js [--port 8080] [--model c2|b8|c3|cx|c1] [--webos 6.5.3] [--open]
+ *   node scripts/emulate-tv.js [--port 8080] [--model c2|b8|c3|cx|c1] [--webos 6.5.3] [--home on|off] [--open]
  *
  * --webos reports another webOS version on the chosen model, to see how the
  * dashboards treat a version no profile covers.
@@ -31,11 +31,13 @@ let port = 8080;
 let model = 'c2';
 let autoOpen = false;
 let webosOverride = null;
+let homeOn = null;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--port' && args[i + 1]) { port = parseInt(args[++i], 10); }
   else if (args[i] === '--model' && args[i + 1]) { model = args[++i].toLowerCase(); }
   else if (args[i] === '--webos' && args[i + 1]) { webosOverride = args[++i]; }
+  else if (args[i] === '--home' && /^(on|off)$/.test(args[i + 1] || '')) { homeOn = args[++i] === 'on'; }
   else if (args[i] === '--open') { autoOpen = true; }
   else if (args[i] === '--help' || args[i] === '-h') {
     console.log('Usage: node scripts/emulate-tv.js [options]');
@@ -43,6 +45,7 @@ for (let i = 0; i < args.length; i++) {
     console.log('  --port <number>    HTTP port to bind (default: 8080)');
     console.log('  --model <c2|b8|c3|cx|c1> TV profile to simulate (default: c2)');
     console.log('  --webos <version>  webOS version to report instead of the profile\'s, e.g. 6.5.3');
+    console.log('  --home <on|off>    start with Glasshouse Home switched on or off (default: on from webOS 7)');
     console.log('  --open             Automatically open the dashboard in browser');
     process.exit(0);
   }
@@ -207,9 +210,10 @@ async function main() {
 
   // Glasshouse Home starts switched on where main supports it, webOS 7 and
   // later. Seeded on where it is not, the Home tab shows a switch-off left
-  // unfinished, which no real TV would have.
+  // unfinished, which no real TV would have; --home on is for a branch that
+  // adds a version. Switching it here does nothing: nothing is mounted.
   const homeCfg = {
-    enabled: profile.webosMajor >= 7,
+    enabled: homeOn === null ? profile.webosMajor >= 7 : homeOn,
     rows: ['app', 'dev', 'ch'],
     order: { app: [], dev: [], ch: [] },
     sort: { app: 'custom', dev: 'custom', ch: 'custom' },
